@@ -103,7 +103,31 @@ public static class Program
         if (unattributed > 0.01 * result.TotalMs)
             Console.WriteLine($"  {"(non attribué)",-34}{unattributed / result.MeasuredEvents,10:F3}{unattributed / result.TotalMs * 100.0,7:F1}%");
         Console.WriteLine();
+
+        PrintAllocationSamples(result, breakdownTop);
     }
+
+    /// <summary>
+    /// Types les plus alloués, par contrôleur. Échantillonné (un relevé tous les ~100 Ko alloués) :
+    /// les proportions sont fiables, les octets exacts non — c'est un classement, pas une comptabilité.
+    /// </summary>
+    private static void PrintAllocationSamples(TickBenchmarkResult result, int top)
+    {
+        if (result.AllocationSamples.Count == 0) return;
+
+        long total = result.AllocationSamples.Sum(s => s.Bytes);
+        if (total <= 0) return;
+
+        Console.WriteLine($"  allocations échantillonnées par type ({FormatBytes(total)} vus)");
+        Console.WriteLine($"  {"contrôleur",-26}{"type alloué",-46}{"%",7}{"o/évt",12}");
+        foreach (var sample in result.AllocationSamples.Take(top))
+            Console.WriteLine($"  {Truncate(sample.Controller, 25),-26}{Truncate(sample.TypeName, 45),-46}"
+                            + $"{(double)sample.Bytes / total * 100.0,6:F1}%{FormatBytes((double)sample.Bytes / result.MeasuredEvents),12}");
+        Console.WriteLine();
+    }
+
+    private static string Truncate(string value, int length)
+        => value.Length <= length ? value : value[..(length - 1)] + "…";
 
     /// <summary>
     /// Table de montée en charge. La pente log-log est ce qu'on cherche vraiment : ≈1 = coût linéaire
@@ -229,6 +253,9 @@ public static class Program
               --ticks-per-event <n>     Ticks par événement (défaut : 100 = découpage de
                                          SimulateAdvance ; 2 ≈ une frame à 60 fps en vitesse x1).
               --breakdown-top <n>       Contrôleurs affichés dans la répartition (défaut : 12).
+              --alloc-types             Échantillonne aussi les types alloués, par contrôleur
+                                         (GCAllocationTick). Fausse un peu les temps : à utiliser
+                                         pour diagnostiquer, pas pour comparer.
 
             Sorties :
               --csv <path>              Écrit les résultats (total + par contrôleur) en CSV.
@@ -256,6 +283,7 @@ internal sealed class BenchCliOptions
     public int WarmupEvents { get; set; } = 200;
     public int TicksPerEvent { get; set; } = 100;
     public int BreakdownTop { get; set; } = 12;
+    public bool SampleAllocationTypes { get; set; }
     public string? CsvPath { get; set; }
     public string? SaveFixtureDirectory { get; set; }
 
@@ -279,6 +307,7 @@ internal sealed class BenchCliOptions
         Rounds = Rounds,
         WarmupEvents = WarmupEvents,
         TicksPerEvent = TicksPerEvent,
+        SampleAllocationTypes = SampleAllocationTypes,
     };
 
     public static BenchCliOptions Parse(string[] args)
@@ -311,6 +340,7 @@ internal sealed class BenchCliOptions
                 case "--warmup": options.WarmupEvents = int.Parse(RequireValue(args, ref i)); break;
                 case "--ticks-per-event": options.TicksPerEvent = int.Parse(RequireValue(args, ref i)); break;
                 case "--breakdown-top": options.BreakdownTop = int.Parse(RequireValue(args, ref i)); break;
+                case "--alloc-types": options.SampleAllocationTypes = true; break;
                 case "--csv": options.CsvPath = RequireValue(args, ref i); break;
                 case "--save-fixture": options.SaveFixtureDirectory = RequireValue(args, ref i); break;
                 default: throw new ArgumentException($"Argument inconnu : {args[i]}");

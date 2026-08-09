@@ -164,8 +164,21 @@ public class Edge
     /// Retourne les deux vertex (sommets) partagés par les deux hexagones formant l'arête.
     /// L'Edge étant normalisé, la direction de Hex1→Hex2 est toujours E, NE ou SE.
     /// </summary>
+    [NonSerialized]
+    private Vertex[]? _vertices;
+
+    /// <summary>
+    /// Mémoïsé et <b>partagé</b> entre tous les appelants — une arête est immuable : ne jamais muter
+    /// le tableau rendu. Chaque appel allouait auparavant le tableau <i>et</i> deux Vertex ; or les
+    /// arêtes des routes sont des instances à longue durée de vie, reparcourues à chaque tick
+    /// (graphe d'adjacence du pathfinding, distance à la ville la plus proche, sommets constructibles),
+    /// ce qui recréait sans cesse les mêmes sommets. La rétention reste bornée : deux Vertex par
+    /// arête, et un Vertex ne référence aucun autre Vertex.
+    /// </summary>
     public Vertex[] GetVertices()
     {
+        if (_vertices != null) return _vertices;
+
         HexDirection dir = (Hex2.Q - Hex1.Q, Hex2.R - Hex1.R) switch
         {
             (1,  0) => HexDirection.E,
@@ -174,7 +187,7 @@ public class Edge
         };
         var third1 = Hex1.Neighbor(dir.Previous());
         var third2 = Hex1.Neighbor(dir.Next());
-        return
+        return _vertices =
         [
             Vertex.Create(Hex1, Hex2, third1),
             Vertex.Create(Hex1, Hex2, third2),

@@ -58,18 +58,20 @@ public class Civilization
     public List<City> CitiesSerialized
     {
         get => _cities;
-        private set => _cities = value ?? new();
+        private set { _cities = value ?? new(); InvalidateVertexCaches(); }
     }
 
     public void AddCity(City city)
     {
         _cities.Add(city);
+        InvalidateVertexCaches();
         BuildingController.RecalculateStorageCapacity(this);
     }
 
     public void RemoveCity(City city)
     {
         _cities.Remove(city);
+        InvalidateVertexCaches();
         RebuildUniqueBuildingCache();
         RebuildUniqueBuildingsModifiers();
         BuildingController.RecalculateStorageCapacity(this);
@@ -109,11 +111,11 @@ public class Civilization
     public List<MaritimeBeacon> MaritimeBeaconsSerialized
     {
         get => _maritimeBeacons;
-        private set => _maritimeBeacons = value ?? new();
+        private set { _maritimeBeacons = value ?? new(); InvalidateVertexCaches(); }
     }
 
-    public void AddMaritimeBeacon(MaritimeBeacon beacon) => _maritimeBeacons.Add(beacon);
-    public void RemoveMaritimeBeacon(MaritimeBeacon beacon) => _maritimeBeacons.Remove(beacon);
+    public void AddMaritimeBeacon(MaritimeBeacon beacon) { _maritimeBeacons.Add(beacon); InvalidateVertexCaches(); }
+    public void RemoveMaritimeBeacon(MaritimeBeacon beacon) { _maritimeBeacons.Remove(beacon); InvalidateVertexCaches(); }
 
     private List<WarFleet> _fleets = new();
 
@@ -129,11 +131,11 @@ public class Civilization
     public List<WarFleet> FleetsSerialized
     {
         get => _fleets;
-        private set => _fleets = value ?? new();
+        private set { _fleets = value ?? new(); InvalidateVertexCaches(); }
     }
 
-    public void AddFleet(WarFleet fleet) => _fleets.Add(fleet);
-    public void RemoveFleet(WarFleet fleet) => _fleets.Remove(fleet);
+    public void AddFleet(WarFleet fleet) { _fleets.Add(fleet); InvalidateVertexCaches(); }
+    public void RemoveFleet(WarFleet fleet) { _fleets.Remove(fleet); InvalidateVertexCaches(); }
 
     private List<MobileCamp> _mobileCamps = new();
 
@@ -149,11 +151,11 @@ public class Civilization
     public List<MobileCamp> MobileCampsSerialized
     {
         get => _mobileCamps;
-        private set => _mobileCamps = value ?? new();
+        private set { _mobileCamps = value ?? new(); InvalidateVertexCaches(); }
     }
 
-    public void AddMobileCamp(MobileCamp camp) => _mobileCamps.Add(camp);
-    public void RemoveMobileCamp(MobileCamp camp) => _mobileCamps.Remove(camp);
+    public void AddMobileCamp(MobileCamp camp) { _mobileCamps.Add(camp); InvalidateVertexCaches(); }
+    public void RemoveMobileCamp(MobileCamp camp) { _mobileCamps.Remove(camp); InvalidateVertexCaches(); }
 
     private List<LandingSite> _landingSites = new();
 
@@ -169,30 +171,79 @@ public class Civilization
     public List<LandingSite> LandingSitesSerialized
     {
         get => _landingSites;
-        private set => _landingSites = value ?? new();
+        private set { _landingSites = value ?? new(); InvalidateVertexCaches(); }
     }
 
-    public void AddLandingSite(LandingSite site) => _landingSites.Add(site);
-    public void RemoveLandingSite(LandingSite site) => _landingSites.Remove(site);
+    public void AddLandingSite(LandingSite site) { _landingSites.Add(site); InvalidateVertexCaches(); }
+    public void RemoveLandingSite(LandingSite site) { _landingSites.Remove(site); InvalidateVertexCaches(); }
+
+    [NonSerialized]
+    private List<IMilitaryVertex>? _militaryVerticesCache;
+
+    [NonSerialized]
+    private List<IBuildVertex>? _buildVerticesCache;
+
+    /// <summary>
+    /// Invalide les listes agrégées <see cref="MilitaryVertices"/> / <see cref="BuildVertices"/>.
+    /// À appeler depuis toute mutation d'une des listes sources (villes, flottes, balises, camps
+    /// mobiles, sites d'arrivée) — pas quand un emplacement change simplement de position, les caches
+    /// ne contenant que des références.
+    /// </summary>
+    private void InvalidateVertexCaches()
+    {
+        _militaryVerticesCache = null;
+        _buildVerticesCache = null;
+    }
 
     /// <summary>
     /// Tous les emplacements militaires de la civilisation (villes, flottes et camps mobiles) — voir
     /// IMilitaryVertex. Utilisé par le système militaire pour traiter les trois types de façon uniforme.
     /// Les Sites d'Arrivée en sont volontairement absents : ils ne sont jamais une cible.
+    ///
+    /// <para>Matérialisé en liste et mis en cache jusqu'à la prochaine mutation. Une chaîne
+    /// <c>Concat</c> paraissait gratuite mais réalloue ses itérateurs à <b>chaque</b> énumération, et
+    /// cette propriété est parcourue par presque tous les moteurs militaires à chaque tick, parfois
+    /// en boucles imbriquées (une énumération complète par emplacement). L'ordre — villes, puis
+    /// flottes, puis camps — est celui de l'ancienne chaîne et doit le rester : plusieurs choix de
+    /// cible en dépendent, donc le déterminisme de la partie aussi.</para>
     /// </summary>
     [JsonIgnore]
-    public IEnumerable<IMilitaryVertex> MilitaryVertices =>
-        Cities.Concat<IMilitaryVertex>(Fleets).Concat<IMilitaryVertex>(MobileCamps);
+    public IReadOnlyList<IMilitaryVertex> MilitaryVertices
+    {
+        get
+        {
+            if (_militaryVerticesCache != null) return _militaryVerticesCache;
+
+            var list = new List<IMilitaryVertex>(_cities.Count + _fleets.Count + _mobileCamps.Count);
+            for (int i = 0; i < _cities.Count; i++) list.Add(_cities[i]);
+            for (int i = 0; i < _fleets.Count; i++) list.Add(_fleets[i]);
+            for (int i = 0; i < _mobileCamps.Count; i++) list.Add(_mobileCamps[i]);
+            return _militaryVerticesCache = list;
+        }
+    }
 
     /// <summary>
     /// Tous les emplacements construits par la civilisation (villes, flottes, balises, camps mobiles,
     /// sites d'arrivée) — voir IBuildVertex. Utilisé pour vérifier de façon uniforme l'occupation
-    /// d'un vertex.
+    /// d'un vertex. Même mise en cache et même contrainte d'ordre que <see cref="MilitaryVertices"/>.
     /// </summary>
     [JsonIgnore]
-    public IEnumerable<IBuildVertex> BuildVertices =>
-        Cities.Concat<IBuildVertex>(Fleets).Concat<IBuildVertex>(MaritimeBeacons)
-              .Concat<IBuildVertex>(MobileCamps).Concat<IBuildVertex>(LandingSites);
+    public IReadOnlyList<IBuildVertex> BuildVertices
+    {
+        get
+        {
+            if (_buildVerticesCache != null) return _buildVerticesCache;
+
+            var list = new List<IBuildVertex>(
+                _cities.Count + _fleets.Count + _maritimeBeacons.Count + _mobileCamps.Count + _landingSites.Count);
+            for (int i = 0; i < _cities.Count; i++) list.Add(_cities[i]);
+            for (int i = 0; i < _fleets.Count; i++) list.Add(_fleets[i]);
+            for (int i = 0; i < _maritimeBeacons.Count; i++) list.Add(_maritimeBeacons[i]);
+            for (int i = 0; i < _mobileCamps.Count; i++) list.Add(_mobileCamps[i]);
+            for (int i = 0; i < _landingSites.Count; i++) list.Add(_landingSites[i]);
+            return _buildVerticesCache = list;
+        }
+    }
 
     private TechnologyTree _technologyTree = new();
 

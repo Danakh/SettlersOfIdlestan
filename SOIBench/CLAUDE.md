@@ -13,6 +13,7 @@ fin de partie. Il fait deux choses :
    on veut mesurer l'effet.
 2. **`TickBenchmark` + `ClockProfiler`** — mesurent le coût d'un événement `GameClock.Advanced` et
    l'attribuent à chacun des ~15 contrôleurs abonnés à l'horloge.
+3. **`AllocationSampler`** (`--alloc-types`) — dit *quels types* sont alloués, par contrôleur.
 
 Il ne dépend que de `SettlersOfIdlestanCore`. `SOITests/PerformanceTests/` dépend de lui (et pas
 l'inverse) pour valider le générateur.
@@ -36,6 +37,9 @@ dotnet run --project SOIBench -c Release -- --cities 400 --breakdown-top 20 --sa
 
 # Coût d'une frame en jeu plutôt que du rattrapage hors-ligne
 dotnet run --project SOIBench -c Release -- --cities 400 --ticks-per-event 2
+
+# Chasse aux allocations : quels types, dans quel contrôleur
+dotnet run --project SOIBench -c Release -- --cities 400 --alloc-types --breakdown-top 20
 ```
 
 Voir `--help` pour la liste complète des options.
@@ -87,6 +91,29 @@ le recouper avec un vrai run (`SOIStrategyTester --endless`). Le banc dit *combi
   état mal construit « simule » donc sans erreur en ne faisant rien. Ne jamais conclure d'une
   absence d'exception : `Build_ProducesAStateWhereSimulationActuallyRuns` vérifie un effet
   observable (production de ressources) à la place.
+
+## Chasser une allocation
+
+`--alloc-types` s'abonne à `GCAllocationTick` du runtime (un relevé tous les ~100 Ko alloués, avec le
+type de l'objet qui franchit le seuil) et attribue chaque échantillon au contrôleur en cours
+d'exécution, lu dans `ClockProfiler.CurrentController`. Les proportions sont fiables, les octets
+exacts non : c'est un **classement**, pas une comptabilité.
+
+Méthode qui a effectivement fonctionné, et à refaire dans cet ordre :
+
+1. Lire le classement des types, pas le code. La première passe d'optimisation de ce projet a été
+   faite « à l'œil » sur ce qui *semblait* coûteux (chaînes LINQ `Concat` de `MilitaryVertices`) :
+   gain mesuré 9,1 → 8,9 Mo, soit rien. Les vrais coupables n'étaient dans aucune des hypothèses.
+2. **Un type qui domine dans plusieurs contrôleurs à la fois désigne un utilitaire partagé**, pas les
+   contrôleurs. `HashSet<HexCoord>` en tête chez Harvest, Npc *et* Military pointait vers
+   `VisibleIslandMap`, appelé par tous les trois.
+3. Se méfier des types « invisibles » : `Int32[]` et `Entry[…][]` sont les tableaux internes des
+   `HashSet`/`Dictionary`. Les additionner à l'entrée du dictionnaire correspondant pour juger du
+   poids réel d'une collection.
+4. Une classe de fermeture (`<>c__DisplayClass…`) en haut du classement signale un lambda capturant
+   dans une boucle chaude — typiquement un `.Any(f => …)` sur une liste, à remplacer par une boucle
+   indexée.
+5. Remesurer après **chaque** changement. Plusieurs corrections plausibles n'ont rien donné.
 
 ## ClockProfiler — le point fragile
 

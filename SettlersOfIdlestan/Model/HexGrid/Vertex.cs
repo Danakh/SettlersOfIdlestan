@@ -116,13 +116,21 @@ public class Vertex : IEquatable<Vertex>
 
     public override bool Equals(object? obj) => Equals(obj as Vertex);
 
+    [NonSerialized]
+    private HexCoord[]? _hexes;
+
     /// <summary>
     /// Retourne les trois hexagones de ce sommet.
+    ///
+    /// <para>Le tableau est mémoïsé — un Vertex est immuable — et <b>partagé</b> entre tous les
+    /// appelants : ne jamais le muter. Cette méthode est appelée dans presque toutes les boucles par
+    /// tick (visibilité, récolte, distances de route, pathfinding) et allouait auparavant un tableau
+    /// à chaque appel ; les Vertex à longue durée de vie (position des villes, sommets des routes)
+    /// ne paient donc plus qu'une seule allocation. Volontairement pas de mémoïsation sur
+    /// <see cref="GetAdjacentVertices"/> : elle retiendrait des références vers d'autres Vertex, et
+    /// un parcours du réseau routier finirait par retenir tout le graphe.</para>
     /// </summary>
-    public HexCoord[] GetHexes()
-    {
-        return new[] { Hex1, Hex2, Hex3 };
-    }
+    public HexCoord[] GetHexes() => _hexes ??= new[] { Hex1, Hex2, Hex3 };
 
     /// <summary>
     /// VÃ©rifie si ce sommet est adjacent Ã  un hexagone donnÃ©.

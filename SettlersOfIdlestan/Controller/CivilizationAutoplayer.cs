@@ -980,10 +980,7 @@ namespace SettlersOfIdlestan.Controller
             var networkVertices = GetSurfaceNetworkVertices();
             bool result = false;
             if (networkVertices.Count > 0)
-            {
-                var visibleHexes = new HashSet<HexCoord>(visibleMap.Tiles.Keys);
-                result = FindUnexploredVertexNear(networkVertices, visibleHexes, map) != null;
-            }
+                result = FindUnexploredVertexNear(networkVertices, visibleMap, map) != null;
 
             _unexploredCacheMap = visibleMap;
             _unexploredCacheTotalCityCount = totalCityCount;
@@ -1010,8 +1007,7 @@ namespace SettlersOfIdlestan.Controller
             var networkVertices = GetSurfaceNetworkVertices();
             if (networkVertices.Count == 0) return false;
 
-            var visibleHexes = new HashSet<HexCoord>(visibleMap.Tiles.Keys);
-            var target = FindUnexploredVertexNear(networkVertices, visibleHexes, map);
+            var target = FindUnexploredVertexNear(networkVertices, visibleMap, map);
             if (target == null) return false;
 
             var edge = FindApproachEdge(networkVertices, target);
@@ -1055,8 +1051,14 @@ namespace SettlersOfIdlestan.Controller
             return network;
         }
 
+        /// <summary>
+        /// <paramref name="visibleMap"/> est interrogée directement plutôt que recopiée dans un
+        /// HashSet : la carte visible d'une civilisation de fin de partie compte plus d'un millier
+        /// d'hexagones, et <c>HasTile</c> répond exactement à la même question que l'ancien
+        /// <c>visibleHexes.Contains</c>, pour zéro allocation.
+        /// </summary>
         private Vertex? FindUnexploredVertexNear(
-            HashSet<Vertex> networkVertices, HashSet<HexCoord> visibleHexes, IslandMap map)
+            HashSet<Vertex> networkVertices, IslandMap visibleMap, IslandMap map)
         {
             var buildableEdges = new HashSet<Edge>(
                 _roadController.GetBuildableRoads(_civ.Index).Select(r => r.Position));
@@ -1074,13 +1076,13 @@ namespace SettlersOfIdlestan.Controller
                         d1.Add(adj);
 
             var target = d1.FirstOrDefault(v =>
-                v.GetHexes().Any(h => map.GetTile(h) != null && !visibleHexes.Contains(h)) && IsReachable(v));
+                v.GetHexes().Any(h => map.GetTile(h) != null && !visibleMap.HasTile(h)) && IsReachable(v));
             if (target != null) return target;
 
             foreach (var v1 in d1)
                 foreach (var adj in v1.GetAdjacentVertices())
                     if (!networkVertices.Contains(adj) && !d1.Contains(adj))
-                        if (adj.GetHexes().Any(h => map.GetTile(h) != null && !visibleHexes.Contains(h)) && IsReachable(adj))
+                        if (adj.GetHexes().Any(h => map.GetTile(h) != null && !visibleMap.HasTile(h)) && IsReachable(adj))
                             return adj;
 
             return null;

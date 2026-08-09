@@ -142,6 +142,10 @@ namespace SettlersOfIdlestan.Controller.Island
             return multiplier;
         }
 
+        /// <summary>Tampons réutilisés par <see cref="PerformAutomaticProductionHarvests"/> — voir son commentaire.</summary>
+        private readonly System.Collections.Generic.Dictionary<HexCoord, bool> _hexBlockedScratch = new();
+        private readonly System.Collections.Generic.Dictionary<HexCoord, double> _hexMultiplierScratch = new();
+
         private void PerformAutomaticProductionHarvests()
         {
             if (_state == null || _clock == null) return;
@@ -153,9 +157,15 @@ namespace SettlersOfIdlestan.Controller.Island
                 var entries = GetOrBuildProductionCache(civ.Index);
                 if (entries.Count == 0) continue;
 
-                // Mémoïse les vérifications dynamiques par hex pour éviter de les répéter par bâtiment
-                var hexBlocked = new System.Collections.Generic.Dictionary<HexCoord, bool>();
-                var hexMultiplier = new System.Collections.Generic.Dictionary<HexCoord, double>();
+                // Mémoïse les vérifications dynamiques par hex pour éviter de les répéter par bâtiment.
+                // Les deux dictionnaires sont réutilisés d'une civilisation et d'un tick à l'autre :
+                // ils montent à plusieurs centaines d'entrées en fin de partie, et les réallouer par
+                // civ à chaque tick faisait de leurs tableaux internes un des premiers postes
+                // d'allocation de la simulation.
+                var hexBlocked = _hexBlockedScratch;
+                var hexMultiplier = _hexMultiplierScratch;
+                hexBlocked.Clear();
+                hexMultiplier.Clear();
                 System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>? harvested = null;
 
                 foreach (var (hex, city, building, resource, terrain) in entries)

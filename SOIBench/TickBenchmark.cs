@@ -20,6 +20,13 @@ public sealed class TickBenchmarkOptions
     public int WarmupEvents { get; set; } = 200;
 
     /// <summary>
+    /// Échantillonne aussi les allocations par type et par contrôleur (voir
+    /// <see cref="AllocationSampler"/>). Ajoute un surcoût par événement : à activer pour
+    /// diagnostiquer, pas pour comparer des temps.
+    /// </summary>
+    public bool SampleAllocationTypes { get; set; }
+
+    /// <summary>
     /// Ticks de simulation par événement. 100 = le découpage par défaut de
     /// <c>GameClock.SimulateAdvance</c> (rattrapage hors-ligne). En jeu, l'horloge lève un seul
     /// événement par frame, soit ~1,7 tick à 60 fps en vitesse x1.
@@ -40,6 +47,9 @@ public sealed class TickBenchmarkResult
 
     public required IReadOnlyList<ControllerCost> ControllerCosts { get; init; }
     public bool HasControllerBreakdown { get; init; }
+
+    /// <summary>Vide si <c>SampleAllocationTypes</c> était désactivé.</summary>
+    public required IReadOnlyList<AllocationSample> AllocationSamples { get; init; }
 
     /// <summary>Médiane des manches — la valeur à citer.</summary>
     public double MsPerEvent => Median(RoundMsPerEvent);
@@ -112,6 +122,13 @@ public static class TickBenchmark
         Collect();
         profiler.Reset();
 
+        AllocationSampler? sampler = null;
+        if (options.SampleAllocationTypes)
+        {
+            sampler = new AllocationSampler();
+            sampler.Start();
+        }
+
         var roundMsPerEvent = new List<double>(options.Rounds);
         long allocated = 0;
         double totalMs = 0;
@@ -129,6 +146,10 @@ public static class TickBenchmark
             roundMsPerEvent.Add(stopwatch.Elapsed.TotalMilliseconds / options.Events);
         }
 
+        sampler?.Stop();
+        var samples = sampler?.Samples ?? (IReadOnlyList<AllocationSample>)Array.Empty<AllocationSample>();
+        sampler?.Dispose();
+
         return new TickBenchmarkResult
         {
             Fixture = fixture,
@@ -139,6 +160,7 @@ public static class TickBenchmark
             RoundMsPerEvent = roundMsPerEvent,
             HasControllerBreakdown = profiler.IsAttached,
             ControllerCosts = profiler.Costs.OrderByDescending(c => c.ElapsedTicks).ToList(),
+            AllocationSamples = samples,
         };
     }
 

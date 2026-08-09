@@ -102,6 +102,8 @@ public class TaskRecordController
         _wonderController.OnWonderPlaced += HandleWonderPlaced;
         _wonderController.OnWonderLevelUp += HandleWonderLevelUp;
         _corruptionSpireController.OnCorruptionSpireBuilt += HandleCorruptionSpireBuilt;
+
+        RebuildPendingTaskIndices();
     }
 
     private void Unsubscribe()
@@ -182,6 +184,14 @@ public class TaskRecordController
         }
     }
 
+    /// <summary>
+    /// Nom persisté de chaque ressource. Même motif que <see cref="TaskKeys"/> : la récolte
+    /// automatique lève un événement par ville et par hexagone à chaque tick, et
+    /// <c>resource.ToString()</c> y allouait une chaîne à chaque fois.
+    /// </summary>
+    private static readonly Dictionary<Resource, string> ResourceKeys =
+        Enum.GetValues<Resource>().ToDictionary(r => r, r => r.ToString());
+
     private void HandleHarvestCompleted(object? sender, HarvestCompletedEventArgs e)
     {
         if (_gameRecord == null || _runRecord == null) return;
@@ -189,7 +199,7 @@ public class TaskRecordController
 
         foreach (var kv in e.Resources)
         {
-            string key = kv.Key.ToString();
+            string key = ResourceKeys[kv.Key];
             _gameRecord.HarvestedResources[key] = _gameRecord.HarvestedResources.GetValueOrDefault(key) + kv.Value;
             _runRecord.HarvestedResources[key] = _runRecord.HarvestedResources.GetValueOrDefault(key) + kv.Value;
         }
@@ -404,20 +414,69 @@ public class TaskRecordController
         CheckTaskCompletions();
     }
 
+    /// <summary>
+    /// Clé persistée de chaque tâche, pré-calculée une fois pour toutes.
+    /// <c>task.Id.ToString()</c> boxe l'enum et alloue une chaîne : le faire pour les 42 tâches à
+    /// chaque appel de <see cref="CheckTaskCompletions"/> — donc à chaque récolte — représentait à
+    /// lui seul plusieurs pourcents des allocations de la simulation en fin de partie.
+    /// </summary>
+    private static readonly string[] TaskKeys =
+        TutorialTaskDefinitions.All.Select(t => t.Id.ToString()).ToArray();
+
+    /// <summary>
+    /// Indices, dans <see cref="TutorialTaskDefinitions.All"/>, des tâches pas encore complétées.
+    /// Reconstruit au chargement puis entretenu au fil des complétions : une fois le tutoriel
+    /// terminé — ce qui est le cas pendant l'essentiel d'une partie — la boucle de vérification
+    /// devient vide au lieu de réévaluer 42 prédicats, dont plusieurs (CountBuilding,
+    /// ComputePrestigePoints) parcourent tous les bâtiments de toutes les villes du joueur.
+    /// </summary>
+    private readonly List<int> _pendingTaskIndices = new();
+
+    private List<TutorialTaskId>? _justCompletedTasks;
+
+    private void RebuildPendingTaskIndices()
+    {
+        _pendingTaskIndices.Clear();
+        if (_gameRecord == null) return;
+
+        for (int i = 0; i < TutorialTaskDefinitions.All.Count; i++)
+            if (!_gameRecord.CompletedTasks.Contains(TaskKeys[i]))
+                _pendingTaskIndices.Add(i);
+    }
+
     private void CheckTaskCompletions()
     {
         if (_gameRecord == null) return;
         SyncLifetimeStats();
-        foreach (var task in TutorialTaskDefinitions.All)
+
+        // Compactage en place, dans l'ordre de définition : l'ordre d'émission de OnTaskCompleted
+        // est celui de l'ancienne boucle.
+        int kept = 0;
+        for (int read = 0; read < _pendingTaskIndices.Count; read++)
         {
-            string key = task.Id.ToString();
-            if (_gameRecord.CompletedTasks.Contains(key)) continue;
-            if (task.IsCompleted(_gameRecord, _runRecord, _islandState))
+            int index = _pendingTaskIndices[read];
+            var task = TutorialTaskDefinitions.All[index];
+
+            if (!task.IsCompleted(_gameRecord, _runRecord, _islandState))
             {
-                _gameRecord.CompletedTasks.Add(key);
-                OnTaskCompleted?.Invoke(this, task.Id);
+                _pendingTaskIndices[kept++] = index;
+                continue;
             }
+
+            _gameRecord.CompletedTasks.Add(TaskKeys[index]);
+            (_justCompletedTasks ??= new List<TutorialTaskId>()).Add(task.Id);
         }
+        _pendingTaskIndices.RemoveRange(kept, _pendingTaskIndices.Count - kept);
+
+        // Notifié après le compactage : un abonné qui réentrerait ici verrait une liste cohérente.
+        if (_justCompletedTasks is { Count: > 0 })
+        {
+            var completed = _justCompletedTasks;
+            _justCompletedTasks = null;
+            foreach (var id in completed)
+                OnTaskCompleted?.Invoke(this, id);
+        }
+
         GameRecordUpdated?.Invoke(this, _gameRecord);
     }
 
