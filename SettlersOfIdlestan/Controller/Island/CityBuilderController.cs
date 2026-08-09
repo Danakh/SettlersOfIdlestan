@@ -683,7 +683,11 @@ namespace SettlersOfIdlestan.Controller.Island
             civ.RemoveCity(city);
             civ.TrimResourcesToMax();
             _buildableVerticesCache.Clear();
-            _state.Visibility.Recalculate();
+            // Seule la civilisation qui perd la ville perd de la visibilité : celle des autres dérive
+            // de leurs propres villes, routes et flottes. Le recalcul global reconstruisait la carte
+            // de visibilité de toutes les civilisations sur toutes les couches — 3,6 % du temps de
+            // simulation en fin de partie, où les PNJ se prennent des villes en permanence.
+            _state.Visibility.RecalculateFor(civ.Index);
 
             OnCityDestroyed?.Invoke(this, new CityDestroyedEventArgs(city.Position, civ.Index, cause));
         }

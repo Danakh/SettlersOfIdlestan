@@ -34,8 +34,23 @@ namespace SettlersOfIdlestan.Controller
         private long _pendingTradeTick  = 0;
         private bool _hasPendingTrade   = false;
 
-        public IEnumerable<CivHistoryEntry> Entries => _entries;
-        public int Count => _entries.Count;
+        /// <summary>
+        /// Entrées de l'historique, de la plus récente à la plus ancienne. Le groupe d'échanges en
+        /// cours n'est matérialisé qu'ici : son libellé est formaté à la lecture, pas à chaque
+        /// échange (voir <see cref="OnGoldObtained"/>).
+        /// </summary>
+        public IEnumerable<CivHistoryEntry> Entries
+        {
+            get
+            {
+                if (_hasPendingTrade)
+                    yield return new CivHistoryEntry { Tick = _pendingTradeTick, Label = BuildTradeLabel() };
+                foreach (var entry in _entries)
+                    yield return entry;
+            }
+        }
+
+        public int Count => _entries.Count + (_hasPendingTrade ? 1 : 0);
 
         public void Initialize(
             WorldState          state,
@@ -79,11 +94,10 @@ namespace SettlersOfIdlestan.Controller
 
         private void Add(string label)
         {
-            // Toute action non-trade brise le groupe de trades en cours
-            _hasPendingTrade = false;
-            _entries.AddFirst(new CivHistoryEntry { Tick = _clock?.CurrentTick ?? 0, Label = label });
-            if (_entries.Count > MaxEntries)
-                _entries.RemoveLast();
+            // Toute action non-trade brise le groupe de trades en cours — qui doit donc être figé
+            // avant, pour rester derrière la nouvelle entrée dans l'ordre anti-chronologique.
+            CommitPendingTrade();
+            AddEntry(new CivHistoryEntry { Tick = _clock?.CurrentTick ?? 0, Label = label });
         }
 
         private void OnRoadBuilt(object? sender, RoadAutoBuiltEventArgs e)
@@ -111,12 +125,21 @@ namespace SettlersOfIdlestan.Controller
             Add($"{action}: {e.BuildingType} niv.{e.Level}");
         }
 
+        /// <summary>
+        /// Accumule l'échange dans le groupe courant, sans construire son libellé : celui-ci n'est
+        /// formaté qu'à la lecture de <see cref="Entries"/>.
+        ///
+        /// <para>La vente automatique sur débordement se déclenche à chaque récolte : en fin de partie
+        /// cette méthode était appelée des centaines de fois par événement d'horloge, et chaque appel
+        /// reconstruisait par <c>string.Join</c> un libellé aussitôt remplacé par le suivant. Le
+        /// profilage donnait ce formatage à 1,9 % du temps de simulation et il pesait lourd dans les
+        /// allocations de chaînes.</para>
+        /// </summary>
         private void OnGoldObtained(int gold, Resource resource, int civilizationIndex)
         {
             if (civilizationIndex != PlayerIndex) return;
-            if (_hasPendingTrade && _entries.Count > 0)
-                _entries.RemoveFirst();  // Remplace l'entrée groupée précédente
-            else
+
+            if (!_hasPendingTrade)
             {
                 _pendingTradeByResource.Clear();
                 _pendingTradeCount = 0;
@@ -127,8 +150,23 @@ namespace SettlersOfIdlestan.Controller
             _pendingTradeByResource.TryGetValue(resource, out int existing);
             _pendingTradeByResource[resource] = existing + gold;
             _pendingTradeCount++;
+        }
 
-            _entries.AddFirst(new CivHistoryEntry { Tick = _pendingTradeTick, Label = BuildTradeLabel() });
+        /// <summary>
+        /// Fige le groupe d'échanges en cours en une entrée réelle. Appelé quand une action non-trade
+        /// brise le groupe — c'est ce que faisait l'ancienne mécanique de remplacement de la première
+        /// entrée, à ceci près qu'elle payait le formatage à chaque échange plutôt qu'une fois.
+        /// </summary>
+        private void CommitPendingTrade()
+        {
+            if (!_hasPendingTrade) return;
+            _hasPendingTrade = false;
+            AddEntry(new CivHistoryEntry { Tick = _pendingTradeTick, Label = BuildTradeLabel() });
+        }
+
+        private void AddEntry(CivHistoryEntry entry)
+        {
+            _entries.AddFirst(entry);
             if (_entries.Count > MaxEntries)
                 _entries.RemoveLast();
         }

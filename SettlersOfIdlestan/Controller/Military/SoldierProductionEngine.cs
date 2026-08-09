@@ -35,17 +35,28 @@ internal class SoldierProductionEngine
         if (_state == null) return;
 
         foreach (var civ in _state.Civilizations)
-            foreach (var city in civ.Cities)
-            {
-                if (city.Soldiers + city.IncomingSoldiers.Count >= GetMaximumSoldierCapacity(city)) continue;
-                long effectiveProductionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
-                if (currentTick - city.LastSoldierProductionTick < effectiveProductionInterval) continue;
+        {
+            // Constantes par civilisation, relues auparavant à chaque ville : en fin de partie cette
+            // boucle voit plusieurs centaines de villes par événement d'horloge, et la seule lecture
+            // de UnitProductionSpeed (qui réagrège les modifiers) pesait ~2 % du budget d'image.
+            long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
+            int maxSoldiersBonus = civ.CityMaxSoldiersBonus;
+            int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+            bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
 
-                var barracks = city.Buildings.OfType<Barracks>()
-                    .FirstOrDefault(b => b.Level >= SoldierProductionMinLevel);
+            var cities = civ.Cities;
+            for (int i = 0; i < cities.Count; i++)
+            {
+                var city = cities[i];
+                if (city.Soldiers + city.IncomingSoldiers.Count >= city.MaxSoldiers + maxSoldiersBonus) continue;
+                if (currentTick - city.LastSoldierProductionTick < productionInterval) continue;
+
+                // FindBuilding plutôt que OfType<Barracks>().FirstOrDefault() : la chaîne LINQ boxait
+                // l'énumérateur de City.Buildings et allouait une fermeture à chaque ville éligible.
+                var barracks = city.FindBuilding(BuildingType.Barracks) is { } b && b.Level >= SoldierProductionMinLevel ? b : null;
                 if (barracks == null) continue;
 
-                bool restrictedToFreeSoldiers = civ.Index == _state.PlayerCivilization.Index
+                bool restrictedToFreeSoldiers = isPlayer
                     && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
 
                 if (barracks.ActivationStatus != ActivationStatus.ACTIVE || restrictedToFreeSoldiers)
@@ -53,7 +64,6 @@ internal class SoldierProductionEngine
                     // Même désactivée (ou restreinte via AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer),
                     // la Caserne continue à produire tant que la ville n'a pas atteint son quota de
                     // soldats nourris gratuitement (SOLDIER_FOOD_FREE_PER_CITY).
-                    int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
                     if (city.Soldiers >= freePerCity) continue;
                 }
 
@@ -67,7 +77,7 @@ internal class SoldierProductionEngine
                 city.Soldiers++;
                 city.LastSoldierProductionTick = currentTick;
 
-                if (civ.Index == _state.PlayerCivilization.Index)
+                if (isPlayer)
                 {
                     int oreQty = civ.GetResourceQuantity(Resource.Ore);
                     int oreMax = civ.GetResourceMaxQuantity(Resource.Ore);
@@ -75,6 +85,7 @@ internal class SoldierProductionEngine
                         civ.RaiseLowStock(Resource.Ore);
                 }
             }
+        }
     }
 
     /// <summary>
@@ -94,22 +105,28 @@ internal class SoldierProductionEngine
         {
             if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) continue;
 
-            foreach (var city in civ.Cities)
+            // Constantes par civilisation — même motif que ProduceSoldiers.
+            long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
+            int maxSoldiersBonus = civ.CityMaxSoldiersBonus;
+            int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+            bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
+
+            var cities = civ.Cities;
+            for (int i = 0; i < cities.Count; i++)
             {
-                int room = GetMaximumSoldierCapacity(city) - city.Soldiers - city.IncomingSoldiers.Count;
+                var city = cities[i];
+                int room = city.MaxSoldiers + maxSoldiersBonus - city.Soldiers - city.IncomingSoldiers.Count;
                 if (room <= 0) continue;
 
-                long effectiveProductionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
-                if (currentTick - city.LastArsenalProductionTick < effectiveProductionInterval) continue;
+                if (currentTick - city.LastArsenalProductionTick < productionInterval) continue;
 
                 var arsenal = city.FindBuilding<Arsenal>(BuildingType.Arsenal) is { Level: >= 1 } ars ? ars : null;
                 if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
-                bool restrictedToFreeSoldiers = civ.Index == _state.PlayerCivilization.Index
+                bool restrictedToFreeSoldiers = isPlayer
                     && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
                 if (restrictedToFreeSoldiers)
                 {
-                    int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
                     if (city.Soldiers >= freePerCity) continue;
                     room = Math.Min(room, freePerCity - city.Soldiers);
                 }
@@ -124,7 +141,7 @@ internal class SoldierProductionEngine
                 city.Soldiers += Math.Min(Arsenal.SoldiersProducedPerCycle, room);
                 city.LastArsenalProductionTick = currentTick;
 
-                if (civ.Index == _state.PlayerCivilization.Index)
+                if (isPlayer)
                 {
                     int steelQty = civ.GetResourceQuantity(Resource.Steel);
                     int steelMax = civ.GetResourceMaxQuantity(Resource.Steel);

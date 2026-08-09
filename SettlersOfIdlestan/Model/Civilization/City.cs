@@ -76,6 +76,7 @@ public class City : IBuildingContext, IMilitaryVertex
     /// </summary>
     private void OnBuildingsChanged()
     {
+        _buildingByType = null;
         InvalidateLevelCache();
         InvalidateMaxSoldiersCache();
         BuildingsChanged?.Invoke(this, EventArgs.Empty);
@@ -228,16 +229,33 @@ public class City : IBuildingContext, IMilitaryVertex
     /// (récolte, routes, recherche, militaire…) font cette recherche pour chaque ville à chaque tick :
     /// c'est un des chemins les plus chauds du jeu.
     /// </summary>
+    /// <summary>
+    /// Index type → bâtiment, reconstruit à la demande et invalidé par <see cref="OnBuildingsChanged"/>
+    /// comme les autres caches dérivés de la ville. Null tant qu'aucun <see cref="FindBuilding"/> n'a
+    /// été fait depuis la dernière mutation.
+    ///
+    /// <para>Le scan linéaire qu'il remplace était appelé une dizaine de fois par ville et par
+    /// événement d'horloge — production de soldats, forges, marché, port, hutte d'alchimie ont chacun
+    /// leur passe sur toutes les villes — soit, en fin de partie, plusieurs dizaines de milliers de
+    /// comparaisons par événement pour n'aboutir la plupart du temps qu'à « pas de bâtiment » ou
+    /// « pas encore l'heure ».</para>
+    /// </summary>
+    [NonSerialized]
+    private Dictionary<BuildingType, Building>? _buildingByType;
+
     public Building? FindBuilding(BuildingType type)
     {
-        // Passe par le champ et non par la propriété Buildings : celle-ci est typée
-        // IReadOnlyList, dont l'indexeur est un appel d'interface. Sur un chemin appelé pour chaque
-        // ville à chaque tick, ça se voit.
-        var buildings = _buildings;
-        for (int i = 0; i < buildings.Count; i++)
-            if (buildings[i].Type == type)
-                return buildings[i];
-        return null;
+        if (_buildingByType == null)
+        {
+            var index = new Dictionary<BuildingType, Building>(_buildings.Count);
+            // Premier gagnant, comme l'ancien scan linéaire : si une ville portait deux bâtiments du
+            // même type, c'est le premier de la liste qui était retourné.
+            for (int i = 0; i < _buildings.Count; i++)
+                index.TryAdd(_buildings[i].Type, _buildings[i]);
+            _buildingByType = index;
+        }
+
+        return _buildingByType.TryGetValue(type, out var building) ? building : null;
     }
 
     /// <summary>

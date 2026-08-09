@@ -63,7 +63,12 @@ entre les deux plus grandes tailles**, pas la globale.
 **Fidèle.** Villes, routes et bâtiments passent par les vrais contrôleurs (`CreateCityFree`,
 `BuildBuilding`) : distances minimales entre villes, occupation des vertex, prérequis et niveaux max,
 caches, événements. Le résultat est un `MainGameState` sérialisable, chargeable dans le jeu — c'est
-ce qui permettra de rejouer le même cas de charge côté rendu.
+ce qui permettra de rejouer le même cas de charge côté rendu. Les tâches du tutoriel sont marquées
+complétées (`CompleteAllTutorialTasks`), comme elles le sont en vraie fin de partie : les laisser en
+attente faisait réévaluer leurs prédicats à chaque récolte et à chaque vente — plusieurs centaines de
+fois par événement d'horloge — et gonflait la mesure de 27 % dans le régime « frame en jeu ». Le
+drapeau doit rester posé **avant** `RestartIsland()`, c'est la réinitialisation des contrôleurs qui
+reconstruit la liste des tâches en attente.
 
 **Pas fidèle.** La carte est agrandie d'un bloc au lieu de croître hexagone par hexagone via
 `AutoExtendController` ; les ressources du joueur sont remises au plafond entre deux constructions ;
@@ -124,9 +129,15 @@ Méthode qui a effectivement fonctionné, et à refaire dans cet ordre :
 5. **Remesurer après chaque changement.** Plusieurs corrections parfaitement plausibles n'ont rien
    donné.
 6. **Connaître le bruit avant d'interpréter un écart.** Sur cette machine, deux exécutions identiques
-   du même binaire donnent des médianes allant de 5,58 à 6,15 ms : un écart inférieur à ~5 % ne veut
-   rien dire. Les allocations par événement, elles, sont stables à ~1 % près — c'est le signal à
-   suivre quand le temps hésite. En cas de doute, relancer la même mesure trois fois.
+   du même binaire donnent des médianes qui s'écartent de ~5 % : en dessous, un écart ne veut rien
+   dire. Les allocations par événement, elles, sont stables à ~1 % près — c'est le signal à suivre
+   quand le temps hésite. En cas de doute, relancer la même mesure trois fois.
+7. **Mesurer les deux régimes.** `--ticks-per-event 100` (rattrapage) et `--ticks-per-event 2`
+   (frame en jeu) n'ont pas les mêmes coupables : dans le premier, chaque civ PNJ joue un tour d'IA
+   par événement et `NpcGameController` domine ; dans le second l'IA ne pèse presque rien et ce sont
+   les balayages « toutes civs × toutes villes » de `HarvestController` et `MilitaryController` qui
+   font le budget. Une optimisation jugée sur le seul rattrapage peut ne rien donner sur la frame,
+   et réciproquement.
 
 ## Descendre sous le niveau du contrôleur : dotnet-trace
 

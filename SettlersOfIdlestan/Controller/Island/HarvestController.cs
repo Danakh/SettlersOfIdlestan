@@ -142,9 +142,29 @@ namespace SettlersOfIdlestan.Controller.Island
             return multiplier;
         }
 
-        /// <summary>Tampons réutilisés par <see cref="PerformAutomaticProductionHarvests"/> — voir son commentaire.</summary>
-        private readonly System.Collections.Generic.Dictionary<HexCoord, bool> _hexBlockedScratch = new();
-        private readonly System.Collections.Generic.Dictionary<HexCoord, double> _hexMultiplierScratch = new();
+        /// <summary>
+        /// Tampons réutilisés par <see cref="PerformAutomaticProductionHarvests"/>.
+        ///
+        /// <para>Chaque entrée porte la génération à laquelle elle a été calculée plutôt que d'être
+        /// effacée : les deux dictionnaires sont valables pour une seule (civilisation, événement
+        /// d'horloge), et un <c>Clear()</c> par civilisation revenait à remettre à zéro le tableau de
+        /// seaux entier — plusieurs centaines d'entrées en fin de partie — neuf fois par événement. Le
+        /// profilage donnait ce seul effacement à 4,6 % du budget d'image. Avec l'estampille, les
+        /// seaux restent en place et une entrée périmée est simplement réécrite.</para>
+        /// </summary>
+        private readonly System.Collections.Generic.Dictionary<HexCoord, (long Generation, bool Blocked)> _hexBlockedScratch = new();
+        private readonly System.Collections.Generic.Dictionary<HexCoord, (long Generation, double Multiplier)> _hexMultiplierScratch = new();
+
+        /// <summary>Incrémentée pour chaque (civilisation, événement d'horloge) — voir <see cref="_hexBlockedScratch"/>.</summary>
+        private long _harvestScratchGeneration;
+
+        /// <summary>
+        /// Tampon du regroupement des récoltes par (hexagone, ville) d'une civilisation, réutilisé
+        /// d'un événement à l'autre. En fin de partie il monte à plusieurs centaines d'entrées, et le
+        /// réallouer par civilisation faisait de son redimensionnement un poste de premier plan
+        /// (2,2 % du temps de simulation, en <c>Dictionary.Resize</c>).
+        /// </summary>
+        private readonly System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet> _harvestedScratch = new();
 
         private void PerformAutomaticProductionHarvests()
         {
@@ -157,35 +177,39 @@ namespace SettlersOfIdlestan.Controller.Island
                 var entries = GetOrBuildProductionCache(civ.Index);
                 if (entries.Count == 0) continue;
 
-                // Mémoïse les vérifications dynamiques par hex pour éviter de les répéter par bâtiment.
-                // Les deux dictionnaires sont réutilisés d'une civilisation et d'un tick à l'autre :
-                // ils montent à plusieurs centaines d'entrées en fin de partie, et les réallouer par
-                // civ à chaque tick faisait de leurs tableaux internes un des premiers postes
-                // d'allocation de la simulation.
+                // Mémoïse les vérifications dynamiques par hex pour éviter de les répéter par
+                // bâtiment. Les tampons vivent d'une civilisation et d'un tick à l'autre ; c'est la
+                // génération, et non un Clear(), qui délimite leur validité — voir _hexBlockedScratch.
                 var hexBlocked = _hexBlockedScratch;
                 var hexMultiplier = _hexMultiplierScratch;
-                hexBlocked.Clear();
-                hexMultiplier.Clear();
-                System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>? harvested = null;
+                long generation = ++_harvestScratchGeneration;
+
+                var harvested = _harvestedScratch;
+                harvested.Clear();
+                bool anyHarvested = false;
+
+                // Constantes de la civilisation, relues auparavant à chaque entrée de production —
+                // c'est-à-dire à chaque couple (hexagone, bâtiment) de chaque ville.
+                int mineGoldChancePercent = civ.MineGoldChancePercent;
+                double mineGoldProductionMultiplier = civ.MineGoldProductionMultiplier;
+                int forgeDoubleHarvestBonus = civ.ForgeDoubleHarvestBonus;
 
                 foreach (var (hex, city, building, resource, terrain) in entries)
                 {
-                    if (!hexBlocked.TryGetValue(hex, out bool blocked))
+                    if (!hexBlocked.TryGetValue(hex, out var blockedEntry) || blockedEntry.Generation != generation)
                     {
-                        blocked = _state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))
+                        bool computed = _state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))
                             || _monsterController?.HasDepartureCooldown(hex, now) == true;
-                        hexBlocked[hex] = blocked;
+                        hexBlocked[hex] = blockedEntry = (generation, computed);
                     }
-                    if (blocked) continue;
+                    if (blockedEntry.Blocked) continue;
 
-                    if (!hexMultiplier.TryGetValue(hex, out double featureMultiplier))
-                    {
-                        featureMultiplier = GetHexHarvestTimeMultiplier(civ, hex);
-                        hexMultiplier[hex] = featureMultiplier;
-                    }
+                    if (!hexMultiplier.TryGetValue(hex, out var multiplierEntry) || multiplierEntry.Generation != generation)
+                        hexMultiplier[hex] = multiplierEntry = (generation, GetHexHarvestTimeMultiplier(civ, hex));
+                    double featureMultiplier = multiplierEntry.Multiplier;
 
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                    double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(building.Type), 1.0);
+                    double speedMultiplier = GetHarvestSpeedMultiplier(civ, building.Type, generation);
                     double terrainSpeedMultiplier = building.GetAutomaticHarvestTerrainSpeedMultiplier(terrain);
                     long effective = Math.Max(1L, (long)(raw / speedMultiplier / terrainSpeedMultiplier));
                     effective = Math.Max(1L, (long)(effective * featureMultiplier));
@@ -196,14 +220,14 @@ namespace SettlersOfIdlestan.Controller.Island
                     building.SetAutoHarvestTick(hex, now);
 
                     bool goldBonus = building is Mine && resource == Resource.Ore
-                        && civ.MineGoldChancePercent > 0
-                        && _prng!.Next(100) < civ.MineGoldChancePercent;
-                    int goldAmount = Math.Max(1, (int)Math.Round(civ.MineGoldProductionMultiplier));
+                        && mineGoldChancePercent > 0
+                        && _prng!.Next(100) < mineGoldChancePercent;
+                    int goldAmount = Math.Max(1, (int)Math.Round(mineGoldProductionMultiplier));
 
                     TryAutoTradeOnOverflow(civ, city, resource);
                     civ.AddResource(resource, 1);
 
-                    harvested ??= new System.Collections.Generic.Dictionary<(HexCoord, City), ResourceSet>();
+                    anyHarvested = true;
                     var key = (hex, city);
                     if (!harvested.TryGetValue(key, out var rs))
                         harvested[key] = rs = new ResourceSet();
@@ -217,11 +241,11 @@ namespace SettlersOfIdlestan.Controller.Island
                     }
 
                     var forge = city.FindBuilding<Forge>(BuildingType.Forge);
-                    int forgeChance = forge != null ? forge.DoubleProdChancePercent + civ.ForgeDoubleHarvestBonus * forge.Level : 0;
+                    int forgeChance = forge != null ? forge.DoubleProdChancePercent + forgeDoubleHarvestBonus * forge.Level : 0;
                     int forgeBonus = 0;
                     if (forge != null && forge.Level > 0)
                         forgeBonus = forgeChance / 100 + (_prng!.Next(100) < forgeChance % 100 ? 1 : 0);
-                    int harvestProductionChance = civ.GetHarvestProductionBonus(BuildingTypeNames.Of(building.Type));
+                    int harvestProductionChance = GetHarvestProductionBonus(civ, building.Type, generation);
                     bool harvestDoubled = harvestProductionChance > 0 && _prng!.Next(100) < harvestProductionChance;
                     int multiplier = (1 + forgeBonus) * (harvestDoubled ? 2 : 1);
                     for (int i = 1; i < multiplier; i++)
@@ -238,10 +262,45 @@ namespace SettlersOfIdlestan.Controller.Island
                     }
                 }
 
-                if (harvested != null)
+                if (anyHarvested)
                     foreach (var ((hex, city), rs) in harvested)
                         OnHarvestCompleted?.Invoke(this, new HarvestCompletedEventArgs(civ.Index, hex, rs, city.Position, isAutomatic: true));
             }
+        }
+
+        /// <summary>
+        /// Multiplicateur HARVEST_SPEED et bonus HARVEST_PRODUCTION mémoïsés par type de bâtiment pour
+        /// la durée d'une (civilisation, événement d'horloge) — la génération est celle de
+        /// <see cref="_hexBlockedScratch"/>.
+        ///
+        /// <para>Les deux ne dépendent que de la civilisation et du type de bâtiment, mais étaient
+        /// réagrégés depuis les modifiers à <b>chaque</b> couple (hexagone, bâtiment) : en fin de
+        /// partie, plusieurs milliers de fois par événement pour une poignée de valeurs distinctes.
+        /// Le profilage donnait <c>ApplyModifiers</c> à 3,6 % du budget d'image depuis ce seul
+        /// appelant.</para>
+        /// </summary>
+        private readonly (long Generation, double Value)[] _harvestSpeedScratch =
+            new (long, double)[Enum.GetValues<BuildingType>().Length];
+
+        private readonly (long Generation, int Value)[] _harvestProductionScratch =
+            new (long, int)[Enum.GetValues<BuildingType>().Length];
+
+        private double GetHarvestSpeedMultiplier(Civilization civ, BuildingType type, long generation)
+        {
+            int index = (int)type;
+            ref var slot = ref _harvestSpeedScratch[index];
+            if (slot.Generation != generation)
+                slot = (generation, civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(type), 1.0));
+            return slot.Value;
+        }
+
+        private int GetHarvestProductionBonus(Civilization civ, BuildingType type, long generation)
+        {
+            int index = (int)type;
+            ref var slot = ref _harvestProductionScratch[index];
+            if (slot.Generation != generation)
+                slot = (generation, civ.GetHarvestProductionBonus(BuildingTypeNames.Of(type)));
+            return slot.Value;
         }
 
         /// <summary>
@@ -1112,6 +1171,9 @@ namespace SettlersOfIdlestan.Controller.Island
             return total;
         }
 
+        /// <summary>Tampon des villes adjacentes à l'hexagone récolté — voir <see cref="ManualHarvest"/>.</summary>
+        private readonly System.Collections.Generic.List<City> _adjacentCitiesScratch = new();
+
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)
         {
             if (_state == null || _clock == null)
@@ -1122,8 +1184,11 @@ namespace SettlersOfIdlestan.Controller.Island
 
             long now = _clock.CurrentTick;
 
-            if (_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ)))
-                return false;
+            var features = _state.GetFeaturesAt(hex);
+            for (int i = 0; i < features.Count; i++)
+                if (features[i].BlocksHarvestFor(civ))
+                    return false;
+
             if (_monsterController?.HasDepartureCooldown(hex, now) == true)
                 return false;
 
@@ -1131,7 +1196,17 @@ namespace SettlersOfIdlestan.Controller.Island
             if (perHex.TryGetValue(hex, out var lastHarvest) && now - lastHarvest < HarvestCooldownTicks)
                 return false;
 
-            var cities = civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)).ToList();
+            // Boucle indexée sur un tampon réutilisé plutôt que Where(...).ToList() : l'autoplayer des
+            // PNJ appelle cette méthode en boucle (objectif de récolte), et chaque appel allouait une
+            // fermeture, un itérateur et une liste pour parcourir les centaines de villes de la
+            // civilisation. Le profilage donnait ce seul ToList à ~4,5 % du temps de simulation.
+            var cities = _adjacentCitiesScratch;
+            cities.Clear();
+            var civCities = civ.Cities;
+            for (int i = 0; i < civCities.Count; i++)
+                if (civCities[i].Position.IsAdjacentTo(hex))
+                    cities.Add(civCities[i]);
+
             if (cities.Count == 0)
                 return false;
 

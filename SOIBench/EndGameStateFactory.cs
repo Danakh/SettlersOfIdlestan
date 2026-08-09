@@ -9,6 +9,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Tasks;
 using Civ = SettlersOfIdlestan.Model.Civilization.Civilization;
 
 namespace SOIBench;
@@ -62,6 +63,15 @@ public sealed class EndGameIslandOptions
 
     /// <summary>Achète tous les vertex de la carte de prestige accessibles.</summary>
     public bool BuyAllPrestigeVertices { get; set; } = true;
+
+    /// <summary>
+    /// Marque toutes les tâches du tutoriel comme complétées. C'est l'état d'une vraie fin de partie,
+    /// et ça change la mesure : <c>TaskRecordController.CheckTaskCompletions</c> est appelé une fois
+    /// par événement de récolte et par vente, et il réévalue les prédicats encore en attente — dont
+    /// plusieurs parcourent tous les bâtiments de toutes les villes du joueur. Les laisser en attente
+    /// faisait mesurer un coût que le joueur ne paie jamais à ce stade.
+    /// </summary>
+    public bool CompleteAllTutorialTasks { get; set; } = true;
 }
 
 /// <summary>État généré, plus les compteurs qui décrivent sa taille.</summary>
@@ -159,6 +169,7 @@ public static class EndGameStateFactory
         prestige.TotalPrestigePointsEarned = options.TotalPrestigePointsEarned;
         if (options.CompleteAllResearch) CompleteAllResearch(prestige.TechnologyTree);
         if (options.BuyAllPrestigeVertices) BuyAllPrestigeVertices(controller, prestige);
+        if (options.CompleteAllTutorialTasks) CompleteAllTutorialTasks(state);
 
         // 3. Régénère l'île courante en île endgame au tier voulu.
         state.CurrentWorldState!.WorldId = options.WorldId;
@@ -254,6 +265,20 @@ public static class EndGameStateFactory
         while (bought);
 
         prestige.PrestigePoints = 0;
+    }
+
+    /// <summary>
+    /// Remplit <see cref="GameRecord.CompletedTasks"/> avec toutes les tâches du tutoriel.
+    ///
+    /// <para>Doit être appelé <b>avant</b> <c>RestartIsland()</c> : c'est
+    /// <c>TaskRecordController.Initialize</c>, déclenché par la réinitialisation des contrôleurs, qui
+    /// reconstruit la liste des tâches encore en attente depuis cet ensemble. Écrire dedans après coup
+    /// laisserait cette liste pleine et n'aurait aucun effet sur la mesure.</para>
+    /// </summary>
+    private static void CompleteAllTutorialTasks(MainGameState state)
+    {
+        foreach (var task in TutorialTaskDefinitions.All)
+            state.GameRecord.CompletedTasks.Add(task.Id.ToString());
     }
 
     // ── carte ────────────────────────────────────────────────────────────────
