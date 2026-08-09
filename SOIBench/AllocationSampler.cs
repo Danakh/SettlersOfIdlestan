@@ -5,30 +5,35 @@ using System.Linq;
 
 namespace SOIBench;
 
-/// <summary>Volume alloué échantillonné pour un couple (contrôleur, type alloué).</summary>
-public sealed record AllocationSample(string Controller, string TypeName, long Bytes, long Hits);
+/// <summary>Volume alloué échantillonné pour un type.</summary>
+public sealed record AllocationSample(string TypeName, long Bytes, long Hits);
 
 /// <summary>
-/// Échantillonne les allocations par type, et les attribue au contrôleur en cours d'exécution.
+/// Échantillonne les allocations par type.
 ///
 /// <para>S'abonne à <c>GCAllocationTick</c> du runtime .NET, levé une fois tous les ~100 Ko alloués
 /// avec le type de l'objet qui a franchi le seuil. C'est un échantillonnage pondéré par le volume :
-/// sur les millions d'octets qu'un événement d'horloge alloue, la répartition obtenue est fiable,
-/// même si aucun octet individuel n'est compté. Le rapport par contrôleur de
+/// sur les millions d'octets qu'un événement d'horloge alloue, la répartition par type obtenue est
+/// fiable, même si aucun octet individuel n'est compté. Le rapport par contrôleur de
 /// <see cref="ClockProfiler"/> dit <i>où</i> ça alloue ; celui-ci dit <i>quoi</i>, ce qui suffit
 /// presque toujours à retrouver la ligne (un <c>HashSet&lt;Vertex&gt;</c> ou une classe de fermeture
 /// ne laissent pas beaucoup de candidats).</para>
 ///
-/// <para>Le callback est invoqué de façon synchrone sur le thread qui alloue : la simulation étant
-/// mono-thread, lire <see cref="ClockProfiler.CurrentController"/> au moment de l'événement suffit à
-/// attribuer l'échantillon, sans verrou.</para>
+/// <para><b>Pas d'attribution par contrôleur ici, volontairement.</b> Les événements GC ne viennent
+/// pas d'un <c>EventSource</c> managé mais du runtime natif, et sont acheminés vers les
+/// <see cref="EventListener"/> par EventPipe, de façon <i>asynchrone</i> : au moment où le callback
+/// s'exécute, le contrôleur en cours n'est plus celui qui a fait l'allocation. Une première version
+/// croisait les deux et produisait une répartition crédible mais fausse — en pratique un simple
+/// tirage pondéré par le temps passé dans chaque contrôleur, ce qui « expliquait » par exemple que
+/// HarvestController allouait des Vertex. Pour savoir <i>où</i>, se fier aux octets par contrôleur de
+/// <see cref="ClockProfiler"/>, qui sont mesurés de façon synchrone sur le même thread.</para>
 /// </summary>
 public sealed class AllocationSampler : EventListener
 {
     private const string RuntimeEventSourceName = "Microsoft-Windows-DotNETRuntime";
     private const EventKeywords GcKeyword = (EventKeywords)0x1;
 
-    private readonly Dictionary<(string Controller, string TypeName), (long Bytes, long Hits)> _samples = new();
+    private readonly Dictionary<string, (long Bytes, long Hits)> _samples = new();
     private EventSource? _runtimeSource;
     private bool _recording;
 
@@ -44,7 +49,7 @@ public sealed class AllocationSampler : EventListener
     public void Stop() => _recording = false;
 
     public IReadOnlyList<AllocationSample> Samples => _samples
-        .Select(kv => new AllocationSample(kv.Key.Controller, kv.Key.TypeName, kv.Value.Bytes, kv.Value.Hits))
+        .Select(kv => new AllocationSample(kv.Key, kv.Value.Bytes, kv.Value.Hits))
         .OrderByDescending(s => s.Bytes)
         .ToList();
 
@@ -79,7 +84,7 @@ public sealed class AllocationSampler : EventListener
 
         if (typeName == null) return;
 
-        var key = (ClockProfiler.CurrentController ?? "(hors horloge)", Simplify(typeName));
+        var key = Simplify(typeName);
         _samples.TryGetValue(key, out var current);
         _samples[key] = (current.Bytes + amount, current.Hits + 1);
     }

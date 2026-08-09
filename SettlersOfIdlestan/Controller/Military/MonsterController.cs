@@ -502,7 +502,7 @@ public class MonsterFeatureController
     private void ApplyMonsterAttack(MonsterFeature monster, City city, long tick)
     {
         monster.LastAttackTick = tick;
-        var civ = _state!.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        var civ = _state!.GetCivilization(city.CivilizationIndex);
         if (civ == null) return;
 
         if (!monster.IgnoresPalisade && city.FindBuilding(BuildingType.Palisade) is { Level: > 0 })

@@ -76,11 +76,25 @@ public class NpcGameController
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[NpcGameController] {nameof(Update)}: {ex}"); }
     }
 
+    /// <summary>
+    /// Copie des civs PNJ à traiter ce tour, réutilisée d'un tick à l'autre. La copie reste
+    /// nécessaire — un tour d'IA peut faire apparaître une civilisation (AutoExtend) et donc muter
+    /// <c>WorldState.Civilizations</c> en cours d'itération — mais la reconstruire par LINQ à chaque
+    /// tick allouait une liste et sa chaîne d'itérateurs pour rien.
+    /// </summary>
+    private readonly List<Civilization> _npcCivsBuffer = new();
+
     private void Update(long currentTick)
     {
         if (_state == null || _mainController == null) return;
 
-        foreach (var civ in _state.Civilizations.Where(c => c.IsNpc).ToList())
+        _npcCivsBuffer.Clear();
+        var civilizations = _state.Civilizations;
+        for (int i = 0; i < civilizations.Count; i++)
+            if (civilizations[i].IsNpc)
+                _npcCivsBuffer.Add(civilizations[i]);
+
+        foreach (var civ in _npcCivsBuffer)
         {
             // Décale le premier tick de réflexion de chaque civ selon son index, pour que toutes les
             // civs NPC ne recalculent pas leur étape (expansion incluse) sur la même frame.
@@ -190,10 +204,22 @@ public class NpcGameController
         var z = npcCiv.Cities.FirstOrDefault()?.Position.Z ?? IslandMap.SurfaceLayer;
         if (!_state.Visibility.GetForZ(z).TryGetValue(npcCiv.Index, out var visibleMap)) return false;
 
-        return _state.Civilizations
-            .Where(c => c.Index != npcCiv.Index)
-            .SelectMany(c => c.Cities)
-            .Any(city => visibleMap.IsVertexVisible(city.Position));
+        // Boucles indexées plutôt que Where/SelectMany/Any : appelé jusqu'à deux fois par tour d'IA
+        // et par civilisation PNJ, sur toutes les villes de la carte — en fin de partie plusieurs
+        // centaines. La chaîne LINQ allouait trois itérateurs et deux fermetures à chaque appel.
+        var civilizations = _state.Civilizations;
+        for (int i = 0; i < civilizations.Count; i++)
+        {
+            var other = civilizations[i];
+            if (other.Index == npcCiv.Index) continue;
+
+            var cities = other.Cities;
+            for (int j = 0; j < cities.Count; j++)
+                if (visibleMap.IsVertexVisible(cities[j].Position))
+                    return true;
+        }
+
+        return false;
     }
 
     /// <summary>

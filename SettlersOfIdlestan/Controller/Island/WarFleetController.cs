@@ -49,7 +49,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             var occupied = new HashSet<Vertex>(_state.GetAllFleets().Select(f => f.Position));
@@ -64,7 +64,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!IsWarFleetUnlocked(civ)) return new List<Vertex>();
@@ -82,7 +82,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!GetPotentialVertices(civilizationIndex).Any(v => v.Equals(vertex)))
@@ -112,7 +112,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (fleet == null) throw new ArgumentNullException(nameof(fleet));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == fleet.CivilizationIndex)
+            var civ = _state.GetCivilization(fleet.CivilizationIndex)
                       ?? throw new ArgumentException("Fleet's civilization not found", nameof(fleet));
 
             fleet.RaiseDestroyed();

@@ -108,7 +108,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null || _cityBuilderController == null)
                 throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             var candidates = _cityBuilderController.GetRoadTouchingVertices(civilizationIndex);
@@ -127,7 +127,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!IsMobileCampUnlocked(civ)) return new List<Vertex>();
@@ -145,7 +145,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!GetPotentialVertices(civilizationIndex).Any(v => v.Equals(vertex)))
@@ -177,7 +177,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             var camp = new MobileCamp(vertex) { CivilizationIndex = civilizationIndex, CreatedTick = _clock?.CurrentTick ?? 0 };
@@ -196,7 +196,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (camp == null) throw new ArgumentNullException(nameof(camp));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == camp.CivilizationIndex)
+            var civ = _state.GetCivilization(camp.CivilizationIndex)
                       ?? throw new ArgumentException("Camp's civilization not found", nameof(camp));
 
             camp.RaiseDestroyed();
@@ -240,7 +240,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         private void AbsorbCamp(MobileCamp camp, Vertex cityPosition, int civilizationIndex)
         {
-            var civ = _state!.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            var civ = _state!.GetCivilization(civilizationIndex);
             var city = civ?.Cities.FirstOrDefault(c => c.Position.Equals(cityPosition));
             if (civ != null && city != null)
             {

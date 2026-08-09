@@ -325,7 +325,7 @@ public class TaskRecordController
         {
             _gameRecord.TotalEnemyCitiesDestroyed++;
 
-            var civ = _islandState?.Civilizations.FirstOrDefault(c => c.Index == e.CivilizationIndex);
+            var civ = _islandState?.GetCivilization(e.CivilizationIndex);
             if (civ != null && civ.IsNpc && civ.Cities.Count == 0 && _runRecord != null)
             {
                 _runRecord.CivilizationsDestroyed++;

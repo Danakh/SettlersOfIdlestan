@@ -45,13 +45,6 @@ public sealed class ClockProfiler : IDisposable
 
     public IReadOnlyCollection<ControllerCost> Costs => _costs.Values;
 
-    /// <summary>
-    /// Abonné en cours d'exécution, ou null en dehors d'un événement d'horloge. La simulation étant
-    /// mono-thread, ce simple champ statique suffit à <see cref="AllocationSampler"/> pour attribuer
-    /// une allocation au contrôleur qui l'a faite.
-    /// </summary>
-    public static string? CurrentController { get; private set; }
-
     public ClockProfiler(GameClock clock)
     {
         _clock = clock;
@@ -67,8 +60,6 @@ public sealed class ClockProfiler : IDisposable
             var cost = GetOrAdd(name);
             wrapped += (sender, args) =>
             {
-                var previous = CurrentController;
-                CurrentController = name;
                 long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
                 long start = Stopwatch.GetTimestamp();
                 try
@@ -80,7 +71,6 @@ public sealed class ClockProfiler : IDisposable
                     cost.ElapsedTicks += Stopwatch.GetTimestamp() - start;
                     cost.AllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
                     cost.Calls++;
-                    CurrentController = previous;
                 }
             };
         }

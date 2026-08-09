@@ -554,7 +554,13 @@ namespace SettlersOfIdlestan.Controller
         {
             if (_wonderController == null || _worldState == null) return false;
 
-            var wonder = _worldState.Features.OfType<Wonder>().FirstOrDefault();
+            // Boucle plutôt que OfType<Wonder>().FirstOrDefault() : appelé à chaque passe de stratégie
+            // de chaque civilisation PNJ, l'itérateur LINQ y était alloué pour rien.
+            Wonder? wonder = null;
+            var features = _worldState.Features;
+            for (int i = 0; i < features.Count; i++)
+                if (features[i] is Wonder found) { wonder = found; break; }
+
             if (wonder == null)
             {
                 if (!_wonderController.CanPlaceWonder(_civ)) return false;
@@ -1040,14 +1046,51 @@ namespace SettlersOfIdlestan.Controller
             return Edge.Create(shared[0], shared[1]);
         }
 
+        private HashSet<Vertex>? _networkVerticesCache;
+        private int _networkVerticesCacheZ = int.MinValue;
+        private int _networkVerticesCacheRoadCount = -1;
+        private int _networkVerticesCacheCityCount = -1;
+
         private HashSet<Vertex> GetSurfaceNetworkVertices()
+            => GetNetworkVertices(IslandMap.SurfaceLayer);
+
+        /// <summary>
+        /// Sommets touchés par une ville ou une route de la civilisation sur la couche donnée.
+        ///
+        /// <para>Mis en cache sur le nombre de routes et de villes, comme les autres caches de cette
+        /// classe (vertex prospectifs, hexagones inexplorés) : en fin de partie le réseau compte
+        /// plusieurs milliers de sommets, et le reconstruire à chaque recherche d'expansion — deux
+        /// fois par tour d'IA et par civilisation PNJ — était le premier poste d'allocation de
+        /// l'autoplay. Même réserve que les caches voisins : le déplacement d'une ville
+        /// (CityBuilderController.RelocateCity) change une position sans changer aucun compteur ; il
+        /// est réservé au joueur et reste sans effet sur les décisions d'IA d'ici au tour suivant.</para>
+        ///
+        /// <para>L'ensemble rendu est <b>partagé</b> et réutilisé : les appelants le lisent
+        /// uniquement.</para>
+        /// </summary>
+        private HashSet<Vertex> GetNetworkVertices(int z)
         {
-            int z = IslandMap.SurfaceLayer;
-            var network = new HashSet<Vertex>(_civ.Cities
-                .Select(c => c.Position).Where(v => v.Z == z));
-            foreach (var road in _civ.Roads)
-                foreach (var v in road.Position.GetVertices())
+            if (_networkVerticesCache != null &&
+                _networkVerticesCacheZ == z &&
+                _networkVerticesCacheRoadCount == _civ.Roads.Count &&
+                _networkVerticesCacheCityCount == _civ.Cities.Count)
+                return _networkVerticesCache;
+
+            var network = _networkVerticesCache ??= new HashSet<Vertex>();
+            network.Clear();
+
+            var cities = _civ.Cities;
+            for (int i = 0; i < cities.Count; i++)
+                if (cities[i].Position.Z == z) network.Add(cities[i].Position);
+
+            var roads = _civ.Roads;
+            for (int i = 0; i < roads.Count; i++)
+                foreach (var v in roads[i].Position.GetVertices())
                     if (v.Z == z) network.Add(v);
+
+            _networkVerticesCacheZ = z;
+            _networkVerticesCacheRoadCount = roads.Count;
+            _networkVerticesCacheCityCount = cities.Count;
             return network;
         }
 
@@ -1102,14 +1145,7 @@ namespace SettlersOfIdlestan.Controller
             if (candidates.Count == 0) return null;
             int z = candidates[0].Z;
 
-            var networkVertices = new HashSet<Vertex>(_civ.Cities
-                .Select(c => c.Position)
-                .Where(v => v.Z == z));
-            foreach (var road in _civ.Roads)
-                foreach (var v in road.Position.GetVertices())
-                    if (v.Z == z)
-                        networkVertices.Add(v);
-
+            var networkVertices = GetNetworkVertices(z);
             if (networkVertices.Count == 0) return null;
 
             var nearest = new List<(Vertex candidate, Vertex from, int dist)>();

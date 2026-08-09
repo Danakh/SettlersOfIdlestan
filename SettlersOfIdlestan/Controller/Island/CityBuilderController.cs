@@ -183,11 +183,24 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            return CollectRoadTouchingVertices(civ, out _);
+            // Copie : le collecteur rend un tampon partagé, que l'appelant public ne doit pas voir
+            // se faire écraser par la prochaine collecte.
+            return new List<Vertex>(CollectRoadTouchingVertices(civ, out _));
         }
+
+        // Tampons de GetBuildableVertices, réutilisés d'un appel à l'autre. Le cache de résultat de
+        // GetBuildableVertices est invalidé dès qu'une route est posée — c'est-à-dire en permanence
+        // pendant l'autoplay des PNJ — et chaque reconstruction repartait de collections neuves de
+        // plusieurs milliers d'entrées. Les ensembles à clé Vertex étaient, et de loin, le premier
+        // poste d'allocation restant de la simulation. Aucune réentrance possible : ni
+        // AddFlightCandidateVertices ni les filtres de terrain ne rappellent GetBuildableVertices.
+        private readonly List<Vertex> _roadTouchingScratch = new();
+        private readonly HashSet<Vertex> _roadTouchingUniqueScratch = new();
+        private readonly HashSet<Vertex> _occupiedVerticesScratch = new();
+        private readonly HashSet<Vertex> _blockedVerticesScratch = new();
 
         /// <summary>
         /// Coeur de <see cref="GetRoadTouchingVertices"/>, qui expose en plus le HashSet de
@@ -196,15 +209,21 @@ namespace SettlersOfIdlestan.Controller.Island
         /// par un scan linéaire de la liste — le nombre de routes se compte en milliers en fin de
         /// partie, et le scan rendait la collecte quadratique. L'ordre d'insertion est conservé
         /// (le résultat alimente un choix PRNG, il doit rester déterministe).
+        ///
+        /// <para>La liste et l'ensemble rendus sont des <b>tampons partagés</b>, valables jusqu'au
+        /// prochain appel.</para>
         /// </summary>
-        private static List<Vertex> CollectRoadTouchingVertices(Civilization civ, out HashSet<Vertex> unique)
+        private List<Vertex> CollectRoadTouchingVertices(Civilization civ, out HashSet<Vertex> unique)
         {
-            int capacity = civ.Roads.Count * 2;
-            var vertices = new List<Vertex>(capacity);
-            unique = new HashSet<Vertex>(capacity);
-            foreach (var road in civ.Roads)
+            var vertices = _roadTouchingScratch;
+            unique = _roadTouchingUniqueScratch;
+            vertices.Clear();
+            unique.Clear();
+
+            var roads = civ.Roads;
+            for (int i = 0; i < roads.Count; i++)
             {
-                foreach (var v in road.Position.GetVertices())
+                foreach (var v in roads[i].Position.GetVertices())
                 {
                     if (unique.Add(v))
                         vertices.Add(v);
@@ -219,7 +238,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             // Restrictions raciales (voir RaceDefinitions) : distance minimale entre villes propres
@@ -256,7 +275,8 @@ namespace SettlersOfIdlestan.Controller.Island
             // Un Camp Mobile de cette même civilisation n'empêche pas d'y bâtir une ville par-dessus
             // (voir doc de GetBuildableVertices) — seuls les IBuildVertex d'autres civilisations, ou
             // les propres villes/flottes/balises, comptent comme occupation ici.
-            var occupiedVertices = new HashSet<Vertex>();
+            var occupiedVertices = _occupiedVerticesScratch;
+            occupiedVertices.Clear();
             foreach (var bv in _state.GetAllBuildVertices())
                 if (!(bv is MobileCamp camp && camp.CivilizationIndex == civilizationIndex))
                     occupiedVertices.Add(bv.Position);
@@ -270,7 +290,8 @@ namespace SettlersOfIdlestan.Controller.Island
             // Les Sites d'Arrivée (LandingSite) comptent comme des villes dans ces rayons : ils
             // réservent la place de la future ville de surface d'une race démarrant sous terre, et
             // doivent donc repousser les voisins exactement comme le ferait la ville elle-même.
-            var blockedVertices = new HashSet<Vertex>();
+            var blockedVertices = _blockedVerticesScratch;
+            blockedVertices.Clear();
             AddVerticesWithinRadius(blockedVertices,
                 _state.Civilizations.Where(c => c.Index != civilizationIndex)
                     .SelectMany(c => c.Cities.Select(city => city.Position).Concat(c.LandingSites.Select(s => s.Position))),
@@ -517,7 +538,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+            var civ = _state.GetCivilization(city.CivilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(city));
 
             if (!GetRelocationTargets(city).Any(v => v.Equals(destination)))
@@ -550,7 +571,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             var cost = NewCityBuildingCostFor(vertex, civ);
@@ -574,7 +595,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             EnsureVertexBuildable(civilizationIndex, vertex);
@@ -655,7 +676,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (city == null) throw new ArgumentNullException(nameof(city));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+            var civ = _state.GetCivilization(city.CivilizationIndex)
                       ?? throw new ArgumentException("City's civilization not found", nameof(city));
 
             city.RaiseDestroyed();

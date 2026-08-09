@@ -390,7 +390,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (GetMaxLevel(prototype, city.CivilizationIndex) > 0 && map != null)
             {
-                var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+                var civ = _state?.GetCivilization(city.CivilizationIndex);
                 bool available = civ != null
                     ? prototype.IsBuildingAvailableForCity(map, city, civ)
                     : prototype.IsBuildingAvailableForCity(map, city);
@@ -409,7 +409,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+            var civ = _state.GetCivilization(city.CivilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
 
             var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
@@ -526,7 +526,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+            var civ = _state.GetCivilization(city.CivilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
 
             var result = new List<Building>();

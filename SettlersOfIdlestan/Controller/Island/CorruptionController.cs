@@ -143,7 +143,7 @@ public class CorruptionController
     {
         if (_state == null) return;
 
-        var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        var civ = _state.GetCivilization(city.CivilizationIndex);
         var temple = city.FindBuilding<Temple>(BuildingType.Temple) is { Level: >= 1 } tp ? tp : null;
         if (civ == null || temple == null) return;
 

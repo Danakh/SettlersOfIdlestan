@@ -208,7 +208,7 @@ internal class ReinforcementEngine
     {
         if (target != null && _state != null)
         {
-            var sourceCiv = _state.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
+            var sourceCiv = _state.GetCivilization(vertex.CivilizationIndex);
             var allyTarget = sourceCiv?.MilitaryVertices.FirstOrDefault(v => v.Position.Equals(target));
             if (allyTarget != null && allyTarget.MaxSoldiers == 0)
                 target = null;

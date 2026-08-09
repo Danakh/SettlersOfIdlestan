@@ -474,7 +474,7 @@ namespace SettlersOfIdlestan.Controller
         private void OnCityDestroyedHandler(object? sender, CityDestroyedEventArgs e)
         {
             var worldState = CurrentMainState?.CurrentWorldState;
-            var civ = worldState?.Civilizations.FirstOrDefault(c => c.Index == e.CivilizationIndex);
+            var civ = worldState?.GetCivilization(e.CivilizationIndex);
             if (civ != null)
                 RoadController.OnCityDestroyed(civ, e.CityVertex);
 

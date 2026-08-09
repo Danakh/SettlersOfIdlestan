@@ -60,7 +60,7 @@ public class WorldVisibility
     /// <summary>Rebuilds visibility for a single civilization after a road or city changed.</summary>
     public void RecalculateFor(int civilizationIndex)
     {
-        var civilization = _world.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+        var civilization = _world.GetCivilization(civilizationIndex)
             ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
         bool watchtowerVisionBonus = WatchtowerVisionBonus;

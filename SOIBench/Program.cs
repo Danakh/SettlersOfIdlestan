@@ -108,8 +108,10 @@ public static class Program
     }
 
     /// <summary>
-    /// Types les plus alloués, par contrôleur. Échantillonné (un relevé tous les ~100 Ko alloués) :
-    /// les proportions sont fiables, les octets exacts non — c'est un classement, pas une comptabilité.
+    /// Types les plus alloués. Échantillonné (un relevé tous les ~100 Ko alloués) : les proportions
+    /// sont fiables, les octets exacts non — c'est un classement, pas une comptabilité. Pas de
+    /// ventilation par contrôleur : voir <see cref="AllocationSampler"/> pour pourquoi elle serait
+    /// fausse.
     /// </summary>
     private static void PrintAllocationSamples(TickBenchmarkResult result, int top)
     {
@@ -119,9 +121,9 @@ public static class Program
         if (total <= 0) return;
 
         Console.WriteLine($"  allocations échantillonnées par type ({FormatBytes(total)} vus)");
-        Console.WriteLine($"  {"contrôleur",-26}{"type alloué",-46}{"%",7}{"o/évt",12}");
+        Console.WriteLine($"  {"type alloué",-56}{"%",7}{"o/évt",12}");
         foreach (var sample in result.AllocationSamples.Take(top))
-            Console.WriteLine($"  {Truncate(sample.Controller, 25),-26}{Truncate(sample.TypeName, 45),-46}"
+            Console.WriteLine($"  {Truncate(sample.TypeName, 55),-56}"
                             + $"{(double)sample.Bytes / total * 100.0,6:F1}%{FormatBytes((double)sample.Bytes / result.MeasuredEvents),12}");
         Console.WriteLine();
     }

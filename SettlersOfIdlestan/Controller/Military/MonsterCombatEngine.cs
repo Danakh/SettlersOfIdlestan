@@ -124,7 +124,7 @@ internal class MonsterCombatEngine
         int distance = DistanceTo(vertex, monster);
         if (distance <= MeleeRange) return MonsterAttackAvailability.Available;
 
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
+        var civ = _state?.GetCivilization(vertex.CivilizationIndex);
         bool hasSurveillance = civ != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_RANGED_MONSTER_ATTACK);
         if (distance > MaxRangedAttackDistance || !hasSurveillance) return MonsterAttackAvailability.TooFar;
 

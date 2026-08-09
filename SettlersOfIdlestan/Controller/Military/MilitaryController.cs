@@ -127,7 +127,7 @@ public class MilitaryController
     public double GetSoldierProductionRate(IMilitaryVertex vertex)
     {
         if (vertex is not City city) return 0;
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        var civ = _state?.GetCivilization(city.CivilizationIndex);
         if (civ == null) return 0;
 
         const double ticksPerSecond = 100.0;
@@ -160,7 +160,7 @@ public class MilitaryController
     /// </summary>
     public double GetSoldierProductionOreRate(int civilizationIndex)
     {
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        var civ = _state?.GetCivilization(civilizationIndex);
         if (civ == null) return 0;
 
         int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
@@ -191,7 +191,7 @@ public class MilitaryController
     /// </summary>
     public bool HasAnySoldierProductionBuilding(int civilizationIndex)
     {
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        var civ = _state?.GetCivilization(civilizationIndex);
         if (civ == null) return false;
         return civ.Cities.Any(c => c.FindBuilding(BuildingType.Barracks) is { } bar && bar.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
     }
@@ -208,7 +208,7 @@ public class MilitaryController
     /// </summary>
     public double GetArsenalProductionSteelRate(int civilizationIndex)
     {
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        var civ = _state?.GetCivilization(civilizationIndex);
         if (civ == null || !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) return 0;
 
         int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
@@ -239,7 +239,7 @@ public class MilitaryController
     /// </summary>
     public bool HasAnyArsenalProductionBuilding(int civilizationIndex)
     {
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        var civ = _state?.GetCivilization(civilizationIndex);
         if (civ == null || !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) return false;
         return civ.Cities.Any(c => c.FindBuilding(BuildingType.Arsenal) is { Level: >= 1, ActivationStatus: ActivationStatus.ACTIVE });
     }
@@ -248,7 +248,7 @@ public class MilitaryController
     public double GetDefenseRegenRate(IMilitaryVertex vertex)
     {
         if (GetDefenseScore(vertex) <= 0) return 0;
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
+        var civ = _state?.GetCivilization(vertex.CivilizationIndex);
         if (civ == null) return 0;
         const double ticksPerSecond = 100.0;
         return GetDefenseRegenSpeed(vertex, civ) * ticksPerSecond / DefenseRegenIntervalTicks;
@@ -273,7 +273,7 @@ public class MilitaryController
     public int GetDefenseScore(IMilitaryVertex vertex)
     {
         int score = vertex.MaxDefense;
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
+        var civ = _state?.GetCivilization(vertex.CivilizationIndex);
         if (civ != null)
         {
             score += civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);

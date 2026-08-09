@@ -255,7 +255,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var entries = new System.Collections.Generic.List<ProductionEntry>();
             if (_state != null)
             {
-                var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civIndex);
+                var civ = _state.GetCivilization(civIndex);
                 if (civ != null)
                 {
                     var visitedHexes = new HashSet<HexCoord>();
@@ -623,7 +623,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public IReadOnlyList<Resource> GetManualHarvestableResources(int civilizationIndex, HexCoord hex)
         {
             if (_state == null) return Array.Empty<Resource>();
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) return Array.Empty<Resource>();
             var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return Array.Empty<Resource>();
@@ -659,7 +659,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public IReadOnlyList<Resource> GetAutomaticHarvestableResources(int civilizationIndex, HexCoord hex)
         {
             if (_state == null) return Array.Empty<Resource>();
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) return Array.Empty<Resource>();
             var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return Array.Empty<Resource>();
@@ -687,7 +687,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public System.Collections.Generic.IReadOnlyList<(Vertex CityVertex, BuildingType BuildingType, Resource Resource, long LastTick, long Cooldown)> GetAutoHarvestInfoForHex(int civilizationIndex, HexCoord hex)
         {
             if (_state == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
             var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
@@ -762,7 +762,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var result = new System.Collections.Generic.Dictionary<Resource, double>();
             if (_state == null) return result;
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) return result;
 
             var entries = GetOrBuildProductionCache(civilizationIndex);
@@ -838,7 +838,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var result = new System.Collections.Generic.Dictionary<Resource, double>();
             if (_state == null) return result;
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) return result;
 
             int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
@@ -886,7 +886,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var result = new System.Collections.Generic.Dictionary<Resource, System.Collections.Generic.List<(string SourceKey, double Rate)>>();
             if (_state == null) return result;
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) return result;
 
             var entries = GetOrBuildProductionCache(civilizationIndex);
@@ -1001,7 +1001,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var result = new System.Collections.Generic.Dictionary<Resource, System.Collections.Generic.List<(string SourceKey, double Rate)>>();
             if (_state == null) return result;
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) return result;
 
             int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
@@ -1047,7 +1047,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public double GetAlchimistHutCrystalRatePerSecond(int civilizationIndex)
         {
             if (_state == null) return 0.0;
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+            var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) return 0.0;
 
             double total = 0.0;
@@ -1075,7 +1075,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null || _clock == null)
                 throw new InvalidOperationException("WorldState and GameClock have not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             long now = _clock.CurrentTick;

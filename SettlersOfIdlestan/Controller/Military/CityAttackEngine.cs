@@ -107,7 +107,7 @@ internal class CityAttackEngine
                     destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed, onConsumableConsumed);
                 if (destroyed)
                 {
-                    var ownerCiv = _state.Civilizations.FirstOrDefault(c => c.Index == targetVertex.CivilizationIndex);
+                    var ownerCiv = _state.GetCivilization(targetVertex.CivilizationIndex);
                     if (ownerCiv != null)
                         toDestroy.Add((ownerCiv, targetVertex, attackerCiv));
                 }
@@ -158,7 +158,7 @@ internal class CityAttackEngine
 
     internal IMilitaryVertex? FindNearbyEnemyCity(IMilitaryVertex attackerVertex, IReadOnlyCollection<int>? targetCivIndices = null, int? maxRange = null)
     {
-        var attackerCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == attackerVertex.CivilizationIndex);
+        var attackerCiv = _state!.GetCivilization(attackerVertex.CivilizationIndex);
         if (attackerCiv == null) return null;
         int range = maxRange ?? CityAttackRange(attackerCiv);
         IMilitaryVertex? closest = null;
@@ -242,7 +242,7 @@ internal class CityAttackEngine
         // Les soldats défenseurs absorbent l'attaque : les deux soldats meurent, la défense est intacte.
         if (targetVertex.Soldiers > 0)
         {
-            var defenderCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == targetVertex.CivilizationIndex);
+            var defenderCiv = _state!.GetCivilization(targetVertex.CivilizationIndex);
             // Barbacane : si la défense est > 20, perd 1 défense au lieu d'un soldat.
             if (defenderCiv != null
                 && defenderCiv.ModifierAggregator.HasModifier(ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS)
@@ -279,7 +279,7 @@ internal class CityAttackEngine
                 targetCity.InvalidateLevelCache();
                 onCityBuildingDestroyed(new CityBuildingDestroyedEventArgs(targetCity.Position));
             }
-            var defenderCivAfterAttack = _state!.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex);
+            var defenderCivAfterAttack = _state!.GetCivilization(targetCity.CivilizationIndex);
             if (defenderCivAfterAttack != null)
             {
                 BuildingController.RecalculateStorageCapacity(defenderCivAfterAttack);

@@ -94,26 +94,35 @@ le recouper avec un vrai run (`SOIStrategyTester --endless`). Le banc dit *combi
 
 ## Chasser une allocation
 
-`--alloc-types` s'abonne à `GCAllocationTick` du runtime (un relevé tous les ~100 Ko alloués, avec le
-type de l'objet qui franchit le seuil) et attribue chaque échantillon au contrôleur en cours
-d'exécution, lu dans `ClockProfiler.CurrentController`. Les proportions sont fiables, les octets
-exacts non : c'est un **classement**, pas une comptabilité.
+`--alloc-types` s'abonne à `GCAllocationTick` du runtime : un relevé tous les ~100 Ko alloués, avec le
+type de l'objet qui franchit le seuil. Les proportions par type sont fiables, les octets exacts non :
+c'est un **classement**, pas une comptabilité.
+
+⚠️ **Le classement dit *quoi*, pas *où*.** Les événements GC viennent du runtime natif et arrivent par
+EventPipe de façon asynchrone : croiser un échantillon avec le contrôleur en cours d'exécution donne
+une répartition crédible mais fausse (en pratique un tirage pondéré par le temps passé dans chaque
+contrôleur). Pour le *où*, utiliser la colonne `alloc/évt` de la répartition par contrôleur, qui est
+mesurée de façon synchrone sur le même thread — voir `AllocationSampler` pour le détail.
 
 Méthode qui a effectivement fonctionné, et à refaire dans cet ordre :
 
-1. Lire le classement des types, pas le code. La première passe d'optimisation de ce projet a été
-   faite « à l'œil » sur ce qui *semblait* coûteux (chaînes LINQ `Concat` de `MilitaryVertices`) :
-   gain mesuré 9,1 → 8,9 Mo, soit rien. Les vrais coupables n'étaient dans aucune des hypothèses.
-2. **Un type qui domine dans plusieurs contrôleurs à la fois désigne un utilitaire partagé**, pas les
-   contrôleurs. `HashSet<HexCoord>` en tête chez Harvest, Npc *et* Military pointait vers
-   `VisibleIslandMap`, appelé par tous les trois.
-3. Se méfier des types « invisibles » : `Int32[]` et `Entry[…][]` sont les tableaux internes des
-   `HashSet`/`Dictionary`. Les additionner à l'entrée du dictionnaire correspondant pour juger du
-   poids réel d'une collection.
-4. Une classe de fermeture (`<>c__DisplayClass…`) en haut du classement signale un lambda capturant
-   dans une boucle chaude — typiquement un `.Any(f => …)` sur une liste, à remplacer par une boucle
-   indexée.
-5. Remesurer après **chaque** changement. Plusieurs corrections plausibles n'ont rien donné.
+1. **Lire le classement des types, pas le code.** La première tentative d'optimisation de ce projet a
+   été faite « à l'œil » sur ce qui *semblait* coûteux (les chaînes LINQ `Concat` de
+   `Civilization.MilitaryVertices`) : gain mesuré 9,1 → 8,9 Mo, soit rien. Les vrais coupables
+   n'étaient dans aucune des hypothèses.
+2. **Croiser type et contrôleur, chacun depuis sa source.** Un type qui pèse lourd au classement
+   alors que plusieurs contrôleurs allouent beaucoup désigne souvent un utilitaire partagé plutôt
+   qu'un contrôleur : `HashSet<HexCoord>` en tête pointait vers `VisibleIslandMap`, appelé par
+   Harvest, Npc et Military.
+3. **Se méfier des types « invisibles ».** `Int32[]` et `Entry[…][]` sont les tableaux internes des
+   `HashSet`/`Dictionary` : les additionner à l'entrée de la collection correspondante pour juger de
+   son poids réel. Un `Enumerator[T]` signale un `foreach` sur une interface (`IReadOnlyList<T>`,
+   `IEnumerable<T>`) qui boxe l'énumérateur de structure — retyper en collection concrète.
+4. **Une classe de fermeture (`<>c__DisplayClass…`) ou un `Func<…>` en haut du classement** signale un
+   lambda capturant dans une boucle chaude — typiquement un `.FirstOrDefault(c => …)`, à remplacer
+   par une boucle indexée ou un accès indexé.
+5. **Remesurer après chaque changement.** Plusieurs corrections parfaitement plausibles n'ont rien
+   donné.
 
 ## ClockProfiler — le point fragile
 
