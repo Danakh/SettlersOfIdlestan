@@ -58,24 +58,42 @@ public class Civilization
     public List<City> CitiesSerialized
     {
         get => _cities;
-        private set { _cities = value ?? new(); InvalidateVertexCaches(); }
+        private set
+        {
+            foreach (var city in _cities) city.BuildingsChanged -= OnCityBuildingsChanged;
+            _cities = value ?? new();
+            foreach (var city in _cities) city.BuildingsChanged += OnCityBuildingsChanged;
+            InvalidateVertexCaches();
+            InvalidateBuildingDerivedCaches();
+        }
     }
 
     public void AddCity(City city)
     {
         _cities.Add(city);
+        city.BuildingsChanged += OnCityBuildingsChanged;
         InvalidateVertexCaches();
+        InvalidateBuildingDerivedCaches();
         BuildingController.RecalculateStorageCapacity(this);
     }
 
     public void RemoveCity(City city)
     {
-        _cities.Remove(city);
+        if (_cities.Remove(city))
+            city.BuildingsChanged -= OnCityBuildingsChanged;
         InvalidateVertexCaches();
+        InvalidateBuildingDerivedCaches();
         RebuildUniqueBuildingCache();
         RebuildUniqueBuildingsModifiers();
         BuildingController.RecalculateStorageCapacity(this);
     }
+
+    /// <summary>
+    /// Une ville de cette civilisation a gagné ou perdu un bâtiment. C'est le point unique qui rend
+    /// les caches dérivés des bâtiments fiables, quel que soit le chemin de construction emprunté —
+    /// y compris ceux qui n'appellent pas <see cref="BuildingController.BuildBuilding"/>.
+    /// </summary>
+    private void OnCityBuildingsChanged(object? sender, EventArgs e) => InvalidateBuildingDerivedCaches();
 
     private List<Road> _roads = new();
 
@@ -614,6 +632,43 @@ public class Civilization
     public bool AutoBuyUnlockedCache { get; private set; }
 
     public void SetAutoBuyUnlockedCache(bool value) => AutoBuyUnlockedCache = value;
+
+    [NonSerialized]
+    private bool? _hasMarket;
+
+    /// <summary>
+    /// Vrai si au moins une ville possède un Marché — condition du commerce (voir
+    /// <see cref="Controller.TradeController.IsTradeAvailable"/>). Calculé à la demande puis conservé
+    /// jusqu'à la prochaine mutation de bâtiments, signalée par <see cref="City.BuildingsChanged"/>.
+    ///
+    /// <para>Une première version de ce cache, recalculée depuis
+    /// <see cref="BuildingController.RecalculateStorageCapacity"/>, était fausse : plusieurs chemins
+    /// ajoutent des bâtiments sans passer par le contrôleur, et les tests de commerce l'ont
+    /// immédiatement montré. C'est ce qui a motivé l'encapsulation de <see cref="City.Buildings"/> —
+    /// sans elle, aucun cache dérivé des bâtiments ne peut être correct.</para>
+    /// </summary>
+    [JsonIgnore]
+    public bool HasMarket
+    {
+        get
+        {
+            if (_hasMarket is { } cached) return cached;
+
+            bool found = false;
+            for (int i = 0; i < _cities.Count && !found; i++)
+                found = _cities[i].FindBuilding(BuildingType.Market) != null;
+
+            _hasMarket = found;
+            return found;
+        }
+    }
+
+    /// <summary>
+    /// Invalide les caches dérivés des bâtiments des villes. Appelé automatiquement à toute mutation
+    /// de bâtiments et à tout ajout/retrait de ville ; à appeler manuellement après un changement de
+    /// <c>Building.Level</c>, que la liste des bâtiments ne reflète pas.
+    /// </summary>
+    public void InvalidateBuildingDerivedCaches() => _hasMarket = null;
 
 
     /// <summary>

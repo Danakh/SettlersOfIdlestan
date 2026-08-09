@@ -71,7 +71,7 @@ public class NpcExterminationTests
         var npcTargetCity = npcCiv.Cities
             .OrderBy(c => c.Position.EdgeDistanceTo(playerStartCity.Position))
             .First();
-        npcTargetCity.Buildings.Add(new Palisade { Level = 1 });
+        npcTargetCity.AddBuilding(new Palisade { Level = 1 });
 
         // ── Prestige joueur injecté AVANT SetGame ────────────────────────────
         var prestige = new PrestigeState(WorldState);

@@ -37,7 +37,7 @@ namespace SOITests.ControllerTests
             var city = new City(vertex) { CivilizationIndex = 0 };
             civ.AddCity(city);
             // Stockage avancé suffisant pour accumuler les cristaux récoltés dans les tests.
-            city.Buildings.Add(new TownHall { Level = 20 });
+            city.AddBuilding(new TownHall { Level = 20 });
             BuildingController.RecalculateStorageCapacity(civ);
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             return (state, city);
@@ -86,7 +86,7 @@ namespace SOITests.ControllerTests
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
-            city.Buildings.Add(new AlchimistHut { Level = 1 });
+            city.AddBuilding(new AlchimistHut { Level = 1 });
             state.AddFeature(new FairyCircle(NE) { Found = true });
             var clock = new GameClock();
             clock.Start();
@@ -104,7 +104,7 @@ namespace SOITests.ControllerTests
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
-            city.Buildings.Add(new AlchimistHut { Level = 1 });
+            city.AddBuilding(new AlchimistHut { Level = 1 });
             var clock = new GameClock();
             clock.Start();
             new HarvestController(state, clock);
@@ -129,7 +129,7 @@ namespace SOITests.ControllerTests
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
-            city.Buildings.Add(new AlchimistHut { Level = 1 });
+            city.AddBuilding(new AlchimistHut { Level = 1 });
             state.AddFeature(new FairyCircle(NE) { Found = true });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
@@ -154,7 +154,7 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             civ.Resources[Resource.Glass] = 10;
             civ.Resources[Resource.Crystal] = 10;
-            city.Buildings.Add(new AlchimistHut { Level = 1 });
+            city.AddBuilding(new AlchimistHut { Level = 1 });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
                 new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
@@ -177,7 +177,7 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             civ.Resources[Resource.Glass] = 10;
             civ.Resources[Resource.Crystal] = 10;
-            city.Buildings.Add(new AlchimistHut { Level = 1 });
+            city.AddBuilding(new AlchimistHut { Level = 1 });
             var clock = new GameClock();
             clock.Start();
             new HarvestController(state, clock);
@@ -192,7 +192,7 @@ namespace SOITests.ControllerTests
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
-            city.Buildings.Add(new AlchimistHut { Level = 1 });
+            city.AddBuilding(new AlchimistHut { Level = 1 });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
                 new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
@@ -214,7 +214,7 @@ namespace SOITests.ControllerTests
             civ.Resources[Resource.Glass] = 10;
             civ.Resources[Resource.Crystal] = 10;
             var hut = new AlchimistHut { Level = 1, ActivationStatus = ActivationStatus.INACTIVE };
-            city.Buildings.Add(hut);
+            city.AddBuilding(hut);
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
                 new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
@@ -238,7 +238,7 @@ namespace SOITests.ControllerTests
             civ.Resources[Resource.SteelArmor] = 1000;
             civ.Resources[Resource.HealingPotion] = 1000;
             // Arsenal niveau 3 : 35% (base armure) + 5%*3 (arsenal) + 50% (potion) = 100%.
-            city.Buildings.Add(new Arsenal { Level = 3 });
+            city.AddBuilding(new Arsenal { Level = 3 });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
                 new Modifier(ECategory.UNLOCK_STEEL_ARMOR, EType.ADDITIVE, 1),

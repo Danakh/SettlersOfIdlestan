@@ -63,7 +63,7 @@ namespace SOITests.ControllerTests
             Assert.False(state.Visibility.GetForZ(LayerState.AbyssZ)[city.CivilizationIndex].HasTile(voidHex));
 
             // Une Tour de Guet niveau 1 porte le rayon de vision à 2, ce qui révèle le hex de Void.
-            city.Buildings.Add(new Watchtower { Level = 1 });
+            city.AddBuilding(new Watchtower { Level = 1 });
             state.Visibility.RecalculateFor(city.CivilizationIndex);
 
             Assert.True(state.Visibility.GetForZ(LayerState.AbyssZ)[city.CivilizationIndex].HasTile(voidHex));
@@ -102,7 +102,7 @@ namespace SOITests.ControllerTests
             var controller = new AutoExtendController();
             controller.Initialize(state, new GamePRNG(1));
 
-            city.Buildings.Add(new Watchtower { Level = 1 });
+            city.AddBuilding(new Watchtower { Level = 1 });
             state.Visibility.RecalculateFor(civ.Index);
 
             // Aucun hex de Void n'existe sur cette couche : le mécanisme Abysse ne doit rien générer.

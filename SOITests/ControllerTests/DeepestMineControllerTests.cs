@@ -41,7 +41,7 @@ namespace SOITests.ControllerTests
         private static (WorldState state, GameClock clock, DeepestMineController controller) CreateSetup()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.PlayerCivilization.Cities[0].Buildings.Add(new TownHall { Level = TownHallLevel });
+            state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
             BuildingController.RecalculateStorageCapacity(state.PlayerCivilization);
 
             var clock = new GameClock();

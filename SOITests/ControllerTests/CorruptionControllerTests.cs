@@ -113,7 +113,7 @@ public class CorruptionControllerTests
     public void TempleLevel2_NoCorruptionOnTarget_CreatesDominionLevel1()
     {
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.Buildings.Add(new Temple { Level = 2 });
+        city.AddBuilding(new Temple { Level = 2 });
 
         var clock = new GameClock();
         clock.Start();
@@ -130,7 +130,7 @@ public class CorruptionControllerTests
     public void TempleLevel2_ExistingDominionAtCap_DoesNotExceedTwiceTempleLevel()
     {
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.Buildings.Add(new Temple { Level = 2 });
+        city.AddBuilding(new Temple { Level = 2 });
         state.AddFeature(new Dominion(landHex, level: 4)); // cap = 2 * 2 = 4
 
         var clock = new GameClock();
@@ -147,7 +147,7 @@ public class CorruptionControllerTests
     public void TempleLevel4_ExistingDominionBelowCap_IncrementsUpToEight()
     {
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.Buildings.Add(new Temple { Level = 4 });
+        city.AddBuilding(new Temple { Level = 4 });
         state.AddFeature(new Dominion(landHex, level: 7)); // cap = 2 * 4 = 8
 
         var clock = new GameClock();
@@ -164,7 +164,7 @@ public class CorruptionControllerTests
     public void TempleLevel2_CorruptionOnTarget_ReducesCorruptionInsteadOfCreatingDominion()
     {
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.Buildings.Add(new Temple { Level = 2 });
+        city.AddBuilding(new Temple { Level = 2 });
         state.AddFeature(new Corruption(landHex, level: 3));
 
         var clock = new GameClock();
@@ -182,7 +182,7 @@ public class CorruptionControllerTests
     public void TempleLevel2_CorruptionAtLevel1_RemovesFeatureOnceReducedToZero()
     {
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.Buildings.Add(new Temple { Level = 2 });
+        city.AddBuilding(new Temple { Level = 2 });
         state.AddFeature(new Corruption(landHex, level: 1));
 
         var clock = new GameClock();
@@ -199,7 +199,7 @@ public class CorruptionControllerTests
     public void TempleLevel1_BelowThreshold_DoesNotProduce()
     {
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.Buildings.Add(new Temple { Level = 1 });
+        city.AddBuilding(new Temple { Level = 1 });
 
         var clock = new GameClock();
         clock.Start();
@@ -214,7 +214,7 @@ public class CorruptionControllerTests
     public void TempleLevel5_AboveThreshold_DoesNotProduce()
     {
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.Buildings.Add(new Temple { Level = 5 });
+        city.AddBuilding(new Temple { Level = 5 });
 
         var clock = new GameClock();
         clock.Start();
@@ -392,7 +392,7 @@ public class CorruptionControllerTests
     public void TempleLevel2_WithDogmeDeLEmprise_CapRaisedToSix()
     {
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.Buildings.Add(new Temple { Level = 2 });
+        city.AddBuilding(new Temple { Level = 2 });
         state.AddFeature(new Dominion(landHex, level: 4)); // cap de base = 2*2 = 4, Dogme → 3*2 = 6
         CompleteResearch(state, TechnologyId.DogmeDeLEmprise);
 
@@ -462,7 +462,7 @@ public class CorruptionControllerTests
         // 100% pour rendre le tirage de Terre Consacrée déterministe.
         var city = new City(Vertex.Create(b, new HexCoord(0, 1, IslandMap.SurfaceLayer), new HexCoord(1, 1, IslandMap.SurfaceLayer)))
         { CivilizationIndex = 0 };
-        city.Buildings.Add(new Temple { Level = 1 });
+        city.AddBuilding(new Temple { Level = 1 });
         state.PlayerCivilization.AddCity(city);
         state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
         {
@@ -602,7 +602,7 @@ public class CorruptionControllerTests
     {
         // La Spire de Corruption ne protège plus son hex : un Temple peut toujours y poser du Dominion.
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.Buildings.Add(new Temple { Level = 2 });
+        city.AddBuilding(new Temple { Level = 2 });
         state.AddFeature(new CorruptionSpire(landHex));
 
         var clock = new GameClock();
@@ -656,7 +656,7 @@ public class CorruptionControllerTests
     {
         // La Faille des Abysses ne protège plus son hex non plus : un Temple peut toujours y poser du Dominion.
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.Buildings.Add(new Temple { Level = 2 });
+        city.AddBuilding(new Temple { Level = 2 });
         state.AddFeature(new AbyssGate(landHex));
 
         var clock = new GameClock();

@@ -480,7 +480,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         resultBuilding.ActivationStatus = ActivationStatus.INACTIVE;
                 }
 
-                city.Buildings.Add(resultBuilding);
+                city.AddBuilding(resultBuilding);
                 if (type == BuildingType.TownHall) city.InvalidateLevelCache();
                 int defBonus = resultBuilding.GetDefenseBonus();
                 if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
@@ -627,10 +627,15 @@ namespace SettlersOfIdlestan.Controller.Island
             int advanced = 0;
             bool hasHighLevelMarket = false;
 
-            foreach (var city in civ.Cities)
+            // Boucles indexées : City.Buildings est typée IReadOnlyList, dont l'énumérateur est boxé à
+            // chaque foreach. Ce recalcul est déclenché par chaque construction.
+            var cities = civ.Cities;
+            for (int c = 0; c < cities.Count; c++)
             {
-                foreach (var building in city.Buildings)
+                var buildings = cities[c].Buildings;
+                for (int b = 0; b < buildings.Count; b++)
                 {
+                    var building = buildings[b];
                     basic += building.GetStorageCapacityBonusBasic();
                     advanced += building.GetStorageCapacityBonusAdvanced();
                     if (building.Type == BuildingType.Market && building.Level >= AutoBuyMinMarketLevel)

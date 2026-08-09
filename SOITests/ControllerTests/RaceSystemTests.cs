@@ -627,8 +627,8 @@ public class RaceSystemTests
 
         var coastalCity = new City(v1) { CivilizationIndex = 0 };
         var inlandCity = new City(v3) { CivilizationIndex = 0 };
-        coastalCity.Buildings.Add(new TownHall { Level = 1 });
-        inlandCity.Buildings.Add(new TownHall { Level = 1 });
+        coastalCity.AddBuilding(new TownHall { Level = 1 });
+        inlandCity.AddBuilding(new TownHall { Level = 1 });
         civ.AddCity(coastalCity);
         civ.AddCity(inlandCity);
 
@@ -679,7 +679,7 @@ public class RaceSystemTests
         // à 3 arguments doit rendre exactement le même résultat que la version civ-wide existante.
         var (state, civ, v1, _, _) = RibbonIsland();
         var city = new City(v1) { CivilizationIndex = 0 };
-        city.Buildings.Add(new TownHall { Level = 1 });
+        city.AddBuilding(new TownHall { Level = 1 });
         civ.AddCity(city);
         AddRaceModifiers(civ, new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2)); // ex. Gobelins
 
@@ -735,7 +735,7 @@ public class RaceSystemTests
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];
         var city = civ.Cities[0];
-        city.Buildings.Add(new Temple { Level = 1 });
+        city.AddBuilding(new Temple { Level = 1 });
 
         var cityHexes = city.Position.GetHexes().ToList();
         state.AddFeature(new Corruption(cityHexes[0], level: 2));
@@ -759,7 +759,7 @@ public class RaceSystemTests
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];
         var city = civ.Cities[0];
-        city.Buildings.Add(new Temple { Level = 1 });
+        city.AddBuilding(new Temple { Level = 1 });
 
         // Temple niveau 1 : plafond 2 par hex — un Dominion déjà au plafond ne monte plus.
         var cappedHex = city.Position.GetHexes().First();

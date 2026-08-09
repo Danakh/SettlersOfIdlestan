@@ -667,7 +667,7 @@ public class AutoExtendController
     {
         // TownHall en premier — son level détermine city.Level pour les checks AvailableAtLevel
         var townHall = new TownHall { Level = new TownHall().GetDefaultMaxLevel() };
-        city.Buildings.Add(townHall);
+        city.AddBuilding(townHall);
         city.InvalidateLevelCache();
 
         foreach (BuildingType type in Enum.GetValues<BuildingType>())
@@ -687,7 +687,7 @@ public class AutoExtendController
             if (building.ActivationStatus != ActivationStatus.NON_ACTIVABLE)
                 building.ActivationStatus = ActivationStatus.ACTIVE;
 
-            city.Buildings.Add(building);
+            city.AddBuilding(building);
         }
     }
 

@@ -35,7 +35,7 @@ public class CityDefenseTests
         civ.Resources[Resource.Wood] = 9999;
         civ.Resources[Resource.Stone] = 9999;
         var city = new City(CityVertex) { CivilizationIndex = 0 };
-        foreach (var b in buildings) city.Buildings.Add(b);
+        foreach (var b in buildings) city.AddBuilding(b);
         civ.AddCity(city);
 
         var state = new WorldState(map, [civ], AtlasController.InvalidIslandId);
@@ -127,7 +127,7 @@ public class CityDefenseTests
         civ.Resources[Resource.Wood] = 9999;
         civ.Resources[Resource.Stone] = 9999;
         var city = new City(CityVertex) { CivilizationIndex = 0 };
-        city.Buildings.Add(new Palisade { Level = 1 });
+        city.AddBuilding(new Palisade { Level = 1 });
         civ.AddCity(city);
 
         var state = new WorldState(map, [civ], AtlasController.InvalidIslandId);
@@ -182,7 +182,7 @@ public class CityDefenseTests
 
         var civ = new Civilization { Index = 0 };
         var city = new City(CityVertex) { CivilizationIndex = 0 };
-        foreach (var b in buildings) city.Buildings.Add(b);
+        foreach (var b in buildings) city.AddBuilding(b);
         civ.AddCity(city);
 
         var state = new WorldState(map, [civ], AtlasController.InvalidIslandId);

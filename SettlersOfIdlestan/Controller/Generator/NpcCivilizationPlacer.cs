@@ -234,10 +234,10 @@ public class NpcCivilizationPlacer
     private static void PopulateMinimumNpc(IslandMap map, Civilization civ, Vertex vertex)
     {
         var city = new City(vertex) { CivilizationIndex = civ.Index };
-        city.Buildings.Add(new TownHall { Level = 2 });
+        city.AddBuilding(new TownHall { Level = 2 });
         city.InvalidateLevelCache();
         AddStep1ProductionBuildings(map, city);
-        city.Buildings.Add(new Market());
+        city.AddBuilding(new Market());
         civ.AddCity(city);
     }
 
@@ -250,11 +250,11 @@ public class NpcCivilizationPlacer
 
             switch (tile.TerrainType)
             {
-                case TerrainType.Forest:   city.Buildings.Add(new Sawmill());    break;
-                case TerrainType.Plain:    city.Buildings.Add(new Mill());       break;
-                case TerrainType.Hill:     city.Buildings.Add(new Brickworks()); break;
-                case TerrainType.Mountain: city.Buildings.Add(new Quarry());     break;
-                case TerrainType.Water:    city.Buildings.Add(new Seaport());    break;
+                case TerrainType.Forest:   city.AddBuilding(new Sawmill());    break;
+                case TerrainType.Plain:    city.AddBuilding(new Mill());       break;
+                case TerrainType.Hill:     city.AddBuilding(new Brickworks()); break;
+                case TerrainType.Mountain: city.AddBuilding(new Quarry());     break;
+                case TerrainType.Water:    city.AddBuilding(new Seaport());    break;
             }
         }
     }
@@ -361,7 +361,7 @@ public class NpcCivilizationPlacer
             var building = BuildingController.CreateBuilding(type);
             if (building == null) return;
             building.Level = targetLevel;
-            city.Buildings.Add(building);
+            city.AddBuilding(building);
             if (type == BuildingType.TownHall) city.InvalidateLevelCache();
             city.InvalidateMaxSoldiersCache();
         }

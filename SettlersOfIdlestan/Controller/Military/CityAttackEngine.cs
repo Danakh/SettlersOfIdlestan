@@ -275,7 +275,7 @@ internal class CityAttackEngine
             townHall.Level--;
             if (townHall.Level <= 0)
             {
-                targetCity.Buildings.Remove(townHall);
+                targetCity.RemoveBuilding(townHall);
                 targetCity.InvalidateLevelCache();
                 onCityBuildingDestroyed(new CityBuildingDestroyedEventArgs(targetCity.Position));
             }

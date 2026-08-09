@@ -31,7 +31,7 @@ namespace SOITests.ControllerTests
         private static (WorldState state, GameClock clock, CorruptionSpireController controller) CreateSetup()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.PlayerCivilization.Cities[0].Buildings.Add(new TownHall { Level = TownHallLevel });
+            state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
             BuildingController.RecalculateStorageCapacity(state.PlayerCivilization);
 
             var tiles = new[] { new HexTile(UnderworldHex, TerrainType.Mountain) };

@@ -46,7 +46,7 @@ public class MultiMapControllerTests
     {
         var (state, civ) = CreateStateWithUnderworldOutpost();
         var underworldCity = civ.Cities.Single(city => city.Position.Z == LayerState.UnderworldZ);
-        underworldCity.Buildings.Add(new Quarry());
+        underworldCity.AddBuilding(new Quarry());
 
         var clock = new GameClock();
         clock.Start();

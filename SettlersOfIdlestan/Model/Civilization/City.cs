@@ -19,12 +19,67 @@ public class City : IBuildingContext, IMilitaryVertex
     /// </summary>
     public int CivilizationIndex { get; set; }
 
-    /// <summary>
-    /// Gets or sets the list of buildings in the city.
-    /// </summary>
-    public List<Building> Buildings { get; set; } = new();
+    private List<Building> _buildings = new();
 
-    IReadOnlyList<Building> IBuildingContext.Buildings => Buildings;
+    /// <summary>
+    /// Bâtiments de la ville — lecture seule ; utiliser <see cref="AddBuilding"/>,
+    /// <see cref="RemoveBuilding"/> ou <see cref="ClearBuildings"/> pour muter.
+    ///
+    /// <para>L'encapsulation existe pour rendre les caches dérivés fiables. Tant que la liste était
+    /// publiquement mutable, tout cache calculé « à la construction » pouvait être faux : plusieurs
+    /// chemins ajoutent des bâtiments sans passer par
+    /// <see cref="Controller.Island.BuildingController.BuildBuilding"/> — bâtiments de départ
+    /// accordés à la création d'une ville, bâtiment racial de l'Ascension, générateur de PNJ. Toute
+    /// mutation lève désormais <see cref="BuildingsChanged"/>, ce à quoi la civilisation propriétaire
+    /// s'abonne.</para>
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<Building> Buildings => _buildings;
+
+    /// <summary>Utilisé uniquement par la sérialisation JSON — conserve la clé « Buildings » des sauvegardes.</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("Buildings")]
+    [System.Text.Json.Serialization.JsonInclude]
+    public List<Building> BuildingsSerialized
+    {
+        get => _buildings;
+        private set { _buildings = value ?? new(); OnBuildingsChanged(); }
+    }
+
+    /// <summary>Levé après tout ajout, retrait ou remplacement en masse des bâtiments de la ville.</summary>
+    [field: NonSerialized]
+    public event EventHandler? BuildingsChanged;
+
+    public void AddBuilding(Building building)
+    {
+        _buildings.Add(building);
+        OnBuildingsChanged();
+    }
+
+    public bool RemoveBuilding(Building building)
+    {
+        if (!_buildings.Remove(building)) return false;
+        OnBuildingsChanged();
+        return true;
+    }
+
+    public void ClearBuildings()
+    {
+        if (_buildings.Count == 0) return;
+        _buildings.Clear();
+        OnBuildingsChanged();
+    }
+
+    /// <summary>
+    /// Invalide les caches propres à la ville puis prévient la civilisation. Les appels manuels à
+    /// <see cref="InvalidateLevelCache"/> restent nécessaires après un changement de <c>Level</c>
+    /// d'un bâtiment déjà présent : la liste n'a alors pas changé.
+    /// </summary>
+    private void OnBuildingsChanged()
+    {
+        InvalidateLevelCache();
+        InvalidateMaxSoldiersCache();
+        BuildingsChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     /// <summary>
     /// Défense actuelle (dynamique). Se régénère jusqu'à MaxDefense.
@@ -34,7 +89,15 @@ public class City : IBuildingContext, IMilitaryVertex
     /// <summary>
     /// Défense maximale calculée depuis les bâtiments (Palissade=10, Caserne=5, …).
     /// </summary>
-    public int MaxDefense => Buildings.Sum(b => b.GetDefenseBonus());
+    public int MaxDefense
+    {
+        get
+        {
+            int total = 0;
+            for (int i = 0; i < _buildings.Count; i++) total += _buildings[i].GetDefenseBonus();
+            return total;
+        }
+    }
 
     /// <summary>
     /// Nombre de soldats en garnison dans cette ville.
@@ -59,7 +122,9 @@ public class City : IBuildingContext, IMilitaryVertex
         {
             if (!_maxSoldiersCacheValid)
             {
-                _cachedMaxSoldiers = Buildings.Sum(b => b.GetMaxSoldiersBonus());
+                int total = 0;
+                for (int i = 0; i < _buildings.Count; i++) total += _buildings[i].GetMaxSoldiersBonus();
+                _cachedMaxSoldiers = total;
                 _maxSoldiersCacheValid = true;
             }
             return _cachedMaxSoldiers;
@@ -141,7 +206,7 @@ public class City : IBuildingContext, IMilitaryVertex
         {
             if (!_townHallCacheValid)
             {
-                _cachedTownHall = Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
+                _cachedTownHall = FindBuilding(BuildingType.TownHall);
                 _townHallCacheValid = true;
             }
             return _cachedTownHall?.Level ?? 0;
@@ -165,7 +230,10 @@ public class City : IBuildingContext, IMilitaryVertex
     /// </summary>
     public Building? FindBuilding(BuildingType type)
     {
-        var buildings = Buildings;
+        // Passe par le champ et non par la propriété Buildings : celle-ci est typée
+        // IReadOnlyList, dont l'indexeur est un appel d'interface. Sur un chemin appelé pour chaque
+        // ville à chaque tick, ça se voit.
+        var buildings = _buildings;
         for (int i = 0; i < buildings.Count; i++)
             if (buildings[i].Type == type)
                 return buildings[i];

@@ -260,7 +260,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (barracks == null) return;
 
             barracks.Level = 1;
-            city.Buildings.Add(barracks);
+            city.AddBuilding(barracks);
             city.InvalidateMaxSoldiersCache();
         }
     }

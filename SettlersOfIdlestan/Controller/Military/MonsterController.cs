@@ -549,7 +549,7 @@ public class MonsterFeatureController
                     didSomething = true;
                     if (townHall.Level <= 0)
                     {
-                        city.Buildings.Remove(townHall);
+                        city.RemoveBuilding(townHall);
                         city.InvalidateLevelCache();
                     }
                     BuildingController.RecalculateStorageCapacity(civ);

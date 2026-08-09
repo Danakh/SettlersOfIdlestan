@@ -628,7 +628,7 @@ public class IslandMapGenerator
         var city = new City(vertex);
         city.CivilizationIndex = civilization.Index;
         var townHall = new TownHall { Level = 1 };
-        city.Buildings.Add(townHall);
+        city.AddBuilding(townHall);
         city.InvalidateLevelCache();
         civilization.AddCity(city);
     }

@@ -106,7 +106,7 @@ public class ResearchControllerTests
         var civ = new Civilization { Index = 0 };
         var city = new City(CityVertex) { CivilizationIndex = 0 };
         var library = new Library { Level = 1 };
-        city.Buildings.Add(library);
+        city.AddBuilding(library);
         civ.AddCity(city);
 
         var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);

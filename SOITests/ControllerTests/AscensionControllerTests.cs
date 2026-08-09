@@ -254,7 +254,7 @@ public class AscensionControllerTests
 
         // Bâtiment unique différent, construit normalement dans une ville.
         var academy = new Academy { Level = 2 };
-        city.Buildings.Add(academy);
+        city.AddBuilding(academy);
         civ.RegisterUniqueBuildingInCache(academy);
         civ.RebuildUniqueBuildingsModifiers();
 

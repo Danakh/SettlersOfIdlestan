@@ -41,13 +41,13 @@ public class CityVsCityAttackTests
         var civA = new Civilization { Index = 0 };
         var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = soldiersA };
         var barracksA = new Barracks { Level = 2 };
-        cityA.Buildings.Add(barracksA);
+        cityA.AddBuilding(barracksA);
         civA.AddCity(cityA);
 
         var civB = new Civilization { Index = 1 };
         var cityB = new City(VertexB) { CivilizationIndex = 1 };
         if (buildingsB != null)
-            foreach (var b in buildingsB) cityB.Buildings.Add(b);
+            foreach (var b in buildingsB) cityB.AddBuilding(b);
         civB.AddCity(cityB);
 
         var state = new WorldState(BuildMap(), [civA, civB], AtlasController.InvalidIslandId);
@@ -277,7 +277,7 @@ public class CityVsCityAttackTests
     {
         var civA = new Civilization { Index = 0 };
         var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = 5, FlowTarget = VertexC };
-        cityA.Buildings.Add(new Barracks { Level = 2 });
+        cityA.AddBuilding(new Barracks { Level = 2 });
         civA.AddCity(cityA);
 
         var civB = new Civilization { Index = 1 };
@@ -318,11 +318,11 @@ public class CityVsCityAttackTests
     {
         var civA = new Civilization { Index = 0 };
         var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = 5, FlowTarget = VertexB };
-        cityA.Buildings.Add(new Barracks { Level = 2 });
+        cityA.AddBuilding(new Barracks { Level = 2 });
         // Tour de Guet : sans elle, la visibilité (rayon 1) ne couvre que les 2 hexes partagés
         // (justement ceux mis en Eau/Vide par ce test) et pas le 3e hex de VertexB, qui est le seul
         // hex de terre — la ville B serait alors invisible avant même le test de traversée du chemin.
-        cityA.Buildings.Add(new Watchtower { Level = 1 });
+        cityA.AddBuilding(new Watchtower { Level = 1 });
         civA.AddCity(cityA);
         if (unlockCategory != null)
             civA.AddCustomAggregator(new StaticModifierProvider(new[]

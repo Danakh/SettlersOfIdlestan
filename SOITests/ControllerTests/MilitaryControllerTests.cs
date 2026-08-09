@@ -46,7 +46,7 @@ namespace SOITests.ControllerTests
             civ.Resources[Resource.Food] = 999;
             var vertex = Vertex.Create(NE, East, NE11);
             var city = new City(vertex) { CivilizationIndex = 0, Soldiers = initialSoldiers };
-            city.Buildings.Add(new Barracks { Level = barracksLevel });
+            city.AddBuilding(new Barracks { Level = barracksLevel });
             civ.AddCity(city);
 
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
@@ -269,7 +269,7 @@ namespace SOITests.ControllerTests
         public void GetSoldierProductionRate_NoBarracks_ReturnsZero()
         {
             var (_, _, controller, city) = CreateSetup(initialSoldiers: 0);
-            city.Buildings.Clear();
+            city.ClearBuildings();
 
             Assert.Equal(0, controller.GetSoldierProductionRate(city));
         }

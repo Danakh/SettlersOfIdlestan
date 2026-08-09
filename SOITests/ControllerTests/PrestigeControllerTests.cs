@@ -26,10 +26,10 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(0, controller.CalculatePrestigePoints());
 
-            civ.Cities[0].Buildings.Add(new TownHall());
+            civ.Cities[0].AddBuilding(new TownHall());
             Assert.Equal(1, controller.CalculatePrestigePoints());
 
-            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
             Assert.Equal(2, controller.CalculatePrestigePoints());
 
             civ.Cities[0].Buildings[0].Level = 2; // raise townhall to level 2 (no change)
@@ -47,9 +47,9 @@ namespace SOITests.ControllerTests
             var controller = new PrestigeController();
             controller.Initialize(civ);
 
-            civ.Cities[0].Buildings.Add(new TownHall { Level = 3 });
-            civ.Cities[0].Buildings.Add(new Library());
-            civ.Cities[0].Buildings.Add(new Temple());
+            civ.Cities[0].AddBuilding(new TownHall { Level = 3 });
+            civ.Cities[0].AddBuilding(new Library());
+            civ.Cities[0].AddBuilding(new Temple());
 
             Assert.Equal(controller.CalculatePrestigePoints(), controller.GetPrestigePointSources().Sum(source => source.Points));
         }
@@ -63,9 +63,9 @@ namespace SOITests.ControllerTests
             var controller = new PrestigeController();
             controller.Initialize(civ);
 
-            civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new TownHall());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new TownHall());
 
             var sources = controller.GetPrestigePointSources();
             Assert.Equal(2, sources.Count);
@@ -92,11 +92,11 @@ namespace SOITests.ControllerTests
             var state = IslandTestFactory.CreateSevenHexIslandState();
             // pas de monstres sur le SurfaceLayer = bonus actif
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new Temple()); // 5 temples = subtotal 5
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple()); // 5 temples = subtotal 5
             var controller = new PrestigeController();
             controller.Initialize(civ, state);
 
@@ -164,7 +164,7 @@ namespace SOITests.ControllerTests
             state.StartTick = 1;
             state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.Wonder(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Level = 1 });
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Temple()); // subtotal = 1
+            civ.Cities[0].AddBuilding(new Temple()); // subtotal = 1
             // runTicks = 360001 - 1 = 360000 = 1h → ceil(1) = 1 → timeFactor = 2
             var clock = new SettlersOfIdlestan.Model.Game.GameClock { CurrentTick = 360001 };
             var controller = new PrestigeController();
@@ -216,7 +216,7 @@ namespace SOITests.ControllerTests
             var civ = initialIsland.PlayerCivilization;
             for (int i = 0; i < 20; i++)
             {
-                civ.Cities[0].Buildings.Add(new Temple());
+                civ.Cities[0].AddBuilding(new Temple());
             }
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
             var expectedPrestigePoints = controller.PrestigeController.CalculatePrestigePoints();
@@ -237,7 +237,7 @@ namespace SOITests.ControllerTests
             controller.CreateNewGame();
             var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
             for (int i = 0; i < 20; i++)
-                civ.Cities[0].Buildings.Add(new Temple());
+                civ.Cities[0].AddBuilding(new Temple());
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
             controller.CurrentMainState.PrestigeState!.WalkOfGodUsesSinceLastPrestige = 3;
 
@@ -253,7 +253,7 @@ namespace SOITests.ControllerTests
             controller.CreateNewGame();
             var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
             for (int i = 0; i < 20; i++)
-                civ.Cities[0].Buildings.Add(new Temple());
+                civ.Cities[0].AddBuilding(new Temple());
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
             controller.CurrentMainState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige = 3;
 
@@ -271,7 +271,7 @@ namespace SOITests.ControllerTests
             controller.CreateNewGame();
             var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
             for (int i = 0; i < 20; i++)
-                civ.Cities[0].Buildings.Add(new Temple());
+                civ.Cities[0].AddBuilding(new Temple());
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
             controller.CurrentMainState.GodState.DivineEssence = 3;
 
@@ -287,7 +287,7 @@ namespace SOITests.ControllerTests
             controller.CreateNewGame();
             var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
             for (int i = 0; i < 20; i++)
-                civ.Cities[0].Buildings.Add(new Temple());
+                civ.Cities[0].AddBuilding(new Temple());
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
             civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireSacre);
             controller.CurrentMainState.GodState.DivineEssence = 3;
@@ -304,7 +304,7 @@ namespace SOITests.ControllerTests
             controller.CreateNewGame();
             var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
             for (int i = 0; i < 20; i++)
-                civ.Cities[0].Buildings.Add(new Temple());
+                civ.Cities[0].AddBuilding(new Temple());
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
             civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireSacre);
             civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireRenforce);
@@ -322,7 +322,7 @@ namespace SOITests.ControllerTests
             controller.CreateNewGame();
             var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
             for (int i = 0; i < 20; i++)
-                civ.Cities[0].Buildings.Add(new Temple());
+                civ.Cities[0].AddBuilding(new Temple());
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
             civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireSacre);
             civ.TechnologyTree.CompleteResearch(SettlersOfIdlestan.Model.Civilization.TechnologyId.ReliquaireRenforce);
@@ -377,7 +377,7 @@ namespace SOITests.ControllerTests
             var state = IslandTestFactory.CreateSevenHexIslandState();
             var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { MaxCorruptionLevelCleared = 2 };
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Temple()); // subtotal = 1, monster bonus ×1.2 (pas de monstre)
+            civ.Cities[0].AddBuilding(new Temple()); // subtotal = 1, monster bonus ×1.2 (pas de monstre)
             var controller = new PrestigeController();
             controller.Initialize(civ, state, prestigeState: prestigeState);
 
@@ -403,11 +403,11 @@ namespace SOITests.ControllerTests
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new Temple());
-            civ.Cities[0].Buildings.Add(new Temple()); // subtotal = 5
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple()); // subtotal = 5
             state.RunRecord.CivilizationsDestroyed = 1;
             var controller = new PrestigeController();
             controller.Initialize(civ, state);
@@ -489,7 +489,7 @@ namespace SOITests.ControllerTests
             var civ = mainController.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
             civ.AddUniqueBuilding(BuildingType.ImperialPort);
             for (int i = 0; i < 20; i++)
-                civ.Cities[0].Buildings.Add(new Temple());
+                civ.Cities[0].AddBuilding(new Temple());
 
             Assert.Equal(1, mainController.CurrentMainState.PrestigeState!.CurrentCorruptionLevel);
 

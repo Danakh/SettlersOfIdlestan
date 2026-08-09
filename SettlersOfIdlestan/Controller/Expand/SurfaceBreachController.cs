@@ -97,7 +97,7 @@ namespace SettlersOfIdlestan.Controller.Island
             ReleaseLandingSite(playerCiv, arrivalVertex);
 
             var city = new City(arrivalVertex) { CivilizationIndex = playerCiv.Index };
-            city.Buildings.Add(new TownHall { Level = 1 });
+            city.AddBuilding(new TownHall { Level = 1 });
             city.InvalidateLevelCache();
             playerCiv.AddCity(city);
 

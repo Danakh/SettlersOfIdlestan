@@ -38,7 +38,7 @@ public class NpcGameControllerAttackEscalationTests
         Civilization playerCiv, Civilization npcCiv, Civilization attackerCiv, Civilization defenderCiv)
     {
         var attackerCity = new City(VertexA) { CivilizationIndex = attackerCiv.Index, Soldiers = 5 };
-        attackerCity.Buildings.Add(new Barracks { Level = 2 });
+        attackerCity.AddBuilding(new Barracks { Level = 2 });
         attackerCiv.AddCity(attackerCity);
 
         var defenderCity = new City(VertexB) { CivilizationIndex = defenderCiv.Index };

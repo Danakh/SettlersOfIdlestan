@@ -314,7 +314,7 @@ public class CityBuilderControllerTests
     {
         var (state, civ, v1, _, _) = RibbonIsland();
         var startingCity = new City(v1) { CivilizationIndex = 0 };
-        startingCity.Buildings.Add(new BuildersGuild { Level = 1 });
+        startingCity.AddBuilding(new BuildersGuild { Level = 1 });
         civ.AddCity(startingCity);
 
         var hu1 = new HexCoord(0, 0, LayerState.UnderworldZ);

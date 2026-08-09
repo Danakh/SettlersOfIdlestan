@@ -49,7 +49,7 @@ public class WarHeraldTests
         var enemyCiv = new Civilization { Index = 1 };
 
         var target = new City(Target) { CivilizationIndex = 0 };
-        target.Buildings.Add(new Barracks { Level = 1 });
+        target.AddBuilding(new Barracks { Level = 1 });
         var allyNoFlow = new City(AllyNoFlow) { CivilizationIndex = 0 };
         var allyAttacking = new City(AllyAttacking) { CivilizationIndex = 0, FlowTarget = EnemyCity };
         var allyPatrolling = new City(AllyPatrolling) { CivilizationIndex = 0, MonsterAttackTarget = new HexCoord(9, 9, IslandMap.SurfaceLayer) };
@@ -147,9 +147,9 @@ public class WarHeraldTests
 
         var civ = new Civilization { Index = 0 };
         var target = new City(Target) { CivilizationIndex = 0 };
-        target.Buildings.Add(new Barracks { Level = 1 });
+        target.AddBuilding(new Barracks { Level = 1 });
         var relay = new City(relayVertex) { CivilizationIndex = 0 };
-        relay.Buildings.Add(new Barracks { Level = 1 });
+        relay.AddBuilding(new Barracks { Level = 1 });
         var far = new City(farVertex) { CivilizationIndex = 0 };
         civ.AddCity(target);
         civ.AddCity(relay);

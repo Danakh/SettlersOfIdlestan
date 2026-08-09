@@ -53,9 +53,9 @@ public class RangedMonsterAttackTests
 
         var civ = new Civilization { Index = 0 };
         var city = new City(Vertex.Create(Center, NE, NW)) { CivilizationIndex = 0, Soldiers = soldiers };
-        city.Buildings.Add(new Barracks { Level = 1 });
+        city.AddBuilding(new Barracks { Level = 1 });
         if (hasWatchtower)
-            city.Buildings.Add(new Watchtower { Level = 1 });
+            city.AddBuilding(new Watchtower { Level = 1 });
         civ.AddCity(city);
 
         if (hasSurveillance)

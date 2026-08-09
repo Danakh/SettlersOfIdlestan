@@ -42,7 +42,7 @@ namespace SOITests.ControllerTests
             IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
             generator.PopulatePlayerCivilization(map, civ, vertex);
             var city = civ.Cities[0];
-            city.Buildings.Add(new Sawmill());
+            city.AddBuilding(new Sawmill());
 
             var clock = new GameClock();
             clock.Start();
@@ -89,7 +89,7 @@ namespace SOITests.ControllerTests
             IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
             generator.PopulatePlayerCivilization(map, civ, vertex);
             var city = civ.Cities[0];
-            city.Buildings.Add(new Sawmill());
+            city.AddBuilding(new Sawmill());
 
             // Dominion niveau 5 (+20%/niveau = +100%) amplifié par 2 vertex de prestige (×1.2)
             // ⇒ +120% de vitesse, cooldown effectif = 500 / 2.2 = 227 ticks.
@@ -138,7 +138,7 @@ namespace SOITests.ControllerTests
             IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
             generator.PopulatePlayerCivilization(map, civ, vertex);
             var city = civ.Cities[0];
-            city.Buildings.Add(new Sawmill());
+            city.AddBuilding(new Sawmill());
 
             // Bonus intrinsèque seul : Dominion niveau 5 ⇒ +100% de vitesse, cooldown = 500 / 2 = 250 ticks.
             state.AddFeature(new Dominion(a, level: 5));
@@ -182,7 +182,7 @@ namespace SOITests.ControllerTests
             IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
             generator.PopulatePlayerCivilization(map, civ, vertex);
             var city = civ.Cities[0];
-            city.Buildings.Add(new Sawmill());
+            city.AddBuilding(new Sawmill());
 
             var clock = new GameClock();
             clock.Start();
@@ -215,7 +215,7 @@ namespace SOITests.ControllerTests
             IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
             generator.PopulatePlayerCivilization(map, civ, vertex);
             var city = civ.Cities[0];
-            city.Buildings.Add(new Sawmill());
+            city.AddBuilding(new Sawmill());
 
             civ.TechnologyTree.CompleteResearch(TechnologyId.BoisDeChampignon);
 
@@ -326,7 +326,7 @@ namespace SOITests.ControllerTests
             IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
             generator.PopulatePlayerCivilization(map, civ, vertex);
             var city = civ.Cities[0];
-            city.Buildings.Add(new Sawmill());
+            city.AddBuilding(new Sawmill());
 
             return (state, civ, city);
         }
@@ -335,7 +335,7 @@ namespace SOITests.ControllerTests
         public void AutomaticHarvest_SellsOverflow_WhenAutomaticMarketUnlockedAndCityHasMarketLevel4()
         {
             var (state, civ, city) = CreateOverflowSetup();
-            city.Buildings.Add(new Market { Level = 4 });
+            city.AddBuilding(new Market { Level = 4 });
             BuildingController.RecalculateStorageCapacity(civ);
             civ.TechnologyTree.CompleteResearch(TechnologyId.AutomaticMarket);
 
@@ -359,7 +359,7 @@ namespace SOITests.ControllerTests
         public void AutomaticHarvest_DoesNotSellOverflow_WithoutAutomaticMarketResearch()
         {
             var (state, civ, city) = CreateOverflowSetup();
-            city.Buildings.Add(new Market { Level = 4 });
+            city.AddBuilding(new Market { Level = 4 });
             BuildingController.RecalculateStorageCapacity(civ);
 
             int maxWood = civ.GetResourceMaxQuantity(Resource.Wood);
@@ -381,7 +381,7 @@ namespace SOITests.ControllerTests
         public void AutomaticHarvest_DoesNotSellOverflow_WhenCityMarketBelowLevel4()
         {
             var (state, civ, city) = CreateOverflowSetup();
-            city.Buildings.Add(new Market { Level = 3 });
+            city.AddBuilding(new Market { Level = 3 });
             BuildingController.RecalculateStorageCapacity(civ);
             civ.TechnologyTree.CompleteResearch(TechnologyId.AutomaticMarket);
 

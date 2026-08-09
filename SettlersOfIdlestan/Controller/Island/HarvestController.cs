@@ -306,12 +306,17 @@ namespace SettlersOfIdlestan.Controller.Island
 
                     var adjacent = citiesByHex[hex];
                     for (int c = 0; c < adjacent.Count; c++)
-                        foreach (var building in adjacent[c].Buildings)
+                    {
+                        // Boucle indexée : City.Buildings est typée IReadOnlyList, dont l'énumérateur
+                        // est boxé à chaque foreach.
+                        var buildings = adjacent[c].Buildings;
+                        for (int b = 0; b < buildings.Count; b++)
                         {
-                            var res = building.AutomaticHarvestCapability(tile.TerrainType, civ);
+                            var res = buildings[b].AutomaticHarvestCapability(tile.TerrainType, civ);
                             if (res.HasValue)
-                                entries.Add(new ProductionEntry(hex, adjacent[c], building, res.Value, tile.TerrainType));
+                                entries.Add(new ProductionEntry(hex, adjacent[c], buildings[b], res.Value, tile.TerrainType));
                         }
+                    }
                 }
             }
 

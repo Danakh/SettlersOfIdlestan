@@ -56,11 +56,11 @@ public class BarracksRestrictionTests
         civ.Resources[Resource.Food] = 999; // évite que ResolveSoldierFeeding affame les soldats au-delà du quota gratuit
 
         var surfaceCity = new City(SurfaceCityVertex) { CivilizationIndex = 0 };
-        surfaceCity.Buildings.Add(new Barracks { Level = barracksLevel });
+        surfaceCity.AddBuilding(new Barracks { Level = barracksLevel });
         civ.AddCity(surfaceCity);
 
         var underworldCity = new City(UnderworldCityVertex) { CivilizationIndex = 0 };
-        underworldCity.Buildings.Add(new Barracks { Level = barracksLevel });
+        underworldCity.AddBuilding(new Barracks { Level = barracksLevel });
         civ.AddCity(underworldCity);
 
         civ.AddCustomAggregator(new StaticModifierProvider([
@@ -171,7 +171,7 @@ public class BarracksRestrictionTests
         npc.Resources[Resource.Ore] = 999;
         npc.Resources[Resource.Food] = 999;
         var npcCity = new City(SurfaceCityVertex) { CivilizationIndex = 1 };
-        npcCity.Buildings.Add(new Barracks { Level = 5 });
+        npcCity.AddBuilding(new Barracks { Level = 5 });
         npc.AddCity(npcCity);
         npc.AddCustomAggregator(new StaticModifierProvider([
             new Modifier(ECategory.SOLDIER_FOOD_FREE_PER_CITY, EType.ADDITIVE, 2)
@@ -217,8 +217,8 @@ public class BarracksRestrictionTests
         civ.Resources[Resource.Steel] = 999;
 
         var city = new City(SurfaceCityVertex) { CivilizationIndex = 0 };
-        city.Buildings.Add(new Barracks { Level = 5 });
-        city.Buildings.Add(new Arsenal { Level = 1 });
+        city.AddBuilding(new Barracks { Level = 5 });
+        city.AddBuilding(new Arsenal { Level = 1 });
         civ.AddCity(city);
 
         civ.AddCustomAggregator(new StaticModifierProvider([

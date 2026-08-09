@@ -38,14 +38,10 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Parcourt délibérément les villes plutôt que de lire un cache : <c>City.Buildings</c> est une
-        /// liste publique que plusieurs chemins mutent directement (bâtiments de départ accordés par
-        /// <see cref="Island.CityBuilderController"/> et par l'Ascension, tests), sans passer par
-        /// <see cref="Island.BuildingController.BuildBuilding"/>. Un cache entretenu à la
-        /// construction rendait donc « commerce indisponible » dans ces cas — ce qu'ont
-        /// immédiatement montré les tests. Le coût est maîtrisé à l'appel : la récolte automatique,
-        /// seule à appeler ceci en boucle, ne le fait qu'une fois par civilisation et par tick (voir
-        /// HarvestController.PerformAutomaticProductionHarvests).
+        /// Lit <see cref="Civilization.HasMarket"/>, calculé à la demande et invalidé par
+        /// <see cref="Model.Civilization.City.BuildingsChanged"/>. Le parcours de toutes les villes et
+        /// de tous leurs bâtiments qu'il remplace était fait à chaque vente, or la récolte automatique
+        /// en déclenche une par ressource débordée, par hexagone et par tick.
         /// </summary>
         public bool IsTradeAvailable(int civilizationIndex)
         {
@@ -54,12 +50,7 @@ namespace SettlersOfIdlestan.Controller
             var civ = _state.GetCivilization(civilizationIndex);
             if (civ == null) throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            var cities = civ.Cities;
-            for (int i = 0; i < cities.Count; i++)
-                if (cities[i].FindBuilding(BuildingType.Market) != null)
-                    return true;
-
-            return false;
+            return civ.HasMarket;
         }
 
         /// <summary>

@@ -138,7 +138,7 @@ public class PrestigeMapController
             var map = worldState.GetMapFor(city.Position);
             if (map == null || !building.IsAvailableInLayer(map.Z)) return;
             building.Level = 1;
-            city.Buildings.Add(building);
+            city.AddBuilding(building);
             if (bt == BuildingType.TownHall) city.InvalidateLevelCache();
             city.InvalidateMaxSoldiersCache();
         }
