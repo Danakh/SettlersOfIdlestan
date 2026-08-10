@@ -26,10 +26,20 @@ public sealed class SettingsPanelView : UserControl
     private static readonly SolidColorBrush ChoiceActive = new(Color.FromRgb(60, 100, 160));
     private static readonly SolidColorBrush ChoiceInactive = new(Color.FromRgb(45, 45, 58));
 
+    /// <summary>
+    /// Largeur du panneau, fixe et commune aux deux hotes (popup en jeu, ecran-titre).
+    ///
+    /// Sans largeur imposee, le panneau se dimensionne sur sa ligne la plus longue : changer de
+    /// langue change la largeur, et tous les debuts de ligne se decalent. Elle est choisie assez
+    /// large pour qu'il reste un blanc entre le libelle le plus long et ses boutons.
+    /// </summary>
+    public const double ContentWidth = 500;
+
     public SettingsPanelView(SettingsPanelViewModel viewModel)
     {
         DataContext = viewModel;
-        HorizontalAlignment = HorizontalAlignment.Stretch;
+        Width = ContentWidth;
+        HorizontalAlignment = HorizontalAlignment.Center;
 
         Content = new ItemsControl
         {
@@ -58,6 +68,9 @@ public sealed class SettingsPanelView : UserControl
                 FontSize = 13,
                 VerticalAlignment = VerticalAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
+                // Gouttiere : le libelle occupe toute la place restante, sans cette marge il
+                // viendrait toucher le controle des qu'il est un peu long.
+                Margin = new Thickness(0, 0, 16, 0),
                 [!TextBlock.TextProperty] = new Binding(nameof(SettingRowViewModel.Label)),
                 [!TextBlock.ForegroundProperty] = new Binding(nameof(SettingRowViewModel.IsEnabled))
                 {

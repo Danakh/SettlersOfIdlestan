@@ -90,9 +90,11 @@ internal sealed class TabButton : Button
         _label = new TextBlock
         {
             FontSize = 12,
-            // Les libelles sur deux lignes ("Infra\nmonde") doivent tenir dans les 28 px de
-            // hauteur : sans interligne resserre, la seconde ligne est rognee.
-            LineHeight = 12,
+            // L'interligne doit rester >= a la hauteur de glyphe (~1.2 x FontSize) : plus bas,
+            // Avalonia rogne le bas de chaque ligne (jambages, et meme la ligne de base).
+            // C'est la hauteur du bouton qui absorbe les libelles sur deux lignes
+            // ("Infra\nmonde"), pas un interligne ecrase.
+            LineHeight = 15,
             FontWeight = FontWeight.Bold,
             TextAlignment = TextAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -100,7 +102,8 @@ internal sealed class TabButton : Button
         };
 
         MinWidth = 62;
-        Height = 28;
+        // Deux lignes de 15 px + la bordure : 34 px, ce qui tient dans les 50 px de la barre.
+        Height = 34;
         Padding = new Thickness(4, 0);
         CornerRadius = new CornerRadius(5);
         BorderThickness = new Thickness(1);

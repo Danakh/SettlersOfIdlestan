@@ -210,9 +210,10 @@ public sealed class TitleScreenView : UserControl
         return stack;
     }
 
+    // Pas de largeur ici : c'est le panneau qui porte la sienne, identique au popup en jeu et
+    // stable d'une langue a l'autre.
     private static Control BuildSettings(TitleScreenViewModel owner) => new ScrollViewer
     {
-        MaxWidth = 640,
         HorizontalAlignment = HorizontalAlignment.Center,
         HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
         VerticalScrollBarVisibility = ScrollBarVisibility.Auto,

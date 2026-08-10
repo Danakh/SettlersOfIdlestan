@@ -49,6 +49,10 @@ public sealed class AutomationView : UserControl
         var globalToggle = new CheckBox
         {
             VerticalAlignment = VerticalAlignment.Center,
+            // Seule case a cocher de l'onglet qui porte un libelle : sans couleur explicite elle
+            // herite du noir du theme, illisible sur le fond sombre. Meme blanc que le nom des
+            // lignes ("Routes (Surface)").
+            Foreground = NameText,
             [!ToggleButton.IsCheckedProperty] = new Binding(nameof(AutomationViewModel.GlobalToggleOn)),
             [!ContentProperty] = new Binding(nameof(AutomationViewModel.GlobalToggleLabel)),
         };

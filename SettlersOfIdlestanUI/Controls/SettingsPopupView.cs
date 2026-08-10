@@ -78,7 +78,9 @@ public sealed class SettingsPopupView : UserControl
 
         var box = new Border
         {
-            Width = 560,
+            // La largeur du cadre suit celle du panneau : 24 de padding et 2 de bordure de
+            // chaque cote, plus un peu de jeu pour l'ascenseur.
+            Width = SettingsPanelView.ContentWidth + 60,
             Background = Background,
             BorderBrush = Border_,
             BorderThickness = new Thickness(2),
