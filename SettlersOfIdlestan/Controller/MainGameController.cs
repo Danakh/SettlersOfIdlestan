@@ -326,7 +326,8 @@ namespace SettlersOfIdlestan.Controller
 
                 // Initialisé avant SetupModifierAggregators() : ce contrôleur sert lui-même de
                 // IModifierProvider et doit avoir purgé ses anciens abonnés avant d'être ré-enregistré.
-                AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState);
+                AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState,
+                    CityBuilderController);
                 AscensionController.ApplyPermanentUniqueBuildingToCivilization();
 
                 SetupModifierAggregators();

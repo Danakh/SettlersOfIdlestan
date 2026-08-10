@@ -18,7 +18,7 @@ public class PrestigeState
 
     /// <summary>
     /// Nombre d'utilisations de Marche de Dieu depuis le dernier prestige. Pilote le coût croissant
-    /// en points de prestige (1 à la première utilisation, 2 à la deuxième, etc. — voir
+    /// en points de prestige (la première utilisation est gratuite, la deuxième coûte 1, etc. — voir
     /// AscensionController.GetWalkOfGodCost) ; remis à zéro par PrestigeController.PerformPrestige.
     /// </summary>
     public int WalkOfGodUsesSinceLastPrestige { get; set; }

@@ -4,10 +4,12 @@ using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Races;
 using SOITests.TestUtilities;
 using System.Linq;
 using Xunit;
@@ -326,51 +328,220 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void GetWalkOfGodCost_EscalatesByOneOnEachUse()
+    public void GetWalkOfGodCost_FirstUseIsFreeThenEscalatesByOne()
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockWalkOfGod(ascension);
         var (hex, dominion) = SeedDominion(state, level: 5);
         Assert.Contains(hex, ascension.GetWalkOfGodTargetHexes());
 
-        Assert.Equal(1, ascension.GetWalkOfGodCost());
-        Assert.True(ascension.ChangeTerrainRandomly(hex));
-        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+        // Première marche depuis le dernier prestige : gratuite (seul le Dominion est consommé).
+        Assert.Equal(0, ascension.GetWalkOfGodCost());
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(4, dominion.Level);
 
-        Assert.Equal(2, ascension.GetWalkOfGodCost());
-        Assert.True(ascension.ChangeTerrainRandomly(hex));
-        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(1, ascension.GetWalkOfGodCost());
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(3, dominion.Level);
 
-        Assert.Equal(3, ascension.GetWalkOfGodCost());
+        Assert.Equal(2, ascension.GetWalkOfGodCost());
     }
 
+    /// <summary>
+    /// La gratuité ne vaut que pour la première marche : une fois celle-ci consommée, une cagnotte
+    /// vide bloque bien le pouvoir (c'est le cas nominal sur la première île d'un cycle d'Ascension,
+    /// où PrestigeState.PrestigePoints part de zéro).
+    /// </summary>
     [Fact]
-    public void ChangeTerrainRandomly_InsufficientPrestigePoints_FailsAndLeavesStateUntouched()
+    public void ApplyWalkOfGod_InsufficientPrestigePointsAfterTheFreeUse_FailsAndLeavesStateUntouched()
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
         UnlockWalkOfGod(ascension);
+        godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige = 1;
         var (hex, dominion) = SeedDominion(state, level: 2);
         var terrainBefore = state.GetMapFor(hex)!.GetTile(hex)!.TerrainType;
 
-        var result = ascension.ChangeTerrainRandomly(hex);
+        var result = ascension.ApplyWalkOfGod(hex);
 
         Assert.False(result);
         Assert.Equal(0, godState.PrestigeState!.PrestigePoints);
-        Assert.Equal(0, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
+        Assert.Equal(1, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
         Assert.Equal(terrainBefore, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
         Assert.Equal(2, dominion.Level);
     }
 
+    /// <summary>Le premier usage gratuit fonctionne avec une cagnotte à zéro — l'île 1 d'une Ascension.</summary>
     [Fact]
-    public void ChangeTerrainRandomly_NoPrestigeState_Fails()
+    public void ApplyWalkOfGod_WithNoPrestigePointsAtAll_StillWorksOnce()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        UnlockWalkOfGod(ascension);
+        var (hex, _) = SeedDominion(state, level: 5);
+
+        Assert.True(ascension.CanUseWalkOfGod());
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.Equal(0, godState.PrestigeState!.PrestigePoints);
+
+        Assert.False(ascension.CanUseWalkOfGod());
+        Assert.False(ascension.ApplyWalkOfGod(hex));
+    }
+
+    [Fact]
+    public void ApplyWalkOfGod_NoPrestigeState_Fails()
     {
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: null);
         UnlockWalkOfGod(ascension);
         var (hex, _) = SeedDominion(state, level: 2);
 
-        Assert.False(ascension.ChangeTerrainRandomly(hex));
+        Assert.False(ascension.ApplyWalkOfGod(hex));
+    }
+
+    /// <summary>
+    /// Race à terrain de prédilection : marcher sur n'importe quel autre terrain y fait pousser ce
+    /// terrain, de façon déterministe. C'est ce qui rend le pouvoir utile à un Elfe — retomber au
+    /// hasard sur la Forêt (1 chance sur 4) ne lui ouvrirait pratiquement jamais d'emplacement.
+    /// </summary>
+    [Fact]
+    public void ApplyWalkOfGod_RaceWithFavouredTerrain_GrowsItOnAnyOtherTerrain()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        godState.AscensionState.SelectedRace = RaceId.Elf;
+        UnlockWalkOfGod(ascension);
+        var (hex, _) = SeedDominion(state, level: 5);
+        state.GetMapFor(hex)!.GetTile(hex)!.TerrainType = TerrainType.Desert;
+
+        Assert.Equal(TerrainType.Forest, ascension.FavouredTerrain);
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.Equal(TerrainType.Forest, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+    }
+
+    /// <summary>
+    /// Sur le terrain de prédilection lui-même, le déterminisme tombe : la marche transforme, elle ne
+    /// conserve pas. Le terrain obtenu est tiré au sort, et n'est donc jamais celui de départ.
+    /// </summary>
+    [Fact]
+    public void ApplyWalkOfGod_RaceWithFavouredTerrain_OnThatTerrain_IsRandom()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        godState.AscensionState.SelectedRace = RaceId.Elf;
+        UnlockWalkOfGod(ascension);
+        var (hex, _) = SeedDominion(state, level: 5);
+        state.GetMapFor(hex)!.GetTile(hex)!.TerrainType = TerrainType.Forest;
+
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.NotEqual(TerrainType.Forest, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+    }
+
+    /// <summary>
+    /// Comme <see cref="CreateTestSetup"/>, mais avec le CityBuilderController câblé : c'est lui qui
+    /// détruit les villes que le terrain transformé ne permet plus d'occuper (voir
+    /// AscensionController.ApplyWalkOfGod / CityBuilderController.DestroyCitiesInvalidatedByTerrain).
+    /// </summary>
+    private static (WorldState state, City city, Civilization civ, AscensionController ascension) CreateWalkOfGodSetupWithCityDestruction(RaceId race)
+    {
+        var state = IslandTestFactory.CreateSevenHexIslandState();
+        var civ = state.Civilizations[0];
+        var city = civ.Cities[0];
+
+        var godState = new GodState { GodPoints = 100 };
+        godState.PrestigeState = new PrestigeState(state) { PrestigePoints = 10 };
+        godState.AscensionState.SelectedRace = race;
+
+        // En jeu, les modifiers de la race arrivent sur la civilisation via AscensionController
+        // (IModifierProvider) enregistré par MainGameController.SetupModifierAggregators ; ici on
+        // les pose directement, sinon CITY_PLACEMENT_REQUIRES_TERRAIN n'existe pas côté civ et la
+        // règle de validité de terrain n'a rien à vérifier.
+        civ.AddCustomAggregator(new StaticModifierProvider(RaceDefinitions.Get(race).Modifiers));
+
+        var cityBuilder = new CityBuilderController();
+        cityBuilder.Initialize(state);
+
+        var ascension = new AscensionController();
+        ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), godState, cityBuilder);
+        UnlockWalkOfGod(ascension);
+
+        return (state, city, civ, ascension);
+    }
+
+    private static void SetTerrain(WorldState state, HexCoord hex, TerrainType terrain)
+        => state.GetMapFor(hex)!.GetTile(hex)!.TerrainType = terrain;
+
+    /// <summary>
+    /// Une ville naine dont on efface la Montagne adjacente n'a plus de quoi tenir : elle est détruite
+    /// par la marche qui a transformé le terrain.
+    /// </summary>
+    [Fact]
+    public void ApplyWalkOfGod_DestroysCityLeftWithoutItsRaceRequiredTerrain()
+    {
+        var (state, city, civ, ascension) = CreateWalkOfGodSetupWithCityDestruction(RaceId.Dwarf);
+
+        // La ville tient sur center/NE/E : on fait de E sa seule Montagne, puis on y marche. Pour un
+        // Nain, la Montagne est le terrain de prédilection : la marche y tire donc un terrain au hasard,
+        // qui n'est jamais la Montagne.
+        var mountainHex = new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        SetTerrain(state, mountainHex, TerrainType.Mountain);
+        Assert.Contains(city, civ.Cities);
+
+        SeedDominion(state, level: 5, q: mountainHex.Q, r: mountainHex.R);
+        Assert.True(ascension.ApplyWalkOfGod(mountainHex));
+
+        Assert.NotEqual(TerrainType.Mountain, state.GetMapFor(mountainHex)!.GetTile(mountainHex)!.TerrainType);
+        Assert.DoesNotContain(city, civ.Cities);
+    }
+
+    /// <summary>Une ville dont les trois hexs deviennent de l'eau est engloutie, race sans contrainte comprise.</summary>
+    [Fact]
+    public void ApplyWalkOfGod_DestroysCitySurroundedByWater()
+    {
+        var (state, city, civ, ascension) = CreateWalkOfGodSetupWithCityDestruction(RaceId.Mermaid);
+
+        // Deux des trois hexs de la ville sont déjà noyés ; le troisième le devient par la marche —
+        // l'Eau étant le terrain de prédilection des Sirènes, la transformation est déterministe.
+        var lastLandHex = new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        SetTerrain(state, new HexCoord(0, 1, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer), TerrainType.Water);
+        SetTerrain(state, new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer), TerrainType.Water);
+        Assert.Contains(city, civ.Cities);
+
+        SeedDominion(state, level: 5, q: lastLandHex.Q, r: lastLandHex.R);
+        Assert.True(ascension.ApplyWalkOfGod(lastLandHex));
+
+        Assert.Equal(TerrainType.Water, state.GetMapFor(lastLandHex)!.GetTile(lastLandHex)!.TerrainType);
+        Assert.DoesNotContain(city, civ.Cities);
+    }
+
+    /// <summary>
+    /// Le garde-fou de la mécanique : une ville qui reste occupable survit à la transformation d'un de
+    /// ses propres hexs. Sans ça, toute marche à proximité raserait la ville.
+    /// </summary>
+    [Fact]
+    public void ApplyWalkOfGod_LeavesStillValidCityStanding()
+    {
+        var (state, city, civ, ascension) = CreateWalkOfGodSetupWithCityDestruction(RaceId.Human);
+
+        var cityHex = new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        SeedDominion(state, level: 5, q: cityHex.Q, r: cityHex.R);
+
+        Assert.True(ascension.ApplyWalkOfGod(cityHex));
+
+        // Les deux autres hexs de la ville restent terrestres, et les Humains n'exigent aucun terrain.
+        Assert.Contains(city, civ.Cities);
+    }
+
+    /// <summary>Race sans contrainte de placement : aucun terrain privilégié, tirage aléatoire comme avant.</summary>
+    [Fact]
+    public void ApplyWalkOfGod_RaceWithoutFavouredTerrain_JustChangesTheTerrain()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        godState.AscensionState.SelectedRace = RaceId.Human;
+        UnlockWalkOfGod(ascension);
+        var (hex, _) = SeedDominion(state, level: 5);
+        state.GetMapFor(hex)!.GetTile(hex)!.TerrainType = TerrainType.Desert;
+
+        Assert.Null(ascension.FavouredTerrain);
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.NotEqual(TerrainType.Desert, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
     }
 
     [Fact]
@@ -391,34 +562,35 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void ChangeTerrainRandomly_WithoutDominionLevel2_FailsAndCostsNothing()
+    public void ApplyWalkOfGod_WithoutDominionLevel2_FailsAndCostsNothing()
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockWalkOfGod(ascension);
         var (hex, _) = SeedDominion(state, level: 1);
 
-        Assert.False(ascension.ChangeTerrainRandomly(hex));
+        Assert.False(ascension.ApplyWalkOfGod(hex));
         Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(0, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
     }
 
     [Fact]
-    public void ChangeTerrainRandomly_OnWaterHexWithDominion_TransformsTerrainAndReducesDominion()
+    public void ApplyWalkOfGod_OnWaterHexWithDominion_TransformsTerrainAndReducesDominion()
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockWalkOfGod(ascension);
         var (hex, dominion) = SeedDominion(state, level: 2);
-        state.GetMapFor(hex)!.GetTile(hex)!.TerrainType = SettlersOfIdlestan.Model.IslandMap.TerrainType.Water;
+        state.GetMapFor(hex)!.GetTile(hex)!.TerrainType = TerrainType.Water;
 
-        Assert.True(ascension.ChangeTerrainRandomly(hex));
+        Assert.True(ascension.ApplyWalkOfGod(hex));
 
-        Assert.NotEqual(SettlersOfIdlestan.Model.IslandMap.TerrainType.Water, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+        Assert.NotEqual(TerrainType.Water, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
         Assert.Equal(1, dominion.Level);
-        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+        // Première marche : gratuite, la cagnotte est intacte.
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
 
         // Retombé au niveau 1 : l'hex n'est plus ciblable tant que le Dominion n'a pas regagné du niveau.
         Assert.DoesNotContain(hex, ascension.GetWalkOfGodTargetHexes());
-        Assert.False(ascension.ChangeTerrainRandomly(hex));
+        Assert.False(ascension.ApplyWalkOfGod(hex));
     }
 
     [Fact]
@@ -429,7 +601,7 @@ public class AscensionControllerTests
 
         godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige = 4;
 
-        Assert.Equal(5, ascension.GetWalkOfGodCost());
+        Assert.Equal(4, ascension.GetWalkOfGodCost());
     }
 
     [Fact]

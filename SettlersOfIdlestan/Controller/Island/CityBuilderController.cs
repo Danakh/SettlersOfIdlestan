@@ -32,6 +32,13 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         Combat,
         Monster,
+
+        /// <summary>
+        /// Le terrain sous la ville a changé et ne permet plus de l'occuper — voir
+        /// <see cref="CityBuilderController.DestroyCitiesInvalidatedByTerrain"/>. Aujourd'hui seule
+        /// Marche de Dieu transforme un terrain occupé.
+        /// </summary>
+        Terrain,
     }
 
     public class CityDestroyedEventArgs : EventArgs
@@ -716,6 +723,51 @@ namespace SettlersOfIdlestan.Controller.Island
             _state.Visibility.RecalculateFor(civ.Index);
 
             OnCityDestroyed?.Invoke(this, new CityDestroyedEventArgs(city.Position, civ.Index, cause));
+        }
+
+        /// <summary>
+        /// Détruit toutes les villes que le terrain ne permet plus d'occuper, et retourne la liste de
+        /// celles qui sont tombées. À appeler après toute transformation de terrain — aujourd'hui la
+        /// seule est Marche de Dieu (AscensionController.ApplyWalkOfGod) ; l'autre mutation existante
+        /// (Désert → Filon de Mithril, AutoExtendController) ne peut invalider personne puisqu'elle ne
+        /// retire ni terre ni terrain requis par une race.
+        ///
+        /// <para>Deux invalidités, exactement celles qui empêcheraient d'y fonder la ville aujourd'hui
+        /// (voir <see cref="GetBuildableVertices"/>) : plus aucun hex terrestre autour du vertex — une
+        /// ville cernée par trois hexs d'eau est engloutie — ou le terrain qu'exige la race n'est plus
+        /// adjacent (une ville naine dont on a effacé la Montagne). Les couches souterraines et les
+        /// PNJ, qui n'ont pas d'exigence de terrain, ne sont concernés que par le premier cas.</para>
+        ///
+        /// <para>Le balayage porte sur toutes les villes de toutes les civilisations plutôt que sur les
+        /// seuls voisins de l'hex transformé : les exigences de portée (Sirènes, jusqu'à 2 arêtes de
+        /// l'Eau) atteignent des villes qui ne touchent pas l'hex modifié. C'est une action manuelle
+        /// rare, le coût d'un balayage complet est sans conséquence.</para>
+        /// </summary>
+        public IReadOnlyList<City> DestroyCitiesInvalidatedByTerrain()
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            List<City>? destroyed = null;
+            foreach (var civ in _state.Civilizations)
+            {
+                var satisfiesTerrainRestriction = BuildCityPlacementTerrainFilter(civ);
+
+                // Copie : DestroyCity retire de la liste qu'on est en train de parcourir.
+                foreach (var city in civ.Cities.ToList())
+                {
+                    var map = _state.GetMapFor(city.Position);
+                    if (map == null) continue;
+                    if (TouchesLand(map, city.Position) && satisfiesTerrainRestriction(city.Position)) continue;
+
+                    (destroyed ??= new List<City>()).Add(city);
+                    DestroyCity(city, CityDestructionCause.Terrain);
+
+                    if (civ.Index == _state.PlayerCivilization.Index)
+                        _state.EventLog.Add(GameEventType.CityLostToTerrain, toast: true);
+                }
+            }
+
+            return (IReadOnlyList<City>?)destroyed ?? Array.Empty<City>();
         }
 
         public ResourceSet NewCityBuildingCost()

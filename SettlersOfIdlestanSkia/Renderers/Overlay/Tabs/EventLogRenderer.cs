@@ -234,6 +234,10 @@ public sealed class EventLogRenderer : IDisposable
             _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
             _localization.Get("event_underworld_lost_title"),
             _localization.Get("event_underworld_lost_body")),
+        GameEventType.CityLostToTerrain => (
+            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            _localization.Get("event_city_lost_to_terrain_title"),
+            _localization.Get("event_city_lost_to_terrain_body")),
         GameEventType.CorruptionSpirePlaced => (
             _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
             _localization.Get("event_corruption_spire_placed_title"),

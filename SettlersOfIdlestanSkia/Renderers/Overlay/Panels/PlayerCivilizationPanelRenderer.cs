@@ -422,7 +422,12 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             {
                 _walkOfGodButtonRect = BtnRect(btnIdx++);
                 canvas.DrawRoundRect(_walkOfGodButtonRect, 6 * s, 6 * s, _walkOfGodEnabled ? (_hoveredWalkOfGod ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                string walkOfGodLabel = $"{_localization.Get("walkofgod_action_short")} ({ascensionController.GetWalkOfGodCost()})";
+                // Le premier usage depuis le dernier prestige est gratuit : afficher « (0) » sur le
+                // bouton se lit comme une erreur, pas comme une bonne nouvelle.
+                int walkOfGodButtonCost = ascensionController.GetWalkOfGodCost();
+                string walkOfGodLabel = walkOfGodButtonCost == 0
+                    ? $"{_localization.Get("walkofgod_action_short")} ({_localization.Get("cost_free")})"
+                    : $"{_localization.Get("walkofgod_action_short")} ({walkOfGodButtonCost})";
                 SkiaTextUtils.DrawText(canvas, walkOfGodLabel, _walkOfGodButtonRect.MidX, _walkOfGodButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _walkOfGodEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
@@ -595,8 +600,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         else if (_hoveredWalkOfGod)
         {
             var walkOfGodLines = new System.Collections.Generic.List<string> { _localization.Get("tooltip_walkofgod") };
+            // Ce que la marche va produire dépend de la race jouée — voir AscensionController.ApplyWalkOfGod.
+            if (ascensionController.FavouredTerrain is { } favouredTerrain)
+                walkOfGodLines.Add(_localization.GetFormated("tooltip_walkofgod_favoured_terrain",
+                    _localization.Get($"hex_tooltip_terrain_{favouredTerrain.ToString().ToLowerInvariant()}")));
             int walkOfGodCost = ascensionController.GetWalkOfGodCost();
-            walkOfGodLines.Add(_localization.GetFormated("tooltip_walkofgod_cost", walkOfGodCost));
+            walkOfGodLines.Add(walkOfGodCost == 0
+                ? _localization.Get("tooltip_walkofgod_cost_free")
+                : _localization.GetFormated("tooltip_walkofgod_cost", walkOfGodCost));
             if (!ascensionController.CanUseWalkOfGod())
                 walkOfGodLines.Add(_localization.Get("tooltip_walkofgod_insufficient_prestige"));
             if (ascensionController.GetWalkOfGodTargetHexes().Count == 0)
@@ -841,7 +852,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             _closeAll();
             var ascensionController = _gameControllerService.MainGameController.AscensionController;
             _targetSelectionService.EnterHexSelection("walkofgod_select_hex", ascensionController.GetWalkOfGodTargetHexes(),
-                hex => ascensionController.ChangeTerrainRandomly(hex), TargetSelectionTheme.Friendly);
+                hex => ascensionController.ApplyWalkOfGod(hex), TargetSelectionTheme.Friendly);
             return true;
         }
 
