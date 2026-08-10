@@ -202,19 +202,23 @@ public sealed class OverlayRenderer : IGameRenderer
                 _selectedCityPanelRenderer.RenderHostTooltipOnly(canvas, context);
                 break;
         }
-
-        CheckResourceBarTooltip();
     }
 
-    private void CheckResourceBarTooltip()
+    /// <summary>
+    /// Infobulle d'une pastille de la barre de ressources, demandée au survol par la vue
+    /// Avalonia qui porte désormais cette barre.
+    ///
+    /// Calculée à la demande plutôt que placée dans <see cref="GetResourceBarSnapshot"/> :
+    /// additionner les sources de production et de consommation coûte cher, et l'instantané
+    /// est reconstruit à chaque rafraîchissement pour toutes les ressources alors qu'une
+    /// seule pastille est survolée à la fois.
+    /// </summary>
+    public string? GetResourceTooltip(SettlersOfIdlestan.Model.IslandMap.Resource hoveredResource)
     {
-        var hoveredResource = _playerResourcesOverlayRenderer.GetResourceAtPoint(_lastPointerPosition);
-        if (!hoveredResource.HasValue) return;
-
         var worldState = _gameControllerService.CurrentWorldState;
-        if (worldState == null) return;
+        if (worldState == null) return null;
 
-        string resourceName = _localization.Get($"resource_{hoveredResource.Value.ToString().ToLower()}");
+        string resourceName = _localization.Get($"resource_{hoveredResource.ToString().ToLower()}");
         var controller = _gameControllerService.MainGameController;
         int civIndex = worldState.PlayerCivilization.Index;
 
@@ -224,7 +228,7 @@ public sealed class OverlayRenderer : IGameRenderer
         // Le Cristal a des sources/pertes propres à la Magie (rituels, Huttes d'Alchimie, Monuments) : on
         // délègue à MagicController.GetCrystalGainsAndLosses(), seule source de vérité pour ce total —
         // c'est la même méthode qu'utilise la page Rituels, ce qui garantit des chiffres identiques.
-        if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Crystal)
+        if (hoveredResource == SettlersOfIdlestan.Model.IslandMap.Resource.Crystal)
         {
             (gains, losses) = controller.MagicController.GetCrystalGainsAndLosses();
         }
@@ -244,7 +248,7 @@ public sealed class OverlayRenderer : IGameRenderer
             // (source de vérité pour tout ce qui touche aux Casernes) plutôt que par le HarvestController. On
             // affiche toujours cette ligne dès qu'une Caserne existe, même à 0/s (ville au plafond de soldats) —
             // sinon la ligne apparaît/disparaît sans arrêt dans l'infobulle au fil des cycles de production.
-            if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Ore
+            if (hoveredResource == SettlersOfIdlestan.Model.IslandMap.Resource.Ore
                 && controller.MilitaryController.HasAnySoldierProductionBuilding(civIndex))
             {
                 double soldierOreRate = controller.MilitaryController.GetSoldierProductionOreRate(civIndex);
@@ -254,7 +258,7 @@ public sealed class OverlayRenderer : IGameRenderer
             }
 
             // Même logique pour l'Acier consommé par la production de soldats des Arsenaux actifs.
-            if (hoveredResource.Value == SettlersOfIdlestan.Model.IslandMap.Resource.Steel
+            if (hoveredResource == SettlersOfIdlestan.Model.IslandMap.Resource.Steel
                 && controller.MilitaryController.HasAnyArsenalProductionBuilding(civIndex))
             {
                 double arsenalSteelRate = controller.MilitaryController.GetArsenalProductionSteelRate(civIndex);
@@ -263,17 +267,13 @@ public sealed class OverlayRenderer : IGameRenderer
                 steelLosses.Add((SettlersOfIdlestan.Controller.Military.MilitaryController.ArsenalProductionSteelSourceKey, arsenalSteelRate));
             }
 
-            gainsBySource.TryGetValue(hoveredResource.Value, out gains);
-            lossesBySource.TryGetValue(hoveredResource.Value, out losses);
+            gainsBySource.TryGetValue(hoveredResource, out gains);
+            lossesBySource.TryGetValue(hoveredResource, out losses);
         }
         gains ??= new System.Collections.Generic.List<(string SourceKey, double Rate)>();
         losses ??= new System.Collections.Generic.List<(string SourceKey, double Rate)>();
 
-        if (gains.Count == 0 && losses.Count == 0)
-        {
-            _tooltipRenderer.SetTooltip(resourceName, _lastPointerPosition);
-            return;
-        }
+        if (gains.Count == 0 && losses.Count == 0) return resourceName;
 
         double totalRate = gains.Sum(g => g.Rate) - losses.Sum(l => l.Rate);
         var lines = new System.Collections.Generic.List<string>
@@ -284,7 +284,7 @@ public sealed class OverlayRenderer : IGameRenderer
             lines.Add($"{_localization.Get(sourceKey)} : +{rate:F2}/s");
         foreach (var (sourceKey, rate) in losses.OrderByDescending(l => l.Rate))
             lines.Add($"{_localization.Get(sourceKey)} : -{rate:F2}/s");
-        _tooltipRenderer.SetTooltipLines(lines.ToArray(), _lastPointerPosition);
+        return string.Join('\n', lines);
     }
 
     public void ConnectTargetSelectionService(TargetSelectionService targetSelectionService)

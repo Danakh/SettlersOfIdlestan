@@ -61,7 +61,7 @@ public class TopBarStyleKeyTests
     public void Une_pastille_de_ressource_affiche_son_libelle()
     {
         using var icons = new SvgIconCache();
-        var pill = new ResourcePill(icons)
+        var pill = new ResourcePill(icons, _ => null)
         {
             DataContext = new ResourceItemViewModel(
                 new SkiaLayer.ResourceSnapshot("Wood", "120", "500", false, false)),

@@ -229,6 +229,9 @@ public sealed class GameRuntimeHost : IDisposable
     public SkiaLayer.ResourceBarSnapshot GetResourceBarSnapshot() =>
         Read(r => r.GetResourceBarSnapshot()) ?? SkiaLayer.ResourceBarSnapshot.Unavailable;
 
+    public string? GetResourceTooltip(string resourceName) =>
+        Read(r => r.GetResourceTooltip(resourceName));
+
     public SkiaLayer.TimeControlSnapshot GetTimeControlSnapshot() =>
         Read(r => r.GetTimeControlSnapshot()) ?? SkiaLayer.TimeControlSnapshot.Unavailable;
 

@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -36,7 +37,7 @@ public sealed class ResourceBarView : UserControl
                 VerticalAlignment = VerticalAlignment.Center,
             }),
             ItemTemplate = new FuncDataTemplate<ResourceItemViewModel>(
-                (_, _) => new ResourcePill(icons), supportsRecycling: true),
+                (_, _) => new ResourcePill(icons, viewModel.GetTooltip), supportsRecycling: true),
         };
 
         Content = new ScrollViewer
@@ -70,14 +71,16 @@ internal sealed class ResourcePill : Border
     };
 
     private readonly SvgIconCache _icons;
+    private readonly Func<string, string?> _tooltip;
     private readonly Image _icon;
     private readonly TextBlock _quantity;
     private ResourceItemViewModel? _item;
     private CancellationTokenSource? _flickerCancellation;
 
-    public ResourcePill(SvgIconCache icons)
+    public ResourcePill(SvgIconCache icons, Func<string, string?> tooltip)
     {
         _icons = icons;
+        _tooltip = tooltip;
 
         _icon = new Image { Width = IconPixelSize, Height = IconPixelSize, VerticalAlignment = VerticalAlignment.Center };
         _quantity = new TextBlock
@@ -115,6 +118,25 @@ internal sealed class ResourcePill : Border
         }
 
         ApplyState();
+        UpdateTooltip();
+    }
+
+    /// <summary>
+    /// Les taux affiches sont rafraichis a l'entree du pointeur. Ils le sont aussi des le
+    /// changement de DataContext, et pas seulement ici : ToolTipService ne s'abonne au survol
+    /// qu'au moment ou Tip passe de null a non-null, donc une pastille sans infobulle initiale
+    /// resterait muette pendant tout le premier survol.
+    /// </summary>
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+        UpdateTooltip();
+    }
+
+    private void UpdateTooltip()
+    {
+        if (_item == null) return;
+        ToolTip.SetTip(this, _tooltip(_item.IconName));
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)

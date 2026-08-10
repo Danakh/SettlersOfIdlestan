@@ -380,6 +380,10 @@ public sealed class SkiaGameRuntime : IDisposable
         _onTitleScreen ? ResourceBarSnapshot.Unavailable
                        : _gameScreen?.GetResourceBarSnapshot() ?? ResourceBarSnapshot.Unavailable;
 
+    /// <summary>Infobulle d'une pastille de la barre de ressources portée par l'hôte.</summary>
+    public string? GetResourceTooltip(string resourceName) =>
+        _onTitleScreen ? null : _gameScreen?.GetResourceTooltip(resourceName);
+
     /// <summary>Instantané de l'état du temps pour un contrôle de temps porté par l'hôte.</summary>
     public TimeControlSnapshot GetTimeControlSnapshot() =>
         _onTitleScreen ? TimeControlSnapshot.Unavailable

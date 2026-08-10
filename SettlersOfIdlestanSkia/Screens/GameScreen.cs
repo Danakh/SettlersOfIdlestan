@@ -525,6 +525,15 @@ public sealed class GameScreen : IDisposable
     public ResourceBarSnapshot GetResourceBarSnapshot() =>
         _overlayRenderer?.GetResourceBarSnapshot() ?? ResourceBarSnapshot.Unavailable;
 
+    /// <summary>
+    /// Infobulle d'une pastille de ressource, désignée par son nom d'enum — celui que
+    /// l'instantané expose en <c>IconName</c>, seul identifiant dont dispose la vue.
+    /// </summary>
+    public string? GetResourceTooltip(string resourceName) =>
+        Enum.TryParse<Resource>(resourceName, out var resource)
+            ? _overlayRenderer?.GetResourceTooltip(resource)
+            : null;
+
     /// <summary>Instantané de l'état du temps pour un contrôle porté par l'hôte.</summary>
     public TimeControlSnapshot GetTimeControlSnapshot()
     {

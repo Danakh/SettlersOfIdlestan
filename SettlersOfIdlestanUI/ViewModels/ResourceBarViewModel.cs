@@ -57,6 +57,13 @@ public sealed class ResourceBarViewModel : ViewModelBase
 
     public bool IsAvailable { get => _isAvailable; private set => SetProperty(ref _isAvailable, value); }
 
+    /// <summary>
+    /// Detail des sources de production et de consommation d'une ressource, pour l'infobulle
+    /// de sa pastille. Interroge le runtime au survol : le calcul est trop lourd pour etre
+    /// refait a chaque rafraichissement, et pour toutes les ressources a la fois.
+    /// </summary>
+    internal string? GetTooltip(string iconName) => _host.GetResourceTooltip(iconName);
+
     public void Refresh()
     {
         var snapshot = _host.GetResourceBarSnapshot();

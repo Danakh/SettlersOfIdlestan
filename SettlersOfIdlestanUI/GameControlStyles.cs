@@ -30,6 +30,14 @@ public static class GameControlStyles
     {
         var styles = new Styles();
 
+        // Delai d'apparition des infobulles : le defaut Fluent (400 ms) est trop long pour un jeu
+        // ou l'on survole beaucoup d'icones a la suite. 0 = affichage immediat.
+        // Is<Control>() et non OfType<Control>() : OfType matche le type exact, donc aucun bouton.
+        styles.Add(new Style(x => x.Is<Control>())
+        {
+            Setters = { new Setter(ToolTip.ShowDelayProperty, 0) },
+        });
+
         // Le fond vit sur le ContentPresenter du template : c'est lui qu'il faut retablir,
         // reposer Background sur le Button ne suffirait pas.
         styles.Add(BackgroundOf(":pointerover"));
