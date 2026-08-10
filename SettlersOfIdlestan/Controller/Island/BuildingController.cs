@@ -420,11 +420,15 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var prototype = CreateBuilding(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
 
+                // Les deux tests qui suivent lisent les prérequis, donc passent par le contexte allégé
+                // quand la civilisation en réduit les seuils (voir BuildReducedPrerequisiteContext).
+                var buildContext = prototype.IsUnique ? BuildReducedPrerequisiteContext(city, civ) : city;
+
                 if (_state.GetMapFor(city.Position) is not { } map1 ||
-                    !prototype.IsBuildingAvailableForCity(map1, city, civ))
+                    !prototype.IsBuildingAvailableForCity(map1, buildContext, civ))
                     return false;
 
-                if (!prototype.HasBuildPrerequisites(city, _state))
+                if (!prototype.HasBuildPrerequisites(buildContext, _state))
                     return false;
 
                 // civ.UniqueBuildings is a permanent "ever built" flag (never cleared on city loss,
@@ -531,6 +535,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var result = new List<Building>();
 
+            // Résolu une fois pour toute la liste : les seuils réduits ne dépendent que de la
+            // civilisation et de la ville (voir BuildReducedPrerequisiteContext).
+            var buildContext = BuildReducedPrerequisiteContext(city, civ);
+
             foreach (var bt in _allBuildingTypes)
             {
                 var prototype = CreateBuilding(bt);
@@ -556,18 +564,99 @@ namespace SettlersOfIdlestan.Controller.Island
                 // Fées / Volcan) découverte, pas à un autre bâtiment construisible — reste masqué
                 // tant que la feature n'est pas trouvée, plutôt qu'affiché grisé avec tooltip.
                 else if ((bt == BuildingType.AlchimistHut || bt == BuildingType.VolcanicForge) &&
-                         !prototype.HasBuildPrerequisites(city, _state))
+                         !prototype.HasBuildPrerequisites(buildContext, _state))
                 {
                     continue;
                 }
                 else if (_state.GetMapFor(city.Position) is { } map2 &&
-                         prototype.IsBuildingAvailableForCity(map2, city))
+                         prototype.IsBuildingAvailableForCity(map2, buildContext))
                 {
                     result.Add(prototype);
                 }
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// La ville telle que doivent la voir les tests de construction d'un bâtiment <b>unique</b>, une
+        /// fois appliquée la réduction de prérequis de la civilisation
+        /// (UNIQUE_BUILDING_PREREQUISITE_REDUCTION, aujourd'hui le seul Grand Terrier gobelin). Rend la
+        /// ville inchangée quand il n'y a rien à réduire — le cas de toutes les races sauf une, sur un
+        /// chemin que l'autoplayer emprunte des centaines de fois par passe.
+        ///
+        /// <para>La réduction est portée par la <i>ville présentée</i> plutôt que par le seuil de chaque
+        /// bâtiment : les seuils sont éparpillés entre <c>AvailableAtLevel</c>, des surcharges de
+        /// <c>IsBuildingAvailableForCity</c> qui comparent <c>city.Level</c> à une constante écrite en
+        /// dur (Port Impérial, Haut-Fourneau) et onze <c>HasBuildPrerequisites</c>. Un seul point de
+        /// vérité les couvre tous, y compris les bâtiments uniques à venir.</para>
+        /// </summary>
+        /// <inheritdoc cref="BuildReducedPrerequisiteContext(City, Civilization)"/>
+        /// <remarks>
+        /// Public pour l'UI : elle interroge les prérequis d'un bâtiment pour le griser et pour dire ce
+        /// qui manque (voir CityBuildingService), et doit poser exactement la même question que
+        /// <see cref="BuildBuilding"/> — sans quoi le panneau grise un bâtiment que le contrôleur
+        /// accepterait de bâtir.
+        /// </remarks>
+        public IBuildingContext BuildPrerequisiteContext(City city)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var civ = _state.GetCivilization(city.CivilizationIndex);
+            return civ == null ? city : BuildReducedPrerequisiteContext(city, civ);
+        }
+
+        private static IBuildingContext BuildReducedPrerequisiteContext(City city, Civilization civ)
+        {
+            int reduction = civ.ModifierAggregator.ApplyModifiers(ECategory.UNIQUE_BUILDING_PREREQUISITE_REDUCTION, "", 0);
+            return reduction > 0 ? new ReducedPrerequisiteContext(city, reduction) : city;
+        }
+
+        /// <summary>
+        /// Vue d'une ville dont les seuils de prérequis sont abaissés de <c>Reduction</c> : son niveau
+        /// paraît d'autant plus haut, et tout niveau de bâtiment exigé d'autant plus bas. Ne quitte
+        /// jamais le test de constructibilité — ni le niveau réel de la ville, ni celui de ses bâtiments,
+        /// ni aucun coût n'en dépendent.
+        ///
+        /// <para>Le plancher à 1 sur les bâtiments exigés est ce qui garde « exiger un Temple » de
+        /// devenir « n'exiger aucun Temple » : un seuil ramené à 0 serait satisfait par une ville qui
+        /// n'a pas le bâtiment du tout. La réduction allège un prérequis, elle ne le supprime pas.</para>
+        /// </summary>
+        private sealed class ReducedPrerequisiteContext : IBuildingContext
+        {
+            private readonly City _city;
+            private readonly int _reduction;
+
+            public ReducedPrerequisiteContext(City city, int reduction)
+            {
+                _city = city;
+                _reduction = reduction;
+            }
+
+            public int Level => _city.Level + _reduction;
+            public Vertex Position => _city.Position;
+            public IReadOnlyList<Building> Buildings => _city.Buildings;
+
+            public bool HasBuildingAtLevel(BuildingType type, int minLevel)
+            {
+                int required = Math.Max(1, minLevel - _reduction);
+                var buildings = _city.Buildings;
+                for (int i = 0; i < buildings.Count; i++)
+                    if (buildings[i].Type == type && buildings[i].Level >= required)
+                        return true;
+                return false;
+            }
+
+            public int CountBuildingsAtLevel(IReadOnlyList<BuildingType> types, int minLevel)
+            {
+                int required = Math.Max(1, minLevel - _reduction);
+                int count = 0;
+                var buildings = _city.Buildings;
+                for (int i = 0; i < buildings.Count; i++)
+                    if (buildings[i].Level >= required && types.Contains(buildings[i].Type))
+                        count++;
+                return count;
+            }
         }
 
         public int GetMaxLevel(Building building, int civilizationIndex)

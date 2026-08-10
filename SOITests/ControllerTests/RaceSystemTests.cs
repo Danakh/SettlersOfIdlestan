@@ -727,6 +727,98 @@ public class RaceSystemTests
         Assert.DoesNotContain(nameof(BuildingType.Temple), malus);
     }
 
+    // ── Grand Terrier : réduction des prérequis des bâtiments uniques ───────
+    //
+    // Académie comme cobaye : Hôtel de Ville 3 et Bibliothèque 4, aucune exigence de terrain à
+    // satisfaire en plus (contrairement au Port Impérial, qui veut de l'Eau).
+
+    /// <summary>
+    /// Prépare une ville de niveau <paramref name="townHallLevel"/> avec une Bibliothèque du niveau
+    /// donné, et débloque l'Académie (niveau max 0 par défaut) pour que seuls les prérequis décident.
+    /// </summary>
+    private static (WorldState state, BuildingController controller, City city, Civilization civ)
+        AcademyCandidateCity(int townHallLevel, int libraryLevel)
+    {
+        var state = IslandTestFactory.CreateSevenHexIslandState();
+        var civ = state.Civilizations[0];
+        var city = civ.Cities[0];
+        city.AddBuilding(new TownHall { Level = townHallLevel });
+        city.AddBuilding(new Library { Level = libraryLevel });
+
+        AddRaceModifiers(civ, new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Academy), EType.ADDITIVE, 1));
+        StockResources(civ);
+
+        return (state, new BuildingController(state), city, civ);
+    }
+
+    /// <summary>
+    /// Remplit la trésorerie bien au-delà de tout coût de construction. Écriture directe plutôt que
+    /// AddResource : ce dernier plafonne au stockage disponible, qui sans Entrepôt ne couvre pas les
+    /// centaines d'unités que coûte un bâtiment unique — et c'est le prérequis qu'on teste ici, pas
+    /// la capacité de stockage.
+    /// </summary>
+    private static void StockResources(Civilization civ)
+    {
+        foreach (Resource resource in Enum.GetValues<Resource>())
+            civ.Resources[resource] = 1000;
+    }
+
+    [Fact]
+    public void GreatBurrow_RequiresTownHallLevel3()
+    {
+        Assert.Equal(3, new GreatBurrow().AvailableAtLevel);
+    }
+
+    [Fact]
+    public void GetUniqueBuildingsAndBuildables_PrerequisiteReduction_LowersRequiredCityLevel()
+    {
+        // Hôtel de Ville 2 : sous le seuil de 3 de l'Académie, elle n'est pas proposée.
+        var (_, controller, city, civ) = AcademyCandidateCity(townHallLevel: 2, libraryLevel: 4);
+        Assert.DoesNotContain(controller.GetUniqueBuildingsAndBuildables(city), b => b.Type == BuildingType.Academy);
+
+        AddRaceModifiers(civ, new Modifier(ECategory.UNIQUE_BUILDING_PREREQUISITE_REDUCTION, EType.ADDITIVE, 1));
+        Assert.Contains(controller.GetUniqueBuildingsAndBuildables(city), b => b.Type == BuildingType.Academy);
+    }
+
+    [Fact]
+    public void HasBuildPrerequisites_PrerequisiteReduction_LowersRequiredBuildingLevel()
+    {
+        // Bibliothèque 3 : sous les 4 exigés — exactement la situation d'un Gobelin, dont le malus
+        // BUILDING_MAX_LEVEL -1 plafonne les bâtiments standards un niveau trop bas.
+        var (state, controller, city, civ) = AcademyCandidateCity(townHallLevel: 3, libraryLevel: 3);
+        var academy = new Academy();
+
+        Assert.False(academy.HasBuildPrerequisites(city, state));
+
+        AddRaceModifiers(civ, new Modifier(ECategory.UNIQUE_BUILDING_PREREQUISITE_REDUCTION, EType.ADDITIVE, 1));
+        Assert.True(controller.BuildBuilding(city, BuildingType.Academy));
+        Assert.Equal(1, city.FindBuilding(BuildingType.Academy)!.Level);
+    }
+
+    [Fact]
+    public void HasBuildPrerequisites_PrerequisiteReduction_NeverRemovesTheRequirementEntirely()
+    {
+        // Un prérequis de niveau 1 tombe à 0 si on le décrémente sans plancher — et un seuil de 0 est
+        // satisfait par une ville qui n'a pas le bâtiment du tout. La réduction allège, elle ne
+        // supprime pas : la Salle de Guerre continue d'exiger une Garnison.
+        var state = IslandTestFactory.CreateSevenHexIslandState();
+        var civ = state.Civilizations[0];
+        var city = civ.Cities[0];
+        city.AddBuilding(new TownHall { Level = 4 });
+        AddRaceModifiers(civ,
+            new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.WarRoom), EType.ADDITIVE, 1),
+            new Modifier(ECategory.UNIQUE_BUILDING_PREREQUISITE_REDUCTION, EType.ADDITIVE, 1));
+        StockResources(civ);
+
+        var controller = new BuildingController(state);
+        Assert.DoesNotContain(controller.GetUniqueBuildingsAndBuildables(city),
+            b => b.Type == BuildingType.WarRoom && b.Level == 0 && new WarRoom().HasBuildPrerequisites(city, state));
+        Assert.False(controller.BuildBuilding(city, BuildingType.WarRoom));
+
+        city.AddBuilding(new Garrison { Level = 1 });
+        Assert.True(controller.BuildBuilding(city, BuildingType.WarRoom));
+    }
+
     // ── Ziggourat : production instantanée de Dominion ──────────────────────
 
     [Fact]

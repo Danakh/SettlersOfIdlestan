@@ -20,7 +20,7 @@ public class Academy : Building, IUniqueBuilding
     public long GetAutoLibraryCooldownTicks() => 1000L;
 
     public override bool HasBuildPrerequisites(IBuildingContext city) =>
-        city.Buildings.Any(b => b.Type == BuildingType.Library && b.Level >= 4);
+        city.HasBuildingAtLevel(BuildingType.Library, 4);
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city) =>
         HasBuildPrerequisites(city) ? null : "tooltip_requires_library_level4";

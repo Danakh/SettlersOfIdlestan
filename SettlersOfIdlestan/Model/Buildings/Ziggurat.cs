@@ -34,13 +34,13 @@ public class Ziggurat : Building, IUniqueBuilding
 
     public override bool HasBuildPrerequisites(IBuildingContext city, WorldState state)
         => state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION)
-        && city.Buildings.Any(b => b.Type == BuildingType.Temple && b.Level >= 4);
+        && city.HasBuildingAtLevel(BuildingType.Temple, 4);
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state)
     {
         if (!state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION))
             return "tooltip_requires_dominion";
-        if (!city.Buildings.Any(b => b.Type == BuildingType.Temple && b.Level >= 4))
+        if (!city.HasBuildingAtLevel(BuildingType.Temple, 4))
             return "tooltip_requires_temple_level4";
         return null;
     }
