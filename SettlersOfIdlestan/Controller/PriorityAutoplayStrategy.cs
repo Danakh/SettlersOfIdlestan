@@ -20,6 +20,16 @@ namespace SettlersOfIdlestan.Controller
     {
         bool IsComplete();
         bool TryAdvanceOnce();
+
+        /// <summary>
+        /// Libellé de diagnostic, pour <see cref="PriorityAutoplayStrategy.DescribeFirstIncomplete"/>.
+        /// Une stratégie bloquée l'est toujours sur son premier objectif incomplet, qui refuse
+        /// d'avancer sans jamais se déclarer terminé ; savoir lequel c'est est la moitié du travail
+        /// d'instruction d'un blocage. Le nom du type seul ne suffit pas — la liste de
+        /// <see cref="CivilizationAutoplayerPriorities.Unified"/> contient une dizaine de
+        /// BuildingLevelObjective —, d'où les surcharges qui rappellent les paramètres.
+        /// </summary>
+        string Describe() => GetType().Name;
     }
 
     /// <summary>
@@ -92,6 +102,8 @@ namespace SettlersOfIdlestan.Controller
             return false;
         }
 
+        public string Describe() => $"Building({string.Join('/', _buildingTypes)} → {_targetLevel})";
+
         private bool IsDone(City city, BuildingType bt)
         {
             var building = _buildingController.GetBuildingOrBuildable(city, bt);
@@ -123,6 +135,7 @@ namespace SettlersOfIdlestan.Controller
 
         public bool IsComplete() => !_predicate() || _inner.IsComplete();
         public bool TryAdvanceOnce() => _inner.TryAdvanceOnce();
+        public string Describe() => $"If[{_inner.Describe()}]";
     }
 
     /// <summary>
@@ -145,6 +158,7 @@ namespace SettlersOfIdlestan.Controller
 
         public bool IsComplete() => !_predicate() || _inner.IsComplete();
         public bool TryAdvanceOnce() => _inner.TryAdvanceOnce();
+        public string Describe() => $"If[{_inner.Describe()}]";
     }
 
     /// <summary>
@@ -160,7 +174,7 @@ namespace SettlersOfIdlestan.Controller
 
         /// <param name="completeWhenExpansionExhausted">
         /// Vrai (défaut) : l'objectif se déclare terminé quand la carte n'offre plus rien
-        /// (<see cref="CivilizationAutoplayer.HasBuildableExpansion"/>), pour laisser la main à la
+        /// (<see cref="CivilizationAutoplayer.HasExpansionTarget"/>), pour laisser la main à la
         /// suite de la liste. Faux : il reste incomplet quoi qu'il arrive — réservé à l'objectif
         /// d'expansion illimitée qui clôt <see cref="CivilizationAutoplayerPriorities.Unified"/>, dont
         /// c'est justement le rôle d'empêcher <see cref="PriorityAutoplayStrategy.IsComplete"/> de
@@ -177,8 +191,8 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Atteint le nombre de villes voulu — ou, sauf opt-out explicite, il n'y a plus rien à faire
-        /// pour s'en approcher (<see cref="CivilizationAutoplayer.HasBuildableExpansion"/> : plus aucun
-        /// vertex ni aucune route constructible).
+        /// pour s'en approcher (<see cref="CivilizationAutoplayer.HasExpansionTarget"/> : plus aucun
+        /// vertex constructible ni aucun vertex prospectif à viser).
         ///
         /// <para>Ce second cas n'est pas un détail : <see cref="PriorityAutoplayStrategy.TryStepOnce"/>
         /// s'arrête au premier objectif incomplet, qu'il ait agi ou non. Un objectif d'expansion
@@ -188,12 +202,22 @@ namespace SettlersOfIdlestan.Controller
         /// CivilizationAutoplayerPriorities.Unified (Elfes et Nains par adjacence de terrain, Géants à
         /// distance 4, Sirènes hors du littoral). Réévalué à chaque passe : si l'expansion redevient
         /// possible (carte agrandie, terrain transformé), l'objectif redevient actif de lui-même.</para>
+        ///
+        /// <para>Critère volontairement plus strict que <c>HasBuildableExpansion</c> : le réseau routier
+        /// peut presque toujours croître d'un cran de plus, donc « il reste des routes constructibles »
+        /// n'est jamais faux assez longtemps pour libérer la suite de la liste. Ce que le repli routier
+        /// de TryExpandOnce cherche — découvrir du terrain — reste fait par le puits d'expansion qui
+        /// clôt Unified, simplement à sa place, derrière le Port Impérial au lieu de devant.</para>
         /// </summary>
         public bool IsComplete() =>
             _autoplayer.Civilization.Cities.Count >= _targetCount ||
-            (_completeWhenExpansionExhausted && !_autoplayer.HasBuildableExpansion());
+            (_completeWhenExpansionExhausted && !_autoplayer.HasExpansionTarget());
 
         public bool TryAdvanceOnce() => _autoplayer.TryExpandOnce();
+
+        public string Describe() =>
+            $"CityCount(→ {(_targetCount == int.MaxValue ? "∞" : _targetCount.ToString())}, " +
+            $"{_autoplayer.Civilization.Cities.Count} now)";
     }
 
     /// <summary>
@@ -323,6 +347,12 @@ namespace SettlersOfIdlestan.Controller
             }
 
             return _autoplayer.TryExtendRoadTowardUnexploredOnce();
+        }
+
+        public string Describe()
+        {
+            var missing = GetMissingTerrains();
+            return $"ResourceCoverage(manque {(missing.Count == 0 ? "rien" : string.Join('/', missing))})";
         }
 
         private List<TerrainType> GetMissingTerrains()
@@ -540,6 +570,21 @@ namespace SettlersOfIdlestan.Controller
                 return objective.TryAdvanceOnce();
             }
             return false;
+        }
+
+        /// <summary>
+        /// Objectif sur lequel <see cref="TryStepOnce"/> vient de rendre la main, décrit — soit
+        /// « rien » si tout est terminé. Purement diagnostique : une stratégie qui n'agit plus est
+        /// arrêtée sur exactement cet objectif, incomplet et incapable d'avancer, et tout ce qui le
+        /// suit dans la liste est gelé avec lui (voir CityCountObjective.IsComplete). Sans ce point
+        /// d'observation, un blocage d'autoplay se lit dans une sauvegarde exportée à la main.
+        /// </summary>
+        public string DescribeFirstIncomplete()
+        {
+            for (int i = 0; i < _objectives.Count; i++)
+                if (!_objectives[i].IsComplete())
+                    return $"#{i} {_objectives[i].Describe()}";
+            return "rien (tous les objectifs sont terminés)";
         }
     }
 }

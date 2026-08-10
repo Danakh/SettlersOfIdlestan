@@ -85,6 +85,31 @@ public static class StrategyRunner
         return ExecutePhaseCore(phase, auto, controller, priorityStrategy) || didBackground;
     }
 
+    /// <summary>
+    /// La stratégie de priorités qu'<see cref="ExecutePhaseCore"/> exécuterait pour cette phase, à
+    /// seule fin de l'interroger (<see cref="PriorityAutoplayStrategy.DescribeFirstIncomplete"/>).
+    /// Toutes les phases sauf <see cref="PhaseKind.Priority"/> en reconstruisent une à chaque
+    /// itération au lieu d'en conserver une : il n'y a donc rien à capturer au vol au moment d'un
+    /// abandon, il faut la rebâtir contre l'état courant. Null pour les phases qui n'en utilisent pas
+    /// (Wonder, Prestige...), dont le blocage ne se lit pas en termes d'objectifs.
+    /// </summary>
+    internal static PriorityAutoplayStrategy? BuildDiagnosticStrategy(StrategyPhase phase, MainGameController controller,
+        PriorityAutoplayStrategy? priorityStrategy)
+    {
+        if (priorityStrategy != null) return priorityStrategy;
+
+        var auto = BuildAutoplayer(controller);
+        var bc = controller.BuildingController;
+        return phase.Kind switch
+        {
+            PhaseKind.Step1 or PhaseKind.Step2 or PhaseKind.Step3 or PhaseKind.Military
+                or PhaseKind.ExterminateMonsters => CivilizationAutoplayerPriorities.Unified(auto, bc),
+            PhaseKind.UnifiedAggressive => CivilizationAutoplayerPriorities.Unified(auto, bc, aggressive: true),
+            PhaseKind.ExterminateCivilizations => CivilizationAutoplayerPriorities.Unified(auto, bc, attackNeighborsAtCities: 0),
+            _ => null,
+        };
+    }
+
     private static bool ExecutePhaseCore(StrategyPhase phase, CivilizationAutoplayer auto, MainGameController controller, PriorityAutoplayStrategy? priorityStrategy)
     {
         var bc = controller.BuildingController;

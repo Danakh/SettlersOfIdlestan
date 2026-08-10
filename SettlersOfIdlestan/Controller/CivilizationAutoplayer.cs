@@ -314,15 +314,57 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// True if <see cref="TryExpandOnce"/> currently has any actionable move — a directly buildable
         /// outpost vertex, a buildable road toward a prospective expansion target, or (fallback) any
-        /// buildable road at all. False means expansion is genuinely stuck (no reachable vertex left to
-        /// grow into) — used by <see cref="CivilizationAutoplayerPriorities.Unified"/>'s aggressive mode
-        /// to know when to pivot to war instead of waiting on expansion forever.
+        /// buildable road at all. False means TryExpandOnce would do nothing at all — used by
+        /// <see cref="CivilizationAutoplayerPriorities.Unified"/>'s aggressive mode to know when to
+        /// pivot to war instead of waiting on expansion forever.
+        ///
+        /// <para>« Une action est possible » n'est pas « l'expansion progresse » : le repli routier
+        /// garde ce test vrai bien après que la carte a cessé d'offrir un seul emplacement de ville.
+        /// Pour « reste-t-il quelque chose à conquérir ? », c'est <see cref="HasExpansionTarget"/>
+        /// qu'il faut interroger — un objectif d'expansion adossé à celui-ci ne se termine jamais.</para>
         /// </summary>
         public bool HasBuildableExpansion()
         {
-            if (GetBuildableOutpostVertex() != null) return true;
-            if (FindBestExpansionTarget(GetProspectiveVertices()) != null) return true;
+            if (HasExpansionTarget()) return true;
             return _roadController.GetBuildableRoads(_civ.Index).Any();
+        }
+
+        /// <summary>
+        /// True si l'expansion vise réellement quelque chose : un vertex directement constructible, ou
+        /// un vertex prospectif vers lequel tirer la route. Plus strict que
+        /// <see cref="HasBuildableExpansion"/>, qui compte en plus le repli « n'importe quelle route
+        /// constructible » de <see cref="TryExpandOnce"/>.
+        ///
+        /// <para>Cette distinction est ce qui sépare « l'expansion avance » de « l'expansion s'agite ».
+        /// Le repli pose des routes vers l'extérieur même sans aucun candidat à atteindre, dans l'espoir
+        /// de découvrir du terrain — et le réseau routier peut toujours croître d'un cran de plus. Pris
+        /// pour critère d'achèvement, il rend un objectif d'expansion éternellement insatisfait, ce qui
+        /// gèle tout ce qui le suit dans une liste de priorités (voir CityCountObjective.IsComplete) :
+        /// mesuré sur les Elfes, île 3 du gauntlet — 9 villes, aucun vertex prospectif, 69 routes posées
+        /// et 25 encore constructibles, 20 points de prestige en poche et pas de Port Impérial, l'île
+        /// abandonnée après 24 h simulées sans qu'une seule construction ne soit tentée.</para>
+        /// </summary>
+        public bool HasExpansionTarget()
+        {
+            if (GetBuildableOutpostVertex() != null) return true;
+            return FindBestExpansionTarget(GetProspectiveVertices()) != null;
+        }
+
+        /// <summary>
+        /// Ce que <see cref="TryExpandOnce"/> voit du terrain, décrit. Diagnostic pur : « il reste des
+        /// routes constructibles » ne dit pas si l'expansion progresse — le repli de TryExpandOnce pose
+        /// des routes vers l'extérieur même sans aucun vertex prospectif à atteindre, ce qui rend
+        /// <see cref="HasBuildableExpansion"/> vrai indéfiniment sur une carte où plus aucune ville ne
+        /// peut être fondée. Distinguer les deux demande de voir les candidats, pas les routes.
+        /// </summary>
+        public string DescribeExpansionState()
+        {
+            var candidates = GetProspectiveVertices();
+            var target = FindBestExpansionTarget(candidates);
+            return $"vertex constructible : {(GetBuildableOutpostVertex()?.ToString() ?? "aucun")}, " +
+                   $"{candidates.Count} vertex prospectifs, cible : {(target?.target.ToString() ?? "aucune")}, " +
+                   $"{_roadController.GetBuildableRoads(_civ.Index).Count} routes constructibles, " +
+                   $"{_civ.Roads.Count} routes déjà posées";
         }
 
         // ── Primitive utilities ──────────────────────────────────────────────────
@@ -393,7 +435,16 @@ namespace SettlersOfIdlestan.Controller
             if (_cityBuilderController.BuildCity(_civ.Index, vertex) != null)
                 return true;
 
-            if (withGrind) TryGrindOnce(_cityBuilderController.NewCityBuildingCost());
+            // Le coût réellement débité est le coût majoré par le nombre de villes déjà possédées
+            // (NewCityBuildingCostFor), pas le coût de base. Miner/troquer contre le coût de base
+            // laisse un trou de la taille exacte de la majoration : TradeController.TryAutoTradeForPurchase
+            // ne troque que ce qui manque encore, donc un stock pile égal au coût de base lui paraît
+            // suffisant et il ne troque rien, pendant que BuildCity refuse faute des 10 % de plus.
+            // Invisible tant que la ressource manquante se produit toute seule (le stock finit par
+            // grimper jusqu'au plafond), fatal dès que sa production est nulle : un Nain sans Colline
+            // accessible reste bloqué à 2 villes et 10 Briques pour toujours, sans jamais tenter le
+            // seul troc qui lui rendrait la Brique.
+            if (withGrind) TryGrindOnce(_cityBuilderController.NewCityBuildingCostFor(vertex, _civ));
             return false;
         }
 

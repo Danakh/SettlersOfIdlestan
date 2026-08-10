@@ -146,6 +146,10 @@ public static class EndlessRunner
             bool prestigedThisCycle = false;
             int pointsAtLastPassBoundary = -1;
             int stagnantPassCount = 0;
+            // Retenues hors des boucles pour le diagnostic d'abandon, qui se déclenche une fois
+            // toutes les passes épuisées, donc hors de la boucle de phases (voir DumpBlockedState).
+            PriorityAutoplayStrategy? lastPriorityStrategy = null;
+            StrategyPhase? lastPhase = null;
 
             for (int pass = 1; pass <= endlessOptions.MaxPassesPerCycle && !prestigedThisCycle; pass++)
             {
@@ -168,6 +172,8 @@ public static class EndlessRunner
                         ? StrategyRunner.BuildPriorityStrategy(auto, controller.BuildingController, phase.PriorityObjectives
                             ?? throw new ArgumentException($"Cycle {cycle}, phase {phaseIndex}: Priority phases require PriorityObjectives."))
                         : null;
+                    lastPriorityStrategy = priorityStrategy ?? lastPriorityStrategy;
+                    lastPhase = phase;
 
                     int phaseMaxIterations = phase.MaxIterations ?? options.DefaultMaxIterationsPerPhase;
                     bool reachedPhaseEnd = false;
@@ -223,6 +229,7 @@ public static class EndlessRunner
                             Console.WriteLine(
                                 $"Cycle {cycle}: abandoned after {FormatHours(islandAge)}h on this island without ever reaching " +
                                 $"Prestige-available ({why}).");
+                            DumpBlockedState(controller, phase, priorityStrategy);
                             WriteRow(csv, "Abandoned", cycle, phaseIndex, phase.Kind, iterationsUsed, prestigeCount, pointsTarget, clock, controller, mainState);
                             csv.Flush();
                             result.FailureReason =
@@ -283,6 +290,7 @@ public static class EndlessRunner
                 Console.WriteLine(
                     $"Cycle {cycle}: gave up after {endlessOptions.MaxPassesPerCycle} passes without ever reaching " +
                     $"Prestige-available ({why}) — aborting endless run.");
+                DumpBlockedState(controller, lastPhase, lastPriorityStrategy);
                 csv.Flush();
                 result.FailureReason = $"island {cycle}: no prestige after {endlessOptions.MaxPassesPerCycle} passes ({why})";
                 return Finish(result, prestigeCount, clock, iterationsUsed);
@@ -329,6 +337,34 @@ public static class EndlessRunner
         int buildableVertices = controller.CityBuilderController.GetBuildableVertices(civ.Index).Count;
         int buildableRoads = controller.RoadController.GetBuildableRoads(civ.Index).Count;
         return $"{missing}; {civ.Cities.Count} cities, {buildableVertices} buildable vertices, {buildableRoads} buildable roads";
+    }
+
+    /// <summary>
+    /// Ce qu'il faut savoir d'une île abandonnée pour ne pas avoir à rouvrir la sauvegarde exportée :
+    /// l'objectif exact sur lequel la stratégie s'est arrêtée (tout ce qui le suit dans la liste de
+    /// priorités est gelé avec lui), l'état du stock et de la production — un blocage d'autoplay est le
+    /// plus souvent une ressource dont la production est nulle —, et le contenu de chaque ville.
+    /// </summary>
+    private static void DumpBlockedState(MainGameController controller, StrategyPhase? phase,
+        PriorityAutoplayStrategy? priorityStrategy)
+    {
+        var civ = controller.CurrentMainState?.CurrentWorldState?.Civilizations.FirstOrDefault(c => !c.IsNpc);
+        if (civ == null) return;
+
+        var diagnosticStrategy = phase == null ? priorityStrategy
+            : StrategyRunner.BuildDiagnosticStrategy(phase, controller, priorityStrategy);
+        if (diagnosticStrategy != null)
+            Console.WriteLine($"  bloqué sur l'objectif {diagnosticStrategy.DescribeFirstIncomplete()}");
+
+        Console.WriteLine("  expansion : " + StrategyRunner.BuildAutoplayer(controller).DescribeExpansionState());
+
+        var production = controller.HarvestController.GetAverageProductionRatesPerSecond(civ.Index);
+        Console.WriteLine("  stock (production/s) : " + string.Join(", ", civ.Resources
+            .Select(kv => $"{kv.Key} {kv.Value:0.#}" + (production.TryGetValue(kv.Key, out var rate) && rate > 0 ? $" (+{rate:0.###})" : " (+0)"))));
+
+        foreach (var city in civ.Cities)
+            Console.WriteLine($"  ville {city.Position} : " +
+                              string.Join(", ", city.Buildings.Select(b => $"{b.Type}{b.Level}")));
     }
 
     private const int PrestigeControllerRequiredPoints = 20; // SettlersOfIdlestan.Controller.Expand.PrestigeController.PrestigeRequiredPoints
