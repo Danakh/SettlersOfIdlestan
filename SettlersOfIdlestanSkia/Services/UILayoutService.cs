@@ -59,21 +59,27 @@ public class UILayoutService
 
     // Valeurs de disposition calculées — valides après UpdateCanvasSize() et le réglage de UiScale.
     //
-    // La barre du haut est rendue par l'hôte, qui gère lui-même son débordement (défilement
-    // horizontal natif) sur une seule ligne de TopBarHeight. Les règles de repli qui vivaient
-    // ici — ressources reléguées sur leur propre ligne, bloc temps+paramètres sur une seconde —
-    // n'ont donc plus d'objet : elles reproduisaient à la main ce qu'Avalonia fait tout seul.
+    // La barre du haut est rendue par l'hôte : c'est lui qui décide de son repli (ressources
+    // reléguées sur leur propre ligne quand les trois blocs ne tiennent pas ensemble) et qui
+    // pousse ici la hauteur obtenue. Les règles de repli qui vivaient dans ce service auraient
+    // dû mesurer un contenu qu'il ne dessine plus.
 
-    /// Bas de la barre du haut.
+    /// Hauteur totale de la barre du haut telle que mesurée par l'hôte, en unités logiques
+    /// (la barre Avalonia ne suit pas UiScale). Vaut TopBarHeight tant que rien ne se replie.
+    public float HostTopBarHeight { get; set; } = TopBarHeight;
+
+    /// Hauteur des lignes gagnées par le repli de la barre de l'hôte, hors ligne principale.
+    private float HostExtraRowsHeight => Math.Max(0f, HostTopBarHeight - TopBarHeight);
+
+    /// Bas de la ligne principale de la barre du haut.
     public float ResourceBarBottom => TopBarHeight * UiScale;
 
     /// Y où commencent les vues plein écran encore dessinées en Skia (recherche, carte de
-    /// prestige, ascension), sous la barre du haut. Conservé sous son nom historique : plus rien
-    /// ne se replie sur une seconde ligne, il vaut donc toujours le bas de la barre.
-    public float SecondRowBottom => ResourceBarBottom;
+    /// prestige, ascension) : sous la barre du haut, seconde ligne de ressources comprise.
+    public float SecondRowBottom => ResourceBarBottom + HostExtraRowsHeight;
 
     /// Y où commencent les panneaux latéraux, sous la barre du haut.
-    public float PanelTopY => ResourceBarBottom + 10f * UiScale;
+    public float PanelTopY => SecondRowBottom + 10f * UiScale;
 
     /// X de l'icône d'engrenage, collée au bord droit du canevas.
     public float GearX => _canvasSize.Width - BarPadding * UiScale - GearIconSize * UiScale;

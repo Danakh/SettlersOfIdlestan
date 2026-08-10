@@ -410,6 +410,15 @@ public sealed class SkiaGameRuntime : IDisposable
         _gameScreen?.SetUiScale(scale);
     }
 
+    /// <summary>
+    /// Hauteur réelle de la barre du haut dessinée par l'hôte, seconde ligne de ressources
+    /// comprise. Les vues plein écran encore rendues ici commencent dessous.
+    /// </summary>
+    public void SetTopBarHeight(float height)
+    {
+        if (_uiLayoutService != null) _uiLayoutService.HostTopBarHeight = height;
+    }
+
     public void EnsureCanvasInitialized(SKSize canvasSize)
     {
         if (_isDisposed)    throw new ObjectDisposedException(nameof(SkiaGameRuntime));

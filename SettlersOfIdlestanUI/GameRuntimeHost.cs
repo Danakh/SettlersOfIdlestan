@@ -107,6 +107,12 @@ public sealed class GameRuntimeHost : IDisposable
     public void SetUiScale(float scale) => Invoke(r => r.SetUiScale(scale));
 
     /// <summary>
+    /// Hauteur mesuree de la barre du haut, seconde ligne de ressources comprise. Les vues
+    /// plein ecran encore dessinees en Skia s'ancrent dessous.
+    /// </summary>
+    public void SetTopBarHeight(float height) => Invoke(r => r.SetTopBarHeight(height));
+
+    /// <summary>
     /// Signale le retour au premier plan apres <paramref name="hiddenSeconds"/> secondes
     /// masquees. Utilise par le head navigateur, ou le navigateur bride les timers d'un onglet
     /// en arriere-plan : sans cela le temps de jeu derive.

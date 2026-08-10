@@ -54,6 +54,9 @@ public sealed class GameView : Panel, IDisposable
 
     private IDisposable? _stateSync;
 
+    /// Hauteur courante de la barre du haut, seconde ligne de ressources comprise.
+    private double _topBarHeight = TopBarView.BarHeight;
+
     /// Cadence de synchronisation de l'etat vers l'UI. Deliberement decouplee des 60 fps du
     /// rendu : lever des notifications de changement a chaque frame ferait relayouter Avalonia
     /// en continu pour des valeurs qui ne bougent que quelques fois par seconde.
@@ -90,45 +93,22 @@ public sealed class GameView : Panel, IDisposable
         {
             IsVisible = false,
         };
+        _topBar.TotalHeightChanged += OnTopBarHeightChanged;
 
-        _monumentPanel = new MonumentPanelView(_monument, _icons)
-        {
-            // Sous la barre du haut, comme le panneau Skia qu'il remplace.
-            Margin = new Avalonia.Thickness(0, TopBarView.BarHeight + 10, 10, 0),
-        };
-
-        _cityPanel = new CityPanelView(_city, _icons)
-        {
-            Margin = new Avalonia.Thickness(0, TopBarView.BarHeight + 10, 10, 0),
-        };
-
-        // Ancre a gauche, sous la barre du haut, comme le panneau Skia qu'il remplace.
-        _civPanel = new CivPanelView(_civ, _icons)
-        {
-            Margin = new Avalonia.Thickness(10, TopBarView.BarHeight + 10, 0, 0),
-        };
+        // Les ancrages sous la barre du haut sont poses par ApplyTopBarHeight : la barre gagne
+        // une seconde ligne quand les ressources n'y tiennent plus, et tout ce qui se cale
+        // dessous doit suivre.
+        _monumentPanel = new MonumentPanelView(_monument, _icons);
+        _cityPanel = new CityPanelView(_city, _icons);
+        _civPanel = new CivPanelView(_civ, _icons);
 
         _modalPopup = new ModalPopupView(_modal);
         _toasts = new ToastStackView(_toast);
 
-        // Ancre sous la barre du haut, qu'il ne doit pas recouvrir : un onglet plein ecran
-        // remplace la carte, pas la navigation.
-        _eventLog = new EventLogView(_events)
-        {
-            Margin = new Avalonia.Thickness(0, TopBarView.BarHeight, 0, 0),
-        };
-        _stats = new StatsView(_statsModel)
-        {
-            Margin = new Avalonia.Thickness(0, TopBarView.BarHeight, 0, 0),
-        };
-        _rituals = new RitualsView(_ritualsModel)
-        {
-            Margin = new Avalonia.Thickness(0, TopBarView.BarHeight, 0, 0),
-        };
-        _automation = new AutomationView(_automationModel)
-        {
-            Margin = new Avalonia.Thickness(0, TopBarView.BarHeight, 0, 0),
-        };
+        _eventLog = new EventLogView(_events);
+        _stats = new StatsView(_statsModel);
+        _rituals = new RitualsView(_ritualsModel);
+        _automation = new AutomationView(_automationModel);
         _settingsMenu = new SettingsMenuView(_settingsMenuModel, TopBarView.BarHeight + 5);
         _tradePopup = new TradePopupView(_tradeModel, _icons);
         _prestigePopup = new PrestigePopupView(_prestigeModel);
@@ -168,6 +148,40 @@ public sealed class GameView : Panel, IDisposable
 
         // En dernier : une modale bloquante doit couvrir tout le reste de l'overlay.
         Children.Add(_modalPopup);
+
+        ApplyTopBarHeight(TopBarView.BarHeight);
+    }
+
+    /// <summary>
+    /// Recale tout ce qui s'ancre sous la barre du haut. Cote Avalonia ce sont des marges ;
+    /// cote Skia, les vues plein ecran encore dessinees par le runtime (recherche, carte de
+    /// prestige, ascension) lisent la hauteur poussee dans UILayoutService.
+    /// </summary>
+    private void ApplyTopBarHeight(double barHeight)
+    {
+        _topBarHeight = barHeight;
+
+        // Panneaux lateraux : sous la barre, avec le meme jeu de 10 px que le rendu Skia.
+        _monumentPanel.Margin = new Avalonia.Thickness(0, barHeight + 10, 10, 0);
+        _cityPanel.Margin = new Avalonia.Thickness(0, barHeight + 10, 10, 0);
+        _civPanel.Margin = new Avalonia.Thickness(10, barHeight + 10, 0, 0);
+
+        // Onglets plein ecran : ils remplacent la carte, pas la navigation — donc jamais
+        // par-dessus la barre.
+        _eventLog.Margin = new Avalonia.Thickness(0, barHeight, 0, 0);
+        _stats.Margin = new Avalonia.Thickness(0, barHeight, 0, 0);
+        _rituals.Margin = new Avalonia.Thickness(0, barHeight, 0, 0);
+        _automation.Margin = new Avalonia.Thickness(0, barHeight, 0, 0);
+
+        _settingsMenu.SetTopOffset(barHeight + 5);
+
+        _host.SetTopBarHeight((float)barHeight);
+    }
+
+    private void OnTopBarHeightChanged(double barHeight)
+    {
+        ApplyTopBarHeight(barHeight);
+        InvalidateMeasure();
     }
 
     protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
@@ -187,7 +201,7 @@ public sealed class GameView : Panel, IDisposable
         // mesure n'a plus d'effet, les enfants ayant déjà été mesurés en hauteur infinie.
         if (!double.IsInfinity(availableSize.Height))
         {
-            double available = availableSize.Height - TopBarView.BarHeight - PanelBottomMargin - PanelChromeHeight;
+            double available = availableSize.Height - _topBarHeight - PanelBottomMargin - PanelChromeHeight;
             _cityPanel.SetMaxContentHeight(available);
             _monumentPanel.SetMaxContentHeight(available);
             _civPanel.SetMaxContentHeight(available);

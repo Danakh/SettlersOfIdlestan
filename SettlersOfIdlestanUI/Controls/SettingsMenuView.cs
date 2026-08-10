@@ -29,6 +29,8 @@ public sealed class SettingsMenuView : UserControl
     private static readonly SolidColorBrush Border_ = new(Colors.Gold);
     private static readonly SolidColorBrush SeparatorText = new(Color.FromArgb(180, 150, 150, 150));
 
+    private readonly Border _box;
+
     public SettingsMenuView(SettingsMenuViewModel viewModel, double topOffset)
     {
         DataContext = viewModel;
@@ -45,7 +47,7 @@ public sealed class SettingsMenuView : UserControl
                 (_, _) => BuildItem(viewModel), supportsRecycling: true),
         };
 
-        var box = new Border
+        _box = new Border
         {
             Width = MenuWidth,
             Background = Background,
@@ -67,9 +69,17 @@ public sealed class SettingsMenuView : UserControl
 
         var layout = new Panel();
         layout.Children.Add(catcher);
-        layout.Children.Add(box);
+        layout.Children.Add(_box);
         Content = layout;
     }
+
+    /// <summary>
+    /// Reancre le menu sous la barre du haut. Il s'ouvre sous l'engrenage, mais se cale sous la
+    /// barre entiere : quand les ressources se replient sur une seconde ligne, s'en tenir a la
+    /// ligne de l'engrenage le ferait chevaucher les pastilles.
+    /// </summary>
+    public void SetTopOffset(double topOffset) =>
+        _box.Margin = new Thickness(0, topOffset, 10, 0);
 
     private static Control BuildItem(SettingsMenuViewModel owner)
     {
