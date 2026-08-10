@@ -44,6 +44,9 @@ namespace SettlersOfIdlestan.Controller
 
         private VisibleIslandMap? _prospectiveVerticesCacheMap;
         private int _prospectiveVerticesCacheTotalCityCount = -1;
+        // Le filtre de terrain racial dépend du terrain lui-même, que Marche de Dieu peut transformer
+        // sans changer aucun compteur — même raison que le cache de CityBuilderController.
+        private int _prospectiveVerticesCacheTerrainVersion = -1;
         private List<Vertex>? _prospectiveVerticesCache;
         private Func<Vertex, bool>? _expansionVertexFilter;
 
@@ -896,7 +899,8 @@ namespace SettlersOfIdlestan.Controller
             int totalCityCount = worldState.Civilizations.Sum(c => c.Cities.Count);
             if (_prospectiveVerticesCache != null &&
                 ReferenceEquals(_prospectiveVerticesCacheMap, visibleMap) &&
-                _prospectiveVerticesCacheTotalCityCount == totalCityCount)
+                _prospectiveVerticesCacheTotalCityCount == totalCityCount &&
+                _prospectiveVerticesCacheTerrainVersion == worldState.TerrainVersion)
                 return _prospectiveVerticesCache;
 
             int z = visibleMap.Z;
@@ -921,18 +925,27 @@ namespace SettlersOfIdlestan.Controller
                 .Select(city => city.Position)
                 .ToList();
 
-            int minOwn = _cityBuilderController.MinDistanceBetweenCivilizationCities;
+            // Mêmes règles de placement que CityBuilderController.GetBuildableVertices, sinon on tire
+            // des routes vers des vertex que la race ne pourra jamais occuper : distance minimale
+            // entre villes propres telle que la race la remplace (Gobelins 2, Géants 4), et exigence
+            // de terrain (Elfes → Forêt, Nains → Montagne, Sirènes → à 2 arêtes de l'Eau). Sans ce
+            // filtre, une race contrainte se fige : elle continue de poser des routes vers des vertex
+            // que GetBuildableVertices rejette tous en bout de chaîne, et n'ajoute plus une ville.
+            int minOwn = _cityBuilderController.GetMinDistanceBetweenCivilizationCities(_civ);
             int minEnemy = _cityBuilderController.MinDistanceBetweenCities;
+            var satisfiesTerrainRestriction = _cityBuilderController.BuildCityPlacementTerrainFilter(_civ);
 
             var result = visibleVertices
                 .Where(v => !networkVertices.Contains(v))
                 .Where(v => v.GetHexes().Any(h => visibleMap.GetTile(h) is { } t && !t.TerrainType.IsWater()))
                 .Where(v => _civ.Cities.Where(c => c.Position.Z == v.Z).All(c => c.Position.EdgeDistanceTo(v) >= minOwn))
                 .Where(v => visibleEnemyCities.All(ec => ec.EdgeDistanceTo(v) >= minEnemy))
+                .Where(satisfiesTerrainRestriction)
                 .ToList();
 
             _prospectiveVerticesCacheMap = visibleMap;
             _prospectiveVerticesCacheTotalCityCount = totalCityCount;
+            _prospectiveVerticesCacheTerrainVersion = worldState.TerrainVersion;
             _prospectiveVerticesCache = result;
             return result;
         }

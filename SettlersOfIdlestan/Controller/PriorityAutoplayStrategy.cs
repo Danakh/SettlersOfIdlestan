@@ -156,14 +156,42 @@ namespace SettlersOfIdlestan.Controller
     {
         private readonly CivilizationAutoplayer _autoplayer;
         private readonly int _targetCount;
+        private readonly bool _completeWhenExpansionExhausted;
 
-        public CityCountObjective(CivilizationAutoplayer autoplayer, int targetCount)
+        /// <param name="completeWhenExpansionExhausted">
+        /// Vrai (défaut) : l'objectif se déclare terminé quand la carte n'offre plus rien
+        /// (<see cref="CivilizationAutoplayer.HasBuildableExpansion"/>), pour laisser la main à la
+        /// suite de la liste. Faux : il reste incomplet quoi qu'il arrive — réservé à l'objectif
+        /// d'expansion illimitée qui clôt <see cref="CivilizationAutoplayerPriorities.Unified"/>, dont
+        /// c'est justement le rôle d'empêcher <see cref="PriorityAutoplayStrategy.IsComplete"/> de
+        /// devenir vrai (les boucles qui tournent sur <c>!strategy.IsComplete()</c> s'arrêteraient net
+        /// dès la carte saturée, abandonnant par exemple une guerre en cours — voir
+        /// StepIslandScenarios.ExterminateCivilizationsStep).
+        /// </param>
+        public CityCountObjective(CivilizationAutoplayer autoplayer, int targetCount, bool completeWhenExpansionExhausted = true)
         {
             _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
             _targetCount = targetCount;
+            _completeWhenExpansionExhausted = completeWhenExpansionExhausted;
         }
 
-        public bool IsComplete() => _autoplayer.Civilization.Cities.Count >= _targetCount;
+        /// <summary>
+        /// Atteint le nombre de villes voulu — ou, sauf opt-out explicite, il n'y a plus rien à faire
+        /// pour s'en approcher (<see cref="CivilizationAutoplayer.HasBuildableExpansion"/> : plus aucun
+        /// vertex ni aucune route constructible).
+        ///
+        /// <para>Ce second cas n'est pas un détail : <see cref="PriorityAutoplayStrategy.TryStepOnce"/>
+        /// s'arrête au premier objectif incomplet, qu'il ait agi ou non. Un objectif d'expansion
+        /// impossible à satisfaire gèle donc définitivement tout ce qui le suit — Port Impérial,
+        /// niveaux de bâtiments, Merveille — et la partie s'arrête sur une île saturée sous la cible.
+        /// C'est ce qui bloquait toutes les races dont la carte plafonne sous les 12 villes de
+        /// CivilizationAutoplayerPriorities.Unified (Elfes et Nains par adjacence de terrain, Géants à
+        /// distance 4, Sirènes hors du littoral). Réévalué à chaque passe : si l'expansion redevient
+        /// possible (carte agrandie, terrain transformé), l'objectif redevient actif de lui-même.</para>
+        /// </summary>
+        public bool IsComplete() =>
+            _autoplayer.Civilization.Cities.Count >= _targetCount ||
+            (_completeWhenExpansionExhausted && !_autoplayer.HasBuildableExpansion());
 
         public bool TryAdvanceOnce() => _autoplayer.TryExpandOnce();
     }

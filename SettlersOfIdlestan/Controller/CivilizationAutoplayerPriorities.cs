@@ -266,8 +266,12 @@ namespace SettlersOfIdlestan.Controller
                 // (voir WonderInvestmentObjective, qui ne redevient jamais "complete" une fois actif).
                 new WonderInvestmentObjective(auto, () => aggressive && allNpcsEliminated()),
 
-                // Expansion illimitée après le prestige
-                new CityCountObjective(auto, int.MaxValue),
+                // Expansion illimitée après le prestige. completeWhenExpansionExhausted: false — cet
+                // objectif de fin de liste est le puits qui garantit que la stratégie n'est jamais
+                // "complète" : le laisser se satisfaire d'une carte saturée arrêterait net toute boucle
+                // tournant sur !strategy.IsComplete() (guerre en cours comprise). Il est déjà le dernier,
+                // il ne prive donc personne de son tour.
+                new CityCountObjective(auto, int.MaxValue, completeWhenExpansionExhausted: false),
             });
 
             return Make(objectives);

@@ -126,6 +126,13 @@ public static class RaceGauntletRunner
             result.Iterations = run.Iterations;
             result.FailureReason = run.FailureReason;
             result.Islands.AddRange(run.IslandStats);
+
+            // The state the race ended on, in the game's own save format: loadable in the Desktop head
+            // to look at the map that blocked it, which is the only practical way to tell "this island
+            // has nowhere left this race can build" from "the autoplayer didn't get there".
+            var savePath = Path.Combine(outputDirectory, $"race-{race}-final.json");
+            File.WriteAllText(savePath, controller.ExportMainState());
+            result.FinalSavePath = savePath;
         }
         catch (Exception ex)
         {
@@ -235,6 +242,10 @@ public class RaceGauntletResult
     public long Ticks { get; set; }
     public long Iterations { get; set; }
     public string? FailureReason { get; set; }
+
+    /// <summary>Save of the state this race ended on, or null if it never got that far.</summary>
+    public string? FinalSavePath { get; set; }
+
     public List<PrestigeRunStats> Islands { get; } = new();
 
     public bool Passed => IslandsCleared >= IslandsRequested;

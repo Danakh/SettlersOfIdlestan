@@ -397,6 +397,32 @@ namespace SettlersOfIdlestan.Controller.Island
             => vertex.GetHexes().Any(h => map.GetTile(h) is { } tile
                 && !tile.TerrainType.IsWater() && !tile.TerrainType.IsVoid());
 
+        private static readonly Func<Vertex, bool> NoCityPlacementTerrainRestriction = _ => true;
+
+        /// <summary>
+        /// Prédicat « ce vertex respecte-t-il les exigences raciales de terrain pour y poser une
+        /// ville ? », les exigences (adjacence stricte et portées) étant résolues une seule fois
+        /// ici pour être testées sur tout un lot de candidats.
+        ///
+        /// <para>Public parce que <see cref="GetBuildableVertices"/> applique déjà ce filtre, mais en
+        /// bout de chaîne : trop tard pour orienter la construction des routes. Sans ce filtre en
+        /// amont, l'autoplayer d'une race contrainte tire indéfiniment des routes vers des vertex
+        /// qu'elle ne pourra jamais occuper (un Elfe s'arrête à 2 villes, avec des routes encore
+        /// constructibles et aucun vertex constructible).</para>
+        /// </summary>
+        public Func<Vertex, bool> BuildCityPlacementTerrainFilter(Civilization civ)
+        {
+            var requiredTerrains = GetRequiredCityPlacementTerrains(civ);
+            var requiredTerrainRanges = GetRequiredCityPlacementTerrainRanges(civ);
+
+            // Cas courant (aucune restriction raciale) : pas de closure allouée par appel.
+            if (requiredTerrains.Count == 0 && requiredTerrainRanges.Count == 0)
+                return NoCityPlacementTerrainRestriction;
+
+            var terrainRangeSets = BuildTerrainRangeSets(requiredTerrainRanges);
+            return vertex => SatisfiesCityTerrainRestriction(vertex, requiredTerrains, terrainRangeSets);
+        }
+
         /// <summary>
         /// Terrains dont l'un au moins doit toucher tout nouveau vertex de ville en surface pour
         /// cette civilisation (CITY_PLACEMENT_REQUIRES_TERRAIN, restriction raciale — vide pour les
