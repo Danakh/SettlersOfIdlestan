@@ -115,6 +115,22 @@ public class GameRuntimeControl : SkiaCanvasControl
         _host.PointerMoved((float)p.X, (float)p.Y, e.Pointer.Id);
     }
 
+    // Les infobulles de la carte sont produites pendant le rendu, a partir d'un etat de survol
+    // que ce controle cesse de recevoir des que le pointeur passe sur un controle de l'overlay.
+    // Sans ces deux signaux, cet etat reste fige et l'infobulle Skia s'affiche en meme temps que
+    // celle du controle Avalonia reellement survole.
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+        _host.SetPointerOverMap(true);
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        _host.SetPointerOverMap(false);
+    }
+
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);

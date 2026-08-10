@@ -78,6 +78,12 @@ public sealed class GameRuntimeHost : IDisposable
     public void PointerMoved(float x, float y, int id) =>
         Invoke(r => r.HandlePointerMoved(x, y, id));
 
+    /// <summary>
+    /// Entree/sortie du pointeur sur le canevas. Les infobulles Skia sont coupees hors du
+    /// canevas, faute de quoi elles s'affichent en meme temps que celles d'Avalonia.
+    /// </summary>
+    public void SetPointerOverMap(bool isOver) => Invoke(r => r.SetPointerOverMap(isOver));
+
     public void PointerReleased(float x, float y, int id, SkiaLayer.PointerButton button) =>
         Invoke(r => r.HandlePointerReleased(x, y, id, button));
 

@@ -380,6 +380,9 @@ public sealed class SkiaGameRuntime : IDisposable
         _onTitleScreen ? ResourceBarSnapshot.Unavailable
                        : _gameScreen?.GetResourceBarSnapshot() ?? ResourceBarSnapshot.Unavailable;
 
+    /// <summary>Le pointeur est-il au-dessus du canevas ? Conditionne les infobulles Skia.</summary>
+    public void SetPointerOverMap(bool isOver) => _gameScreen?.SetPointerOverMap(isOver);
+
     /// <summary>Infobulle d'une pastille de la barre de ressources portée par l'hôte.</summary>
     public string? GetResourceTooltip(string resourceName) =>
         _onTitleScreen ? null : _gameScreen?.GetResourceTooltip(resourceName);

@@ -48,6 +48,7 @@ public sealed class GameScreen : IDisposable
     private TutorialService? _tutorialService;
     private MilitaryInteractionService? _militaryInteractionService;
     private PlayerResourcesOverlayRenderer? _playerResourcesOverlayRenderer;
+    private TooltipRenderer? _tooltipRenderer;
     private NotificationToastRenderer? _notificationToastRenderer;
     private CorruptSavePopupRenderer? _corruptSavePopup;
     private bool _corruptSavePending;
@@ -210,7 +211,8 @@ public sealed class GameScreen : IDisposable
 
         _harvestService = new HarvestService(_gameControllerService);
 
-        var tooltipRenderer = new TooltipRenderer(_localizationService, _gameControllerService, _resourceManager);
+        var tooltipRenderer = _tooltipRenderer =
+            new TooltipRenderer(_localizationService, _gameControllerService, _resourceManager);
 
         _constructionInteractionService = new ConstructionInteractionService(
             _gameControllerService,
@@ -524,6 +526,13 @@ public sealed class GameScreen : IDisposable
     /// <summary>Instantané de la barre de ressources pour une vue portée par l'hôte.</summary>
     public ResourceBarSnapshot GetResourceBarSnapshot() =>
         _overlayRenderer?.GetResourceBarSnapshot() ?? ResourceBarSnapshot.Unavailable;
+
+    /// <summary>
+    /// Signale que le pointeur est entré ou sorti du canevas. Les infobulles Skia ne
+    /// s'affichent que dans le premier cas, ce qui les rend mutuellement exclusives avec
+    /// celles d'Avalonia — qui n'existent, elles, que sur les contrôles de l'overlay.
+    /// </summary>
+    public void SetPointerOverMap(bool isOver) => _tooltipRenderer?.SetSuppressed(!isOver);
 
     /// <summary>
     /// Infobulle d'une pastille de ressource, désignée par son nom d'enum — celui que
