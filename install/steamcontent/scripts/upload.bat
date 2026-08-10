@@ -1,21 +1,26 @@
 @echo off
+setlocal
 
 if "%~1"=="" (
     echo [ERREUR] Login Steam manquant.
     echo Usage: %~nx0 ^<login^> ^<win^|linux^>
-    pause
+    call :halt
     exit /b 1
 )
 
 if /I "%~2"=="linux" (
     set PLATFORM_DIR=linux64
     set APP_BUILD_SCRIPT=app_build_linux.vdf
+    set STEAM_NATIVE=libsteam_api.so
+    set GAME_BINARY=SettlersOfIdlestan
 ) else if /I "%~2"=="win" (
     set PLATFORM_DIR=win64
     set APP_BUILD_SCRIPT=app_build_win.vdf
+    set STEAM_NATIVE=steam_api64.dll
+    set GAME_BINARY=SettlersOfIdlestan.exe
 ) else (
     echo [ERREUR] Plateforme invalide : "%~2". Valeurs attendues : win, linux.
-    pause
+    call :halt
     exit /b 1
 )
 
@@ -23,44 +28,61 @@ echo ====================================
 echo Upload Steam Build - %~2
 echo ====================================
 
-set STEAMCMD=C:\DEV\steamcmd\steamcmd.exe
+rem Surchargeable depuis l'environnement si steamcmd est installe ailleurs.
+if not defined STEAMCMD set STEAMCMD=C:\DEV\steamcmd\steamcmd.exe
 set STEAM_LOGIN=%~1
 set SCRIPT_DIR=%~dp0
 set SCRIPT="%SCRIPT_DIR%%APP_BUILD_SCRIPT%"
 set CONTENT_DIR=%SCRIPT_DIR%..\%PLATFORM_DIR%
-set REDIST_DIR=%SCRIPT_DIR%..\redist
 
-if /I "%~2"=="win" (
+echo.
+echo === Verification du contenu ===
+rem Le contenu est produit par install\build_desktop_%~2.bat, redistribuables Steam
+rem compris. On refuse d'uploader un repertoire incomplet : une build sans la native
+rem Steam passe la validation Steamworks mais plante au lancement chez les joueurs.
+if not exist "%CONTENT_DIR%\%GAME_BINARY%" (
+    echo [ERREUR] %GAME_BINARY% introuvable dans %CONTENT_DIR%.
+    echo Lancez d'abord install\build_desktop_%~2.bat.
+    call :halt
+    exit /b 1
+)
+if not exist "%CONTENT_DIR%\%STEAM_NATIVE%" (
+    echo [ERREUR] %STEAM_NATIVE% introuvable dans %CONTENT_DIR%.
+    echo Lancez d'abord install\build_desktop_%~2.bat.
+    call :halt
+    exit /b 1
+)
+if not exist "%CONTENT_DIR%\Steamworks.NET.dll" (
+    echo [ERREUR] Steamworks.NET.dll introuvable dans %CONTENT_DIR%.
+    echo Lancez d'abord install\build_desktop_%~2.bat.
+    call :halt
+    exit /b 1
+)
+echo [OK] %GAME_BINARY%, %STEAM_NATIVE% et Steamworks.NET.dll presents.
+
+if not exist "%STEAMCMD%" (
     echo.
-    echo === Copie des fichiers redistribuables Steam ===
-    rem NE PAS prendre steam_api64.dll depuis le Steamworks SDK : il doit correspondre
-    rem exactement a la version de Steamworks.NET utilisee (voir sa FAQ). La DLL vient
-    rem de la release "Standalone" de Steamworks.NET, deposee dans %REDIST_DIR%.
-    copy /Y "%REDIST_DIR%\steam_api64.dll" "%CONTENT_DIR%\steam_api64.dll"
-    if errorlevel 1 (
-        echo.
-        echo [ERREUR] Copie de steam_api64.dll echouee. Verifiez que le fichier est present dans %REDIST_DIR%.
-        pause
-        exit /b 1
-    )
-) else if /I "%~2"=="linux" (
-    echo.
-    echo === Copie des fichiers redistribuables Steam ===
-    rem NE PAS prendre libsteam_api.so depuis le Steamworks SDK : il doit correspondre
-    rem exactement a la version de Steamworks.NET utilisee (voir sa FAQ). La lib vient
-    rem de la release "Standalone" de Steamworks.NET, deposee dans %REDIST_DIR%.
-    copy /Y "%REDIST_DIR%\libsteam_api.so" "%CONTENT_DIR%\libsteam_api.so"
-    if errorlevel 1 (
-        echo.
-        echo [ERREUR] Copie de libsteam_api.so echouee. Verifiez que le fichier est present dans %REDIST_DIR%.
-        pause
-        exit /b 1
-    )
+    echo [ERREUR] steamcmd introuvable : %STEAMCMD%
+    echo Definissez la variable d'environnement STEAMCMD pour pointer vers steamcmd.exe.
+    call :halt
+    exit /b 1
 )
 
-%STEAMCMD% +login %STEAM_LOGIN% +run_app_build %SCRIPT% +quit
+"%STEAMCMD%" +login %STEAM_LOGIN% +run_app_build %SCRIPT% +quit
+if errorlevel 1 (
+    echo.
+    echo [ERREUR] steamcmd a retourne une erreur. Consultez install\steamcontent\output.
+    call :halt
+    exit /b 1
+)
 
 echo.
 echo Upload termine.
-pause
+call :halt
+exit /b 0
+
+rem Ne bloque que si le script est lance a la main : build_and_upload.bat enchaine
+rem les plateformes et positionne SOI_NOPAUSE pour ne pas attendre une touche.
+:halt
+if not defined SOI_NOPAUSE pause
 exit /b 0

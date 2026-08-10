@@ -12,6 +12,11 @@ set SCRIPT_DIR=%~dp0
 set ROOT_DIR=%SCRIPT_DIR%..\..\..
 set STEAM_LOGIN=%~1
 
+rem Les scripts appeles s'arretent sur un pause quand on les lance a la main. Ici la
+rem chaine doit se derouler sans intervention : seul ce script attend, a la fin ou
+rem sur la premiere erreur.
+set SOI_NOPAUSE=1
+
 for %%P in (win linux) do (
     echo.
     echo =============================================

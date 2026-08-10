@@ -485,11 +485,11 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 saves
-/install/SettlersOfIdlestan_OpenTK_Win
-/install/SettlersOfIdlestan_OpenTK_Win.zip
 export
 /install/steamcontent/win64
 /install/steamcontent/linux64
+/install/steamcontent/osx_arm64
+/install/steamcontent/osx_x64
 /install/steamcontent/output
 /install/steamcontent/scripts/app_build_linux.vdf
 /install/steamcontent/scripts/depot_build_linux.vdf
