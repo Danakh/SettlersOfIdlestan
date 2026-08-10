@@ -259,15 +259,22 @@ namespace SettlersOfIdlestan.Controller
                 // garde sa place d'unique réservée tant qu'il n'est pas bâti (voir
                 // CivilizationAutoplayer.FindNextUniqueBuildingToBuild).
                 //
-                // Volontairement limité au bâtiment racial : le même objectif sans filtre (donc toutes
-                // les guildes de prestige) a été essayé à quatre emplacements et budgets d'itérations
-                // différents, et dégrade les runs à chaque fois. Un unique n'est pas une dépense
-                // ponctuelle — les guildes allument des automatismes de construction qui puisent ensuite
-                // en continu dans le stock (voir BuildingController.PerformHarvestersGuildProductionAutomation
-                // et consorts), ce qui affame la production de soldats d'une île d'extermination (guerre
-                // jamais finie, même à 3× le budget d'itérations) ou le financement du Port Impérial
-                // lui-même. Élargir au-delà du racial demande d'abord d'apprendre à l'autoplay à piloter
-                // ces automatismes, pas seulement à poser les bâtiments.
+                // Volontairement limité au bâtiment racial. Le même objectif sans filtre (donc les
+                // guildes de prestige) dégrade les runs : île d'extermination dont la guerre ne finit
+                // plus, même à 3× le budget d'itérations, ou Port Impérial jamais financé. La cause est
+                // la Guilde des Bâtisseurs, dont l'automatisme de construction de routes est le seul
+                // allumé par défaut chez le joueur (RoadAutomationEnabled, voir AutomationSettings — tous
+                // les autres flags de bâtiment sont à false) : il dépense le stock selon sa propre
+                // logique, en concurrence directe avec la liste de priorités, qui n'en a aucune
+                // visibilité.
+                //
+                // Mesuré : couper les automatismes à la construction lève bien la régression (FullIsland
+                // repasse 4/4), mais n'apporte rien — points de prestige identiques sur les 4 îles
+                // (36/70/803/871), une seule Guilde des Bâtisseurs de plus aux îles 2 et 3, et +2 % de
+                // ticks à l'île 4. Le plafond n'est pas l'autoplay : à ce stade du jeu presque aucun
+                // unique n'est débloqué (2 à 5 selon l'île) et leurs prérequis niveau 4 ne sont pas
+                // atteints. Élargir au-delà du racial ne vaudra le coup que le jour où l'autoplay saura
+                // piloter ces automatismes, pas seulement poser les bâtiments.
                 new CityCountObjective(auto, expansionTarget),
                 new UniqueBuildingsObjective(auto, RaceDefinitions.IsRacialBuilding),
                 new ImperialPortObjective(auto),
