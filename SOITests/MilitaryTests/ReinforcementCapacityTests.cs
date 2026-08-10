@@ -42,10 +42,10 @@ public class ReinforcementCapacityTests
         civ.Resources[Resource.Food] = 999;
 
         var source = new City(VertexSource) { CivilizationIndex = 0, Soldiers = sourceSoldiers };
-        source.Buildings.Add(new Barracks { Level = sourceBarracksLevel });
+        source.AddBuilding(new Barracks { Level = sourceBarracksLevel });
 
         var target = new City(VertexTarget) { CivilizationIndex = 0, Soldiers = targetSoldiers };
-        target.Buildings.Add(new Barracks { Level = targetBarracksLevel });
+        target.AddBuilding(new Barracks { Level = targetBarracksLevel });
 
         civ.AddCity(source);
         civ.AddCity(target);
@@ -214,10 +214,10 @@ public class ReinforcementCapacityTests
         civ.Resources[Resource.Food] = 999;
 
         var source = new City(VertexSource) { CivilizationIndex = 0, Soldiers = 5 };
-        source.Buildings.Add(new Barracks { Level = 2 });
+        source.AddBuilding(new Barracks { Level = 2 });
 
         var target = new City(VertexTarget) { CivilizationIndex = 0, Soldiers = 0 };
-        target.Buildings.Add(new Barracks { Level = 1 });
+        target.AddBuilding(new Barracks { Level = 1 });
 
         civ.AddCity(source);
         civ.AddCity(target);
@@ -247,10 +247,10 @@ public class ReinforcementCapacityTests
         civ.Resources[Resource.Food] = 999;
 
         var source = new City(VertexSource) { CivilizationIndex = 0, Soldiers = 5 };
-        source.Buildings.Add(new Barracks { Level = 2 });
+        source.AddBuilding(new Barracks { Level = 2 });
 
         var target = new City(VertexTarget) { CivilizationIndex = 0, Soldiers = 0 };
-        target.Buildings.Add(new Barracks { Level = 1 });
+        target.AddBuilding(new Barracks { Level = 1 });
 
         civ.AddCity(source);
         civ.AddCity(target);

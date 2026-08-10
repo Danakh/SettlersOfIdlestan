@@ -34,7 +34,7 @@ public class ImperialPort : Building
 
     public override bool HasBuildPrerequisites(IBuildingContext city)
     {
-        return city.Buildings.Any(b => b.Type == BuildingType.Seaport && b.Level >= 4);
+        return city.HasBuildingAtLevel(BuildingType.Seaport, 4);
     }
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city)

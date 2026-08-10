@@ -17,7 +17,7 @@ public class TraderGuildTests
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];
         var city = civ.Cities[0];
-        city.Buildings.Add(new TownHall { Level = 1 }); // city.Level = 1 → Market available
+        city.AddBuilding(new TownHall { Level = 1 }); // city.Level = 1 → Market available
 
         var controller = new BuildingController(state);
         return (state, controller, civ);
@@ -32,11 +32,11 @@ public class TraderGuildTests
         var city = civ.Cities[0];
 
         var market = new Market { Level = 1 };
-        city.Buildings.Add(market);
+        city.AddBuilding(market);
 
         Assert.Equal(1, controller.GetMaxLevel(market, civ));
 
-        city.Buildings.Add(new TraderGuild { Level = 1 });
+        city.AddBuilding(new TraderGuild { Level = 1 });
         civ.RebuildUniqueBuildingsModifiers();
 
         Assert.Equal(3, controller.GetMaxLevel(market, civ));
@@ -60,7 +60,7 @@ public class TraderGuildTests
         var (state, controller, civ) = CreateSetup();
         var city = civ.Cities[0];
 
-        city.Buildings.Add(new TraderGuild { Level = 1 });
+        city.AddBuilding(new TraderGuild { Level = 1 });
 
         civ.AddResource(Resource.Food, 5);
         civ.AddResource(Resource.Wood, 5);
@@ -87,7 +87,7 @@ public class TraderGuildTests
         var (state, controller, civ) = CreateSetup();
         var city = civ.Cities[0];
 
-        city.Buildings.Add(new TraderGuild { Level = 1 });
+        city.AddBuilding(new TraderGuild { Level = 1 });
 
         civ.AddResource(Resource.Food, 50);
         civ.AddResource(Resource.Wood, 50);
@@ -118,10 +118,10 @@ public class TraderGuildTests
         city.Buildings.First(b => b.Type == BuildingType.TownHall).Level = 20;
         BuildingController.RecalculateStorageCapacity(civ);
 
-        city.Buildings.Add(new TraderGuild { Level = 1 });
+        city.AddBuilding(new TraderGuild { Level = 1 });
         civ.RebuildUniqueBuildingsModifiers();
         var market = new Market { Level = 1 };
-        city.Buildings.Add(market);
+        city.AddBuilding(market);
 
         // Upgrade level 1→2 cost: Food 100, Wood 40, Brick 40, Gold 40 (GetUpgradeCost(2) = 50*2/20*2/20*2/20*2)
         civ.AddResource(Resource.Food, 100);
@@ -147,9 +147,9 @@ public class TraderGuildTests
         var (state, controller, civ) = CreateSetup();
         var city = civ.Cities[0];
 
-        city.Buildings.Add(new TraderGuild { Level = 1 });
+        city.AddBuilding(new TraderGuild { Level = 1 });
         var market = new Market { Level = 3 }; // already at max
-        city.Buildings.Add(market);
+        city.AddBuilding(market);
 
         civ.AddResource(Resource.Food, 500);
         civ.AddResource(Resource.Wood, 500);

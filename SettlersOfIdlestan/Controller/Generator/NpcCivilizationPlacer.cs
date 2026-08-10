@@ -32,14 +32,23 @@ public class NpcCivilizationPlacer
     /// Garantit que toutes les villes NPC (initiales et expansion) sont à ≥ leur MinDistanceFromPlayer
     /// edges de la ville du joueur. Place autant de NPC que possible si la carte est trop petite.
     /// </summary>
-    public bool PlaceNpcCivilizations(WorldState state, GamePRNG prng, int tier = 1)
+    /// <param name="playerAnchorVertex">
+    /// Vertex servant de référence de distance quand le joueur n'a pas (encore) de ville en surface —
+    /// le cas des races démarrant dans l'Inframonde, dont le vertex d'arrivée de surface est déjà
+    /// mémorisé (voir LayerState.ArrivalVertex). Null = la ville du joueur doit exister.
+    /// </param>
+    public bool PlaceNpcCivilizations(WorldState state, GamePRNG prng, int tier = 1, Vertex? playerAnchorVertex = null)
     {
-        if (state.PlayerCivilization.Cities.Count == 0) return false;
+        var anchor = state.PlayerCivilization.Cities.Count > 0
+            ? state.PlayerCivilization.Cities[0].Position
+            : playerAnchorVertex;
+        if (anchor == null) return false;
 
         var npcCivs = state.Civilizations.Where(c => c.IsNpc).ToList();
         if (npcCivs.Count == 0) return true;
 
-        var playerVertex = state.PlayerCivilization.Cities[0].Position;
+        var playerVertex = anchor;
+
         var allValidVertices = FindValidCityVertices(state.GetMapForZ(IslandMap.SurfaceLayer)!);
 
         var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: tier + 1, maxPrestigeDistance: tier);
@@ -225,10 +234,10 @@ public class NpcCivilizationPlacer
     private static void PopulateMinimumNpc(IslandMap map, Civilization civ, Vertex vertex)
     {
         var city = new City(vertex) { CivilizationIndex = civ.Index };
-        city.Buildings.Add(new TownHall { Level = 2 });
+        city.AddBuilding(new TownHall { Level = 2 });
         city.InvalidateLevelCache();
         AddStep1ProductionBuildings(map, city);
-        city.Buildings.Add(new Market());
+        city.AddBuilding(new Market());
         civ.AddCity(city);
     }
 
@@ -241,11 +250,11 @@ public class NpcCivilizationPlacer
 
             switch (tile.TerrainType)
             {
-                case TerrainType.Forest:   city.Buildings.Add(new Sawmill());    break;
-                case TerrainType.Plain:    city.Buildings.Add(new Mill());       break;
-                case TerrainType.Hill:     city.Buildings.Add(new Brickworks()); break;
-                case TerrainType.Mountain: city.Buildings.Add(new Quarry());     break;
-                case TerrainType.Water:    city.Buildings.Add(new Seaport());    break;
+                case TerrainType.Forest:   city.AddBuilding(new Sawmill());    break;
+                case TerrainType.Plain:    city.AddBuilding(new Mill());       break;
+                case TerrainType.Hill:     city.AddBuilding(new Brickworks()); break;
+                case TerrainType.Mountain: city.AddBuilding(new Quarry());     break;
+                case TerrainType.Water:    city.AddBuilding(new Seaport());    break;
             }
         }
     }
@@ -352,7 +361,7 @@ public class NpcCivilizationPlacer
             var building = BuildingController.CreateBuilding(type);
             if (building == null) return;
             building.Level = targetLevel;
-            city.Buildings.Add(building);
+            city.AddBuilding(building);
             if (type == BuildingType.TownHall) city.InvalidateLevelCache();
             city.InvalidateMaxSoldiersCache();
         }

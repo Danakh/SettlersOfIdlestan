@@ -381,7 +381,7 @@ namespace SettlersOfIdlestan.Controller.Expand
                 startTick: mainGameState.Clock.CurrentTick,
                 surfaceCorruptionLevel: mainGameState.PrestigeState.SurfaceCorruptionLevel,
                 tier: mainGameState.PrestigeState.EffectiveNextIslandTier,
-                startVertexTerrain: RaceDefinitions.Get(mainGameState.GodState.AscensionState.SelectedRace).StartVertexTerrain)
+                race: RaceDefinitions.Get(mainGameState.GodState.AscensionState.SelectedRace))
                 ?? throw new InvalidOperationException("Failed to generate next island.");
 
             mainGameState.PrestigeState.SelectedNextIslandTier = null;

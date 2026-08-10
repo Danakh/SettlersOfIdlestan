@@ -28,9 +28,9 @@ public class MonumentInvestmentAutomationTests
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var city = state.PlayerCivilization.Cities[0];
-        city.Buildings.Add(new Sawmill { Level = 1 });
-        city.Buildings.Add(new Mill { Level = 1 });
-        city.Buildings.Add(new Market { Level = 1 });
+        city.AddBuilding(new Sawmill { Level = 1 });
+        city.AddBuilding(new Mill { Level = 1 });
+        city.AddBuilding(new Market { Level = 1 });
 
         var wonder = new Wonder(WonderHex) { Level = 0 };
         state.AddFeature(wonder);

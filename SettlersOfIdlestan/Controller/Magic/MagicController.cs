@@ -402,7 +402,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (townHall == null)
             {
                 townHall = BuildingController.CreateBuilding(BuildingType.TownHall)!;
-                city.Buildings.Add(townHall);
+                city.AddBuilding(townHall);
             }
             int townHallMaxLevel = _buildingController.GetMaxLevel(townHall, civ, city);
             townHall.Level = Math.Clamp(Math.Max(townHall.Level, ArcaneEdificationTownHallLevel), 0, townHallMaxLevel);
@@ -412,7 +412,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             {
                 if (building.Type == BuildingType.TownHall) continue;
                 if (!city.Buildings.Contains(building))
-                    city.Buildings.Add(building);
+                    city.AddBuilding(building);
                 int maxLevel = _buildingController.GetMaxLevel(building, civ, city);
                 building.Level = Math.Clamp(Math.Max(building.Level, ArcaneEdificationBuildingLevel), 0, maxLevel);
             }

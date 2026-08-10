@@ -69,18 +69,30 @@ public class LayerState
     /// <see cref="SettlersOfIdlestan.Controller.Island.AutoExtendController"/> puisse faire pousser une
     /// première île dès qu'un de ces hexes de Void devient visible (voir AbyssIslandGenerator).
     /// </param>
+    /// <param name="triangleTerrains">
+    /// Terrains des 3 hexes du triangle, dans l'ordre (0,0), (1,0), (0,1). Null ou incomplet =
+    /// Montagne partout (comportement historique de la Mine Profonde et de l'Abysse). Les races
+    /// démarrant sous terre (RaceDefinition.UnderworldStartTerrains) y passent leur propre trio,
+    /// sans quoi un départ souterrain serait privé de bois et de nourriture.
+    /// </param>
     public static LayerState EstablishOupostInNewAutoExpandLayer(
-        Civilization.Civilization playerCiv, int z = UnderworldZ, bool surroundWithVoid = false)
+        Civilization.Civilization playerCiv, int z = UnderworldZ, bool surroundWithVoid = false,
+        IReadOnlyList<TerrainType>? triangleTerrains = null)
     {
         var h1 = new HexCoord(0, 0, z);
         var h2 = new HexCoord(1, 0, z);
         var h3 = new HexCoord(0, 1, z);
 
+        TerrainType TerrainAt(int index) =>
+            triangleTerrains != null && index < triangleTerrains.Count
+                ? triangleTerrains[index]
+                : TerrainType.Mountain;
+
         var tiles = new List<HexTile>
         {
-            new HexTile(h1, TerrainType.Mountain),
-            new HexTile(h2, TerrainType.Mountain),
-            new HexTile(h3, TerrainType.Mountain),
+            new HexTile(h1, TerrainAt(0)),
+            new HexTile(h2, TerrainAt(1)),
+            new HexTile(h3, TerrainAt(2)),
         };
 
         if (surroundWithVoid)

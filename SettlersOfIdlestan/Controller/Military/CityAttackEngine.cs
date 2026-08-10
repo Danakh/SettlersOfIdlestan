@@ -37,23 +37,50 @@ internal class CityAttackEngine
     internal int CityAttackRange(Civilization civ)
         => civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_ATTACK_RANGE, "", DefaultCityAttackRange);
 
+    /// <summary>Tampons réutilisés par <see cref="ResolveCityAttacks"/> — voir ses commentaires.</summary>
+    private readonly List<IMilitaryVertex> _attackerVerticesScratch = new();
+    private readonly List<(Civilization civ, IMilitaryVertex vertex, Civilization attackerCiv)> _toDestroyScratch = new();
+
     internal void ResolveCityAttacks(long currentTick,
         Action<CityAttackEventArgs> onSoldierAttackedCity,
         Action<CityBuildingDestroyedEventArgs> onCityBuildingDestroyed,
         Action<ConsumableConsumedEventArgs> onConsumableConsumed)
     {
-        var toDestroy = new List<(Civilization civ, IMilitaryVertex vertex, Civilization attackerCiv)>();
+        var toDestroy = _toDestroyScratch;
+        toDestroy.Clear();
 
-        foreach (var attackerCiv in _state!.Civilizations)
+        var raidTarget = _state!.AutomationSettings.RaidTargetVertex;
+        var playerCiv = _state.PlayerCivilization;
+
+        // Délégué construit une fois par appel, hors des boucles : capturer l'emplacement de la
+        // boucle forçait le compilateur à allouer sa classe de fermeture à chaque itération, donc
+        // pour chaque emplacement militaire de chaque civilisation, à chaque événement d'horloge.
+        Action<IMilitaryVertex, Resource> onConsumed =
+            (v, res) => onConsumableConsumed(new ConsumableConsumedEventArgs(v.Position, res));
+
+        foreach (var attackerCiv in _state.Civilizations)
         {
-            foreach (var attackerVertex in attackerCiv.MilitaryVertices.ToList())
+            // Constantes de la civilisation attaquante, relues auparavant à chaque emplacement — et
+            // chacune réagrège les modifiers. En fin de partie cette boucle voit plusieurs centaines
+            // d'emplacements à chaque événement d'horloge.
+            double speed = attackerCiv.ModifierAggregator.ApplyModifiers(ECategory.ATTACK_SPEED, "", 1.0);
+            int attackRange = CityAttackRange(attackerCiv);
+            bool steelWeaponsUnlocked = attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
+
+            // Copie des emplacements : un tour de boucle peut détruire une ville et donc muter la
+            // liste. Le tampon est réutilisé d'un événement à l'autre plutôt que réalloué par
+            // civilisation — ce ToList était un des premiers postes d'allocation du budget d'image.
+            var attackerVertices = _attackerVerticesScratch;
+            attackerVertices.Clear();
+            var sourceVertices = attackerCiv.MilitaryVertices;
+            for (int i = 0; i < sourceVertices.Count; i++) attackerVertices.Add(sourceVertices[i]);
+
+            foreach (var attackerVertex in attackerVertices)
             {
-                var raidTarget = _state!.AutomationSettings.RaidTargetVertex;
                 bool isRaidAttack = raidTarget != null && attackerVertex.FlowTarget?.Equals(raidTarget) == true;
                 long baseInterval = isRaidAttack
                     ? MilitaryController.CityAttackIntervalTicks / 2
                     : MilitaryController.CityAttackIntervalTicks;
-                double speed = attackerCiv.ModifierAggregator.ApplyModifiers(ECategory.ATTACK_SPEED, "", 1.0);
                 long effectiveInterval = Math.Max(1L, (long)(baseInterval / speed));
                 if (currentTick - attackerVertex.LastAttackTick < effectiveInterval) continue;
                 if (attackerVertex.Soldiers == 0) continue;
@@ -68,7 +95,7 @@ internal class CityAttackEngine
                     attackerVertex.FlowTarget = null;
                     continue;
                 }
-                if (attackerVertex.Position.EdgeDistanceTo(targetVertex.Position) > CityAttackRange(attackerCiv)) continue;
+                if (attackerVertex.Position.EdgeDistanceTo(targetVertex.Position) > attackRange) continue;
 
                 // Le chemin le plus direct ne doit pas traverser une arête interdite (deux hex d'eau
                 // sans routes maritimes, ou deux hex de Vide sans marche dans le Vide) : sinon l'attaque
@@ -81,13 +108,12 @@ internal class CityAttackEngine
                 }
 
                 // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
-                bool hasSteelWeapon = attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)
+                bool hasSteelWeapon = steelWeaponsUnlocked
                     && attackerCiv.GetResourceQuantity(Resource.SteelWeapon) >= 1;
                 if (hasSteelWeapon) attackerCiv.RemoveResource(Resource.SteelWeapon, 1);
 
                 // Armures d'Acier : le soldat envoyé peut survivre en consommant 1 ArmureAcier
-                if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerVertex, 1, _prng!,
-                        res => onConsumableConsumed(new ConsumableConsumedEventArgs(attackerVertex.Position, res))) == 0)
+                if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerVertex, 1, _prng!, onConsumed) == 0)
                     attackerVertex.Soldiers--;
                 attackerVertex.LastAttackTick = currentTick;
 
@@ -95,7 +121,6 @@ internal class CityAttackEngine
 
                 // Vendetta : une civilisation qui attaque le joueur devient la cible des raids automatiques
                 // (voir RaidEngine.ResolvePlayerAutoVendetta).
-                var playerCiv = _state.PlayerCivilization;
                 if (targetVertex.CivilizationIndex == playerCiv.Index && attackerCiv.Index != playerCiv.Index
                     && playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_VENDETTA))
                 {
@@ -107,7 +132,7 @@ internal class CityAttackEngine
                     destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed, onConsumableConsumed);
                 if (destroyed)
                 {
-                    var ownerCiv = _state.Civilizations.FirstOrDefault(c => c.Index == targetVertex.CivilizationIndex);
+                    var ownerCiv = _state.GetCivilization(targetVertex.CivilizationIndex);
                     if (ownerCiv != null)
                         toDestroy.Add((ownerCiv, targetVertex, attackerCiv));
                 }
@@ -139,11 +164,18 @@ internal class CityAttackEngine
 
     internal IMilitaryVertex? FindEnemyCityAt(Vertex target, Civilization attackerCiv)
     {
-        foreach (var civ in _state!.Civilizations)
+        // Boucles indexées : appelé pour chaque emplacement attaquant, le FirstOrDefault allouait
+        // une fermeture capturant la cible à chaque civilisation examinée.
+        var civilizations = _state!.Civilizations;
+        for (int c = 0; c < civilizations.Count; c++)
         {
+            var civ = civilizations[c];
             if (civ.Index == attackerCiv.Index) continue;
-            var vertex = civ.MilitaryVertices.FirstOrDefault(v => v.Position.Equals(target));
-            if (vertex != null) return vertex;
+
+            var vertices = civ.MilitaryVertices;
+            for (int i = 0; i < vertices.Count; i++)
+                if (vertices[i].Position.Equals(target))
+                    return vertices[i];
         }
         return null;
     }
@@ -158,7 +190,7 @@ internal class CityAttackEngine
 
     internal IMilitaryVertex? FindNearbyEnemyCity(IMilitaryVertex attackerVertex, IReadOnlyCollection<int>? targetCivIndices = null, int? maxRange = null)
     {
-        var attackerCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == attackerVertex.CivilizationIndex);
+        var attackerCiv = _state!.GetCivilization(attackerVertex.CivilizationIndex);
         if (attackerCiv == null) return null;
         int range = maxRange ?? CityAttackRange(attackerCiv);
         IMilitaryVertex? closest = null;
@@ -242,7 +274,7 @@ internal class CityAttackEngine
         // Les soldats défenseurs absorbent l'attaque : les deux soldats meurent, la défense est intacte.
         if (targetVertex.Soldiers > 0)
         {
-            var defenderCiv = _state!.Civilizations.FirstOrDefault(c => c.Index == targetVertex.CivilizationIndex);
+            var defenderCiv = _state!.GetCivilization(targetVertex.CivilizationIndex);
             // Barbacane : si la défense est > 20, perd 1 défense au lieu d'un soldat.
             if (defenderCiv != null
                 && defenderCiv.ModifierAggregator.HasModifier(ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS)
@@ -253,7 +285,7 @@ internal class CityAttackEngine
             }
             // Armures d'Acier : le défenseur peut survivre en consommant 1 Acier (l'attaque reste absorbée)
             if (SteelArmorEngine.TrySaveSoldiers(defenderCiv, targetVertex, 1, _prng!,
-                    res => onConsumableConsumed(new ConsumableConsumedEventArgs(targetVertex.Position, res))) == 0)
+                    (v, res) => onConsumableConsumed(new ConsumableConsumedEventArgs(v.Position, res))) == 0)
                 targetVertex.Soldiers--;
             return false;
         }
@@ -269,17 +301,17 @@ internal class CityAttackEngine
         if (targetVertex is not City targetCity)
             return true;
 
-        var townHall = targetCity.Buildings.OfType<TownHall>().FirstOrDefault();
+        var townHall = targetCity.FindBuilding<TownHall>(BuildingType.TownHall);
         if (townHall != null)
         {
             townHall.Level--;
             if (townHall.Level <= 0)
             {
-                targetCity.Buildings.Remove(townHall);
+                targetCity.RemoveBuilding(townHall);
                 targetCity.InvalidateLevelCache();
                 onCityBuildingDestroyed(new CityBuildingDestroyedEventArgs(targetCity.Position));
             }
-            var defenderCivAfterAttack = _state!.Civilizations.FirstOrDefault(c => c.Index == targetCity.CivilizationIndex);
+            var defenderCivAfterAttack = _state!.GetCivilization(targetCity.CivilizationIndex);
             if (defenderCivAfterAttack != null)
             {
                 BuildingController.RecalculateStorageCapacity(defenderCivAfterAttack);

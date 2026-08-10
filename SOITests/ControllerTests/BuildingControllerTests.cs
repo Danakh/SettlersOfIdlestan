@@ -53,7 +53,7 @@ public class BuildingControllerTests
 
         // Add a TownHall at level 1 so city.Level becomes 1
         var townHall = new TownHall { Level = 1 };
-        city.Buildings.Add(townHall);
+        city.AddBuilding(townHall);
 
         var buildings = controller.GetBuildingsAndBuildables(city);
 
@@ -71,7 +71,7 @@ public class BuildingControllerTests
 
         // Set city to level 2 so more buildings appear
         var townHall = new TownHall { Level = 2 };
-        city.Buildings.Add(townHall);
+        city.AddBuilding(townHall);
 
         var buildings = controller.GetBuildingsAndBuildables(city);
 
@@ -124,7 +124,7 @@ public class BuildingControllerTests
 
         // Add a TownHall at level 1
         var townHall = new TownHall { Level = 1 };
-        city.Buildings.Add(townHall);
+        city.AddBuilding(townHall);
 
         // Upgrade cost for level 2: 2*(4+1)=10 each for Food/Wood/Brick/Stone
         civ.AddResource(Resource.Food, 10);
@@ -146,7 +146,7 @@ public class BuildingControllerTests
         var city = civ.Cities[0];
 
         var townHall = new TownHall { Level = 4 }; // max level is 4
-        city.Buildings.Add(townHall);
+        city.AddBuilding(townHall);
 
         // Give plenty of resources
         civ.AddResource(Resource.Food, 1000);
@@ -185,7 +185,7 @@ public class BuildingControllerTests
         var cityVertex = city.Position;
 
         var townHall = new TownHall { Level = 4 };
-        city.Buildings.Add(townHall);
+        city.AddBuilding(townHall);
         civ.SetStorageCapacityCache(1000, 1000); // bypass the default (10 * city count) basic-storage cap
         civ.AddResource(Resource.Wood, 100);
         civ.AddResource(Resource.Brick, 50);
@@ -200,7 +200,7 @@ public class BuildingControllerTests
         Assert.Null(civ.GetUniqueBuilding(BuildingType.BuildersGuild));
 
         var newCity = new City(cityVertex) { CivilizationIndex = civ.Index };
-        newCity.Buildings.Add(new TownHall { Level = 4 });
+        newCity.AddBuilding(new TownHall { Level = 4 });
         civ.AddCity(newCity);
         civ.SetStorageCapacityCache(1000, 1000); // BuildBuilding/RemoveCity/AddCity recompute this cache down again
         civ.AddResource(Resource.Wood, 100);
@@ -223,11 +223,11 @@ public class BuildingControllerTests
 
         // Add a TownHall at level 2 to unlock Library (AvailableAtLevel = 2)
         var townHall = new TownHall { Level = 2 };
-        city.Buildings.Add(townHall);
+        city.AddBuilding(townHall);
 
         // Create a Library building
         var library = new Library { Level = 0 };
-        city.Buildings.Add(library);
+        city.AddBuilding(library);
 
         // Check initial max level (Library.GetDefaultMaxLevel() returns 0)
         int maxLevelBefore = controller.GetMaxLevel(library, civ);
@@ -259,7 +259,7 @@ public class BuildingControllerTests
     {
         var (state, controller, city) = CreateTestSetup();
         var civ = state.Civilizations[0];
-        city.Buildings.Add(new TownHall { Level = 1 });
+        city.AddBuilding(new TownHall { Level = 1 });
         UnlockAlchimistHut(civ);
         civ.SetStorageCapacityCache(1000, 1000);
 
@@ -279,7 +279,7 @@ public class BuildingControllerTests
     {
         var (state, controller, city) = CreateTestSetup();
         var civ = state.Civilizations[0];
-        city.Buildings.Add(new TownHall { Level = 1 });
+        city.AddBuilding(new TownHall { Level = 1 });
         UnlockAlchimistHut(civ);
         civ.SetStorageCapacityCache(1000, 1000);
         state.AddFeature(new FairyCircle(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Found = true });
@@ -299,7 +299,7 @@ public class BuildingControllerTests
     {
         var (state, controller, city) = CreateTestSetup();
         var civ = state.Civilizations[0];
-        city.Buildings.Add(new TownHall { Level = 1 });
+        city.AddBuilding(new TownHall { Level = 1 });
         UnlockAlchimistHut(civ);
 
         var buildings = controller.GetBuildingsAndBuildables(city);
@@ -312,7 +312,7 @@ public class BuildingControllerTests
     {
         var (state, controller, city) = CreateTestSetup();
         var civ = state.Civilizations[0];
-        city.Buildings.Add(new TownHall { Level = 1 });
+        city.AddBuilding(new TownHall { Level = 1 });
         UnlockAlchimistHut(civ);
         state.AddFeature(new FairyCircle(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Found = true });
 

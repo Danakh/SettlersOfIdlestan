@@ -10,6 +10,7 @@ using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
@@ -194,11 +195,19 @@ public class MonsterFeatureController
         if (_state == null) return;
         if (_monsters.Any(m => m is Adventurer)) return;
 
-        foreach (var civ in _state.Civilizations)
+        var civilizations = _state.Civilizations;
+        for (int c = 0; c < civilizations.Count; c++)
         {
-            foreach (var city in civ.Cities)
+            var civ = civilizations[c];
+            var cities = civ.Cities;
+            for (int i = 0; i < cities.Count; i++)
             {
-                var guild = city.Buildings.OfType<AdventurersGuild>().FirstOrDefault(b => b.Level > 0);
+                var city = cities[i];
+                // FindBuilding (indexé par type) plutôt que OfType<T>().FirstOrDefault() : tant
+                // qu'aucun Aventurier n'est vivant, cette méthode parcourt toutes les villes de la
+                // carte à chaque événement d'horloge, et la chaîne LINQ y allouait un itérateur, un
+                // énumérateur boxé et une fermeture par ville.
+                var guild = city.FindBuilding<AdventurersGuild>(BuildingType.AdventurersGuild) is { Level: > 0 } g ? g : null;
                 if (guild == null) continue;
                 if (currentTick - guild.LastAdventurerDeathTick < AdventurersGuild.AdventurerRespawnCooldownTicks) continue;
 
@@ -462,9 +471,12 @@ public class MonsterFeatureController
     {
         // Priorité : villes dont un hex coïncide avec la position du monstre
         foreach (var civ in _state!.Civilizations)
+        {
+            if (IsImmuneTo(civ, monster)) continue;
             foreach (var city in civ.Cities)
                 if (city.Position.GetHexes().Any(h => h.Equals(monster.Position)))
                     return city;
+        }
 
         if (monster.AttackRangeInHexes < 2) return null;
 
@@ -475,20 +487,33 @@ public class MonsterFeatureController
             .ToHashSet();
 
         foreach (var civ in _state.Civilizations)
+        {
+            if (IsImmuneTo(civ, monster)) continue;
             foreach (var city in civ.Cities)
                 if (city.Position.GetHexes().Any(h => neighborSet.Contains(h)))
                     return city;
+        }
 
         return null;
     }
 
+    /// <summary>
+    /// Pacte des Profondeurs (Elfes noirs, MONSTER_ATTACK_IMMUNITY) : les monstres du type indiqué
+    /// ne retiennent jamais les villes de cette civilisation comme cible. Le filtrage a lieu ici
+    /// plutôt que dans ApplyMonsterAttack pour que le monstre n'affiche pas un
+    /// LastAttackTargetVertex fantôme sur une ville qu'il n'attaquera jamais. L'immunité ne touche
+    /// que l'attaque : le monstre continue d'occuper son hex et d'y bloquer la récolte.
+    /// </summary>
+    private static bool IsImmuneTo(Civilization civ, MonsterFeature monster)
+        => civ.ModifierAggregator.HasModifier(ECategory.MONSTER_ATTACK_IMMUNITY, monster.GetType().Name);
+
     private void ApplyMonsterAttack(MonsterFeature monster, City city, long tick)
     {
         monster.LastAttackTick = tick;
-        var civ = _state!.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        var civ = _state!.GetCivilization(city.CivilizationIndex);
         if (civ == null) return;
 
-        if (!monster.IgnoresPalisade && city.Buildings.OfType<Palisade>().Any(b => b.Level > 0))
+        if (!monster.IgnoresPalisade && city.FindBuilding(BuildingType.Palisade) is { Level: > 0 })
         {
             monster.LastAttackTargetVertex = null;
             monster.LastAttackResourcesString = null;
@@ -507,7 +532,7 @@ public class MonsterFeatureController
             if (soldierDmg > 0)
             {
                 int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, soldierDmg, _prng!,
-                    res => ConsumableConsumed?.Invoke(this, new ConsumableConsumedEventArgs(city.Position, res)));
+                    (v, res) => ConsumableConsumed?.Invoke(this, new ConsumableConsumedEventArgs(v.Position, res)));
                 city.Soldiers -= soldierDmg - saved;
                 damage -= soldierDmg;
                 didSomething = true;
@@ -532,7 +557,7 @@ public class MonsterFeatureController
                     didSomething = true;
                     if (townHall.Level <= 0)
                     {
-                        city.Buildings.Remove(townHall);
+                        city.RemoveBuilding(townHall);
                         city.InvalidateLevelCache();
                     }
                     BuildingController.RecalculateStorageCapacity(civ);

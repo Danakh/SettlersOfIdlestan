@@ -86,15 +86,28 @@ internal class ReinforcementEngine
             long interval = EffectiveReinforcementInterval(civ);
             int range = ReinforcementRange(civ);
 
-            // Lookup O(1) par position — évite FirstOrDefault O(n) pour chaque source
-            var vertexByPos = new Dictionary<Vertex, IMilitaryVertex>();
-            foreach (var v in civ.MilitaryVertices) vertexByPos[v.Position] = v;
+            // Lookup O(1) par position — évite FirstOrDefault O(n) pour chaque source. L'index est
+            // construit paresseusement, à la première source réellement prête à expédier : à 2 ticks
+            // par événement (une frame de jeu) le cooldown de 100 ticks n'est presque jamais échu, et
+            // le construire d'office par civilisation et par événement en faisait le premier poste
+            // d'allocation de toute la simulation. Le dictionnaire lui-même est réutilisé.
+            var vertexByPos = _vertexByPositionScratch;
+            bool indexBuilt = false;
 
-            foreach (var sourceVertex in civ.MilitaryVertices)
+            var vertices = civ.MilitaryVertices;
+            for (int i = 0; i < vertices.Count; i++)
             {
+                var sourceVertex = vertices[i];
                 if (currentTick - sourceVertex.LastReinforcementTick < interval) continue;
                 if (sourceVertex.Soldiers == 0) continue;
                 if (sourceVertex.FlowTarget == null) continue;
+
+                if (!indexBuilt)
+                {
+                    vertexByPos.Clear();
+                    for (int v = 0; v < vertices.Count; v++) vertexByPos[vertices[v].Position] = vertices[v];
+                    indexBuilt = true;
+                }
 
                 if (!vertexByPos.TryGetValue(sourceVertex.FlowTarget, out var targetVertex) || targetVertex == sourceVertex) continue;
 
@@ -132,14 +145,36 @@ internal class ReinforcementEngine
         UpdateCivilizationReinforcementFlows(playerCiv);
     }
 
+    // Tampons réutilisés par UpdateCivilizationReinforcementFlows : appelée toutes les 100 ticks pour
+    // le joueur et à chaque tour d'IA pour les PNJ sans cible prioritaire, elle reconstruisait sinon
+    // ces collections — jusqu'à plusieurs centaines d'entrées en fin de partie — à chaque appel.
+    private readonly HashSet<Vertex> _enemyPositionsScratch = new();
+    private readonly Dictionary<Vertex, IMilitaryVertex> _ownVertexByPositionScratch = new();
+
+    /// <summary>Index position → emplacement de <see cref="ResolveReinforcements"/> — distinct de
+    /// <see cref="_ownVertexByPositionScratch"/>, les deux méthodes pouvant être actives sur le même tick.</summary>
+    private readonly Dictionary<Vertex, IMilitaryVertex> _vertexByPositionScratch = new();
+    private readonly HashSet<Vertex> _reachableScratch = new();
+    private readonly Queue<Vertex> _reachableQueueScratch = new();
+
     internal void UpdateCivilizationReinforcementFlows(Civilization civ)
     {
         // HashSet des positions ennemies — évite le double Any() pour chaque emplacement
-        var enemyPositions = new HashSet<Vertex>();
+        var enemyPositions = _enemyPositionsScratch;
+        enemyPositions.Clear();
         foreach (var otherCiv in _state!.Civilizations)
             if (otherCiv.Index != civ.Index)
                 foreach (var ev in otherCiv.MilitaryVertices)
                     enemyPositions.Add(ev.Position);
+
+        // Index par position des emplacements de cette civilisation : la cible de flux courante était
+        // retrouvée par un FirstOrDefault sur tous les emplacements, pour chaque emplacement — un
+        // produit cartésien, plus une fermeture allouée à chaque fois.
+        var ownByPosition = _ownVertexByPositionScratch;
+        ownByPosition.Clear();
+        // TryAdd et non l'indexeur : premier gagnant, comme le FirstOrDefault de SetCityFlow que cet
+        // index remplace en fin de boucle.
+        foreach (var v in civ.MilitaryVertices) ownByPosition.TryAdd(v.Position, v);
 
         int range = ReinforcementRange(civ);
 
@@ -157,37 +192,25 @@ internal class ReinforcementEngine
 
                 // Un seul parcours depuis cet emplacement : toutes les cibles candidates partagent
                 // la même origine et la même portée, inutile de relancer un pathfinding par candidat.
-                var reachable = RoadPathfinder.ReachableWithin(adj, vertex.Position, range);
-
-                bool IsEligibleTarget(IMilitaryVertex friendly)
-                {
-                    if (friendly == vertex) return false;
-                    if (friendly.Position.Z != z) return false;
-
-                    int tCap = friendly.MaxSoldiers;
-                    int effectiveFriendly = friendly.Soldiers + friendly.IncomingSoldiers.Count;
-                    if (tCap == 0 || effectiveFriendly * 2 > tCap) return false;
-                    if (friendly.Soldiers + 2 >= vertex.Soldiers) return false;
-
-                    if (friendly.Position.EdgeDistanceTo(vertex.Position) > range) return false;
-
-                    return reachable.Contains(friendly.Position);
-                }
+                var reachable = RoadPathfinder.ReachableWithin(
+                    adj, vertex.Position, range, _reachableScratch, _reachableQueueScratch);
 
                 // On ne quitte la cible actuelle que pour une cible strictement moins garnie —
                 // évite qu'une ville change de cible de renfort tant que la sienne reste valide.
                 IMilitaryVertex? currentTarget = vertex.FlowTarget != null
-                    ? civ.MilitaryVertices.FirstOrDefault(v => v.Position.Equals(vertex.FlowTarget))
-                    : null;
+                    && ownByPosition.TryGetValue(vertex.FlowTarget, out var existing) ? existing : null;
 
-                IMilitaryVertex? target = currentTarget != null && IsEligibleTarget(currentTarget) ? currentTarget : null;
+                IMilitaryVertex? target = currentTarget != null && IsEligibleTarget(currentTarget, vertex, z, range, reachable)
+                    ? currentTarget : null;
                 int fewestSoldiers = target?.Soldiers ?? vertex.Soldiers;
 
-                foreach (var friendly in civ.MilitaryVertices)
+                var candidates = civ.MilitaryVertices;
+                for (int i = 0; i < candidates.Count; i++)
                 {
+                    var friendly = candidates[i];
                     if (friendly == target) continue;
                     if (friendly.Soldiers > fewestSoldiers) continue;
-                    if (!IsEligibleTarget(friendly)) continue;
+                    if (!IsEligibleTarget(friendly, vertex, z, range, reachable)) continue;
 
                     target = friendly;
                     fewestSoldiers = friendly.Soldiers;
@@ -197,8 +220,33 @@ internal class ReinforcementEngine
                     newFlow = target.Position;
             }
 
-            SetCityFlow(vertex, newFlow);
+            // ownByPosition indexe exactement ce que SetCityFlow retrouvait par FirstOrDefault sur
+            // civ.MilitaryVertices — un scan complet par emplacement, donc un produit cartésien.
+            if (newFlow != null && ownByPosition.TryGetValue(newFlow, out var allyTarget) && allyTarget.MaxSoldiers == 0)
+                newFlow = null;
+            vertex.FlowTarget = newFlow;
         }
+    }
+
+    /// <summary>
+    /// Méthode plutôt que fonction locale : capturer <paramref name="source"/>, la portée et
+    /// l'ensemble atteignable allouait une classe de fermeture à chaque emplacement traité, sur un
+    /// chemin parcouru à chaque tour d'IA de chaque civilisation PNJ.
+    /// </summary>
+    private static bool IsEligibleTarget(
+        IMilitaryVertex friendly, IMilitaryVertex source, int z, int range, HashSet<Vertex> reachable)
+    {
+        if (friendly == source) return false;
+        if (friendly.Position.Z != z) return false;
+
+        int tCap = friendly.MaxSoldiers;
+        int effectiveFriendly = friendly.Soldiers + friendly.IncomingSoldiers.Count;
+        if (tCap == 0 || effectiveFriendly * 2 > tCap) return false;
+        if (friendly.Soldiers + 2 >= source.Soldiers) return false;
+
+        if (friendly.Position.EdgeDistanceTo(source.Position) > range) return false;
+
+        return reachable.Contains(friendly.Position);
     }
 
     internal bool IsEnemyCityAt(Vertex target, Civilization civ)
@@ -208,7 +256,7 @@ internal class ReinforcementEngine
     {
         if (target != null && _state != null)
         {
-            var sourceCiv = _state.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
+            var sourceCiv = _state.GetCivilization(vertex.CivilizationIndex);
             var allyTarget = sourceCiv?.MilitaryVertices.FirstOrDefault(v => v.Position.Equals(target));
             if (allyTarget != null && allyTarget.MaxSoldiers == 0)
                 target = null;

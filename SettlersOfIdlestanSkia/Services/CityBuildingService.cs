@@ -304,14 +304,21 @@ public class CityBuildingService
         var worldState = State;
         if (SelectedCity.CivilizationIndex >= worldState.Civilizations.Count) return false;
         if (IsAtMaxLevel(building)) return false;
-        if (building.Level == 0 && !building.HasBuildPrerequisites(SelectedCity, worldState)) return false;
+        // Contexte du contrôleur, pas la ville brute : c'est lui qui porte les réductions de prérequis
+        // (Grand Terrier gobelin). Interroger la ville directement griserait un bâtiment que
+        // BuildingController.BuildBuilding accepterait de bâtir.
+        if (building.Level == 0 &&
+            !building.HasBuildPrerequisites(BuildingController.BuildPrerequisiteContext(SelectedCity), worldState))
+            return false;
         if (building.Level == 0 && building.IsUnique && SelectedCityHasAnyUniqueBuilding()) return false;
         return true;
     }
 
     /// <summary>Clé de localisation du prérequis manquant pour ce bâtiment, ou null si tous les prérequis sont remplis.</summary>
     public string? GetMissingPrerequisiteKey(Building building)
-        => SelectedCity == null ? null : building.GetMissingPrerequisiteKey(SelectedCity, State);
+        => SelectedCity == null
+            ? null
+            : building.GetMissingPrerequisiteKey(BuildingController.BuildPrerequisiteContext(SelectedCity), State);
 
     /// <summary>Quantité actuelle d'une ressource détenue par la civilisation de la ville sélectionnée (0 si aucune ville sélectionnée).</summary>
     public int GetSelectedCivilizationResourceQuantity(Resource resource)

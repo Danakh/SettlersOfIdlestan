@@ -12,19 +12,19 @@ namespace SettlersOfIdlestan.Controller.Expand
 {
     /// <summary>
     /// Gère la Faille des Abysses : évolution de la Spire de Corruption, débloquée une fois une Spire
-    /// bâtie et le pic de corruption jamais nettoyé (<see cref="PrestigeState.MaxCorruptionLevelCleared"/>,
-    /// voir <see cref="IsAbyssGateEligible"/>) ayant atteint <see cref="AbyssGate.RequiredCorruptionLevel"/>
-    /// ou plus. Ce record est global à la partie — n'importe quel hex compte, nettoyé par n'importe
-    /// quel mécanisme (Temple, débordement, annulation par le Dominion, décroissance de monument), pas
-    /// seulement l'hex de la Spire elle-même. N'est pas une action de civilisation — l'évolution
-    /// remplace la Spire sur son hex et se construit par investissement progressif comme tout Monument.
+    /// bâtie et une zone de Corruption de niveau <see cref="AbyssGate.RequiredCorruptionLevel"/> ou plus
+    /// entièrement nettoyée <b>sur l'île courante</b> (<see cref="Model.Tasks.RunRecord.MaxCorruptionLevelCleared"/>,
+    /// voir <see cref="IsAbyssGateEligible"/>). Ce record est propre au run — n'importe quel hex compte,
+    /// nettoyé par n'importe quel mécanisme (Temple, débordement, annulation par le Dominion,
+    /// décroissance de monument), pas seulement l'hex de la Spire elle-même. N'est pas une action de
+    /// civilisation — l'évolution remplace la Spire sur son hex et se construit par investissement
+    /// progressif comme tout Monument.
     /// </summary>
     public class AbyssGateController
     {
         private WorldState? _state;
         private GameClock? _clock;
         private HarvestController? _harvestController;
-        private PrestigeState? _prestigeState;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -33,7 +33,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         internal AbyssGateController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null, PrestigeState? prestigeState = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -41,7 +41,6 @@ namespace SettlersOfIdlestan.Controller.Expand
             _state = state;
             _clock = clock;
             _harvestController = harvestController;
-            _prestigeState = prestigeState;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -75,16 +74,20 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         /// <summary>
         /// True si une Spire de Corruption est bâtie, qu'aucune Faille des Abysses n'existe déjà, et
-        /// que <see cref="PrestigeState.MaxCorruptionLevelCleared"/> a atteint
+        /// que <see cref="Model.Tasks.RunRecord.MaxCorruptionLevelCleared"/> a atteint
         /// <see cref="AbyssGate.RequiredCorruptionLevel"/> ou plus. Ce record est mis à jour par
         /// <see cref="Controller.Island.CorruptionController.ReduceLevel"/> à chaque zone de Corruption
         /// entièrement dissipée, n'importe où sur la carte et par n'importe quel mécanisme (Temple,
         /// débordement — y compris annulation par le Dominion — ou décroissance de monument) : ce n'est
         /// pas la corruption courante (ni même le pic) du seul hex de la Spire qui compte, mais le
-        /// meilleur nettoyage jamais réalisé par la civilisation. Se base sur ce record plutôt que sur
+        /// meilleur nettoyage réalisé sur l'île courante. Se base sur un nettoyage passé plutôt que sur
         /// une corruption "en cours" précisément parce que la Spire bâtie réduit systématiquement la
         /// corruption sur son propre hex (voir CorruptionController.ProcessMonumentCorruptionDecay) —
         /// une condition sur le niveau courant de cet hex précis se démentirait presque aussitôt vérifiée.
+        /// Volontairement basé sur le <b>record du run</b> et non sur le record global de la partie
+        /// (<see cref="PrestigeState.MaxCorruptionLevelCleared"/>, qui ne sert qu'au bonus de prestige) :
+        /// une première ouverture ne doit pas rendre les suivantes gratuites — chaque nouvelle île exige
+        /// à nouveau un nettoyage de niveau <see cref="AbyssGate.RequiredCorruptionLevel"/> ou plus.
         /// </summary>
         public bool IsAbyssGateEligible()
         {
@@ -92,7 +95,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (_state.Features.OfType<AbyssGate>().Any()) return false;
             if (!_state.Features.OfType<CorruptionSpire>().Any(s => s.Built)) return false;
 
-            return (_prestigeState?.MaxCorruptionLevelCleared ?? 0) >= AbyssGate.RequiredCorruptionLevel;
+            return _state.RunRecord.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel;
         }
 
         public bool HasAbyssGateBuilt()

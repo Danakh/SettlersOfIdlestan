@@ -44,7 +44,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
             civ.AddResource(Resource.Wood, 5);
 
             var controller = new TradeController(state);
@@ -63,7 +63,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
             civ.AddResource(Resource.Gold, 3);
 
             var controller = new TradeController(state);
@@ -80,7 +80,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
 
             civ.AddResource(Resource.Wood, 10);
 
@@ -104,7 +104,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
 
             // Not enough wood to sell (need 5, have 3)
             civ.AddResource(Resource.Wood, 3);
@@ -151,8 +151,8 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
-            civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity = 5*(2+8)=50
+            civ.Cities[0].AddBuilding(new Market());
+            civ.Cities[0].AddBuilding(new TownHall { Level = 8 }); // capacity = 5*(2+8)=50
             BuildingController.RecalculateStorageCapacity(civ);
 
             civ.TechnologyTree.CompleteResearch(TechnologyId.EfficientTrading); // TRADE_BULK_GOLD_BONUS +1
@@ -173,8 +173,8 @@ namespace SOITests.ControllerTests
             // Verify floor(quantity/10)*bonus: 10 packs with bonus=3 → 10 + 3 = 13
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
-            civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity=50
+            civ.Cities[0].AddBuilding(new Market());
+            civ.Cities[0].AddBuilding(new TownHall { Level = 8 }); // capacity=50
             BuildingController.RecalculateStorageCapacity(civ);
 
             civ.AddCustomAggregator(new FlatModifierProvider(
@@ -194,8 +194,8 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
-            civ.Cities[0].Buildings.Add(new TownHall { Level = 8 }); // capacity=50
+            civ.Cities[0].AddBuilding(new Market());
+            civ.Cities[0].AddBuilding(new TownHall { Level = 8 }); // capacity=50
             BuildingController.RecalculateStorageCapacity(civ);
             civ.AddResource(Resource.Wood, 50);
 
@@ -210,8 +210,8 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
-            civ.Cities[0].Buildings.Add(new TownHall { Level = 3 }); // city.Level=3 → Ore has capacity
+            civ.Cities[0].AddBuilding(new Market());
+            civ.Cities[0].AddBuilding(new TownHall { Level = 3 }); // city.Level=3 → Ore has capacity
             BuildingController.RecalculateStorageCapacity(civ);
             civ.AddResource(Resource.Gold, 15);
 
@@ -231,7 +231,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
 
             var controller = new TradeController(state);
 
@@ -243,7 +243,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
             civ.TechnologyTree.CompleteResearch(TechnologyId.StorageOptimization);
             civ.TechnologyTree.CompleteResearch(TechnologyId.SpecializedMarket);
 
@@ -260,7 +260,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market { Level = 4 });
+            civ.Cities[0].AddBuilding(new Market { Level = 4 });
 
             var controller = new TradeController(state);
             Assert.False(controller.IsAutoBuyUnlocked(0));
@@ -276,7 +276,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market { Level = 2 });
+            civ.Cities[0].AddBuilding(new Market { Level = 2 });
             civ.AddCustomAggregator(new FlatModifierProvider(
                 new Modifier(ECategory.UNLOCK_AUTO_BUY_TRADE, EType.ADDITIVE, 1)));
 
@@ -289,7 +289,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
 
             int maxGold = civ.GetResourceMaxQuantity(Resource.Gold);
             civ.AddResource(Resource.Gold, maxGold);
@@ -310,7 +310,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
             civ.AddResource(Resource.Gold, 1);
 
             var controller = new TradeController(state);
@@ -325,7 +325,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market { Level = 4 });
+            civ.Cities[0].AddBuilding(new Market { Level = 4 });
             civ.AddCustomAggregator(new FlatModifierProvider(
                 new Modifier(ECategory.UNLOCK_AUTO_BUY_TRADE, EType.ADDITIVE, 1)));
 
@@ -348,7 +348,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
 
             int maxGold = civ.GetResourceMaxQuantity(Resource.Gold);
             civ.AddResource(Resource.Gold, maxGold);

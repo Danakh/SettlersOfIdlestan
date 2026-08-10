@@ -20,7 +20,7 @@ public class VisibleIslandMapTests
         var map = CreateMap(center, ne, nw, distance2, distance3);
         var civilization = new Civilization();
         var city = new City(Vertex.Create(center, ne, nw));
-        city.Buildings.Add(new Watchtower { Level = 1 });
+        city.AddBuilding(new Watchtower { Level = 1 });
         civilization.AddCity(city);
 
         var visibleMap = new VisibleIslandMap(map, civilization, watchtowerVisionBonus: false);
@@ -39,7 +39,7 @@ public class VisibleIslandMapTests
         var map = CreateMap(center, ne, nw, distance3);
         var civilization = new Civilization();
         var city = new City(Vertex.Create(center, ne, nw));
-        city.Buildings.Add(new Watchtower { Level = 1 });
+        city.AddBuilding(new Watchtower { Level = 1 });
         civilization.AddCity(city);
 
         var visibleMap = new VisibleIslandMap(map, civilization, watchtowerVisionBonus: true);
@@ -67,7 +67,7 @@ public class VisibleIslandMapTests
         civilization.AddCity(cityB);
 
         var cityA = new City(Vertex.Create(center, ne, nw));
-        cityA.Buildings.Add(new Watchtower { Level = 1 });
+        cityA.AddBuilding(new Watchtower { Level = 1 });
         civilization.AddCity(cityA);
 
         var visibleMap = new VisibleIslandMap(map, civilization, watchtowerVisionBonus: true);

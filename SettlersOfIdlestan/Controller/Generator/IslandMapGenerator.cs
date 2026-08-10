@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Races;
 
 namespace SettlersOfIdlestan.Controller.Generator;
 
@@ -30,14 +31,20 @@ public class IslandMapGenerator
     /// An optional preferred start hex biases the start vertex placement.
     /// <paramref name="startVertexTerrain"/> is the land terrain paired with Forest on the
     /// starting vertex (Hill by default; Mountain for Dwarves — see RaceDefinition.StartVertexTerrain).
+    /// <paramref name="populatePlayerCity"/> à false : la carte est générée à l'identique et le
+    /// vertex de départ résolu (voir <see cref="LastSurfaceStartVertex"/>), mais aucune ville n'y est
+    /// posée — le cas des races démarrant dans l'Inframonde (RaceDefinition.StartsInUnderworld).
     /// </summary>
     public IslandMap? GenerateIsland(
         IEnumerable<(TerrainType terrainType, int tileCount)> tileData,
         List<Civilization> civilizations,
         IslandShapeGenerator? shapeGenerator = null,
         HexCoord? preferredStartHex = null,
-        TerrainType startVertexTerrain = TerrainType.Hill)
+        TerrainType startVertexTerrain = TerrainType.Hill,
+        bool populatePlayerCity = true)
     {
+        LastSurfaceStartVertex = null;
+
         if (civilizations == null || civilizations.Count == 0)
             return null;
 
@@ -95,24 +102,38 @@ public class IslandMapGenerator
 
         var map = new IslandMap(tiles);
         var vertex = hasPrimary && hasForest ? FindVertexAdjacentToHillForestWater(map, startVertexTerrain) : null;
+        LastSurfaceStartVertex = vertex;
 
-        if (vertex != null)
+        if (vertex != null && populatePlayerCity)
             PopulatePlayerCivilization(map, civilizations[0], vertex);
 
         return map;
     }
 
     /// <summary>
+    /// Vertex de départ du joueur en surface résolu par le dernier appel à <see cref="GenerateIsland"/>
+    /// (null si la carte n'en garantit aucun). Mémorisé même quand la ville n'est pas posée : c'est
+    /// ce qui permet aux races démarrant dans l'Inframonde de retrouver plus tard leur point
+    /// d'arrivée en surface, avec toutes les garanties d'EnsureStartPairNearEdge (bord d'île,
+    /// terrain racial + Forêt + Eau) — voir LayerState.ArrivalVertex et la Percée de Surface.
+    /// </summary>
+    public Vertex? LastSurfaceStartVertex { get; private set; }
+
+    /// <summary>
     /// Creates a complete WorldState: civilizations, map generation, and feature placement.
     /// The shape generator is chosen from parameters.ShapeType. <paramref name="surfaceCorruptionLevel"/>
     /// gives each land hex (outside the player's starting city) a 10%-per-level chance of being
     /// corrupted, with the corruption level itself rolled the same way as in auto-expand layers.
-    /// <paramref name="startVertexTerrain"/> : terrain accompagnant la Forêt sur le vertex de départ
-    /// (Colline par défaut ; Montagne pour les Nains — voir RaceDefinition.StartVertexTerrain).
+    /// <paramref name="race"/> : race jouée, dont sont tirés le terrain accompagnant la Forêt sur le
+    /// vertex de départ (Colline par défaut ; Montagne pour les Nains — voir
+    /// RaceDefinition.StartVertexTerrain) et le départ souterrain éventuel
+    /// (RaceDefinition.StartsInUnderworld — Elfes noirs). Null = Humains par défaut.
     /// </summary>
-    public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0, int surfaceCorruptionLevel = 0, int tier = 1, TerrainType startVertexTerrain = TerrainType.Hill)
+    public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0, int surfaceCorruptionLevel = 0, int tier = 1, RaceDefinition? race = null)
     {
         var shapeGenerator = CreateShapeGenerator(parameters.ShapeType);
+        var startVertexTerrain = race?.StartVertexTerrain ?? TerrainType.Hill;
+        bool startsInUnderworld = race?.StartsInUnderworld == true;
 
         var civs = new List<Civilization> { new Civilization { Index = 0 } };
         for (int i = 0; i < parameters.NpcCivilizations.Count; i++)
@@ -123,8 +144,12 @@ public class IslandMapGenerator
                 NpcParameters = parameters.NpcCivilizations[i]
             });
 
-        var map = GenerateIsland(parameters.TileData, civs, shapeGenerator, startVertexTerrain: startVertexTerrain);
+        var map = GenerateIsland(parameters.TileData, civs, shapeGenerator,
+            startVertexTerrain: startVertexTerrain,
+            populatePlayerCity: !startsInUnderworld);
         if (map is null) return null;
+
+        var surfaceStartVertex = LastSurfaceStartVertex;
 
         var landmasses = new List<List<HexCoord>>
         {
@@ -136,8 +161,25 @@ public class IslandMapGenerator
 
         var WorldState = new WorldState(map, civs, parameters.WorldId) { StartTick = startTick };
 
+        // Départ souterrain : la surface est générée normalement mais reste vide de toute ville du
+        // joueur. Le vertex de départ garanti par EnsureStartPairNearEdge est mémorisé ici et servira
+        // de point d'arrivée à la Percée de Surface (voir SurfaceBreachController). Il est posé avant
+        // le placement des NPC et des features pour que tous continuent de s'écarter du point de
+        // départ du joueur comme pour n'importe quelle autre race (voir GetSurfaceAnchorVertex).
+        //
+        // Un Site d'Arrivée y est immédiatement réservé : le joueur peut rester enfermé très
+        // longtemps, et l'expansion des PNJ en cours de partie n'a, elle, aucune contrainte de
+        // distance au joueur. Sans ce marqueur, une ville adverse viendrait s'asseoir sur le point de
+        // chute (voir LandingSite).
+        if (startsInUnderworld && surfaceStartVertex != null)
+        {
+            WorldState.Layers[IslandMap.SurfaceLayer].ArrivalVertex = surfaceStartVertex;
+            var playerCiv = WorldState.PlayerCivilization;
+            playerCiv.AddLandingSite(new LandingSite(surfaceStartVertex) { CivilizationIndex = playerCiv.Index });
+        }
+
         if (civs.Any(c => c.IsNpc))
-            new NpcCivilizationPlacer().PlaceNpcCivilizations(WorldState, _prng, tier);
+            new NpcCivilizationPlacer().PlaceNpcCivilizations(WorldState, _prng, tier, GetSurfaceAnchorVertex(WorldState));
 
         if (parameters.Features.Count > 0)
             PlaceFeatures(WorldState, parameters.Features, currentTick, tier);
@@ -154,8 +196,50 @@ public class IslandMapGenerator
 
         AddDeepWaterBorder(WorldState);
 
+        if (startsInUnderworld)
+            EstablishUnderworldStart(WorldState, race!);
+
         return WorldState;
     }
+
+    /// <summary>
+    /// Ouvre la couche Inframonde et y pose l'unique avant-poste du joueur, sur le triangle de
+    /// terrains de la race (voir RaceDefinition.UnderworldStartTerrains — Caverne aux champignons /
+    /// Colline / Montagne pour les Elfes noirs, seul trio couvrant nourriture, bois, brique, pierre
+    /// et minerai sous terre). La vue démarre sur l'Inframonde : la surface, elle, reste inaccessible
+    /// jusqu'à la Percée de Surface.
+    /// </summary>
+    private static void EstablishUnderworldStart(WorldState worldState, RaceDefinition race)
+    {
+        var playerCiv = worldState.PlayerCivilization;
+        var layer = LayerState.EstablishOupostInNewAutoExpandLayer(
+            playerCiv, triangleTerrains: race.UnderworldStartTerrains);
+
+        worldState.AddLayer(LayerState.UnderworldZ, layer);
+        worldState.CurrentViewedLayer = LayerState.UnderworldZ;
+        worldState.Visibility.Recalculate();
+    }
+
+    /// <summary>
+    /// Vertex de référence du joueur en surface : sa ville de départ, ou — pour les races démarrant
+    /// dans l'Inframonde, qui n'en ont pas — le vertex d'arrivée mémorisé sur la couche de surface.
+    /// Les NPC et les features gardent ainsi leurs distances de placement habituelles au lieu de
+    /// perdre tout point d'ancrage.
+    /// </summary>
+    private static Vertex? GetSurfaceAnchorVertex(WorldState worldState)
+    {
+        foreach (var city in worldState.PlayerCivilization.Cities)
+            if (city.Position.Z == IslandMap.SurfaceLayer)
+                return city.Position;
+
+        return worldState.Layers.TryGetValue(IslandMap.SurfaceLayer, out var layer)
+            ? layer.ArrivalVertex
+            : null;
+    }
+
+    /// <summary>Hexes du vertex de départ du joueur en surface, ou null s'il n'y en a pas.</summary>
+    private static HexCoord[]? GetSurfaceStartHexes(WorldState worldState)
+        => GetSurfaceAnchorVertex(worldState)?.GetHexes();
 
     /// <summary>
     /// Pré-place, sur chaque masse continentale, jusqu'à FairyCircle.MaxPerLandmass Cercles de Fées
@@ -442,9 +526,8 @@ public class IslandMapGenerator
 
         int chancePercent = SurfaceCorruptionChancePerLevelPercent * surfaceCorruptionLevel;
 
-        var cityHexes = worldState.PlayerCivilization.Cities.Count > 0
-            ? new HashSet<HexCoord>(worldState.PlayerCivilization.Cities[0].Position.GetHexes())
-            : new HashSet<HexCoord>();
+        var startHexes = GetSurfaceStartHexes(worldState);
+        var cityHexes = startHexes != null ? new HashSet<HexCoord>(startHexes) : new HashSet<HexCoord>();
 
         foreach (var tile in map.Tiles.Values)
         {
@@ -545,7 +628,7 @@ public class IslandMapGenerator
         var city = new City(vertex);
         city.CivilizationIndex = civilization.Index;
         var townHall = new TownHall { Level = 1 };
-        city.Buildings.Add(townHall);
+        city.AddBuilding(townHall);
         city.InvalidateLevelCache();
         civilization.AddCity(city);
     }
@@ -732,9 +815,7 @@ public class IslandMapGenerator
         if (worldId < 4 || landmasses.Count == 0) return;
 
         int level = MonsterLeveling.LevelForTier(tier);
-        HexCoord[]? cityHexes = worldState.PlayerCivilization.Cities.Count > 0
-            ? worldState.PlayerCivilization.Cities[0].Position.GetHexes()
-            : null;
+        HexCoord[]? cityHexes = GetSurfaceStartHexes(worldState);
 
         bool anyVolcanoPlaced = false;
         for (int i = 0; i < landmasses.Count; i++)
@@ -772,9 +853,7 @@ public class IslandMapGenerator
 
         if (landHexes.Count == 0) return;
 
-        HexCoord[]? cityHexes = WorldState.PlayerCivilization.Cities.Count > 0
-            ? WorldState.PlayerCivilization.Cities[0].Position.GetHexes()
-            : null;
+        HexCoord[]? cityHexes = GetSurfaceStartHexes(WorldState);
 
         // Never place a feature on one of the player's two starting land hexes.
         if (cityHexes != null)

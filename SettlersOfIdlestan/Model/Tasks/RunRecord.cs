@@ -20,6 +20,16 @@ public class RunRecord
     public int TreasuresTroveClaimed { get; set; }
     public int CivilizationsDestroyed { get; set; }
 
+    /// <summary>
+    /// Niveau de pointe le plus élevé d'une zone de Corruption entièrement nettoyée <b>sur cette île</b>
+    /// (Level ramené à 0), par la Spire de Corruption/la Faille des Abysses ou par le Dominion
+    /// (Temple, débordement). Conditionne l'ouverture de la Faille des Abysses — voir
+    /// AbyssGateController.IsAbyssGateEligible. Distinct de PrestigeState.MaxCorruptionLevelCleared,
+    /// qui est le record global de la partie (bonus de prestige) et ne se réinitialise jamais : la
+    /// Faille doit être re-méritée à chaque run, alors que le bonus de prestige reste acquis.
+    /// </summary>
+    public int MaxCorruptionLevelCleared { get; set; }
+
     /// <summary>Nombre de fois que chaque type de bâtiment a été construit ce run (clé = BuildingType.ToString()).</summary>
     public Dictionary<string, int> BuildingCounts { get; set; } = new();
 

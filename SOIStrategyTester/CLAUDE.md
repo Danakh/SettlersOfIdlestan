@@ -125,11 +125,61 @@ ever actually researched anything, including whatever tech unlocks higher buildi
 played on this island)`, by far the strongest lever for high targets, but it's gated behind unlocking it
 first). Reaching the Abyss Gate is still fundamentally slow on top of that: it needs the Underworld
 unlocked (Deepest Mine dug), then a Corruption Spire built on the most-corrupted reachable Underworld
-hex, then that hex's corruption to reach `AbyssGate.RequiredCorruptionLevel` (a probabilistic tug-of-war
-between `CorruptionController.ProcessSpread` growing it and `ProcessMonumentCorruptionDecay` shrinking
-it right back once the Spire is built) before the Gate itself can be placed and invested in — expect
-many prestige cycles, and treat the default `endless-abyss-gate.json` strategy as a starting point to
-tune (per the workflow above), not a finished answer.
+hex, then a Corruption zone of `AbyssGate.RequiredCorruptionLevel` or higher to be *fully cleared* on
+the current island (anywhere on the map, by any mechanism — Spire decay, Temple, Dominion annulation;
+tracked in `RunRecord.MaxCorruptionLevelCleared`, which resets at every prestige, so the condition must
+be met again on each island even after a Gate was opened in a previous run) before the Gate itself can
+be placed and invested in — expect many prestige cycles, and treat the default `endless-abyss-gate.json`
+strategy as a starting point to tune (per the workflow above), not a finished answer.
+
+### Race gauntlet mode
+
+`--race-gauntlet` answers a different question from the two modes above: **can every race actually
+play the game?** It plays the first N islands (4 by default) once per race and prints a PASS/FAIL table.
+It is the race-wide counterpart of `SOITests`' `FullIslandTest`, which only ever exercises Humans — but
+deliberately *not* a test: it takes minutes, its per-island outcome depends on the seed, and a FAIL is
+something to read and judge, not to gate a build on.
+
+```bash
+dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --seed 1
+# one race, one island, to check the plumbing (~2 s):
+dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --races Human --islands 1 --seed 1
+```
+
+Or double-click `RaceGauntlet.bat`. Exit code is 0 only if every race passed.
+
+**Each race starts where a player would actually first pick it** —
+`GameStateFactory.NewGameForRace` unlocks the divine powers its tier requires (first row of the
+ascension grid for a Base race, first two rows for an Advanced one, derived from
+`AscensionPowerDefinitions` exactly the way `AscensionController.IsRaceSelectionUnlocked` /
+`AreAdvancedRacesUnlocked` check for them) and then goes through the **real**
+`AscensionController.PerformAscension`. That last part matters: it is the only path that regenerates
+island 1 *for that race* (start terrain, Underworld start for the Dark Elves) and that grants the free
+prestige vertices which come with Faith and with race selection being unlocked (central vertex + its 3
+neighbours, plus `RaceDefinition.FreePrestigeVertices`). Poking `AscensionState.SelectedRace` instead
+would measure every race on a Human map with a Human prestige map. Side effect worth knowing: the run
+therefore starts with research already unlocked and a Market vertex bought, so it is *not* comparable
+to `StepIslandScenarios`' island-1 numbers.
+
+**The verdict is only "did it reach the next prestige, N times".** That is the one goal every race
+shares. FullIslandTest's per-stage checkpoints (12 cities, Library everywhere) are race-hostile by
+construction — Giants cannot reach 12 cities at minimum distance 4, Mermaid cities away from the water
+cap at Town Hall 2 — so failing them would say nothing about playability. How far each island actually
+got (cities, buildings, points, research, Wonder) is reported next to the verdict instead; that is
+where a race being *weak* rather than *blocked* shows up.
+
+Islands are driven by `EndlessRunner` (same per-cycle prestige trigger as `--endless`), with two
+gauntlet-specific behaviours:
+- `EndlessRunOptions.TimeCapAllIslands` — `--max-island-hours` (default **8** here, not 24) caps
+  *every* island, including the ones covered by a fixed `--prestige-point-targets` entry. Without it a
+  target a race can't reach turns into an unbounded grind. In practice islands 3–4 end on this cap
+  rather than on their 500/1000-point target.
+- `--abandon-island-hours` (default 24) — if an island still isn't `PrestigeIsAvailable()` by then, the
+  race is declared blocked, and the reason distinguishes *no Imperial Port* (usually structural: no
+  coastal city this race can build on this map) from *points short* (pacing).
+
+Output: `<--gauntlet-output>/race-<Race>.csv` (one endless-mode CSV per race), plus `summary.csv`
+(one row per race per island) and `summary.json`.
 
 All strategies in one run start from an **identical** fresh copy of the starting state (a new
 `MainGameController` is built per strategy), so ticks-to-objective are directly comparable.
@@ -145,7 +195,8 @@ will silently deserialize into an empty world state. The save tests actually exe
 
 ```
 SOIStrategyTester/
-  Program.cs, StrategyRunner.cs, ObjectiveEvaluator.cs, GameStateFactory.cs
+  Program.cs, StrategyRunner.cs, EndlessRunner.cs, RaceGauntletRunner.cs,
+  ObjectiveEvaluator.cs, GameStateFactory.cs
   Model/                       ObjectiveSpec, StrategyDefinition, StrategyPhase, StrategyRunResult
   Data/
     Objectives/                One JSON file per stopping condition (reusable across strategies)

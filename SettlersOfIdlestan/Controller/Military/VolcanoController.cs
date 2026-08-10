@@ -153,7 +153,7 @@ public class VolcanoController
                 townHall.Level -= thDmg;
                 if (townHall.Level <= 0)
                 {
-                    city.Buildings.Remove(townHall);
+                    city.RemoveBuilding(townHall);
                     city.InvalidateLevelCache();
                 }
                 BuildingController.RecalculateStorageCapacity(civ);

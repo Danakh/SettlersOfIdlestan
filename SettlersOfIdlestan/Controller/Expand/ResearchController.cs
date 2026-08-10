@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -94,7 +94,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             double productionSpeed = _state.PlayerCivilization.ResearchProductionSpeed;
             foreach (var city in _state.PlayerCivilization.Cities)
             {
-                var library = city.Buildings.OfType<Library>().FirstOrDefault();
+                var library = city.FindBuilding<Library>(BuildingType.Library);
                 if (library == null || !library.CanProduceResearch) continue;
 
                 long cooldown = Math.Max(1L, (long)(library.GetResearchCooldownTicks() / productionSpeed));
@@ -111,7 +111,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             foreach (var city in _state.PlayerCivilization.Cities)
             {
-                var lab = city.Buildings.OfType<Laboratory>().FirstOrDefault();
+                var lab = city.FindBuilding<Laboratory>(BuildingType.Laboratory);
                 if (lab == null || lab.Level < 1 || lab.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                 long cooldown = Math.Max(1L, (long)(lab.GetResearchCooldownTicks() / productionSpeed));
@@ -399,12 +399,12 @@ namespace SettlersOfIdlestan.Controller.Expand
             double total = 0.0;
             foreach (var city in _state.PlayerCivilization.Cities)
             {
-                var library = city.Buildings.OfType<Library>().FirstOrDefault();
+                var library = city.FindBuilding<Library>(BuildingType.Library);
                 if (library == null || !library.CanProduceResearch) continue;
                 long cooldown = library.GetResearchCooldownTicks();
                 total += 100.0 / cooldown * productionSpeed;
 
-                var lab = city.Buildings.OfType<Laboratory>().FirstOrDefault();
+                var lab = city.FindBuilding<Laboratory>(BuildingType.Laboratory);
                 if (lab == null || lab.Level < 1 || lab.ActivationStatus != ActivationStatus.ACTIVE) continue;
                 long labCooldown = lab.GetResearchCooldownTicks();
                 total += Laboratory.ResearchPointsPerBatch * 100.0 / labCooldown * productionSpeed;

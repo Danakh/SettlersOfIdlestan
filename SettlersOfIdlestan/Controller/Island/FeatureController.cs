@@ -91,21 +91,43 @@ public class FeatureController
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[FeatureController] Discover: {ex}"); }
     }
 
+    /// <summary>
+    /// Cartes de visibilité du joueur, une par couche, réutilisées d'un événement à l'autre.
+    ///
+    /// <para>La chaîne <c>Select/Where/Select/ToList</c> qu'elles remplacent était reconstruite à
+    /// chaque événement d'horloge par <see cref="DiscoverFeatures"/> <b>et</b> par
+    /// <see cref="DiscoverCivilizations"/>, itérateurs et fermetures compris, puis parcourue par un
+    /// <c>Any</c> capturant — un lambda par feature et par civilisation. Ce contrôleur allouait
+    /// 26 Ko par événement pour 0,02 ms de travail réel.</para>
+    /// </summary>
+    private readonly List<VisibleIslandMap> _playerVisibleMapsScratch = new();
+
+    private List<VisibleIslandMap> GetPlayerVisibleMaps(int playerIdx)
+    {
+        var visibleMaps = _playerVisibleMapsScratch;
+        visibleMaps.Clear();
+        foreach (var (z, _) in _state!.GetMapsByZ())
+            if (_state.Visibility.GetForZ(z).TryGetValue(playerIdx, out var map))
+                visibleMaps.Add(map);
+        return visibleMaps;
+    }
+
     private void DiscoverFeatures()
     {
         if (_state == null) return;
 
         var playerIdx = _state.PlayerCivilization.Index;
-        var visibleMaps = _state.GetMapsByZ()
-            .Select(map => _state.Visibility.GetForZ(map.Key))
-            .Where(maps => maps.TryGetValue(playerIdx, out _))
-            .Select(maps => maps[playerIdx])
-            .ToList();
+        var visibleMaps = GetPlayerVisibleMaps(playerIdx);
 
         foreach (var feature in _features)
         {
-            if (feature.IsDiscoverable &&
-                visibleMaps.Any(visibleMap => visibleMap.IsOnSameLayer(feature.Position) && visibleMap.HasTile(feature.Position)))
+            if (!feature.IsDiscoverable) continue;
+
+            bool visible = false;
+            for (int i = 0; i < visibleMaps.Count && !visible; i++)
+                visible = visibleMaps[i].IsOnSameLayer(feature.Position) && visibleMaps[i].HasTile(feature.Position);
+
+            if (visible)
             {
                 feature.Found = true;
                 bool featureToast = feature.DiscoveredEventType is GameEventType.BanditHideoutDiscovered or GameEventType.DragonDiscovered or GameEventType.MinorDemonDiscovered or GameEventType.MajorDemonDiscovered or GameEventType.VolcanoDiscovered;
@@ -120,19 +142,18 @@ public class FeatureController
         if (_state == null) return;
 
         var playerIdx = _state.PlayerCivilization.Index;
-        var visibleMaps = _state.GetMapsByZ()
-            .Select(map => _state.Visibility.GetForZ(map.Key))
-            .Where(maps => maps.TryGetValue(playerIdx, out _))
-            .Select(maps => maps[playerIdx])
-            .ToList();
+        var visibleMaps = GetPlayerVisibleMaps(playerIdx);
 
         foreach (var civ in _state.Civilizations)
         {
             if (civ.Index == playerIdx || civ.DiscoveredByPlayer) continue;
 
-            var isCivVisible =
-                visibleMaps.Any(visibleMap =>
-                    civ.Cities.Any(city => visibleMap.IsVertexVisible(city.Position)));
+            // Boucles indexées : le Any imbriqué allouait deux fermetures par civilisation examinée.
+            bool isCivVisible = false;
+            var cities = civ.Cities;
+            for (int m = 0; m < visibleMaps.Count && !isCivVisible; m++)
+                for (int c = 0; c < cities.Count && !isCivVisible; c++)
+                    isCivVisible = visibleMaps[m].IsVertexVisible(cities[c].Position);
 
             if (isCivVisible)
             {

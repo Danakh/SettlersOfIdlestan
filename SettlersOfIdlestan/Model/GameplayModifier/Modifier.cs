@@ -223,6 +223,12 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             SMITH_DOUBLE_PROD_CHANCE_PERCENT,
             /// <summary>Flags que la destruction d'une ville adverse par la civilisation du joueur construit automatiquement, gratuitement et sans prérequis, un Camp Mobile à l'emplacement de la ville détruite (voir CityAttackEngine.ResolveCityAttacks et MobileCampController.PlaceFreeMobileCamp). SubCategory unused.</summary>
             AUTO_CAMP_ON_CONQUEST,
+            /// <summary>Recherche déjà complétée au début de chaque île, sans en payer le coût ni les prérequis. SubCategory = nom du TechnologyId. Appliqué par PrestigeMapController.ApplyPrestigeToNewGame, comme STARTING_CITY_BUILDING.</summary>
+            STARTING_RESEARCH,
+            /// <summary>Les monstres du type indiqué ne prennent jamais les villes de la civilisation pour cible (ils continuent d'occuper et de stériliser leurs hexes). SubCategory = nom de la classe du monstre ("Troll", "Ogre"…), vide = tous les monstres. Voir MonsterController.FindAttackTarget.</summary>
+            MONSTER_ATTACK_IMMUNITY,
+            /// <summary>Abaisse de Value tous les seuils de niveau qui gardent la construction d'un bâtiment unique : niveau de la ville (AvailableAtLevel) et niveau exigé des autres bâtiments (« Port Impérial : Comptoir 4 »). Base = 0 ; 1 = -1 niveau partout. Jamais sous 1 pour un bâtiment exigé, jamais sous 0 pour la ville. SubCategory unused. Voir BuildingController.BuildReducedPrerequisiteContext (Grand Terrier gobelin).</summary>
+            UNIQUE_BUILDING_PREREQUISITE_REDUCTION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

@@ -37,6 +37,15 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private static readonly BuildingType[] _allBuildingTypes = (BuildingType[])Enum.GetValues(typeof(BuildingType));
 
+        /// <summary>
+        /// Types de bâtiments uniques, résolus une fois pour toutes. IsUnique est une constante par
+        /// type : scanner l'enum entier — et instancier un prototype par type pour le lire — n'a besoin
+        /// d'être fait qu'au chargement, pas à chaque appel de
+        /// <see cref="GetBuildableUniqueBuildings"/>, que l'autoplayer emprunte à chaque tick.
+        /// </summary>
+        private static readonly BuildingType[] _uniqueBuildingTypes =
+            _allBuildingTypes.Where(bt => CreateBuilding(bt)?.IsUnique == true).ToArray();
+
         public event EventHandler<BuildingBuiltEventArgs>? OnBuildingBuilt;
 
         internal BuildingController(WorldState? state = null)
@@ -339,7 +348,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
+            var existing = city.FindBuilding(type);
             return GetBuildingOrBuildableEntry(city, type, existing, _state.GetMapFor(city.Position));
         }
 
@@ -349,12 +358,33 @@ namespace SettlersOfIdlestan.Controller.Island
             return GetBuildingOrBuildableEntry(city, bt, existing, map);
         }
 
+        /// <summary>
+        /// Instances de sondage, une par type, servant uniquement à répondre aux questions qui ne
+        /// dépendent que du type (unicité, prérequis, niveau max par défaut, disponibilité pour une
+        /// ville). Elles ne sont jamais rendues à l'appelant ni ajoutées à une ville : seule une
+        /// instance fraîche l'est. Sans elles, chaque test de disponibilité — l'autoplayer en fait des
+        /// centaines par passe de stratégie, la plupart concluant « indisponible » — allouait un
+        /// bâtiment complet pour le jeter aussitôt. À traiter comme immuable.
+        /// </summary>
+        private static readonly Dictionary<BuildingType, Building> _probesByType = new();
+
+        private static Building? GetProbe(BuildingType bt)
+        {
+            if (_probesByType.TryGetValue(bt, out var probe))
+                return probe;
+
+            probe = CreateBuilding(bt);
+            if (probe != null)
+                _probesByType[bt] = probe;
+            return probe;
+        }
+
         private Building? GetBuildingOrBuildableEntry(City city, BuildingType bt, Building? existing, IslandMap? map)
         {
             if (existing != null)
                 return existing.IsUnique ? null : existing;
 
-            var prototype = CreateBuilding(bt);
+            var prototype = GetProbe(bt);
             if (prototype == null || prototype.IsUnique)
                 return null;
 
@@ -369,12 +399,12 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (GetMaxLevel(prototype, city.CivilizationIndex) > 0 && map != null)
             {
-                var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+                var civ = _state?.GetCivilization(city.CivilizationIndex);
                 bool available = civ != null
                     ? prototype.IsBuildingAvailableForCity(map, city, civ)
                     : prototype.IsBuildingAvailableForCity(map, city);
                 if (available)
-                    return prototype;
+                    return CreateBuilding(bt); // instance neuve : l'appelant peut la conserver/muter
             }
 
             return null;
@@ -388,7 +418,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+            var civ = _state.GetCivilization(city.CivilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
 
             var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
@@ -399,11 +429,15 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var prototype = CreateBuilding(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
 
+                // Les deux tests qui suivent lisent les prérequis, donc passent par le contexte allégé
+                // quand la civilisation en réduit les seuils (voir BuildReducedPrerequisiteContext).
+                var buildContext = prototype.IsUnique ? BuildReducedPrerequisiteContext(city, civ) : city;
+
                 if (_state.GetMapFor(city.Position) is not { } map1 ||
-                    !prototype.IsBuildingAvailableForCity(map1, city, civ))
+                    !prototype.IsBuildingAvailableForCity(map1, buildContext, civ))
                     return false;
 
-                if (!prototype.HasBuildPrerequisites(city, _state))
+                if (!prototype.HasBuildPrerequisites(buildContext, _state))
                     return false;
 
                 // civ.UniqueBuildings is a permanent "ever built" flag (never cleared on city loss,
@@ -459,7 +493,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         resultBuilding.ActivationStatus = ActivationStatus.INACTIVE;
                 }
 
-                city.Buildings.Add(resultBuilding);
+                city.AddBuilding(resultBuilding);
                 if (type == BuildingType.TownHall) city.InvalidateLevelCache();
                 int defBonus = resultBuilding.GetDefenseBonus();
                 if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
@@ -505,10 +539,14 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+            var civ = _state.GetCivilization(city.CivilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
 
             var result = new List<Building>();
+
+            // Résolu une fois pour toute la liste : les seuils réduits ne dépendent que de la
+            // civilisation et de la ville (voir BuildReducedPrerequisiteContext).
+            var buildContext = BuildReducedPrerequisiteContext(city, civ);
 
             foreach (var bt in _allBuildingTypes)
             {
@@ -535,18 +573,144 @@ namespace SettlersOfIdlestan.Controller.Island
                 // Fées / Volcan) découverte, pas à un autre bâtiment construisible — reste masqué
                 // tant que la feature n'est pas trouvée, plutôt qu'affiché grisé avec tooltip.
                 else if ((bt == BuildingType.AlchimistHut || bt == BuildingType.VolcanicForge) &&
-                         !prototype.HasBuildPrerequisites(city, _state))
+                         !prototype.HasBuildPrerequisites(buildContext, _state))
                 {
                     continue;
                 }
                 else if (_state.GetMapFor(city.Position) is { } map2 &&
-                         prototype.IsBuildingAvailableForCity(map2, city))
+                         prototype.IsBuildingAvailableForCity(map2, buildContext))
                 {
                     result.Add(prototype);
                 }
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Bâtiments uniques que cette ville peut réellement poser maintenant, ressources mises à part :
+        /// débloqués pour la civilisation (niveau max > 0), pas déjà bâtis ailleurs, disponibles pour la
+        /// ville (niveau/terrain/couche) et dont les prérequis sont remplis — le tout vu à travers le
+        /// même contexte allégé que <see cref="BuildBuilding"/> (voir
+        /// <see cref="BuildReducedPrerequisiteContext"/>). Liste vide si la ville héberge déjà un unique :
+        /// elle ne peut en accueillir qu'un seul.
+        ///
+        /// <para>Là où <see cref="GetUniqueBuildingsAndBuildables"/> alimente l'affichage et inclut
+        /// délibérément les uniques déjà bâtis comme ceux montrés grisés faute de prérequis, celle-ci ne
+        /// rend que des candidats sur lesquels <see cref="BuildBuilding"/> peut aboutir. C'est ce qui
+        /// permet à l'autoplay de ne jamais s'enfermer à farmer le coût d'un unique qu'il ne pourrait de
+        /// toute façon pas poser (voir <c>UniqueBuildingsObjective</c>).</para>
+        /// </summary>
+        public List<Building> GetBuildableUniqueBuildings(City city)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var result = new List<Building>();
+            if (city.Buildings.Any(b => b.IsUnique)) return result;
+
+            var civ = _state.GetCivilization(city.CivilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
+
+            if (_state.GetMapFor(city.Position) is not { } map) return result;
+
+            var buildContext = BuildReducedPrerequisiteContext(city, civ);
+
+            foreach (var bt in _uniqueBuildingTypes)
+            {
+                // Same live-cache reasoning as BuildBuilding(): civ.UniqueBuildings never clears on
+                // city loss, so it must not be treated as "currently built" here either.
+                if (civ.GetUniqueBuilding(bt) != null) continue;
+
+                var prototype = CreateBuilding(bt);
+                if (prototype == null || GetMaxLevel(prototype, civ) <= 0) continue;
+                if (!prototype.IsBuildingAvailableForCity(map, buildContext, civ)) continue;
+                if (!prototype.HasBuildPrerequisites(buildContext, _state)) continue;
+
+                result.Add(prototype);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// La ville telle que doivent la voir les tests de construction d'un bâtiment <b>unique</b>, une
+        /// fois appliquée la réduction de prérequis de la civilisation
+        /// (UNIQUE_BUILDING_PREREQUISITE_REDUCTION, aujourd'hui le seul Grand Terrier gobelin). Rend la
+        /// ville inchangée quand il n'y a rien à réduire — le cas de toutes les races sauf une, sur un
+        /// chemin que l'autoplayer emprunte des centaines de fois par passe.
+        ///
+        /// <para>La réduction est portée par la <i>ville présentée</i> plutôt que par le seuil de chaque
+        /// bâtiment : les seuils sont éparpillés entre <c>AvailableAtLevel</c>, des surcharges de
+        /// <c>IsBuildingAvailableForCity</c> qui comparent <c>city.Level</c> à une constante écrite en
+        /// dur (Port Impérial, Haut-Fourneau) et onze <c>HasBuildPrerequisites</c>. Un seul point de
+        /// vérité les couvre tous, y compris les bâtiments uniques à venir.</para>
+        /// </summary>
+        /// <inheritdoc cref="BuildReducedPrerequisiteContext(City, Civilization)"/>
+        /// <remarks>
+        /// Public pour l'UI : elle interroge les prérequis d'un bâtiment pour le griser et pour dire ce
+        /// qui manque (voir CityBuildingService), et doit poser exactement la même question que
+        /// <see cref="BuildBuilding"/> — sans quoi le panneau grise un bâtiment que le contrôleur
+        /// accepterait de bâtir.
+        /// </remarks>
+        public IBuildingContext BuildPrerequisiteContext(City city)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var civ = _state.GetCivilization(city.CivilizationIndex);
+            return civ == null ? city : BuildReducedPrerequisiteContext(city, civ);
+        }
+
+        private static IBuildingContext BuildReducedPrerequisiteContext(City city, Civilization civ)
+        {
+            int reduction = civ.ModifierAggregator.ApplyModifiers(ECategory.UNIQUE_BUILDING_PREREQUISITE_REDUCTION, "", 0);
+            return reduction > 0 ? new ReducedPrerequisiteContext(city, reduction) : city;
+        }
+
+        /// <summary>
+        /// Vue d'une ville dont les seuils de prérequis sont abaissés de <c>Reduction</c> : son niveau
+        /// paraît d'autant plus haut, et tout niveau de bâtiment exigé d'autant plus bas. Ne quitte
+        /// jamais le test de constructibilité — ni le niveau réel de la ville, ni celui de ses bâtiments,
+        /// ni aucun coût n'en dépendent.
+        ///
+        /// <para>Le plancher à 1 sur les bâtiments exigés est ce qui garde « exiger un Temple » de
+        /// devenir « n'exiger aucun Temple » : un seuil ramené à 0 serait satisfait par une ville qui
+        /// n'a pas le bâtiment du tout. La réduction allège un prérequis, elle ne le supprime pas.</para>
+        /// </summary>
+        private sealed class ReducedPrerequisiteContext : IBuildingContext
+        {
+            private readonly City _city;
+            private readonly int _reduction;
+
+            public ReducedPrerequisiteContext(City city, int reduction)
+            {
+                _city = city;
+                _reduction = reduction;
+            }
+
+            public int Level => _city.Level + _reduction;
+            public Vertex Position => _city.Position;
+            public IReadOnlyList<Building> Buildings => _city.Buildings;
+
+            public bool HasBuildingAtLevel(BuildingType type, int minLevel)
+            {
+                int required = Math.Max(1, minLevel - _reduction);
+                var buildings = _city.Buildings;
+                for (int i = 0; i < buildings.Count; i++)
+                    if (buildings[i].Type == type && buildings[i].Level >= required)
+                        return true;
+                return false;
+            }
+
+            public int CountBuildingsAtLevel(IReadOnlyList<BuildingType> types, int minLevel)
+            {
+                int required = Math.Max(1, minLevel - _reduction);
+                int count = 0;
+                var buildings = _city.Buildings;
+                for (int i = 0; i < buildings.Count; i++)
+                    if (buildings[i].Level >= required && types.Contains(buildings[i].Type))
+                        count++;
+                return count;
+            }
         }
 
         public int GetMaxLevel(Building building, int civilizationIndex)
@@ -559,8 +723,13 @@ namespace SettlersOfIdlestan.Controller.Island
 
         public int GetMaxLevel(Building building, Civilization civ)
         {
-            return civ.GetCachedMaxLevel(building.Type, () =>
-                civ.ModifierAggregator.ApplyModifiers(ECategory.BUILDING_MAX_LEVEL, building.Type.ToString(), building.GetDefaultMaxLevel()));
+            if (civ.TryGetCachedMaxLevel(building.Type, out int cached))
+                return cached;
+
+            int value = civ.ModifierAggregator.ApplyModifiers(
+                ECategory.BUILDING_MAX_LEVEL, BuildingTypeNames.Of(building.Type), building.GetDefaultMaxLevel());
+            civ.SetCachedMaxLevel(building.Type, value);
+            return value;
         }
 
         /// <summary>
@@ -601,10 +770,15 @@ namespace SettlersOfIdlestan.Controller.Island
             int advanced = 0;
             bool hasHighLevelMarket = false;
 
-            foreach (var city in civ.Cities)
+            // Boucles indexées : City.Buildings est typée IReadOnlyList, dont l'énumérateur est boxé à
+            // chaque foreach. Ce recalcul est déclenché par chaque construction.
+            var cities = civ.Cities;
+            for (int c = 0; c < cities.Count; c++)
             {
-                foreach (var building in city.Buildings)
+                var buildings = cities[c].Buildings;
+                for (int b = 0; b < buildings.Count; b++)
                 {
+                    var building = buildings[b];
                     basic += building.GetStorageCapacityBonusBasic();
                     advanced += building.GetStorageCapacityBonusAdvanced();
                     if (building.Type == BuildingType.Market && building.Level >= AutoBuyMinMarketLevel)
@@ -674,6 +848,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.PearlGrotto => new PearlGrotto(),
                 BuildingType.GrandTemple => new GrandTemple(),
                 BuildingType.ArcaneTower => new ArcaneTower(),
+                BuildingType.SpiderShrine => new SpiderShrine(),
                 _ => null,
             };
         }

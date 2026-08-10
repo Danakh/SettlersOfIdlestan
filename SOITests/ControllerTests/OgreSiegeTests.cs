@@ -42,7 +42,7 @@ namespace SOITests.ControllerTests
             // Ville sur (NE, East, NE11) — Center est un voisin de NE et East, mais n'appartient
             // pas à la ville.
             var city = new City(Vertex.Create(NE, East, NE11)) { CivilizationIndex = 0, Soldiers = 10 };
-            city.Buildings.Add(new TownHall { Level = 4 });
+            city.AddBuilding(new TownHall { Level = 4 });
             civ.AddCity(city);
 
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
@@ -89,7 +89,7 @@ namespace SOITests.ControllerTests
             }));
 
             var city = new City(Vertex.Create(NE, East, NE11)) { CivilizationIndex = 0, Soldiers = 10 };
-            city.Buildings.Add(new TownHall { Level = 4 });
+            city.AddBuilding(new TownHall { Level = 4 });
             civ.AddCity(city);
 
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);

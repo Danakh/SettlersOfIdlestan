@@ -39,10 +39,20 @@ public class ModifierAggregator
         Changed?.Invoke();
     }
 
-    private IReadOnlyList<Modifier> GetCached(ECategory category)
+    private static readonly List<Modifier> EmptyModifiers = new();
+
+    /// <summary>
+    /// Retourne volontairement le <see cref="List{T}"/> concret et non un <c>IReadOnlyList</c> : les
+    /// appelants font un <c>foreach</c> dessus, et via l'interface le compilateur passe par
+    /// <c>IEnumerable&lt;T&gt;</c>, ce qui <b>boxe</b> l'énumérateur de structure de la liste — une
+    /// allocation à chaque appel. <see cref="ApplyModifiers(ECategory, string, int)"/> est appelé des
+    /// milliers de fois par tick (vitesse de récolte par bâtiment et par hexagone, niveaux max,
+    /// bonus militaires…) : ces énumérateurs boxés pesaient ~2,5 % des allocations de la simulation.
+    /// </summary>
+    private List<Modifier> GetCached(ECategory category)
     {
         if (_dirty) Rebuild();
-        return _cache.TryGetValue(category, out var list) ? list : [];
+        return _cache.TryGetValue(category, out var list) ? list : EmptyModifiers;
     }
 
     private void Rebuild()

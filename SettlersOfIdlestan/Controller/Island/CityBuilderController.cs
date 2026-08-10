@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
@@ -32,6 +32,13 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         Combat,
         Monster,
+
+        /// <summary>
+        /// Le terrain sous la ville a changé et ne permet plus de l'occuper — voir
+        /// <see cref="CityBuilderController.DestroyCitiesInvalidatedByTerrain"/>. Aujourd'hui seule
+        /// Marche de Dieu transforme un terrain occupé.
+        /// </summary>
+        Terrain,
     }
 
     public class CityDestroyedEventArgs : EventArgs
@@ -56,7 +63,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG? _prng;
-        private readonly Dictionary<int, (int RoadCount, int TotalCityCount, int BeaconCount, int TerrainVersion, List<Vertex> Vertices)> _buildableVerticesCache = new();
+        private readonly Dictionary<int, (int RoadCount, int TotalCityCount, int BeaconCount, int LandingSiteCount, int TerrainVersion, List<Vertex> Vertices)> _buildableVerticesCache = new();
         private readonly Dictionary<(TerrainType Terrain, int Range), (int TerrainVersion, HashSet<Vertex> Vertices)> _terrainRangeVerticesCache = new();
 
         // 10 s × 100 ticks/s
@@ -110,7 +117,7 @@ namespace SettlersOfIdlestan.Controller.Island
             BuildersGuild? guild = null;
             foreach (var city in civ.Cities)
             {
-                guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
+                guild = city.FindBuilding<BuildersGuild>(BuildingType.BuildersGuild);
                 if (guild != null) break;
             }
 
@@ -183,11 +190,24 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            return CollectRoadTouchingVertices(civ, out _);
+            // Copie : le collecteur rend un tampon partagé, que l'appelant public ne doit pas voir
+            // se faire écraser par la prochaine collecte.
+            return new List<Vertex>(CollectRoadTouchingVertices(civ, out _));
         }
+
+        // Tampons de GetBuildableVertices, réutilisés d'un appel à l'autre. Le cache de résultat de
+        // GetBuildableVertices est invalidé dès qu'une route est posée — c'est-à-dire en permanence
+        // pendant l'autoplay des PNJ — et chaque reconstruction repartait de collections neuves de
+        // plusieurs milliers d'entrées. Les ensembles à clé Vertex étaient, et de loin, le premier
+        // poste d'allocation restant de la simulation. Aucune réentrance possible : ni
+        // AddFlightCandidateVertices ni les filtres de terrain ne rappellent GetBuildableVertices.
+        private readonly List<Vertex> _roadTouchingScratch = new();
+        private readonly HashSet<Vertex> _roadTouchingUniqueScratch = new();
+        private readonly HashSet<Vertex> _occupiedVerticesScratch = new();
+        private readonly HashSet<Vertex> _blockedVerticesScratch = new();
 
         /// <summary>
         /// Coeur de <see cref="GetRoadTouchingVertices"/>, qui expose en plus le HashSet de
@@ -196,15 +216,21 @@ namespace SettlersOfIdlestan.Controller.Island
         /// par un scan linéaire de la liste — le nombre de routes se compte en milliers en fin de
         /// partie, et le scan rendait la collecte quadratique. L'ordre d'insertion est conservé
         /// (le résultat alimente un choix PRNG, il doit rester déterministe).
+        ///
+        /// <para>La liste et l'ensemble rendus sont des <b>tampons partagés</b>, valables jusqu'au
+        /// prochain appel.</para>
         /// </summary>
-        private static List<Vertex> CollectRoadTouchingVertices(Civilization civ, out HashSet<Vertex> unique)
+        private List<Vertex> CollectRoadTouchingVertices(Civilization civ, out HashSet<Vertex> unique)
         {
-            int capacity = civ.Roads.Count * 2;
-            var vertices = new List<Vertex>(capacity);
-            unique = new HashSet<Vertex>(capacity);
-            foreach (var road in civ.Roads)
+            var vertices = _roadTouchingScratch;
+            unique = _roadTouchingUniqueScratch;
+            vertices.Clear();
+            unique.Clear();
+
+            var roads = civ.Roads;
+            for (int i = 0; i < roads.Count; i++)
             {
-                foreach (var v in road.Position.GetVertices())
+                foreach (var v in roads[i].Position.GetVertices())
                 {
                     if (unique.Add(v))
                         vertices.Add(v);
@@ -219,7 +245,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             // Restrictions raciales (voir RaceDefinitions) : distance minimale entre villes propres
@@ -238,11 +264,13 @@ namespace SettlersOfIdlestan.Controller.Island
             // sans toucher à aucun compteur).
             int totalCityCount = _state.Civilizations.Sum(c => c.Cities.Count);
             int totalBeaconCount = _state.Civilizations.Sum(c => c.MaritimeBeacons.Count);
+            int totalLandingSiteCount = _state.Civilizations.Sum(c => c.LandingSites.Count);
             if (excludingCity == null &&
                 _buildableVerticesCache.TryGetValue(civilizationIndex, out var cached) &&
                 cached.RoadCount == civ.Roads.Count &&
                 cached.TotalCityCount == totalCityCount &&
                 cached.BeaconCount == totalBeaconCount &&
+                cached.LandingSiteCount == totalLandingSiteCount &&
                 cached.TerrainVersion == _state.TerrainVersion)
                 return cached.Vertices;
 
@@ -254,7 +282,8 @@ namespace SettlersOfIdlestan.Controller.Island
             // Un Camp Mobile de cette même civilisation n'empêche pas d'y bâtir une ville par-dessus
             // (voir doc de GetBuildableVertices) — seuls les IBuildVertex d'autres civilisations, ou
             // les propres villes/flottes/balises, comptent comme occupation ici.
-            var occupiedVertices = new HashSet<Vertex>();
+            var occupiedVertices = _occupiedVerticesScratch;
+            occupiedVertices.Clear();
             foreach (var bv in _state.GetAllBuildVertices())
                 if (!(bv is MobileCamp camp && camp.CivilizationIndex == civilizationIndex))
                     occupiedVertices.Add(bv.Position);
@@ -265,12 +294,18 @@ namespace SettlersOfIdlestan.Controller.Island
             // villes. Le rayon interdit vaut distanceMin - 1 arêtes, et le BFS reste naturellement
             // sur la couche de chaque ville (les vertex voisins partagent le Z), ce qui reproduit
             // le filtre par Z de l'ancienne version.
-            var blockedVertices = new HashSet<Vertex>();
+            // Les Sites d'Arrivée (LandingSite) comptent comme des villes dans ces rayons : ils
+            // réservent la place de la future ville de surface d'une race démarrant sous terre, et
+            // doivent donc repousser les voisins exactement comme le ferait la ville elle-même.
+            var blockedVertices = _blockedVerticesScratch;
+            blockedVertices.Clear();
             AddVerticesWithinRadius(blockedVertices,
-                _state.Civilizations.Where(c => c.Index != civilizationIndex).SelectMany(c => c.Cities).Select(city => city.Position),
+                _state.Civilizations.Where(c => c.Index != civilizationIndex)
+                    .SelectMany(c => c.Cities.Select(city => city.Position).Concat(c.LandingSites.Select(s => s.Position))),
                 MinDistanceBetweenCities - 1);
             AddVerticesWithinRadius(blockedVertices,
-                civ.Cities.Where(city => city != excludingCity).Select(city => city.Position),
+                civ.Cities.Where(city => city != excludingCity).Select(city => city.Position)
+                    .Concat(civ.LandingSites.Select(s => s.Position)),
                 minOwnCityDistance - 1);
 
             // Restrictions raciales de terrain : les ensembles de portée ne dépendent que du terrain,
@@ -284,7 +319,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 .ToList();
 
             if (excludingCity == null)
-                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, _state.TerrainVersion, vertices);
+                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, totalLandingSiteCount, _state.TerrainVersion, vertices);
 
             return vertices;
         }
@@ -368,6 +403,32 @@ namespace SettlersOfIdlestan.Controller.Island
         private static bool TouchesLand(IslandMap map, Vertex vertex)
             => vertex.GetHexes().Any(h => map.GetTile(h) is { } tile
                 && !tile.TerrainType.IsWater() && !tile.TerrainType.IsVoid());
+
+        private static readonly Func<Vertex, bool> NoCityPlacementTerrainRestriction = _ => true;
+
+        /// <summary>
+        /// Prédicat « ce vertex respecte-t-il les exigences raciales de terrain pour y poser une
+        /// ville ? », les exigences (adjacence stricte et portées) étant résolues une seule fois
+        /// ici pour être testées sur tout un lot de candidats.
+        ///
+        /// <para>Public parce que <see cref="GetBuildableVertices"/> applique déjà ce filtre, mais en
+        /// bout de chaîne : trop tard pour orienter la construction des routes. Sans ce filtre en
+        /// amont, l'autoplayer d'une race contrainte tire indéfiniment des routes vers des vertex
+        /// qu'elle ne pourra jamais occuper (un Elfe s'arrête à 2 villes, avec des routes encore
+        /// constructibles et aucun vertex constructible).</para>
+        /// </summary>
+        public Func<Vertex, bool> BuildCityPlacementTerrainFilter(Civilization civ)
+        {
+            var requiredTerrains = GetRequiredCityPlacementTerrains(civ);
+            var requiredTerrainRanges = GetRequiredCityPlacementTerrainRanges(civ);
+
+            // Cas courant (aucune restriction raciale) : pas de closure allouée par appel.
+            if (requiredTerrains.Count == 0 && requiredTerrainRanges.Count == 0)
+                return NoCityPlacementTerrainRestriction;
+
+            var terrainRangeSets = BuildTerrainRangeSets(requiredTerrainRanges);
+            return vertex => SatisfiesCityTerrainRestriction(vertex, requiredTerrains, terrainRangeSets);
+        }
 
         /// <summary>
         /// Terrains dont l'un au moins doit toucher tout nouveau vertex de ville en surface pour
@@ -510,7 +571,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+            var civ = _state.GetCivilization(city.CivilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(city));
 
             if (!GetRelocationTargets(city).Any(v => v.Equals(destination)))
@@ -543,7 +604,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             var cost = NewCityBuildingCostFor(vertex, civ);
@@ -567,7 +628,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             EnsureVertexBuildable(civilizationIndex, vertex);
@@ -600,7 +661,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         if (b != null)
                         {
                             b.Level = 1;
-                            city.Buildings.Add(b);
+                            city.AddBuilding(b);
                             if (b.Type == BuildingType.TownHall) city.InvalidateLevelCache();
                             int defBonus = b.GetDefenseBonus();
                             if (defBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
@@ -648,16 +709,65 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (city == null) throw new ArgumentNullException(nameof(city));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex)
+            var civ = _state.GetCivilization(city.CivilizationIndex)
                       ?? throw new ArgumentException("City's civilization not found", nameof(city));
 
             city.RaiseDestroyed();
             civ.RemoveCity(city);
             civ.TrimResourcesToMax();
             _buildableVerticesCache.Clear();
-            _state.Visibility.Recalculate();
+            // Seule la civilisation qui perd la ville perd de la visibilité : celle des autres dérive
+            // de leurs propres villes, routes et flottes. Le recalcul global reconstruisait la carte
+            // de visibilité de toutes les civilisations sur toutes les couches — 3,6 % du temps de
+            // simulation en fin de partie, où les PNJ se prennent des villes en permanence.
+            _state.Visibility.RecalculateFor(civ.Index);
 
             OnCityDestroyed?.Invoke(this, new CityDestroyedEventArgs(city.Position, civ.Index, cause));
+        }
+
+        /// <summary>
+        /// Détruit toutes les villes que le terrain ne permet plus d'occuper, et retourne la liste de
+        /// celles qui sont tombées. À appeler après toute transformation de terrain — aujourd'hui la
+        /// seule est Marche de Dieu (AscensionController.ApplyWalkOfGod) ; l'autre mutation existante
+        /// (Désert → Filon de Mithril, AutoExtendController) ne peut invalider personne puisqu'elle ne
+        /// retire ni terre ni terrain requis par une race.
+        ///
+        /// <para>Deux invalidités, exactement celles qui empêcheraient d'y fonder la ville aujourd'hui
+        /// (voir <see cref="GetBuildableVertices"/>) : plus aucun hex terrestre autour du vertex — une
+        /// ville cernée par trois hexs d'eau est engloutie — ou le terrain qu'exige la race n'est plus
+        /// adjacent (une ville naine dont on a effacé la Montagne). Les couches souterraines et les
+        /// PNJ, qui n'ont pas d'exigence de terrain, ne sont concernés que par le premier cas.</para>
+        ///
+        /// <para>Le balayage porte sur toutes les villes de toutes les civilisations plutôt que sur les
+        /// seuls voisins de l'hex transformé : les exigences de portée (Sirènes, jusqu'à 2 arêtes de
+        /// l'Eau) atteignent des villes qui ne touchent pas l'hex modifié. C'est une action manuelle
+        /// rare, le coût d'un balayage complet est sans conséquence.</para>
+        /// </summary>
+        public IReadOnlyList<City> DestroyCitiesInvalidatedByTerrain()
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            List<City>? destroyed = null;
+            foreach (var civ in _state.Civilizations)
+            {
+                var satisfiesTerrainRestriction = BuildCityPlacementTerrainFilter(civ);
+
+                // Copie : DestroyCity retire de la liste qu'on est en train de parcourir.
+                foreach (var city in civ.Cities.ToList())
+                {
+                    var map = _state.GetMapFor(city.Position);
+                    if (map == null) continue;
+                    if (TouchesLand(map, city.Position) && satisfiesTerrainRestriction(city.Position)) continue;
+
+                    (destroyed ??= new List<City>()).Add(city);
+                    DestroyCity(city, CityDestructionCause.Terrain);
+
+                    if (civ.Index == _state.PlayerCivilization.Index)
+                        _state.EventLog.Add(GameEventType.CityLostToTerrain, toast: true);
+                }
+            }
+
+            return (IReadOnlyList<City>?)destroyed ?? Array.Empty<City>();
         }
 
         public ResourceSet NewCityBuildingCost()

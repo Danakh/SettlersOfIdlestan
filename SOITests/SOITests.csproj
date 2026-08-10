@@ -20,6 +20,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SettlersOfIdlestan\SettlersOfIdlestanCore.csproj" />
+    <!-- PerformanceTests/ valide le générateur d'états de fin de partie et le profileur d'horloge de
+         SOIBench. La dépendance va bien dans ce sens : SOIBench ne connaît que le coeur du jeu. -->
+    <ProjectReference Include="..\SOIBench\SOIBench.csproj" />
   </ItemGroup>
 
   <ItemGroup>

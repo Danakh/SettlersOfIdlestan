@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Races;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -109,20 +110,42 @@ namespace SettlersOfIdlestan.Controller
             bool aggressive = false,
             bool includeResearch = true)
         {
+            // Ces prédicats sont réévalués à chaque passe de la stratégie (une par tick pour le joueur,
+            // une par tour de réflexion pour chaque NPC) et parcourent l'intégralité des features de la
+            // carte ou des villes de toutes les civilisations : écrits en boucles simples plutôt qu'en
+            // LINQ, ils évitent un itérateur, un délégué et un test de type par élément.
             var banditSpotted = new Func<bool>(() =>
-                auto.WorldState != null && auto.WorldState.Features.OfType<Bandit>().Any(b => b.Found));
+            {
+                var world = auto.WorldState;
+                if (world == null) return false;
+                foreach (var feature in world.Features)
+                    if (feature is Bandit { Found: true })
+                        return true;
+                return false;
+            });
 
             var hasVisibleThreats = new Func<bool>(() =>
             {
                 if (auto.WorldState == null) return false;
                 var visMaps = auto.WorldState.Visibility.GetForZ(IslandMap.SurfaceLayer);
                 if (!visMaps.TryGetValue(auto.Civilization.Index, out var vm)) return false;
-                return auto.WorldState.Civilizations.Any(c => c.IsNpc && c.Cities.Count > 0 &&
-                    c.Cities.Any(city => vm.IsVertexVisible(city.Position)));
+                foreach (var c in auto.WorldState.Civilizations)
+                {
+                    if (!c.IsNpc) continue;
+                    foreach (var city in c.Cities)
+                        if (vm.IsVertexVisible(city.Position))
+                            return true;
+                }
+                return false;
             });
 
             var hasOreProduction = new Func<bool>(() =>
-                auto.Civilization.Cities.Any(c => c.Buildings.Any(b => b.Type == BuildingType.Mine && b.Level > 0)));
+            {
+                foreach (var c in auto.Civilization.Cities)
+                    if (c.FindBuilding(BuildingType.Mine) is { Level: > 0 })
+                        return true;
+                return false;
+            });
 
             // Contrairement à hasVisibleThreats (simple visibilité), tient compte de la portée
             // d'attaque : un ennemi visible mais hors de portée ne compte pas comme une cible
@@ -146,7 +169,14 @@ namespace SettlersOfIdlestan.Controller
             // que hasVisibleThreats, qui ne regarde que les ennemis actuellement visibles et laisserait
             // passer un NPC existant mais hors champ de vision.
             var allNpcsEliminated = new Func<bool>(() =>
-                auto.WorldState != null && auto.WorldState.Civilizations.Where(c => c.IsNpc).All(c => c.Cities.Count == 0));
+            {
+                var world = auto.WorldState;
+                if (world == null) return false;
+                foreach (var c in world.Civilizations)
+                    if (c.IsNpc && c.Cities.Count > 0)
+                        return false;
+                return true;
+            });
 
             var objectives = new List<IAutoplayObjective>();
 
@@ -221,8 +251,32 @@ namespace SettlersOfIdlestan.Controller
                 new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, MilitaryBuildings, 1)),
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, new[] { BuildingType.Temple }, 1)),
 
-                // Expansion finie pour accumuler des points de prestige, puis Port Impérial
+                // Expansion finie pour accumuler des points de prestige, puis bâtiment racial et
+                // Port Impérial. Le bâtiment racial passe avant le Port, et pas après : le Grand Terrier
+                // gobelin abaisse d'un niveau les prérequis de tous les uniques, seule façon pour une
+                // race dont les Comptoirs plafonnent à 3 d'atteindre un Port Impérial qui en exige 4 —
+                // le bâtir après le Port n'aiderait plus personne. La ville côtière visée par le Port
+                // garde sa place d'unique réservée tant qu'il n'est pas bâti (voir
+                // CivilizationAutoplayer.FindNextUniqueBuildingToBuild).
+                //
+                // Volontairement limité au bâtiment racial. Le même objectif sans filtre (donc les
+                // guildes de prestige) dégrade les runs : île d'extermination dont la guerre ne finit
+                // plus, même à 3× le budget d'itérations, ou Port Impérial jamais financé. La cause est
+                // la Guilde des Bâtisseurs, dont l'automatisme de construction de routes est le seul
+                // allumé par défaut chez le joueur (RoadAutomationEnabled, voir AutomationSettings — tous
+                // les autres flags de bâtiment sont à false) : il dépense le stock selon sa propre
+                // logique, en concurrence directe avec la liste de priorités, qui n'en a aucune
+                // visibilité.
+                //
+                // Mesuré : couper les automatismes à la construction lève bien la régression (FullIsland
+                // repasse 4/4), mais n'apporte rien — points de prestige identiques sur les 4 îles
+                // (36/70/803/871), une seule Guilde des Bâtisseurs de plus aux îles 2 et 3, et +2 % de
+                // ticks à l'île 4. Le plafond n'est pas l'autoplay : à ce stade du jeu presque aucun
+                // unique n'est débloqué (2 à 5 selon l'île) et leurs prérequis niveau 4 ne sont pas
+                // atteints. Élargir au-delà du racial ne vaudra le coup que le jour où l'autoplay saura
+                // piloter ces automatismes, pas seulement poser les bâtiments.
                 new CityCountObjective(auto, expansionTarget),
+                new UniqueBuildingsObjective(auto, RaceDefinitions.IsRacialBuilding),
                 new ImperialPortObjective(auto),
 
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 4)),
@@ -237,8 +291,12 @@ namespace SettlersOfIdlestan.Controller
                 // (voir WonderInvestmentObjective, qui ne redevient jamais "complete" une fois actif).
                 new WonderInvestmentObjective(auto, () => aggressive && allNpcsEliminated()),
 
-                // Expansion illimitée après le prestige
-                new CityCountObjective(auto, int.MaxValue),
+                // Expansion illimitée après le prestige. completeWhenExpansionExhausted: false — cet
+                // objectif de fin de liste est le puits qui garantit que la stratégie n'est jamais
+                // "complète" : le laisser se satisfaire d'une carte saturée arrêterait net toute boucle
+                // tournant sur !strategy.IsComplete() (guerre en cours comprise). Il est déjà le dernier,
+                // il ne prive donc personne de son tour.
+                new CityCountObjective(auto, int.MaxValue, completeWhenExpansionExhausted: false),
             });
 
             return Make(objectives);

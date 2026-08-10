@@ -182,7 +182,7 @@ public class MaritimeBeaconControllerTests
             new HexCoord(10, 10, IslandMap.SurfaceLayer),
             new HexCoord(11, 10, IslandMap.SurfaceLayer),
             new HexCoord(10, 11, IslandMap.SurfaceLayer))) { CivilizationIndex = 0 };
-        storageCity.Buildings.Add(new Warehouse { Level = 1 });
+        storageCity.AddBuilding(new Warehouse { Level = 1 });
         civ.AddCity(storageCity);
 
         civ.AddResource(Resource.Glass, 10);

@@ -43,7 +43,7 @@ public class MilitaryControllerWarTests
         var civA = new Civilization { Index = 0 };
         var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = soldiersA };
         var barracksA = new Barracks { Level = 2 };
-        cityA.Buildings.Add(barracksA);
+        cityA.AddBuilding(barracksA);
         civA.AddCity(cityA);
 
         var civB = new Civilization { Index = 1 };
@@ -164,12 +164,12 @@ public class MilitaryControllerWarTests
         var civA = new Civilization { Index = 0 };
         var cityA = new City(VertexA) { CivilizationIndex = 0, Soldiers = 10 };
         var barracksA = new Barracks { Level = 2 };
-        cityA.Buildings.Add(barracksA);
+        cityA.AddBuilding(barracksA);
         civA.AddCity(cityA);
 
         var civB = new Civilization { Index = 1 };
         var cityB = new City(VertexB) { CivilizationIndex = 1 };
-        cityB.Buildings.Add(new TownHall { Level = 1 });
+        cityB.AddBuilding(new TownHall { Level = 1 });
         civB.AddCity(cityB);
 
         cityA.FlowTarget = VertexB; // cible de renfort pour déclencher la logique

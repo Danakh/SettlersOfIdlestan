@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.Races;
@@ -12,9 +15,9 @@ namespace SettlersOfIdlestan.Model.Races;
 /// <summary>
 /// Liste des races jouables (voir <see cref="RaceDefinition"/>). Les races Base deviennent
 /// sélectionnables à l'Ascension une fois la première rangée de pouvoirs divins complète ; les
-/// races Advanced implémentées (Géants, Garudas) une fois la seconde rangée complète. Les stubs
-/// (Sirènes, Elfes noirs — <see cref="RaceDefinition.IsImplemented"/> faux) sont déclarés pour
-/// l'UI et la sérialisation mais n'apparaissent jamais dans AscensionController.GetSelectableRaces.
+/// races Advanced une fois la seconde rangée complète. Les stubs éventuels
+/// (<see cref="RaceDefinition.IsImplemented"/> faux) sont déclarés pour l'UI et la sérialisation
+/// mais n'apparaissent jamais dans AscensionController.GetSelectableRaces.
 /// </summary>
 public static class RaceDefinitions
 {
@@ -139,16 +142,46 @@ public static class RaceDefinitions
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.PearlGrotto), EType.ADDITIVE, 1),
             }),
 
-        // Elfes noirs : race avancée (seconde rangée de pouvoirs divins), non implémentée —
-        // déclarée pour l'UI (aperçu verrouillé) et la stabilité de la sérialisation.
+        // Elfes noirs : peuple des profondeurs — commencent dans l'Inframonde sur un triangle
+        // Caverne aux champignons / Colline / Montagne, seul trio couvrant l'économie de base sous
+        // terre (nourriture, bois de champignon, brique, pierre, minerai — le pool de terrains de
+        // l'Inframonde ne contient ni Forêt, ni Plaine, ni Eau). La surface est générée mais
+        // inaccessible : elle ne s'ouvre qu'en creusant la Percée de Surface (SurfaceBreachController).
+        // Le kit de recherches offert donne le bois (BoisDeChampignon) et la mine (Speleologie), le
+        // vertex de prestige offert donne la nourriture — sans CultureFongique, volontairement laissée
+        // entre les deux comme premier objectif économique. Trolls et ogres les épargnent (Pacte des
+        // Profondeurs), les autres monstres non. Aucun malus chiffré : le départ souterrain fait
+        // office de contrainte.
         new RaceDefinition(RaceId.DarkElf, RaceTier.Advanced,
             requiredAdjacentTerrain: null,
-            racialBuilding: null,
-            modifiers: Array.Empty<Modifier>()),
+            racialBuilding: BuildingType.SpiderShrine,
+            modifiers: new[]
+            {
+                new Modifier(ECategory.STARTING_RESEARCH, nameof(TechnologyId.Speleologie), EType.ADDITIVE, 1),
+                new Modifier(ECategory.STARTING_RESEARCH, nameof(TechnologyId.BoisDeChampignon), EType.ADDITIVE, 1),
+                new Modifier(ECategory.MONSTER_ATTACK_IMMUNITY, nameof(Troll), EType.ADDITIVE, 1),
+                new Modifier(ECategory.MONSTER_ATTACK_IMMUNITY, nameof(Ogre), EType.ADDITIVE, 1),
+                new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.SpiderShrine), EType.ADDITIVE, 1),
+            },
+            startsInUnderworld: true,
+            underworldStartTerrains: new[] { TerrainType.MushroomCave, TerrainType.Hill, TerrainType.Mountain },
+            freePrestigeVertices: new[] { PrestigeMap.MushroomCultureVertex }),
     };
 
     public static RaceDefinition Get(RaceId id)
         => All.First(r => r.Id == id);
+
+    /// <summary>
+    /// Bâtiments raciaux, toutes races confondues. Sert à reconnaître un unique racial sans savoir
+    /// quelle race est jouée : une seule race à la fois débloque le sien (son BUILDING_MAX_LEVEL +1),
+    /// donc appartenir à cet ensemble et être constructible suffit à l'identifier comme le bâtiment
+    /// racial de la partie en cours.
+    /// </summary>
+    public static IReadOnlySet<BuildingType> RacialBuildings { get; } =
+        All.Where(r => r.RacialBuilding.HasValue).Select(r => r.RacialBuilding!.Value).ToHashSet();
+
+    /// <inheritdoc cref="RacialBuildings"/>
+    public static bool IsRacialBuilding(BuildingType type) => RacialBuildings.Contains(type);
 
     /// <summary>
     /// Modifiers de niveau max (±delta) pour les bâtiments « standards » : non uniques, hors Hôtel

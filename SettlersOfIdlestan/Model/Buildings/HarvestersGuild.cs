@@ -26,7 +26,7 @@ public class HarvestersGuild : Building, IUniqueBuilding
 
     public override bool HasBuildPrerequisites(IBuildingContext city)
     {
-        int count = city.Buildings.Count(b => ProductionBuildingTypes.Contains(b.Type) && b.Level >= 4);
+        int count = city.CountBuildingsAtLevel(ProductionBuildingTypes, 4);
         return count >= 3;
     }
 

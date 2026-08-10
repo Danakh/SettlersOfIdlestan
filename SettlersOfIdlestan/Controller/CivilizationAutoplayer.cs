@@ -38,13 +38,28 @@ namespace SettlersOfIdlestan.Controller
         private readonly WonderController? _wonderController;
         private readonly MilitaryController? _militaryController;
         private readonly DeepestMineController? _deepestMineController;
+        private readonly SurfaceBreachController? _surfaceBreachController;
         private readonly CorruptionSpireController? _corruptionSpireController;
         private readonly AbyssGateController? _abyssGateController;
 
         private VisibleIslandMap? _prospectiveVerticesCacheMap;
         private int _prospectiveVerticesCacheTotalCityCount = -1;
+        // Le filtre de terrain racial dépend du terrain lui-même, que Marche de Dieu peut transformer
+        // sans changer aucun compteur — même raison que le cache de CityBuilderController.
+        private int _prospectiveVerticesCacheTerrainVersion = -1;
         private List<Vertex>? _prospectiveVerticesCache;
         private Func<Vertex, bool>? _expansionVertexFilter;
+
+        // Cache de HasUnexploredHexesWithinTwoRoads, invalidé par les mêmes critères que
+        // _prospectiveVerticesCache ci-dessus (identité de la carte de visibilité + nombre total de
+        // villes), plus le nombre de nos routes : la réponse ne change que si notre réseau s'étend ou
+        // si notre visibilité est recalculée. La recherche elle-même (FindUnexploredVertexNear +
+        // pathfinding d'approche pour chaque candidat) est un des appels les plus coûteux de
+        // l'autoplayer et ResourceCoverageObjective l'interroge à chaque passe de la stratégie.
+        private VisibleIslandMap? _unexploredCacheMap;
+        private int _unexploredCacheTotalCityCount = -1;
+        private int _unexploredCacheRoadCount = -1;
+        private bool _unexploredCacheValue;
 
         /// <summary>Simule le temps de réaction d'un joueur entre deux salves de clics de récolte manuelle.</summary>
         private readonly long _clickCooldownTicks;
@@ -85,6 +100,7 @@ namespace SettlersOfIdlestan.Controller
             WonderController? wonderController = null,
             MilitaryController? militaryController = null,
             DeepestMineController? deepestMineController = null,
+            SurfaceBreachController? surfaceBreachController = null,
             CorruptionSpireController? corruptionSpireController = null,
             AbyssGateController? abyssGateController = null,
             long clickCooldownTicks = 20L,
@@ -108,6 +124,7 @@ namespace SettlersOfIdlestan.Controller
             _wonderController = wonderController;
             _militaryController = militaryController;
             _deepestMineController = deepestMineController;
+            _surfaceBreachController = surfaceBreachController;
             _corruptionSpireController = corruptionSpireController;
             _abyssGateController = abyssGateController;
         }
@@ -297,15 +314,57 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// True if <see cref="TryExpandOnce"/> currently has any actionable move — a directly buildable
         /// outpost vertex, a buildable road toward a prospective expansion target, or (fallback) any
-        /// buildable road at all. False means expansion is genuinely stuck (no reachable vertex left to
-        /// grow into) — used by <see cref="CivilizationAutoplayerPriorities.Unified"/>'s aggressive mode
-        /// to know when to pivot to war instead of waiting on expansion forever.
+        /// buildable road at all. False means TryExpandOnce would do nothing at all — used by
+        /// <see cref="CivilizationAutoplayerPriorities.Unified"/>'s aggressive mode to know when to
+        /// pivot to war instead of waiting on expansion forever.
+        ///
+        /// <para>« Une action est possible » n'est pas « l'expansion progresse » : le repli routier
+        /// garde ce test vrai bien après que la carte a cessé d'offrir un seul emplacement de ville.
+        /// Pour « reste-t-il quelque chose à conquérir ? », c'est <see cref="HasExpansionTarget"/>
+        /// qu'il faut interroger — un objectif d'expansion adossé à celui-ci ne se termine jamais.</para>
         /// </summary>
         public bool HasBuildableExpansion()
         {
-            if (GetBuildableOutpostVertex() != null) return true;
-            if (FindBestExpansionTarget(GetProspectiveVertices()) != null) return true;
+            if (HasExpansionTarget()) return true;
             return _roadController.GetBuildableRoads(_civ.Index).Any();
+        }
+
+        /// <summary>
+        /// True si l'expansion vise réellement quelque chose : un vertex directement constructible, ou
+        /// un vertex prospectif vers lequel tirer la route. Plus strict que
+        /// <see cref="HasBuildableExpansion"/>, qui compte en plus le repli « n'importe quelle route
+        /// constructible » de <see cref="TryExpandOnce"/>.
+        ///
+        /// <para>Cette distinction est ce qui sépare « l'expansion avance » de « l'expansion s'agite ».
+        /// Le repli pose des routes vers l'extérieur même sans aucun candidat à atteindre, dans l'espoir
+        /// de découvrir du terrain — et le réseau routier peut toujours croître d'un cran de plus. Pris
+        /// pour critère d'achèvement, il rend un objectif d'expansion éternellement insatisfait, ce qui
+        /// gèle tout ce qui le suit dans une liste de priorités (voir CityCountObjective.IsComplete) :
+        /// mesuré sur les Elfes, île 3 du gauntlet — 9 villes, aucun vertex prospectif, 69 routes posées
+        /// et 25 encore constructibles, 20 points de prestige en poche et pas de Port Impérial, l'île
+        /// abandonnée après 24 h simulées sans qu'une seule construction ne soit tentée.</para>
+        /// </summary>
+        public bool HasExpansionTarget()
+        {
+            if (GetBuildableOutpostVertex() != null) return true;
+            return FindBestExpansionTarget(GetProspectiveVertices()) != null;
+        }
+
+        /// <summary>
+        /// Ce que <see cref="TryExpandOnce"/> voit du terrain, décrit. Diagnostic pur : « il reste des
+        /// routes constructibles » ne dit pas si l'expansion progresse — le repli de TryExpandOnce pose
+        /// des routes vers l'extérieur même sans aucun vertex prospectif à atteindre, ce qui rend
+        /// <see cref="HasBuildableExpansion"/> vrai indéfiniment sur une carte où plus aucune ville ne
+        /// peut être fondée. Distinguer les deux demande de voir les candidats, pas les routes.
+        /// </summary>
+        public string DescribeExpansionState()
+        {
+            var candidates = GetProspectiveVertices();
+            var target = FindBestExpansionTarget(candidates);
+            return $"vertex constructible : {(GetBuildableOutpostVertex()?.ToString() ?? "aucun")}, " +
+                   $"{candidates.Count} vertex prospectifs, cible : {(target?.target.ToString() ?? "aucune")}, " +
+                   $"{_roadController.GetBuildableRoads(_civ.Index).Count} routes constructibles, " +
+                   $"{_civ.Roads.Count} routes déjà posées";
         }
 
         // ── Primitive utilities ──────────────────────────────────────────────────
@@ -376,7 +435,16 @@ namespace SettlersOfIdlestan.Controller
             if (_cityBuilderController.BuildCity(_civ.Index, vertex) != null)
                 return true;
 
-            if (withGrind) TryGrindOnce(_cityBuilderController.NewCityBuildingCost());
+            // Le coût réellement débité est le coût majoré par le nombre de villes déjà possédées
+            // (NewCityBuildingCostFor), pas le coût de base. Miner/troquer contre le coût de base
+            // laisse un trou de la taille exacte de la majoration : TradeController.TryAutoTradeForPurchase
+            // ne troque que ce qui manque encore, donc un stock pile égal au coût de base lui paraît
+            // suffisant et il ne troque rien, pendant que BuildCity refuse faute des 10 % de plus.
+            // Invisible tant que la ressource manquante se produit toute seule (le stock finit par
+            // grimper jusqu'au plafond), fatal dès que sa production est nulle : un Nain sans Colline
+            // accessible reste bloqué à 2 villes et 10 Briques pour toujours, sans jamais tenter le
+            // seul troc qui lui rendrait la Brique.
+            if (withGrind) TryGrindOnce(_cityBuilderController.NewCityBuildingCostFor(vertex, _civ));
             return false;
         }
 
@@ -423,6 +491,17 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
+        /// La ville sur laquelle <see cref="TryBuildImperialPortOnce"/> concentre tous ses efforts : la
+        /// première ville côtière de la couche courante. Exposée parce que sa place d'unique lui est de
+        /// fait réservée — une ville n'héberge qu'un bâtiment unique, et le Port Impérial est la
+        /// condition du prestige (voir <see cref="FindNextUniqueBuildingToBuild"/>).
+        /// </summary>
+        public City? GetImperialPortCity() =>
+            _civ.Cities.FirstOrDefault(c =>
+                _map.IsOnSameLayer(c.Position) &&
+                _map.VertexHasTerrainType(c.Position, TerrainType.Water));
+
+        /// <summary>
         /// Focuses exclusively on the first coastal city to unlock the Imperial Port: Seaport 4,
         /// Warehouse 4, TownHall 4, then the (unique) Imperial Port itself. Spreading these levels
         /// across every city the way BuildingLevelObjective does would be far more expensive — the
@@ -430,9 +509,7 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool TryBuildImperialPortOnce()
         {
-            var coastalCity = _civ.Cities.FirstOrDefault(c =>
-                _map.IsOnSameLayer(c.Position) &&
-                _map.VertexHasTerrainType(c.Position, TerrainType.Water));
+            var coastalCity = GetImperialPortCity();
             if (coastalCity == null) return false;
 
             bool didSomething = false;
@@ -540,7 +617,13 @@ namespace SettlersOfIdlestan.Controller
         {
             if (_wonderController == null || _worldState == null) return false;
 
-            var wonder = _worldState.Features.OfType<Wonder>().FirstOrDefault();
+            // Boucle plutôt que OfType<Wonder>().FirstOrDefault() : appelé à chaque passe de stratégie
+            // de chaque civilisation PNJ, l'itérateur LINQ y était alloué pour rien.
+            Wonder? wonder = null;
+            var features = _worldState.Features;
+            for (int i = 0; i < features.Count; i++)
+                if (features[i] is Wonder found) { wonder = found; break; }
+
             if (wonder == null)
             {
                 if (!_wonderController.CanPlaceWonder(_civ)) return false;
@@ -595,6 +678,39 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
+        /// Miroir de <see cref="TryDeepestMineInvestmentOnce"/> pour la Percée de Surface : place le
+        /// Monument sur la première Montagne souterraine disponible puis maintient l'investissement
+        /// actif. Sans cela, un run automatisé d'Elfes noirs resterait enfermé sous terre
+        /// indéfiniment. No-op si la dépendance n'a pas été fournie, si le joueur a déjà une ville de
+        /// surface, ou si la Percée est déjà ouverte.
+        /// </summary>
+        public bool TrySurfaceBreachInvestmentOnce()
+        {
+            if (_surfaceBreachController == null || _worldState == null) return false;
+
+            var breach = _worldState.Features.OfType<SettlersOfIdlestan.Model.IslandFeatures.SurfaceBreach>().FirstOrDefault();
+            if (breach == null)
+            {
+                if (!_surfaceBreachController.CanPlaceSurfaceBreach(_civ)) return false;
+                var hexes = _surfaceBreachController.GetPlaceableHexes();
+                if (hexes.Count == 0) return false;
+                breach = _surfaceBreachController.PlaceSurfaceBreach(hexes[0]);
+                if (breach == null) return false;
+            }
+            if (breach.Dug) return false;
+
+            bool didSomething = false;
+            var breachCost = breach.GetInvestmentCost(_civ);
+            foreach (var resource in breachCost.Keys)
+            {
+                if (breach.InvestmentEnabled.Contains(resource)) continue;
+                breach.InvestmentEnabled.Add(resource);
+                didSomething = true;
+            }
+            return didSomething;
+        }
+
+        /// <summary>
         /// Places the Corruption Spire if unlocked (3 UNLOCK_ABYSS prestige vertices) and not yet
         /// placed, preferring the most-corrupted placeable hex — the best chance of the hex reaching
         /// AbyssGate.RequiredCorruptionLevel while the Spire's own decay (CorruptionController.
@@ -632,7 +748,8 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Evolves the built Corruption Spire into the Abyss Gate once eligible (AbyssGateController.
-        /// IsAbyssGateEligible — the Spire's hex reached the required corruption level), then keeps
+        /// IsAbyssGateEligible — a corruption zone of the required level was fully cleared on the
+        /// current island, anywhere on the map and by any mechanism), then keeps
         /// investment enabled until it's built. No-ops if the AbyssGateController dependency was not
         /// supplied, the Spire isn't eligible yet, or the Gate is already built.
         /// </summary>
@@ -677,6 +794,89 @@ namespace SettlersOfIdlestan.Controller
             if (withGrind)
                 TryGrindOnce(target.GetBuildCost());
 
+            return false;
+        }
+
+        /// <summary>
+        /// Prochain bâtiment unique à poser, et la ville qui l'accueillera — null si aucun n'est
+        /// constructible pour l'instant. Couvre indifféremment les uniques débloqués par la carte de
+        /// prestige, ceux offerts en permanence par l'Ascension et le bâtiment racial de la race en
+        /// cours : tous passent par le même BUILDING_MAX_LEVEL, donc
+        /// <see cref="BuildingController.GetBuildableUniqueBuildings"/> les voit sans que l'autoplay
+        /// ait à savoir quelle race est jouée.
+        ///
+        /// <para>Le moins cher d'abord (somme des ressources du coût de construction) : le grind est
+        /// séquentiel, et viser d'emblée le plus accessible évite d'immobiliser la liste de priorités
+        /// derrière une guilde à plus de mille ressources alors qu'un unique bien plus court — le
+        /// bâtiment racial en particulier — est déjà à portée.</para>
+        ///
+        /// <para>La ville du Port Impérial (<see cref="GetImperialPortCity"/>) est écartée tant que le
+        /// Port n'est pas bâti : une ville n'accueille qu'un unique, et lui prendre sa place la rendrait
+        /// définitivement inéligible au Port, donc au prestige. Toutes les autres villes sont
+        /// candidates, chacune portant le sien.</para>
+        ///
+        /// <para><paramref name="typeFilter"/> restreint les types considérés — voir l'étape dédiée au
+        /// bâtiment racial de <see cref="CivilizationAutoplayerPriorities.Unified"/>.</para>
+        /// </summary>
+        public (City City, Building Building)? FindNextUniqueBuildingToBuild(Func<BuildingType, bool>? typeFilter = null)
+        {
+            var reservedCity = _civ.UniqueBuildings.Contains(BuildingType.ImperialPort)
+                ? null
+                : GetImperialPortCity();
+
+            (City City, Building Building)? best = null;
+            int bestCost = int.MaxValue;
+
+            foreach (var city in _civ.Cities)
+            {
+                if (ReferenceEquals(city, reservedCity)) continue;
+
+                foreach (var candidate in _buildingController.GetBuildableUniqueBuildings(city))
+                {
+                    if (typeFilter != null && !typeFilter(candidate.Type)) continue;
+
+                    var cost = candidate.GetBuildCost();
+
+                    // Une ressource que la civilisation ne peut pas stocker ne peut être ni récoltée ni
+                    // achetée : viser un unique qui en réclame bloquerait la stratégie à farmer un coût
+                    // inatteignable, cet objectif restant incomplet tant qu'un candidat existe.
+                    bool unreachable = false;
+                    foreach (var (resource, amount) in cost)
+                    {
+                        if (_civ.GetResourceQuantity(resource) >= amount) continue;
+                        if (_civ.GetResourceMaxQuantity(resource) >= amount) continue;
+                        unreachable = true;
+                        break;
+                    }
+                    if (unreachable) continue;
+
+                    int total = cost.Values.Sum();
+                    if (total >= bestCost) continue;
+                    bestCost = total;
+                    best = (city, candidate);
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Construit le prochain bâtiment unique disponible (voir <see cref="FindNextUniqueBuildingToBuild"/>),
+        /// en récoltant/commerçant pour son coût quand les ressources manquent. Une seule cible à la
+        /// fois : les uniques ont des coûts très dissemblables, et grinder pour plusieurs dans le même
+        /// tick ferait chasser une ressource différente à chaque tentative — exactement le brassage de
+        /// stock documenté sur <see cref="BuildingLevelObjective"/>.
+        /// </summary>
+        public bool TryBuildAnyUniqueBuildingOnce(Func<BuildingType, bool>? typeFilter = null)
+        {
+            var next = FindNextUniqueBuildingToBuild(typeFilter);
+            if (next == null) return false;
+
+            var (city, building) = next.Value;
+            if (_buildingController.BuildBuilding(city, building.Type))
+                return true;
+
+            TryGrindOnce(building.GetBuildCost());
             return false;
         }
 
@@ -842,7 +1042,8 @@ namespace SettlersOfIdlestan.Controller
             int totalCityCount = worldState.Civilizations.Sum(c => c.Cities.Count);
             if (_prospectiveVerticesCache != null &&
                 ReferenceEquals(_prospectiveVerticesCacheMap, visibleMap) &&
-                _prospectiveVerticesCacheTotalCityCount == totalCityCount)
+                _prospectiveVerticesCacheTotalCityCount == totalCityCount &&
+                _prospectiveVerticesCacheTerrainVersion == worldState.TerrainVersion)
                 return _prospectiveVerticesCache;
 
             int z = visibleMap.Z;
@@ -867,18 +1068,27 @@ namespace SettlersOfIdlestan.Controller
                 .Select(city => city.Position)
                 .ToList();
 
-            int minOwn = _cityBuilderController.MinDistanceBetweenCivilizationCities;
+            // Mêmes règles de placement que CityBuilderController.GetBuildableVertices, sinon on tire
+            // des routes vers des vertex que la race ne pourra jamais occuper : distance minimale
+            // entre villes propres telle que la race la remplace (Gobelins 2, Géants 4), et exigence
+            // de terrain (Elfes → Forêt, Nains → Montagne, Sirènes → à 2 arêtes de l'Eau). Sans ce
+            // filtre, une race contrainte se fige : elle continue de poser des routes vers des vertex
+            // que GetBuildableVertices rejette tous en bout de chaîne, et n'ajoute plus une ville.
+            int minOwn = _cityBuilderController.GetMinDistanceBetweenCivilizationCities(_civ);
             int minEnemy = _cityBuilderController.MinDistanceBetweenCities;
+            var satisfiesTerrainRestriction = _cityBuilderController.BuildCityPlacementTerrainFilter(_civ);
 
             var result = visibleVertices
                 .Where(v => !networkVertices.Contains(v))
                 .Where(v => v.GetHexes().Any(h => visibleMap.GetTile(h) is { } t && !t.TerrainType.IsWater()))
                 .Where(v => _civ.Cities.Where(c => c.Position.Z == v.Z).All(c => c.Position.EdgeDistanceTo(v) >= minOwn))
                 .Where(v => visibleEnemyCities.All(ec => ec.EdgeDistanceTo(v) >= minEnemy))
+                .Where(satisfiesTerrainRestriction)
                 .ToList();
 
             _prospectiveVerticesCacheMap = visibleMap;
             _prospectiveVerticesCacheTotalCityCount = totalCityCount;
+            _prospectiveVerticesCacheTerrainVersion = worldState.TerrainVersion;
             _prospectiveVerticesCache = result;
             return result;
         }
@@ -895,12 +1105,16 @@ namespace SettlersOfIdlestan.Controller
             var map = _worldState.GetMapForZ(IslandMap.SurfaceLayer);
             if (map == null) return null;
 
-            var contestedHexes = new HashSet<HexCoord>(
-                _worldState.Features.OfType<ContestedTerritory>().Select(ct => ct.Position));
+            // Voir ResourceCoverageObjective.GetMissingTerrains : parcours direct, et pas de HashSet
+            // alloué tant qu'aucune feature n'est un territoire contesté (le cas courant).
+            HashSet<HexCoord>? contestedHexes = null;
+            foreach (var feature in _worldState.Features)
+                if (feature is ContestedTerritory ct)
+                    (contestedHexes ??= new HashSet<HexCoord>()).Add(ct.Position);
 
             return _cityBuilderController.GetBuildableVertices(_civ.Index)
                 .FirstOrDefault(v => v.Z == IslandMap.SurfaceLayer && v.GetHexes().Any(h =>
-                    !contestedHexes.Contains(h) &&
+                    (contestedHexes == null || !contestedHexes.Contains(h)) &&
                     map.GetTile(h)?.TerrainType == terrain));
         }
 
@@ -918,11 +1132,23 @@ namespace SettlersOfIdlestan.Controller
             var visByLayer = _worldState.Visibility.GetForZ(z);
             if (!visByLayer.TryGetValue(_civ.Index, out var visibleMap)) return false;
 
-            var networkVertices = GetSurfaceNetworkVertices();
-            if (networkVertices.Count == 0) return false;
+            int totalCityCount = 0;
+            foreach (var c in _worldState.Civilizations) totalCityCount += c.Cities.Count;
+            if (ReferenceEquals(_unexploredCacheMap, visibleMap) &&
+                _unexploredCacheTotalCityCount == totalCityCount &&
+                _unexploredCacheRoadCount == _civ.Roads.Count)
+                return _unexploredCacheValue;
 
-            var visibleHexes = new HashSet<HexCoord>(visibleMap.Tiles.Keys);
-            return FindUnexploredVertexNear(networkVertices, visibleHexes, map) != null;
+            var networkVertices = GetSurfaceNetworkVertices();
+            bool result = false;
+            if (networkVertices.Count > 0)
+                result = FindUnexploredVertexNear(networkVertices, visibleMap, map) != null;
+
+            _unexploredCacheMap = visibleMap;
+            _unexploredCacheTotalCityCount = totalCityCount;
+            _unexploredCacheRoadCount = _civ.Roads.Count;
+            _unexploredCacheValue = result;
+            return result;
         }
 
         /// <summary>
@@ -943,8 +1169,7 @@ namespace SettlersOfIdlestan.Controller
             var networkVertices = GetSurfaceNetworkVertices();
             if (networkVertices.Count == 0) return false;
 
-            var visibleHexes = new HashSet<HexCoord>(visibleMap.Tiles.Keys);
-            var target = FindUnexploredVertexNear(networkVertices, visibleHexes, map);
+            var target = FindUnexploredVertexNear(networkVertices, visibleMap, map);
             if (target == null) return false;
 
             var edge = FindApproachEdge(networkVertices, target);
@@ -977,19 +1202,62 @@ namespace SettlersOfIdlestan.Controller
             return Edge.Create(shared[0], shared[1]);
         }
 
+        private HashSet<Vertex>? _networkVerticesCache;
+        private int _networkVerticesCacheZ = int.MinValue;
+        private int _networkVerticesCacheRoadCount = -1;
+        private int _networkVerticesCacheCityCount = -1;
+
         private HashSet<Vertex> GetSurfaceNetworkVertices()
+            => GetNetworkVertices(IslandMap.SurfaceLayer);
+
+        /// <summary>
+        /// Sommets touchés par une ville ou une route de la civilisation sur la couche donnée.
+        ///
+        /// <para>Mis en cache sur le nombre de routes et de villes, comme les autres caches de cette
+        /// classe (vertex prospectifs, hexagones inexplorés) : en fin de partie le réseau compte
+        /// plusieurs milliers de sommets, et le reconstruire à chaque recherche d'expansion — deux
+        /// fois par tour d'IA et par civilisation PNJ — était le premier poste d'allocation de
+        /// l'autoplay. Même réserve que les caches voisins : le déplacement d'une ville
+        /// (CityBuilderController.RelocateCity) change une position sans changer aucun compteur ; il
+        /// est réservé au joueur et reste sans effet sur les décisions d'IA d'ici au tour suivant.</para>
+        ///
+        /// <para>L'ensemble rendu est <b>partagé</b> et réutilisé : les appelants le lisent
+        /// uniquement.</para>
+        /// </summary>
+        private HashSet<Vertex> GetNetworkVertices(int z)
         {
-            int z = IslandMap.SurfaceLayer;
-            var network = new HashSet<Vertex>(_civ.Cities
-                .Select(c => c.Position).Where(v => v.Z == z));
-            foreach (var road in _civ.Roads)
-                foreach (var v in road.Position.GetVertices())
+            if (_networkVerticesCache != null &&
+                _networkVerticesCacheZ == z &&
+                _networkVerticesCacheRoadCount == _civ.Roads.Count &&
+                _networkVerticesCacheCityCount == _civ.Cities.Count)
+                return _networkVerticesCache;
+
+            var network = _networkVerticesCache ??= new HashSet<Vertex>();
+            network.Clear();
+
+            var cities = _civ.Cities;
+            for (int i = 0; i < cities.Count; i++)
+                if (cities[i].Position.Z == z) network.Add(cities[i].Position);
+
+            var roads = _civ.Roads;
+            for (int i = 0; i < roads.Count; i++)
+                foreach (var v in roads[i].Position.GetVertices())
                     if (v.Z == z) network.Add(v);
+
+            _networkVerticesCacheZ = z;
+            _networkVerticesCacheRoadCount = roads.Count;
+            _networkVerticesCacheCityCount = cities.Count;
             return network;
         }
 
+        /// <summary>
+        /// <paramref name="visibleMap"/> est interrogée directement plutôt que recopiée dans un
+        /// HashSet : la carte visible d'une civilisation de fin de partie compte plus d'un millier
+        /// d'hexagones, et <c>HasTile</c> répond exactement à la même question que l'ancien
+        /// <c>visibleHexes.Contains</c>, pour zéro allocation.
+        /// </summary>
         private Vertex? FindUnexploredVertexNear(
-            HashSet<Vertex> networkVertices, HashSet<HexCoord> visibleHexes, IslandMap map)
+            HashSet<Vertex> networkVertices, IslandMap visibleMap, IslandMap map)
         {
             var buildableEdges = new HashSet<Edge>(
                 _roadController.GetBuildableRoads(_civ.Index).Select(r => r.Position));
@@ -1007,13 +1275,13 @@ namespace SettlersOfIdlestan.Controller
                         d1.Add(adj);
 
             var target = d1.FirstOrDefault(v =>
-                v.GetHexes().Any(h => map.GetTile(h) != null && !visibleHexes.Contains(h)) && IsReachable(v));
+                v.GetHexes().Any(h => map.GetTile(h) != null && !visibleMap.HasTile(h)) && IsReachable(v));
             if (target != null) return target;
 
             foreach (var v1 in d1)
                 foreach (var adj in v1.GetAdjacentVertices())
                     if (!networkVertices.Contains(adj) && !d1.Contains(adj))
-                        if (adj.GetHexes().Any(h => map.GetTile(h) != null && !visibleHexes.Contains(h)) && IsReachable(adj))
+                        if (adj.GetHexes().Any(h => map.GetTile(h) != null && !visibleMap.HasTile(h)) && IsReachable(adj))
                             return adj;
 
             return null;
@@ -1033,14 +1301,7 @@ namespace SettlersOfIdlestan.Controller
             if (candidates.Count == 0) return null;
             int z = candidates[0].Z;
 
-            var networkVertices = new HashSet<Vertex>(_civ.Cities
-                .Select(c => c.Position)
-                .Where(v => v.Z == z));
-            foreach (var road in _civ.Roads)
-                foreach (var v in road.Position.GetVertices())
-                    if (v.Z == z)
-                        networkVertices.Add(v);
-
+            var networkVertices = GetNetworkVertices(z);
             if (networkVertices.Count == 0) return null;
 
             var nearest = new List<(Vertex candidate, Vertex from, int dist)>();

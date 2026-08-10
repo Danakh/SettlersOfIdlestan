@@ -56,7 +56,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (!AreMaritimeBeaconsUnlocked()) return new List<Vertex>();
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                 ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             int occupiedCount = _state.GetAllBuildVertices().Count();
@@ -113,7 +113,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             if (!GetBuildableVertices(civilizationIndex).Any(v => v.Equals(vertex)))

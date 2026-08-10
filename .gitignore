@@ -496,3 +496,6 @@ export
 /install/steamcontent/scripts/deploy.bat
 /install/steamcontent/scripts/app_build_win.vdf
 /install/steamcontent/scripts/depot_build_win.vdf
+
+# Sorties locales de SOIStrategyTester (gauntlet par race)
+/SOIStrategyTester/race-gauntlet/

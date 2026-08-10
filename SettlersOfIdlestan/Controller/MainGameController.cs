@@ -43,6 +43,7 @@ namespace SettlersOfIdlestan.Controller
         public WonderController WonderController { get; private set; }
         public GreatLighthouseController GreatLighthouseController { get; private set; }
         public DeepestMineController DeepestMineController { get; private set; }
+        public SurfaceBreachController SurfaceBreachController { get; private set; }
         public CorruptionSpireController CorruptionSpireController { get; private set; }
         public CorruptionController CorruptionController { get; private set; }
         public AbyssGateController AbyssGateController { get; private set; }
@@ -97,6 +98,7 @@ namespace SettlersOfIdlestan.Controller
             WonderController = new WonderController();
             GreatLighthouseController = new GreatLighthouseController();
             DeepestMineController = new DeepestMineController();
+            SurfaceBreachController = new SurfaceBreachController();
             CorruptionSpireController = new CorruptionSpireController();
             CorruptionController = new CorruptionController();
             AbyssGateController = new AbyssGateController();
@@ -195,7 +197,7 @@ namespace SettlersOfIdlestan.Controller
                 startTick: CurrentMainState.Clock.CurrentTick,
                 surfaceCorruptionLevel: CurrentMainState.PrestigeState.SurfaceCorruptionLevel,
                 tier: CurrentMainState.PrestigeState.Tier,
-                startVertexTerrain: RaceDefinitions.Get(CurrentMainState.GodState.AscensionState.SelectedRace).StartVertexTerrain)
+                race: RaceDefinitions.Get(CurrentMainState.GodState.AscensionState.SelectedRace))
                 ?? throw new InvalidOperationException("Failed to restart island.");
 
             CurrentMainState.PrestigeState.WorldState = newWorldState;
@@ -324,7 +326,8 @@ namespace SettlersOfIdlestan.Controller
 
                 // Initialisé avant SetupModifierAggregators() : ce contrôleur sert lui-même de
                 // IModifierProvider et doit avoir purgé ses anciens abonnés avant d'être ré-enregistré.
-                AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState);
+                AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState,
+                    CityBuilderController);
                 AscensionController.ApplyPermanentUniqueBuildingToCivilization();
 
                 SetupModifierAggregators();
@@ -359,9 +362,10 @@ namespace SettlersOfIdlestan.Controller
                 WonderController.Initialize(WorldState, Clock, HarvestController);
                 GreatLighthouseController.Initialize(WorldState, Clock, HarvestController);
                 DeepestMineController.Initialize(WorldState, Clock, HarvestController);
-                CorruptionSpireController.Initialize(WorldState, Clock, HarvestController, CurrentMainState?.PrestigeState);
+                SurfaceBreachController.Initialize(WorldState, Clock, HarvestController);
+                CorruptionSpireController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
-                AbyssGateController.Initialize(WorldState, Clock, HarvestController, CurrentMainState?.PrestigeState);
+                AbyssGateController.Initialize(WorldState, Clock, HarvestController);
                 DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState, CurrentMainState!.PRNG);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings);
@@ -414,8 +418,13 @@ namespace SettlersOfIdlestan.Controller
         private void OnRoadBuiltExtendMap(object? sender, RoadAutoBuiltEventArgs e)
             => AutoExtendController.TryExtendMapAfterRoad(e.CivilizationIndex, e.RoadPosition);
 
+        /// <summary>
+        /// Seule la civilisation propriétaire du bâtiment voit son cache de production invalidé. Avec
+        /// une invalidation globale, chaque construction d'un PNJ — il y en a en permanence — faisait
+        /// reconstruire le cache des centaines de villes du joueur au tick suivant.
+        /// </summary>
         private void OnBuildingChangedInvalidateHarvestCache(object? sender, BuildingBuiltEventArgs e)
-            => HarvestController.InvalidateProductionCache();
+            => HarvestController.InvalidateProductionCache(e.City.CivilizationIndex);
 
         /// <summary>
         /// Effet de la Ziggourat (bâtiment racial des Humains, flag TEMPLE_INSTANT_DOMINION) :
@@ -451,7 +460,7 @@ namespace SettlersOfIdlestan.Controller
         private void OnCityBuiltInvalidateHarvestCache(object? sender, OutpostAutoBuiltEventArgs e)
         {
             FeatureController.RefreshContestedTerritories();
-            HarvestController.InvalidateProductionCache();
+            HarvestController.InvalidateProductionCache(e.CivilizationIndex);
             MobileCampController.DestroyCampsNear(e.Position, e.CivilizationIndex);
         }
 
@@ -471,13 +480,14 @@ namespace SettlersOfIdlestan.Controller
         private void OnCityDestroyedHandler(object? sender, CityDestroyedEventArgs e)
         {
             var worldState = CurrentMainState?.CurrentWorldState;
-            var civ = worldState?.Civilizations.FirstOrDefault(c => c.Index == e.CivilizationIndex);
+            var civ = worldState?.GetCivilization(e.CivilizationIndex);
             if (civ != null)
                 RoadController.OnCityDestroyed(civ, e.CityVertex);
 
             FeatureController.RefreshContestedTerritories();
             DeepestMineController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
-            HarvestController.InvalidateProductionCache();
+            SurfaceBreachController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
+            HarvestController.InvalidateProductionCache(e.CivilizationIndex);
 
             if (civ != null && civ.IsNpc && civ.Cities.Count == 0)
                 worldState?.EventLog.Add(GameEventType.CivilizationDestroyed, toast: true);

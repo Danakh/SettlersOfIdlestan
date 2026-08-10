@@ -20,6 +20,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 [JsonDerivedType(typeof(Wonder), "Wonder")]
 [JsonDerivedType(typeof(GreatLighthouse), "GreatLighthouse")]
 [JsonDerivedType(typeof(DeepestMine), "DeepestMineFeature")]
+[JsonDerivedType(typeof(SurfaceBreach), "SurfaceBreach")]
 [JsonDerivedType(typeof(ContestedTerritory), "ContestedTerritory")]
 [JsonDerivedType(typeof(FairyCircle), "FairyCircle")]
 [JsonDerivedType(typeof(Dolmen), "Dolmen")]

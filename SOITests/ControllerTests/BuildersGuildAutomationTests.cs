@@ -113,7 +113,7 @@ public class BuildersGuildAutomationTests
         var civ   = state.Civilizations[0];
         var city  = civ.Cities[0];
 
-        city.Buildings.Add(new BuildersGuild { Level = 1 });
+        city.AddBuilding(new BuildersGuild { Level = 1 });
         state.AutomationSettings.RoadAutomationEnabled = true;
 
         var clock = new GameClock();
@@ -174,9 +174,9 @@ public class BuildersGuildAutomationTests
 
         // TownHall level 4 → city.Level = 4 → storage cap = 5×(2+4) = 30 per basic resource.
         // Guild starts at level 1 (auto-road dist ≤ 1 only) so road saturation stays deterministic.
-        city.Buildings.Add(new TownHall { Level = 4 });
+        city.AddBuilding(new TownHall { Level = 4 });
         var guild = new BuildersGuild { Level = 1 };
-        city.Buildings.Add(guild);
+        city.AddBuilding(guild);
         BuildingController.RecalculateStorageCapacity(civ);
 
         civ.AddResource(Resource.Wood,  30);
@@ -268,8 +268,8 @@ public class BuildersGuildAutomationTests
         var civ   = state.Civilizations[0];
         var city  = civ.Cities[0];
 
-        city.Buildings.Add(new TownHall { Level = 1 });
-        city.Buildings.Add(new BuildersGuild { Level = 1 });
+        city.AddBuilding(new TownHall { Level = 1 });
+        city.AddBuilding(new BuildersGuild { Level = 1 });
         BuildingController.RecalculateStorageCapacity(civ);
 
         civ.AddResource(Resource.Food,  10);
@@ -318,8 +318,8 @@ public class BuildersGuildAutomationTests
         civ.AddCity(city);
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
 
-        city.Buildings.Add(new TownHall { Level = 1 });
-        city.Buildings.Add(new HarvestersGuild { Level = 1 });
+        city.AddBuilding(new TownHall { Level = 1 });
+        city.AddBuilding(new HarvestersGuild { Level = 1 });
 
         // Sawmill's default max level is 4; push it to 8 so the test can exercise
         // levels above the old hard-coded search range of 1..5, and grant enough

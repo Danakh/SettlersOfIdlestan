@@ -42,7 +42,7 @@ namespace SOITests.ControllerTests
             civ.Resources[Resource.Food] = 999;
             var vertex = Vertex.Create(NE, East, NE11);
             var city = new City(vertex) { CivilizationIndex = 0, Soldiers = initialSoldiers };
-            city.Buildings.Add(new Barracks { Level = barracksLevel });
+            city.AddBuilding(new Barracks { Level = barracksLevel });
             civ.AddCity(city);
 
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
@@ -70,8 +70,8 @@ namespace SOITests.ControllerTests
             civ.Resources[Resource.Steel] = initialSteel;
             var vertex = Vertex.Create(NE, East, NE11);
             var city = new City(vertex) { CivilizationIndex = 0 };
-            if (weaponSmithLevel > 0) city.Buildings.Add(new WeaponSmith { Level = weaponSmithLevel });
-            if (armorSmithLevel > 0) city.Buildings.Add(new ArmorSmith { Level = armorSmithLevel });
+            if (weaponSmithLevel > 0) city.AddBuilding(new WeaponSmith { Level = weaponSmithLevel });
+            if (armorSmithLevel > 0) city.AddBuilding(new ArmorSmith { Level = armorSmithLevel });
             civ.AddCity(city);
             // Stockage avancé suffisant pour que la capacité des consommables (moitié du stockage avancé) ne plafonne pas la production dans ces tests.
             civ.SetStorageCapacityCache(1000, 1000);
@@ -99,7 +99,7 @@ namespace SOITests.ControllerTests
             civ.Resources[Resource.Steel] = initialSteel;
             var vertex = Vertex.Create(NE, East, NE11);
             var city = new City(vertex) { CivilizationIndex = 0 };
-            city.Buildings.Add(new Smelter { Level = smelterLevel });
+            city.AddBuilding(new Smelter { Level = smelterLevel });
             civ.AddCity(city);
             civ.SetStorageCapacityCache(1000, steelStorageCapacity);
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
@@ -270,7 +270,7 @@ namespace SOITests.ControllerTests
             UnlockSteelArmor(civ);
             var vertex = Vertex.Create(NE, East, NE11);
             var city = new City(vertex) { CivilizationIndex = 0, Soldiers = 1 };
-            city.Buildings.Add(new Barracks { Level = 4 });
+            city.AddBuilding(new Barracks { Level = 4 });
             civ.AddCity(city);
 
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
@@ -384,7 +384,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
             civ.Resources[Resource.Steel] = 5;
 
             var controller = new TradeController(state);
@@ -399,7 +399,7 @@ namespace SOITests.ControllerTests
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
-            civ.Cities[0].Buildings.Add(new Market());
+            civ.Cities[0].AddBuilding(new Market());
             civ.Resources[Resource.Steel] = 5;
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {

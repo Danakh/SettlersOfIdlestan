@@ -74,11 +74,11 @@ namespace SOITests.ControllerTests
                     CivilizationIndex = 0,
                     Soldiers = initialSoldiersPerCity,
                 };
-                city.Buildings.Add(new TownHall { Level = 4 });
-                city.Buildings.Add(new Palisade { Level = palisadeLevel });
-                city.Buildings.Add(new Barracks { Level = barracksLevel });
+                city.AddBuilding(new TownHall { Level = 4 });
+                city.AddBuilding(new Palisade { Level = palisadeLevel });
+                city.AddBuilding(new Barracks { Level = barracksLevel });
                 if (arsenalLevel > 0)
-                    city.Buildings.Add(new Arsenal { Level = arsenalLevel });
+                    city.AddBuilding(new Arsenal { Level = arsenalLevel });
                 city.CurrentDefense = city.MaxDefense;
                 return city;
             }

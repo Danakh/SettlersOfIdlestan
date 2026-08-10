@@ -272,6 +272,23 @@ public class WorldState : IJsonOnDeserialized
     /// </summary>
     public long LastSoldierFeedTick { get; set; } = 0;
 
+    /// <summary>
+    /// Civilisation d'index donné, ou null. Remplace le
+    /// <c>Civilizations.FirstOrDefault(c => c.Index == …)</c> qui parsemait les contrôleurs : ce
+    /// lambda capture son index, donc chaque appel allouait une classe de fermeture, un délégué et
+    /// l'itérateur LINQ. C'est une des recherches les plus fréquentes du jeu (chaque bâtiment, chaque
+    /// route, chaque combat commence par là), et l'échantillonnage d'allocations la plaçait autour de
+    /// 4 % du total de la simulation.
+    /// </summary>
+    public SettlersOfIdlestan.Model.Civilization.Civilization? GetCivilization(int index)
+    {
+        var civilizations = Civilizations;
+        for (int i = 0; i < civilizations.Count; i++)
+            if (civilizations[i].Index == index)
+                return civilizations[i];
+        return null;
+    }
+
     public IEnumerable<City> GetAllCities()
     {
         return Civilizations.SelectMany(c => c.Cities);

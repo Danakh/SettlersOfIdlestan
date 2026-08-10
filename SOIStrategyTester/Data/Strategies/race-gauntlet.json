@@ -1,0 +1,11 @@
+[
+  {
+    "name": "RaceGauntlet-UnifiedAggressive",
+    "phases": [
+      {
+        "kind": "UnifiedAggressive",
+        "maxIterations": 20000
+      }
+    ]
+  }
+]

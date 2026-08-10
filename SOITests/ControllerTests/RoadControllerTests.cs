@@ -254,7 +254,7 @@ public class RoadControllerTests
     public void MaritimeRoutes_BuildRoad_ConsumesFixedCostAndCreatesRoad()
     {
         var (state, civ) = CoastalIsland();
-        civ.Cities[0].Buildings.Add(new Warehouse());
+        civ.Cities[0].AddBuilding(new Warehouse());
         EnableMaritimeRoutes(civ);
         civ.AddResource(Resource.Wood,  10);
         civ.AddResource(Resource.Brick, 10);

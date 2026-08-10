@@ -55,12 +55,12 @@ namespace SOITests.ControllerTests
             // Vertex A: center + NE + NW  →  protects NE and NW (and center itself)
             var vertexA = Vertex.Create(Center, NE, NW);
             var cityA = new City(vertexA) { CivilizationIndex = 0 };
-            cityA.Buildings.Add(new Barracks { Level = activeBarracks ? 1 : 0 });
+            cityA.AddBuilding(new Barracks { Level = activeBarracks ? 1 : 0 });
 
             // Vertex B: center + SW + SE  →  protects SW and SE (and center itself)
             var vertexB = Vertex.Create(Center, SW, SE);
             var cityB = new City(vertexB) { CivilizationIndex = 0 };
-            cityB.Buildings.Add(new Barracks { Level = activeBarracks ? 1 : 0 });
+            cityB.AddBuilding(new Barracks { Level = activeBarracks ? 1 : 0 });
 
             civ.AddCity(cityA);
             civ.AddCity(cityB);
@@ -305,11 +305,11 @@ namespace SOITests.ControllerTests
 
             // City A: 5 soldiers absorb the first hit, a level-1 TownHall falls on the second.
             var cityA = new City(Vertex.Create(Center, ne, east)) { CivilizationIndex = 0, Soldiers = 5 };
-            cityA.Buildings.Add(new TownHall { Level = 1 });
+            cityA.AddBuilding(new TownHall { Level = 1 });
 
             // City B: out of the dragon's attack range (own hex + neighbors) for its entire life.
             var cityB = new City(Vertex.Create(farCenter, farNE, farEast)) { CivilizationIndex = 0 };
-            cityB.Buildings.Add(new TownHall { Level = 5 });
+            cityB.AddBuilding(new TownHall { Level = 5 });
 
             civ.AddCity(cityA);
             civ.AddCity(cityB);
@@ -459,8 +459,8 @@ namespace SOITests.ControllerTests
             var civ = new Civilization { Index = 0 };
             var guildVertex = Vertex.Create(Center, NE, NW);
             var city = new City(guildVertex) { CivilizationIndex = 0 };
-            city.Buildings.Add(new TownHall { Level = 1 });
-            city.Buildings.Add(new AdventurersGuild { Level = 1 });
+            city.AddBuilding(new TownHall { Level = 1 });
+            city.AddBuilding(new AdventurersGuild { Level = 1 });
             civ.AddCity(city);
 
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
@@ -506,12 +506,12 @@ namespace SOITests.ControllerTests
             var civ = new Civilization { Index = 0 };
             var guildVertex = Vertex.Create(Center, NE, NW);
             var guildCity = new City(guildVertex) { CivilizationIndex = 0 };
-            guildCity.Buildings.Add(new TownHall { Level = 1 });
-            guildCity.Buildings.Add(new AdventurersGuild { Level = 1 });
+            guildCity.AddBuilding(new TownHall { Level = 1 });
+            guildCity.AddBuilding(new AdventurersGuild { Level = 1 });
 
             var otherVertex = Vertex.Create(far, farNE, farNW);
             var otherCity = new City(otherVertex) { CivilizationIndex = 0 };
-            otherCity.Buildings.Add(new TownHall { Level = 1 });
+            otherCity.AddBuilding(new TownHall { Level = 1 });
 
             civ.AddCity(guildCity);
             civ.AddCity(otherCity);

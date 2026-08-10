@@ -6,12 +6,20 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Model.Races;
 using SOIStrategyTester.Model;
 
 namespace SOIStrategyTester;
 
 public static class Program
 {
+    /// <summary>Default --max-island-hours in endless mode (only applies past the fixed point targets).</summary>
+    private const double DefaultEndlessIslandHours = 24.0;
+
+    /// <summary>Default --max-island-hours in gauntlet mode, where it caps <i>every</i> island: lower,
+    /// since 9 races x 4 islands run back to back and the question is reachability, not depth.</summary>
+    private const double DefaultGauntletIslandHours = 8.0;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -41,8 +49,6 @@ public static class Program
             return 0;
         }
 
-        var globalObjective = JsonSerializer.Deserialize<ObjectiveSpec>(File.ReadAllText(options.ObjectivePath!), JsonOptions)
-            ?? throw new InvalidOperationException($"Could not parse objective file: {options.ObjectivePath}");
         var strategies = JsonSerializer.Deserialize<List<StrategyDefinition>>(File.ReadAllText(options.StrategiesPath!), JsonOptions)
             ?? throw new InvalidOperationException($"Could not parse strategies file: {options.StrategiesPath}");
 
@@ -54,6 +60,28 @@ public static class Program
             DefaultMaxIterationsPerPhase = options.MaxIterationsPerPhase,
             TimeStep = options.TimeStep,
         };
+
+        if (options.RaceGauntlet)
+        {
+            if (strategies.Count > 1)
+                Console.WriteLine($"Warning: --race-gauntlet only drives one strategy — using the first ('{strategies[0].Name}') and ignoring the other {strategies.Count - 1}.");
+
+            bool allPassed = RaceGauntletRunner.Run(strategies[0], runOptions, new RaceGauntletOptions
+            {
+                Races = options.Races,
+                Islands = options.Islands,
+                Seed = options.Seed,
+                OutputDirectory = options.GauntletOutputDirectory,
+                PrestigePointTargets = options.PrestigePointTargets,
+                MaxIslandHours = options.MaxIslandHours ?? DefaultGauntletIslandHours,
+                AbandonIslandAfterHours = options.AbandonIslandHours,
+                CheckpointHours = options.CheckpointHours,
+            });
+            return allPassed ? 0 : 1;
+        }
+
+        var globalObjective = JsonSerializer.Deserialize<ObjectiveSpec>(File.ReadAllText(options.ObjectivePath!), JsonOptions)
+            ?? throw new InvalidOperationException($"Could not parse objective file: {options.ObjectivePath}");
 
         if (options.Endless)
         {
@@ -67,7 +95,7 @@ public static class Program
                 CheckpointIntervalHours = options.CheckpointHours,
                 MaxCycles = options.MaxCycles,
                 PrestigePointTargets = options.PrestigePointTargets,
-                MaxIslandHoursAfterFixedTargets = options.MaxIslandHours,
+                MaxIslandHoursAfterFixedTargets = options.MaxIslandHours ?? DefaultEndlessIslandHours,
             };
             EndlessRunner.Run(endlessController, strategies[0], globalObjective, runOptions, endlessOptions);
             return 0;
@@ -164,6 +192,22 @@ public static class Program
               --max-island-hours <n>    Once past --prestige-point-targets, each island prestiges as soon
                                          as it reaches its doubled target OR this many simulated hours have
                                          passed, whichever comes first (default: 24).
+
+            Race gauntlet — plays the first N islands once per race, each starting with the divine powers
+            its tier requires, and reports which races get through (see RaceGauntletRunner):
+              --race-gauntlet           Run the gauntlet instead of racing strategies. --objective is not
+                                         used (the goal is fixed: one prestige per island); --strategies
+                                         defaults to Data/Strategies/race-gauntlet.json.
+              --races <a,b,...>         Races to run (default: every implemented race).
+              --islands <n>             Islands each race must clear (default: 4).
+              --seed <n>                Shared seed — same for every race, which is what makes the run
+                                         comparable. Omit for a random one.
+              --gauntlet-output <dir>   Per-race CSVs + summary.csv/summary.json (default: race-gauntlet).
+              --max-island-hours <n>    Simulated-hours cap on EVERY island here, not just the ones past
+                                         the fixed targets (default: 8).
+              --abandon-island-hours <n> Simulated hours on one island without ever reaching
+                                         Prestige-available before the race is declared blocked
+                                         (default: 24).
             """);
     }
 }
@@ -192,7 +236,17 @@ internal class CliOptions
     public double CheckpointHours { get; set; } = 1.0;
     public long MaxCycles { get; set; } = 100_000;
     public List<int> PrestigePointTargets { get; set; } = new() { 35, 80, 500, 1000 };
-    public double MaxIslandHours { get; set; } = 24.0;
+
+    /// <summary>Null when unspecified — endless and gauntlet modes have different defaults for it.</summary>
+    public double? MaxIslandHours { get; set; }
+
+    public bool RaceGauntlet { get; set; }
+    public List<RaceId> Races { get; set; } = new();
+    public int Islands { get; set; } = 4;
+    public string GauntletOutputDirectory { get; set; } = "race-gauntlet";
+    public double AbandonIslandHours { get; set; } = 24.0;
+
+    private const string DefaultGauntletStrategiesPath = "Data/Strategies/race-gauntlet.json";
 
     public static CliOptions Parse(string[] args)
     {
@@ -255,6 +309,24 @@ internal class CliOptions
                 case "--max-island-hours":
                     options.MaxIslandHours = double.Parse(RequireValue(args, ref i), CultureInfo.InvariantCulture);
                     break;
+                case "--race-gauntlet":
+                    options.RaceGauntlet = true;
+                    break;
+                case "--races":
+                    options.Races = RequireValue(args, ref i)
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(ParseRace)
+                        .ToList();
+                    break;
+                case "--islands":
+                    options.Islands = int.Parse(RequireValue(args, ref i));
+                    break;
+                case "--gauntlet-output":
+                    options.GauntletOutputDirectory = RequireValue(args, ref i);
+                    break;
+                case "--abandon-island-hours":
+                    options.AbandonIslandHours = double.Parse(RequireValue(args, ref i), CultureInfo.InvariantCulture);
+                    break;
                 default:
                     throw new ArgumentException($"Unknown argument: {args[i]}");
             }
@@ -262,13 +334,29 @@ internal class CliOptions
 
         if (options.ShowHelp) return options;
 
-        if (string.IsNullOrEmpty(options.ObjectivePath))
+        // The gauntlet's stopping condition is fixed (N prestiges, see RaceGauntletRunner), and it
+        // ships its own strategy — neither has to be passed on the command line.
+        if (options.RaceGauntlet)
+        {
+            options.StrategiesPath ??= DefaultGauntletStrategiesPath;
+            if (options.Islands < 1)
+                throw new ArgumentException("--islands must be at least 1.");
+        }
+        else if (string.IsNullOrEmpty(options.ObjectivePath))
+        {
             throw new ArgumentException("--objective is required.");
+        }
+
         if (string.IsNullOrEmpty(options.StrategiesPath))
             throw new ArgumentException("--strategies is required.");
 
         return options;
     }
+
+    private static RaceId ParseRace(string name)
+        => Enum.TryParse<RaceId>(name, ignoreCase: true, out var race)
+            ? race
+            : throw new ArgumentException($"Unknown race '{name}'. Known races: {string.Join(", ", Enum.GetNames<RaceId>())}.");
 
     private static string RequireValue(string[] args, ref int i)
     {

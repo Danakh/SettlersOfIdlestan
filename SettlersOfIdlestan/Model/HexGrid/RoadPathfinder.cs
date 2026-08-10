@@ -43,12 +43,23 @@ public static class RoadPathfinder
     /// Un seul parcours remplace N appels de pathfinding quand on teste plusieurs cibles
     /// depuis la même origine.
     /// </summary>
-    public static HashSet<Vertex> ReachableWithin(Dictionary<Vertex, List<Vertex>> adjacency, Vertex from, int maxDepth)
+    /// <param name="reachable">
+    /// Ensemble de travail optionnel, vidé puis rempli par l'appel. Les appelants qui lancent un
+    /// parcours par emplacement (assignation des flux de renfort : un BFS par ville, à chaque
+    /// réévaluation) réutilisent ainsi la même instance au lieu d'en allouer une par ville.
+    /// </param>
+    /// <param name="queue">File de travail optionnelle, même usage.</param>
+    public static HashSet<Vertex> ReachableWithin(
+        Dictionary<Vertex, List<Vertex>> adjacency, Vertex from, int maxDepth,
+        HashSet<Vertex>? reachableBuffer = null, Queue<Vertex>? queueBuffer = null)
     {
-        var reachable = new HashSet<Vertex> { from };
+        var reachable = reachableBuffer ?? new HashSet<Vertex>();
+        reachable.Clear();
+        reachable.Add(from);
         if (maxDepth <= 0) return reachable;
 
-        var queue = new Queue<Vertex>();
+        var queue = queueBuffer ?? new Queue<Vertex>();
+        queue.Clear();
         queue.Enqueue(from);
 
         for (int depth = 0; depth < maxDepth && queue.Count > 0; depth++)

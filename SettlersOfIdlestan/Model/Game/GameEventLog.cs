@@ -52,6 +52,15 @@ public enum GameEventType
     VolcanoDiscovered,
     DivineBonesPurified,
     DivineBonesPurifiedNoEssence,
+    SurfaceBreachPlaced,
+    SurfaceBreachDug,
+    SurfaceLost,
+
+    /// <summary>
+    /// Une de nos villes a été détruite parce que le terrain sous elle a changé — voir
+    /// CityBuilderController.DestroyCitiesInvalidatedByTerrain. En pratique : sa propre Marche de Dieu.
+    /// </summary>
+    CityLostToTerrain,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

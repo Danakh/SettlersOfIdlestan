@@ -127,18 +127,17 @@ public class MilitaryController
     public double GetSoldierProductionRate(IMilitaryVertex vertex)
     {
         if (vertex is not City city) return 0;
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == city.CivilizationIndex);
+        var civ = _state?.GetCivilization(city.CivilizationIndex);
         if (civ == null) return 0;
 
         const double ticksPerSecond = 100.0;
         double perCycleRate = civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
 
         double rate = 0;
-        var barracks = city.Buildings.OfType<Barracks>()
-            .FirstOrDefault(b => b.ActivationStatus == ActivationStatus.ACTIVE && b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
+        var barracks = city.FindBuilding(BuildingType.Barracks) is { ActivationStatus: ActivationStatus.ACTIVE } b1 && b1.Level >= SoldierProductionEngine.SoldierProductionMinLevel ? b1 : null;
         if (barracks != null) rate += perCycleRate;
 
-        var arsenal = city.Buildings.OfType<Arsenal>().FirstOrDefault(a => a.Level >= 1);
+        var arsenal = city.FindBuilding<Arsenal>(BuildingType.Arsenal) is { Level: >= 1 } ars ? ars : null;
         if (arsenal != null && arsenal.ActivationStatus == ActivationStatus.ACTIVE
             && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION))
             rate += perCycleRate * Arsenal.SoldiersProducedPerCycle;
@@ -161,7 +160,7 @@ public class MilitaryController
     /// </summary>
     public double GetSoldierProductionOreRate(int civilizationIndex)
     {
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        var civ = _state?.GetCivilization(civilizationIndex);
         if (civ == null) return 0;
 
         int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
@@ -172,8 +171,7 @@ public class MilitaryController
         {
             if (city.Soldiers + city.IncomingSoldiers.Count >= GetMaximumSoldierCapacity(city)) continue;
 
-            var barracks = city.Buildings.OfType<Barracks>()
-                .FirstOrDefault(b => b.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
+            var barracks = city.FindBuilding(BuildingType.Barracks) is { } b2 && b2.Level >= SoldierProductionEngine.SoldierProductionMinLevel ? b2 : null;
             if (barracks == null) continue;
 
             bool restrictedToFreeSoldiers = civ.Index == _state!.PlayerCivilization.Index
@@ -193,9 +191,9 @@ public class MilitaryController
     /// </summary>
     public bool HasAnySoldierProductionBuilding(int civilizationIndex)
     {
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        var civ = _state?.GetCivilization(civilizationIndex);
         if (civ == null) return false;
-        return civ.Cities.Any(c => c.Buildings.OfType<Barracks>().Any(b => b.Level >= SoldierProductionEngine.SoldierProductionMinLevel));
+        return civ.Cities.Any(c => c.FindBuilding(BuildingType.Barracks) is { } bar && bar.Level >= SoldierProductionEngine.SoldierProductionMinLevel);
     }
 
     /// <summary>Clé de source pour l'Acier consommé par la production de soldats (Arsenal), pour l'infobulle de ressource.</summary>
@@ -210,7 +208,7 @@ public class MilitaryController
     /// </summary>
     public double GetArsenalProductionSteelRate(int civilizationIndex)
     {
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        var civ = _state?.GetCivilization(civilizationIndex);
         if (civ == null || !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) return 0;
 
         int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
@@ -221,7 +219,7 @@ public class MilitaryController
         {
             if (city.Soldiers + city.IncomingSoldiers.Count >= GetMaximumSoldierCapacity(city)) continue;
 
-            var arsenal = city.Buildings.OfType<Arsenal>().FirstOrDefault(a => a.Level >= 1);
+            var arsenal = city.FindBuilding<Arsenal>(BuildingType.Arsenal) is { Level: >= 1 } ars ? ars : null;
             if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
             bool restrictedToFreeSoldiers = civ.Index == _state!.PlayerCivilization.Index
@@ -241,16 +239,16 @@ public class MilitaryController
     /// </summary>
     public bool HasAnyArsenalProductionBuilding(int civilizationIndex)
     {
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex);
+        var civ = _state?.GetCivilization(civilizationIndex);
         if (civ == null || !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) return false;
-        return civ.Cities.Any(c => c.Buildings.OfType<Arsenal>().Any(a => a.Level >= 1 && a.ActivationStatus == ActivationStatus.ACTIVE));
+        return civ.Cities.Any(c => c.FindBuilding(BuildingType.Arsenal) is { Level: >= 1, ActivationStatus: ActivationStatus.ACTIVE });
     }
 
     /// <summary>Points de défense régénérés par seconde (0 si aucune défense max).</summary>
     public double GetDefenseRegenRate(IMilitaryVertex vertex)
     {
         if (GetDefenseScore(vertex) <= 0) return 0;
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
+        var civ = _state?.GetCivilization(vertex.CivilizationIndex);
         if (civ == null) return 0;
         const double ticksPerSecond = 100.0;
         return GetDefenseRegenSpeed(vertex, civ) * ticksPerSecond / DefenseRegenIntervalTicks;
@@ -262,28 +260,60 @@ public class MilitaryController
     /// Dominion sur les 3 hexs de l'emplacement).
     /// </summary>
     private double GetDefenseRegenSpeed(IMilitaryVertex vertex, Civilization civ)
+        => GetDefenseRegenSpeed(vertex, civ.CityDefenseRegenSpeed,
+            civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, "", 0.0));
+
+    /// <summary>
+    /// Variante prenant les deux valeurs propres à la civilisation déjà calculées — voir
+    /// <see cref="ResolveDefenseRegen"/>, qui les remonte hors de sa boucle par emplacement.
+    /// </summary>
+    private double GetDefenseRegenSpeed(IMilitaryVertex vertex, double civRegenSpeed, double perDominionLevel)
     {
-        double buildingBonus = vertex is City city ? city.Buildings.Sum(b => b.GetDefenseRegenBonus()) : 0;
-        double perDominionLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, "", 0.0);
-        double dominionBonus = perDominionLevel <= 0 ? 0.0
-            : perDominionLevel * vertex.Position.GetHexes()
-                .Sum(h => _state!.GetFeaturesAt(h).OfType<Dominion>().Sum(d => d.Level));
-        return (civ.CityDefenseRegenSpeed + buildingBonus) * (1.0 + dominionBonus);
+        // Caché sur la ville et invalidé par ses changements de bâtiments : le parcours était refait
+        // pour chaque emplacement à chaque événement d'horloge.
+        double buildingBonus = vertex is City city ? city.DefenseRegenBonus : 0;
+
+        double dominionBonus = 0.0;
+        if (perDominionLevel > 0)
+        {
+            int dominionLevels = 0;
+            var hexes = vertex.Position.GetHexes();
+            for (int h = 0; h < hexes.Length; h++)
+            {
+                var features = _state!.GetFeaturesAt(hexes[h]);
+                for (int f = 0; f < features.Count; f++)
+                    if (features[f] is Dominion dominion)
+                        dominionLevels += dominion.Level;
+            }
+            dominionBonus = perDominionLevel * dominionLevels;
+        }
+
+        return (civRegenSpeed + buildingBonus) * (1.0 + dominionBonus);
     }
 
     /// <summary>Score de défense maximal (bâtiments/bonus fixe + modificateurs de civilisation).</summary>
     public int GetDefenseScore(IMilitaryVertex vertex)
     {
-        int score = vertex.MaxDefense;
-        var civ = _state?.Civilizations.FirstOrDefault(c => c.Index == vertex.CivilizationIndex);
-        if (civ != null)
-        {
-            score += civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
+        var civ = _state?.GetCivilization(vertex.CivilizationIndex);
+        if (civ == null) return vertex.MaxDefense;
 
-            // Bastion Consacré : chaque Temple ajoute un bonus fixe selon son niveau (+1/3/6/10).
-            if (vertex is City city && civ.ModifierAggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS))
-                score += city.Buildings.OfType<Temple>().Sum(t => Temple.GetDefenseBonusForLevel(t.Level));
-        }
+        return GetDefenseScore(vertex,
+            civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0),
+            civ.ModifierAggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS));
+    }
+
+    /// <summary>
+    /// Variante prenant les deux valeurs propres à la civilisation déjà calculées — voir
+    /// <see cref="ResolveDefenseRegen"/>, qui les remonte hors de sa boucle par emplacement.
+    /// </summary>
+    private static int GetDefenseScore(IMilitaryVertex vertex, int civDefenseBonus, bool hasTempleDefenseBonus)
+    {
+        int score = vertex.MaxDefense + civDefenseBonus;
+
+        // Bastion Consacré : chaque Temple ajoute un bonus fixe selon son niveau (+1/3/6/10).
+        if (hasTempleDefenseBonus && vertex is City city)
+            score += city.FindBuilding(BuildingType.Temple) is { } tpl ? Temple.GetDefenseBonusForLevel(tpl.Level) : 0;
+
         return score;
     }
 
@@ -348,19 +378,42 @@ public class MilitaryController
 
     // ── Régénération de défense ──────────────────────────────────────────────
 
+    /// <summary>
+    /// Régénération de défense de tous les emplacements de toutes les civilisations, à chaque
+    /// événement d'horloge.
+    ///
+    /// <para>Les quatre valeurs lues sur <c>ModifierAggregator</c> ne dépendent que de la
+    /// civilisation : elles sont calculées une fois par civ, pas une fois par emplacement. En fin de
+    /// partie cette boucle voit plusieurs centaines d'emplacements et pesait 11 % du budget d'image
+    /// à elle seule, l'essentiel en agrégation de modifiers refaite à l'identique.</para>
+    /// </summary>
     private void ResolveDefenseRegen(long currentTick)
     {
-        foreach (var civ in _state!.Civilizations)
-            foreach (var vertex in civ.MilitaryVertices)
+        var civilizations = _state!.Civilizations;
+        for (int c = 0; c < civilizations.Count; c++)
+        {
+            var civ = civilizations[c];
+            var aggregator = civ.ModifierAggregator;
+
+            int civDefenseBonus = aggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
+            bool hasTempleDefenseBonus = aggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS);
+            double perDominionLevel = aggregator.ApplyModifiers(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, "", 0.0);
+            double civRegenSpeed = civ.CityDefenseRegenSpeed;
+
+            var vertices = civ.MilitaryVertices;
+            for (int v = 0; v < vertices.Count; v++)
             {
-                int maxDef = GetDefenseScore(vertex);
-                if (vertex.CurrentDefense >= maxDef) continue;
-                double regenSpeed = GetDefenseRegenSpeed(vertex, civ);
+                var vertex = vertices[v];
+                if (vertex.CurrentDefense >= GetDefenseScore(vertex, civDefenseBonus, hasTempleDefenseBonus)) continue;
+
+                double regenSpeed = GetDefenseRegenSpeed(vertex, civRegenSpeed, perDominionLevel);
                 long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / regenSpeed);
                 if (currentTick - vertex.LastDefenseRegenTick < effectiveRegenInterval) continue;
+
                 vertex.CurrentDefense++;
                 vertex.LastDefenseRegenTick = currentTick;
             }
+        }
     }
 
     // ── Méthodes publiques (commandes) ───────────────────────────────────────

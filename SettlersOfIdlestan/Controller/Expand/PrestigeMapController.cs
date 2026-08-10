@@ -69,10 +69,12 @@ public class PrestigeMapController
     {
         if (prestigeState == null || WorldState.Civilizations.Count == 0) return;
 
+        var civ = WorldState.PlayerCivilization;
+
+        ApplyStartingResearch(civ);
+
         var purchased = prestigeState.PurchasedVertices;
         if (purchased.Count == 0) return;
-
-        var civ = WorldState.PlayerCivilization;
 
         // Starting resource bonuses scaled by adjacent purchased vertices
         foreach (var hex in DefaultMap.Hexes)
@@ -103,6 +105,30 @@ public class PrestigeMapController
         WorldState.Visibility.RecalculateFor(civ.Index);
     }
 
+    /// <summary>
+    /// Complète d'office les recherches offertes par un modifier STARTING_RESEARCH (kit de départ
+    /// racial — voir RaceDefinitions). Les prérequis ne gardent que le <em>lancement</em> d'une
+    /// recherche, pas sa complétion : une recherche peut donc être offerte sans l'être de tout son
+    /// arbre amont, ce qui laisse volontairement les maillons manquants comme objectifs de début de
+    /// partie. Ré-appliqué à chaque début d'île, sans effet si la recherche est déjà acquise.
+    /// </summary>
+    private static void ApplyStartingResearch(Civilization civ)
+    {
+        var tree = civ.TechnologyTree;
+        bool granted = false;
+
+        foreach (var name in civ.ModifierAggregator.GetActiveSubCategories(ECategory.STARTING_RESEARCH))
+        {
+            if (!Enum.TryParse<TechnologyId>(name, out var techId)) continue;
+            if (tree.CompletedTechnologies.Contains(techId)) continue;
+            tree.CompleteResearch(techId);
+            granted = true;
+        }
+
+        if (granted)
+            tree.NotifyModifiersChanged();
+    }
+
     private static void GrantBuildingToCity(WorldState worldState, City city, BuildingType bt)
     {
         if (!city.Buildings.Any(b => b.Type == bt))
@@ -112,7 +138,7 @@ public class PrestigeMapController
             var map = worldState.GetMapFor(city.Position);
             if (map == null || !building.IsAvailableInLayer(map.Z)) return;
             building.Level = 1;
-            city.Buildings.Add(building);
+            city.AddBuilding(building);
             if (bt == BuildingType.TownHall) city.InvalidateLevelCache();
             city.InvalidateMaxSoldiersCache();
         }

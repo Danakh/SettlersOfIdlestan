@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -97,7 +97,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildersGuild? guild = null;
                 foreach (var city in civ.Cities)
                 {
-                    guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
+                    guild = city.FindBuilding<BuildersGuild>(BuildingType.BuildersGuild);
                     if (guild != null) break;
                 }
 
@@ -159,7 +159,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                           ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             var layers = new HashSet<int>();
@@ -263,7 +263,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                           ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             var ownOccupied = new HashSet<Edge>(civ.Roads.Select(r => r.Position));
@@ -319,7 +319,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations.FirstOrDefault(c => c.Index == civilizationIndex)
+            var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             // Vérifier que l'arête fait partie de la carte
@@ -699,7 +699,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             foreach (var city in civ.Cities)
             {
-                var guild = city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
+                var guild = city.FindBuilding<BuildersGuild>(BuildingType.BuildersGuild);
                 if (guild != null && guild.Level > 0)
                     return guild.RoadCostReduction;
             }

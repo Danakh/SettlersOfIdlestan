@@ -20,7 +20,7 @@ public class ArtisansGuild : Building, IUniqueBuilding
     public long GetAutoArtisanCooldownTicks() => 1000L;
 
     public override bool HasBuildPrerequisites(IBuildingContext city) =>
-        city.Buildings.Any(b => b.Type == BuildingType.Forge && b.Level >= 4);
+        city.HasBuildingAtLevel(BuildingType.Forge, 4);
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city) =>
         HasBuildPrerequisites(city) ? null : "tooltip_requires_forge_level4";

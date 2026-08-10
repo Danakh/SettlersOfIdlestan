@@ -58,22 +58,42 @@ public class Civilization
     public List<City> CitiesSerialized
     {
         get => _cities;
-        private set => _cities = value ?? new();
+        private set
+        {
+            foreach (var city in _cities) city.BuildingsChanged -= OnCityBuildingsChanged;
+            _cities = value ?? new();
+            foreach (var city in _cities) city.BuildingsChanged += OnCityBuildingsChanged;
+            InvalidateVertexCaches();
+            InvalidateBuildingDerivedCaches();
+        }
     }
 
     public void AddCity(City city)
     {
         _cities.Add(city);
+        city.BuildingsChanged += OnCityBuildingsChanged;
+        InvalidateVertexCaches();
+        InvalidateBuildingDerivedCaches();
         BuildingController.RecalculateStorageCapacity(this);
     }
 
     public void RemoveCity(City city)
     {
-        _cities.Remove(city);
+        if (_cities.Remove(city))
+            city.BuildingsChanged -= OnCityBuildingsChanged;
+        InvalidateVertexCaches();
+        InvalidateBuildingDerivedCaches();
         RebuildUniqueBuildingCache();
         RebuildUniqueBuildingsModifiers();
         BuildingController.RecalculateStorageCapacity(this);
     }
+
+    /// <summary>
+    /// Une ville de cette civilisation a gagné ou perdu un bâtiment. C'est le point unique qui rend
+    /// les caches dérivés des bâtiments fiables, quel que soit le chemin de construction emprunté —
+    /// y compris ceux qui n'appellent pas <see cref="BuildingController.BuildBuilding"/>.
+    /// </summary>
+    private void OnCityBuildingsChanged(object? sender, EventArgs e) => InvalidateBuildingDerivedCaches();
 
     private List<Road> _roads = new();
 
@@ -109,11 +129,11 @@ public class Civilization
     public List<MaritimeBeacon> MaritimeBeaconsSerialized
     {
         get => _maritimeBeacons;
-        private set => _maritimeBeacons = value ?? new();
+        private set { _maritimeBeacons = value ?? new(); InvalidateVertexCaches(); }
     }
 
-    public void AddMaritimeBeacon(MaritimeBeacon beacon) => _maritimeBeacons.Add(beacon);
-    public void RemoveMaritimeBeacon(MaritimeBeacon beacon) => _maritimeBeacons.Remove(beacon);
+    public void AddMaritimeBeacon(MaritimeBeacon beacon) { _maritimeBeacons.Add(beacon); InvalidateVertexCaches(); }
+    public void RemoveMaritimeBeacon(MaritimeBeacon beacon) { _maritimeBeacons.Remove(beacon); InvalidateVertexCaches(); }
 
     private List<WarFleet> _fleets = new();
 
@@ -129,11 +149,11 @@ public class Civilization
     public List<WarFleet> FleetsSerialized
     {
         get => _fleets;
-        private set => _fleets = value ?? new();
+        private set { _fleets = value ?? new(); InvalidateVertexCaches(); }
     }
 
-    public void AddFleet(WarFleet fleet) => _fleets.Add(fleet);
-    public void RemoveFleet(WarFleet fleet) => _fleets.Remove(fleet);
+    public void AddFleet(WarFleet fleet) { _fleets.Add(fleet); InvalidateVertexCaches(); }
+    public void RemoveFleet(WarFleet fleet) { _fleets.Remove(fleet); InvalidateVertexCaches(); }
 
     private List<MobileCamp> _mobileCamps = new();
 
@@ -149,27 +169,99 @@ public class Civilization
     public List<MobileCamp> MobileCampsSerialized
     {
         get => _mobileCamps;
-        private set => _mobileCamps = value ?? new();
+        private set { _mobileCamps = value ?? new(); InvalidateVertexCaches(); }
     }
 
-    public void AddMobileCamp(MobileCamp camp) => _mobileCamps.Add(camp);
-    public void RemoveMobileCamp(MobileCamp camp) => _mobileCamps.Remove(camp);
+    public void AddMobileCamp(MobileCamp camp) { _mobileCamps.Add(camp); InvalidateVertexCaches(); }
+    public void RemoveMobileCamp(MobileCamp camp) { _mobileCamps.Remove(camp); InvalidateVertexCaches(); }
+
+    private List<LandingSite> _landingSites = new();
+
+    /// <summary>
+    /// Sites d'Arrivée réservés par la civilisation (voir <see cref="LandingSite"/>) — lecture seule ;
+    /// utiliser AddLandingSite / RemoveLandingSite pour muter.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<LandingSite> LandingSites => _landingSites;
+
+    [JsonPropertyName("LandingSites")]
+    [JsonInclude]
+    public List<LandingSite> LandingSitesSerialized
+    {
+        get => _landingSites;
+        private set { _landingSites = value ?? new(); InvalidateVertexCaches(); }
+    }
+
+    public void AddLandingSite(LandingSite site) { _landingSites.Add(site); InvalidateVertexCaches(); }
+    public void RemoveLandingSite(LandingSite site) { _landingSites.Remove(site); InvalidateVertexCaches(); }
+
+    [NonSerialized]
+    private List<IMilitaryVertex>? _militaryVerticesCache;
+
+    [NonSerialized]
+    private List<IBuildVertex>? _buildVerticesCache;
+
+    /// <summary>
+    /// Invalide les listes agrégées <see cref="MilitaryVertices"/> / <see cref="BuildVertices"/>.
+    /// À appeler depuis toute mutation d'une des listes sources (villes, flottes, balises, camps
+    /// mobiles, sites d'arrivée) — pas quand un emplacement change simplement de position, les caches
+    /// ne contenant que des références.
+    /// </summary>
+    private void InvalidateVertexCaches()
+    {
+        _militaryVerticesCache = null;
+        _buildVerticesCache = null;
+    }
 
     /// <summary>
     /// Tous les emplacements militaires de la civilisation (villes, flottes et camps mobiles) — voir
     /// IMilitaryVertex. Utilisé par le système militaire pour traiter les trois types de façon uniforme.
+    /// Les Sites d'Arrivée en sont volontairement absents : ils ne sont jamais une cible.
+    ///
+    /// <para>Matérialisé en liste et mis en cache jusqu'à la prochaine mutation. Une chaîne
+    /// <c>Concat</c> paraissait gratuite mais réalloue ses itérateurs à <b>chaque</b> énumération, et
+    /// cette propriété est parcourue par presque tous les moteurs militaires à chaque tick, parfois
+    /// en boucles imbriquées (une énumération complète par emplacement). L'ordre — villes, puis
+    /// flottes, puis camps — est celui de l'ancienne chaîne et doit le rester : plusieurs choix de
+    /// cible en dépendent, donc le déterminisme de la partie aussi.</para>
     /// </summary>
     [JsonIgnore]
-    public IEnumerable<IMilitaryVertex> MilitaryVertices =>
-        Cities.Concat<IMilitaryVertex>(Fleets).Concat<IMilitaryVertex>(MobileCamps);
+    public IReadOnlyList<IMilitaryVertex> MilitaryVertices
+    {
+        get
+        {
+            if (_militaryVerticesCache != null) return _militaryVerticesCache;
+
+            var list = new List<IMilitaryVertex>(_cities.Count + _fleets.Count + _mobileCamps.Count);
+            for (int i = 0; i < _cities.Count; i++) list.Add(_cities[i]);
+            for (int i = 0; i < _fleets.Count; i++) list.Add(_fleets[i]);
+            for (int i = 0; i < _mobileCamps.Count; i++) list.Add(_mobileCamps[i]);
+            return _militaryVerticesCache = list;
+        }
+    }
 
     /// <summary>
-    /// Tous les emplacements construits par la civilisation (villes, flottes, balises, camps mobiles) —
-    /// voir IBuildVertex. Utilisé pour vérifier de façon uniforme l'occupation d'un vertex.
+    /// Tous les emplacements construits par la civilisation (villes, flottes, balises, camps mobiles,
+    /// sites d'arrivée) — voir IBuildVertex. Utilisé pour vérifier de façon uniforme l'occupation
+    /// d'un vertex. Même mise en cache et même contrainte d'ordre que <see cref="MilitaryVertices"/>.
     /// </summary>
     [JsonIgnore]
-    public IEnumerable<IBuildVertex> BuildVertices =>
-        Cities.Concat<IBuildVertex>(Fleets).Concat<IBuildVertex>(MaritimeBeacons).Concat<IBuildVertex>(MobileCamps);
+    public IReadOnlyList<IBuildVertex> BuildVertices
+    {
+        get
+        {
+            if (_buildVerticesCache != null) return _buildVerticesCache;
+
+            var list = new List<IBuildVertex>(
+                _cities.Count + _fleets.Count + _maritimeBeacons.Count + _mobileCamps.Count + _landingSites.Count);
+            for (int i = 0; i < _cities.Count; i++) list.Add(_cities[i]);
+            for (int i = 0; i < _fleets.Count; i++) list.Add(_fleets[i]);
+            for (int i = 0; i < _maritimeBeacons.Count; i++) list.Add(_maritimeBeacons[i]);
+            for (int i = 0; i < _mobileCamps.Count; i++) list.Add(_mobileCamps[i]);
+            for (int i = 0; i < _landingSites.Count; i++) list.Add(_landingSites[i]);
+            return _buildVerticesCache = list;
+        }
+    }
 
     private TechnologyTree _technologyTree = new();
 
@@ -226,6 +318,18 @@ public class Civilization
     /// de l'autoplay/des tests). Invalidé automatiquement via ModifierAggregator.Changed dès qu'un
     /// provider de modificateurs change (recherche, prestige, bâtiments uniques…).
     /// </summary>
+    /// <summary>
+    /// Variante sans allocation de <see cref="GetCachedMaxLevel"/> : le calcul est laissé à l'appelant,
+    /// qui n'a donc pas à allouer une closure à chaque appel — y compris quand le cache répond. Lu sur
+    /// un chemin très chaud (l'autoplayer teste le niveau max de chaque type de bâtiment de chaque
+    /// ville à chaque passe de stratégie).
+    /// </summary>
+    public bool TryGetCachedMaxLevel(BuildingType type, out int cached)
+        => _maxLevelCache.TryGetValue(type, out cached);
+
+    /// <summary>Mémorise le niveau max calculé par l'appelant de <see cref="TryGetCachedMaxLevel"/>.</summary>
+    public void SetCachedMaxLevel(BuildingType type, int value) => _maxLevelCache[type] = value;
+
     public int GetCachedMaxLevel(BuildingType type, Func<int> compute)
     {
         if (_maxLevelCache.TryGetValue(type, out int cached))
@@ -528,6 +632,96 @@ public class Civilization
     public bool AutoBuyUnlockedCache { get; private set; }
 
     public void SetAutoBuyUnlockedCache(bool value) => AutoBuyUnlockedCache = value;
+
+    [NonSerialized]
+    private bool? _hasMarket;
+
+    /// <summary>
+    /// Vrai si au moins une ville possède un Marché — condition du commerce (voir
+    /// <see cref="Controller.TradeController.IsTradeAvailable"/>). Calculé à la demande puis conservé
+    /// jusqu'à la prochaine mutation de bâtiments, signalée par <see cref="City.BuildingsChanged"/>.
+    ///
+    /// <para>Une première version de ce cache, recalculée depuis
+    /// <see cref="BuildingController.RecalculateStorageCapacity"/>, était fausse : plusieurs chemins
+    /// ajoutent des bâtiments sans passer par le contrôleur, et les tests de commerce l'ont
+    /// immédiatement montré. C'est ce qui a motivé l'encapsulation de <see cref="City.Buildings"/> —
+    /// sans elle, aucun cache dérivé des bâtiments ne peut être correct.</para>
+    /// </summary>
+    [JsonIgnore]
+    public bool HasMarket
+    {
+        get
+        {
+            if (_hasMarket is { } cached) return cached;
+
+            bool found = false;
+            for (int i = 0; i < _cities.Count && !found; i++)
+                found = _cities[i].FindBuilding(BuildingType.Market) != null;
+
+            _hasMarket = found;
+            return found;
+        }
+    }
+
+    /// <summary>
+    /// Invalide les caches dérivés des bâtiments des villes. Appelé automatiquement à toute mutation
+    /// de bâtiments et à tout ajout/retrait de ville ; à appeler manuellement après un changement de
+    /// <c>Building.Level</c>, que la liste des bâtiments ne reflète pas.
+    /// </summary>
+    public void InvalidateBuildingDerivedCaches()
+    {
+        _hasMarket = null;
+        _citiesByBuildingType = null;
+    }
+
+    [JsonIgnore]
+    private Dictionary<BuildingType, List<City>>? _citiesByBuildingType;
+
+    private static readonly List<City> EmptyCities = new();
+
+    /// <summary>
+    /// Villes de la civilisation possédant un bâtiment de ce type, dans l'ordre de <see cref="Cities"/>.
+    ///
+    /// <para>Remplace les balayages « toutes les villes » des contrôleurs qui n'ont affaire qu'à un
+    /// seul type de bâtiment : la production des Fonderies, Forges d'Armes et d'Armures, Marchés,
+    /// Ports, Huttes d'Alchimie et Casernes fait chacune sa passe complète à <b>chaque</b> événement
+    /// d'horloge, alors qu'en fin de partie une poignée de villes seulement portent le bâtiment
+    /// concerné. Le profilage donnait ces six passes à ~12 % du budget d'image, pour ne rien faire la
+    /// plupart du temps.</para>
+    ///
+    /// <para><b>L'ordre doit rester celui de <see cref="Cities"/></b> : plusieurs de ces passes
+    /// consomment le PRNG (choix de la ressource d'un Port, doublement d'une Forge), donc le
+    /// déterminisme de la partie en dépend.</para>
+    ///
+    /// <para>Retourne volontairement la <see cref="List{T}"/> concrète : les appelants bouclent
+    /// dessus à chaque tick, et via <c>IReadOnlyList</c> l'indexeur devient un appel d'interface et
+    /// <c>foreach</c> boxe l'énumérateur — voir la note correspondante dans CLAUDE.md.</para>
+    /// </summary>
+    public List<City> GetCitiesWith(BuildingType type)
+    {
+        if (_citiesByBuildingType == null)
+        {
+            var index = new Dictionary<BuildingType, List<City>>();
+            for (int i = 0; i < _cities.Count; i++)
+            {
+                var buildings = _cities[i].Buildings;
+                for (int b = 0; b < buildings.Count; b++)
+                {
+                    var buildingType = buildings[b].Type;
+                    if (!index.TryGetValue(buildingType, out var list))
+                        index[buildingType] = list = new List<City>();
+                    // Une ville ne porte jamais deux bâtiments du même type, mais on ne s'appuie pas
+                    // dessus : un doublon ferait produire la ville deux fois.
+                    if (list.Count == 0 || !ReferenceEquals(list[^1], _cities[i]))
+                        list.Add(_cities[i]);
+                }
+            }
+            _citiesByBuildingType = index;
+        }
+
+        return _citiesByBuildingType.TryGetValue(type, out var cities) ? cities : EmptyCities;
+    }
+
 
     /// <summary>
     /// Appelé uniquement par BuildingController après recalcul complet de la capacité de stockage.

@@ -14,6 +14,9 @@
   <Project Path="SOIStrategyTester/SOIStrategyTester.csproj">
     <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestanCore.csproj" />
   </Project>
+  <Project Path="SOIBench/SOIBench.csproj">
+    <BuildDependency Project="SettlersOfIdlestan/SettlersOfIdlestanCore.csproj" />
+  </Project>
   <Project Path="SOICapsuleGenerator/SOICapsuleGenerator.csproj">
     <BuildDependency Project="SettlersOfIdlestanSkia/SettlersOfIdlestanSkia.csproj" />
   </Project>

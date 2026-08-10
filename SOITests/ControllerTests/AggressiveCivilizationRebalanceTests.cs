@@ -101,7 +101,7 @@ namespace SOITests.ControllerTests
             var controller = new AutoExtendController();
             controller.Initialize(state, new GamePRNG(1), prestigeState: prestigeState);
 
-            city.Buildings.Add(new SettlersOfIdlestan.Model.Buildings.Watchtower { Level = 1 });
+            city.AddBuilding(new SettlersOfIdlestan.Model.Buildings.Watchtower { Level = 1 });
             state.Visibility.RecalculateFor(civ.Index);
 
             var npcCiv = Assert.Single(state.Civilizations.Where(c => c.IsNpc));

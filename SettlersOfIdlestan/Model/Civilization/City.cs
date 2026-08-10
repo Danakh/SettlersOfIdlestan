@@ -19,22 +19,140 @@ public class City : IBuildingContext, IMilitaryVertex
     /// </summary>
     public int CivilizationIndex { get; set; }
 
-    /// <summary>
-    /// Gets or sets the list of buildings in the city.
-    /// </summary>
-    public List<Building> Buildings { get; set; } = new();
+    private List<Building> _buildings = new();
 
-    IReadOnlyList<Building> IBuildingContext.Buildings => Buildings;
+    /// <summary>
+    /// Bâtiments de la ville — lecture seule ; utiliser <see cref="AddBuilding"/>,
+    /// <see cref="RemoveBuilding"/> ou <see cref="ClearBuildings"/> pour muter.
+    ///
+    /// <para>L'encapsulation existe pour rendre les caches dérivés fiables. Tant que la liste était
+    /// publiquement mutable, tout cache calculé « à la construction » pouvait être faux : plusieurs
+    /// chemins ajoutent des bâtiments sans passer par
+    /// <see cref="Controller.Island.BuildingController.BuildBuilding"/> — bâtiments de départ
+    /// accordés à la création d'une ville, bâtiment racial de l'Ascension, générateur de PNJ. Toute
+    /// mutation lève désormais <see cref="BuildingsChanged"/>, ce à quoi la civilisation propriétaire
+    /// s'abonne.</para>
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<Building> Buildings => _buildings;
+
+    /// <summary>Utilisé uniquement par la sérialisation JSON — conserve la clé « Buildings » des sauvegardes.</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("Buildings")]
+    [System.Text.Json.Serialization.JsonInclude]
+    public List<Building> BuildingsSerialized
+    {
+        get => _buildings;
+        private set { _buildings = value ?? new(); OnBuildingsChanged(); }
+    }
+
+    /// <summary>Levé après tout ajout, retrait ou remplacement en masse des bâtiments de la ville.</summary>
+    [field: NonSerialized]
+    public event EventHandler? BuildingsChanged;
+
+    public void AddBuilding(Building building)
+    {
+        _buildings.Add(building);
+        OnBuildingsChanged();
+    }
+
+    public bool RemoveBuilding(Building building)
+    {
+        if (!_buildings.Remove(building)) return false;
+        OnBuildingsChanged();
+        return true;
+    }
+
+    public void ClearBuildings()
+    {
+        if (_buildings.Count == 0) return;
+        _buildings.Clear();
+        OnBuildingsChanged();
+    }
+
+    /// <summary>
+    /// Invalide les caches propres à la ville puis prévient la civilisation. Les appels manuels à
+    /// <see cref="InvalidateLevelCache"/> restent nécessaires après un changement de <c>Level</c>
+    /// d'un bâtiment déjà présent : la liste n'a alors pas changé.
+    /// </summary>
+    private void OnBuildingsChanged()
+    {
+        _buildingByType = null;
+        InvalidateLevelCache();
+        InvalidateMaxSoldiersCache();
+        BuildingsChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     /// <summary>
     /// Défense actuelle (dynamique). Se régénère jusqu'à MaxDefense.
     /// </summary>
     public int CurrentDefense { get; set; }
 
+    [NonSerialized]
+    private int _cachedMaxDefense;
+    [NonSerialized]
+    private bool _maxDefenseCacheValid;
+
     /// <summary>
     /// Défense maximale calculée depuis les bâtiments (Palissade=10, Caserne=5, …).
+    ///
+    /// <para>Caché pour la même raison que <see cref="MaxSoldiers"/> :
+    /// <c>MilitaryController.ResolveDefenseRegen</c> la lit pour chaque emplacement militaire de
+    /// chaque civilisation à chaque événement d'horloge, et le parcours des bâtiments — appels
+    /// virtuels compris — pesait à lui seul plusieurs pourcents du budget d'image en fin de
+    /// partie.</para>
     /// </summary>
-    public int MaxDefense => Buildings.Sum(b => b.GetDefenseBonus());
+    public int MaxDefense
+    {
+        get
+        {
+            if (!_maxDefenseCacheValid)
+            {
+                int total = 0;
+                for (int i = 0; i < _buildings.Count; i++) total += _buildings[i].GetDefenseBonus();
+                _cachedMaxDefense = total;
+                _maxDefenseCacheValid = true;
+            }
+            return _cachedMaxDefense;
+        }
+    }
+
+    [NonSerialized]
+    private double _cachedDefenseRegenBonus;
+    [NonSerialized]
+    private bool _defenseRegenBonusCacheValid;
+
+    /// <summary>
+    /// Bonus de vitesse de régénération de défense apporté par les bâtiments de la ville. Lu sur le
+    /// même chemin chaud que <see cref="MaxDefense"/>, et caché pour la même raison.
+    /// </summary>
+    public double DefenseRegenBonus
+    {
+        get
+        {
+            if (!_defenseRegenBonusCacheValid)
+            {
+                double total = 0;
+                for (int i = 0; i < _buildings.Count; i++) total += _buildings[i].GetDefenseRegenBonus();
+                _cachedDefenseRegenBonus = total;
+                _defenseRegenBonusCacheValid = true;
+            }
+            return _cachedDefenseRegenBonus;
+        }
+    }
+
+    /// <summary>
+    /// Invalide les caches dérivés de la défense. Appelé par <see cref="InvalidateLevelCache"/> <b>et</b>
+    /// par <see cref="InvalidateMaxSoldiersCache"/> : les deux invalidations manuelles existantes ne
+    /// couvrent pas les mêmes sites — le prestige améliore une Caserne en n'appelant que la seconde,
+    /// un combat qui rétrograde un bâtiment n'appelle que la première — alors que les bonus de défense
+    /// dépendent du niveau dans les deux cas. Les brancher aux deux garantit qu'aucun chemin de
+    /// changement de niveau ne laisse la défense périmée.
+    /// </summary>
+    private void InvalidateDefenseCaches()
+    {
+        _maxDefenseCacheValid = false;
+        _defenseRegenBonusCacheValid = false;
+    }
 
     /// <summary>
     /// Nombre de soldats en garnison dans cette ville.
@@ -59,7 +177,9 @@ public class City : IBuildingContext, IMilitaryVertex
         {
             if (!_maxSoldiersCacheValid)
             {
-                _cachedMaxSoldiers = Buildings.Sum(b => b.GetMaxSoldiersBonus());
+                int total = 0;
+                for (int i = 0; i < _buildings.Count; i++) total += _buildings[i].GetMaxSoldiersBonus();
+                _cachedMaxSoldiers = total;
                 _maxSoldiersCacheValid = true;
             }
             return _cachedMaxSoldiers;
@@ -73,6 +193,7 @@ public class City : IBuildingContext, IMilitaryVertex
     internal void InvalidateMaxSoldiersCache()
     {
         _maxSoldiersCacheValid = false;
+        InvalidateDefenseCaches();
     }
 
     /// <summary>
@@ -141,7 +262,7 @@ public class City : IBuildingContext, IMilitaryVertex
         {
             if (!_townHallCacheValid)
             {
-                _cachedTownHall = Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
+                _cachedTownHall = FindBuilding(BuildingType.TownHall);
                 _townHallCacheValid = true;
             }
             return _cachedTownHall?.Level ?? 0;
@@ -152,7 +273,52 @@ public class City : IBuildingContext, IMilitaryVertex
     {
         _cachedTownHall = null;
         _townHallCacheValid = false;
+        InvalidateDefenseCaches();
     }
+
+    /// <summary>
+    /// Bâtiment de ce type dans la ville, ou null. Une ville ne contient jamais deux bâtiments du même
+    /// type (BuildingController.BuildBuilding améliore l'existant au lieu d'en
+    /// ajouter un second), donc ce parcours équivaut exactement à un
+    /// <c>Buildings.OfType&lt;T&gt;().FirstOrDefault()</c> — mais sans itérateur LINQ, sans délégué et
+    /// avec une simple comparaison d'enum au lieu d'un test de type. Les contrôleurs périodiques
+    /// (récolte, routes, recherche, militaire…) font cette recherche pour chaque ville à chaque tick :
+    /// c'est un des chemins les plus chauds du jeu.
+    /// </summary>
+    /// <summary>
+    /// Index type → bâtiment, reconstruit à la demande et invalidé par <see cref="OnBuildingsChanged"/>
+    /// comme les autres caches dérivés de la ville. Null tant qu'aucun <see cref="FindBuilding"/> n'a
+    /// été fait depuis la dernière mutation.
+    ///
+    /// <para>Le scan linéaire qu'il remplace était appelé une dizaine de fois par ville et par
+    /// événement d'horloge — production de soldats, forges, marché, port, hutte d'alchimie ont chacun
+    /// leur passe sur toutes les villes — soit, en fin de partie, plusieurs dizaines de milliers de
+    /// comparaisons par événement pour n'aboutir la plupart du temps qu'à « pas de bâtiment » ou
+    /// « pas encore l'heure ».</para>
+    /// </summary>
+    [NonSerialized]
+    private Dictionary<BuildingType, Building>? _buildingByType;
+
+    public Building? FindBuilding(BuildingType type)
+    {
+        if (_buildingByType == null)
+        {
+            var index = new Dictionary<BuildingType, Building>(_buildings.Count);
+            // Premier gagnant, comme l'ancien scan linéaire : si une ville portait deux bâtiments du
+            // même type, c'est le premier de la liste qui était retourné.
+            for (int i = 0; i < _buildings.Count; i++)
+                index.TryAdd(_buildings[i].Type, _buildings[i]);
+            _buildingByType = index;
+        }
+
+        return _buildingByType.TryGetValue(type, out var building) ? building : null;
+    }
+
+    /// <summary>
+    /// Variante typée de <see cref="FindBuilding(BuildingType)"/> — <paramref name="type"/> doit être le
+    /// <see cref="Building.Type"/> correspondant à <typeparamref name="T"/>.
+    /// </summary>
+    public T? FindBuilding<T>(BuildingType type) where T : Building => FindBuilding(type) as T;
 
     /// <summary>
     /// Gets the textual name of the city level used for sprite selection.

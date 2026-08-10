@@ -37,7 +37,7 @@ public class DeepestMine : Building
 
     public override bool HasBuildPrerequisites(IBuildingContext city)
     {
-        return city.Buildings.Any(b => b.Type == BuildingType.Mine && b.Level >= 4);
+        return city.HasBuildingAtLevel(BuildingType.Mine, 4);
     }
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city)

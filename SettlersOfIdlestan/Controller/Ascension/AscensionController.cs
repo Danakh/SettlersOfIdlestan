@@ -75,10 +75,17 @@ public class AscensionController : IModifierProvider
     private HarvestController? _harvestController;
     private GodState? _godState;
     private AscensionState? _ascensionState;
+    private CityBuilderController? _cityBuilderController;
 
     public event Action? OnModifiersChanged;
 
-    public void Initialize(WorldState state, GameClock? clock, GamePRNG prng, HarvestController harvestController, GodState godState)
+    /// <param name="cityBuilderController">
+    /// Optionnel : requis uniquement pour que Marche de Dieu puisse détruire les villes que le terrain
+    /// transformé ne permet plus d'occuper (voir <see cref="ApplyWalkOfGod"/>). Omis, la marche
+    /// transforme le terrain sans jamais rien détruire.
+    /// </param>
+    public void Initialize(WorldState state, GameClock? clock, GamePRNG prng, HarvestController harvestController, GodState godState,
+        CityBuilderController? cityBuilderController = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -94,6 +101,7 @@ public class AscensionController : IModifierProvider
         _harvestController = harvestController;
         _godState = godState;
         _ascensionState = godState.AscensionState;
+        _cityBuilderController = cityBuilderController;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -164,8 +172,8 @@ public class AscensionController : IModifierProvider
         });
 
     /// <summary>
-    /// Vrai si les races avancées (Géants, Garudas) sont débloquées : toute la seconde rangée
-    /// de pouvoirs divins achetée (le deuxième pouvoir de chaque colonne qui en possède un).
+    /// Vrai si les races avancées (Géants, Garudas, Sirènes, Elfes noirs) sont débloquées : toute la
+    /// seconde rangée de pouvoirs divins achetée (le deuxième pouvoir de chaque colonne qui en possède un).
     /// </summary>
     public bool AreAdvancedRacesUnlocked =>
         IsRaceSelectionUnlocked &&
@@ -177,9 +185,9 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Races choisissables à la prochaine Ascension : Humains toujours ; les races de base une fois
-    /// la première rangée de pouvoirs divins complète ; les races avancées implémentées (Géants,
-    /// Garudas) une fois la seconde rangée complète. Les stubs non implémentés (Sirènes, Elfes
-    /// noirs) n'apparaissent jamais ici.
+    /// la première rangée de pouvoirs divins complète ; les races avancées une fois la seconde rangée
+    /// complète. Toutes les races déclarées sont aujourd'hui implémentées ; un éventuel stub
+    /// (RaceDefinition.IsImplemented faux, c'est-à-dire sans bâtiment racial) n'apparaîtrait jamais ici.
     /// </summary>
     public IReadOnlyList<RaceId> GetSelectableRaces()
     {
@@ -281,11 +289,11 @@ public class AscensionController : IModifierProvider
             firstIslandParameters,
             mainGameState.Clock.CurrentTick,
             startTick: mainGameState.Clock.CurrentTick,
-            startVertexTerrain: RaceDefinitions.Get(chosenRace).StartVertexTerrain)
+            race: RaceDefinitions.Get(chosenRace))
             ?? throw new InvalidOperationException("Failed to generate island for ascension.");
 
         godState.PrestigeState = new PrestigeState(worldState);
-        GrantFreePrestigeVertices(godState.PrestigeState);
+        GrantFreePrestigeVertices(godState.PrestigeState, chosenRace);
 
         godState.AscensionState.CycleStartTick = mainGameState.Clock.CurrentTick;
         godState.AscensionState.CycleStartResearchCompleted = mainGameState.GameRecord.TotalResearchCompleted;
@@ -327,9 +335,12 @@ public class AscensionController : IModifierProvider
     /// chaque cycle d'Ascension : le vertex central dès que Foi (le premier pouvoir divin) est
     /// débloquée, plus ses 3 voisins (Caserne, Port &amp; Marché, Laboratoire) une fois le choix de
     /// race débloqué — le Marché de départ ainsi garanti permet d'acheter la ressource que le
-    /// terrain de départ de la race ne produit pas (ex. la brique des Nains).
+    /// terrain de départ de la race ne produit pas (ex. la brique des Nains). S'y ajoutent les
+    /// vertex propres à la race choisie (RaceDefinition.FreePrestigeVertices), eux aussi sans
+    /// contrainte de contiguïté : les Elfes noirs partent ainsi avec Culture Fongique, seule source
+    /// de nourriture viable pour un départ souterrain.
     /// </summary>
-    private void GrantFreePrestigeVertices(PrestigeState prestigeState)
+    private void GrantFreePrestigeVertices(PrestigeState prestigeState, RaceId race)
     {
         if (!IsPowerUnlocked(AscensionPowerId.Faith)) return;
 
@@ -341,6 +352,10 @@ public class AscensionController : IModifierProvider
         foreach (var neighbor in Expand.PrestigeMapController.DefaultMap.GetNeighbors(Model.Prestige.PrestigeMap.PrestigeMap.CentralVertex))
             if (!prestigeState.PurchasedVertices.Contains(neighbor.Coord))
                 prestigeState.PurchasedVertices.Add(neighbor.Coord);
+
+        foreach (var vertex in RaceDefinitions.Get(race).FreePrestigeVertices)
+            if (!prestigeState.PurchasedVertices.Contains(vertex))
+                prestigeState.PurchasedVertices.Add(vertex);
     }
 
     public IEnumerable<Modifier> GetModifiers()
@@ -389,11 +404,16 @@ public class AscensionController : IModifierProvider
         _state?.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault(d => d.Level >= WalkOfGodMinDominionLevel);
 
     /// <summary>
-    /// Coût en points de prestige de la prochaine utilisation de Marche de Dieu : 1 à la première
-    /// utilisation depuis le dernier prestige, 2 à la deuxième, etc. (voir
-    /// PrestigeState.WalkOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
+    /// Coût en points de prestige de la prochaine utilisation de Marche de Dieu : la première
+    /// utilisation depuis le dernier prestige est <b>gratuite</b>, la deuxième coûte 1, la troisième 2,
+    /// etc. (voir PrestigeState.WalkOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
+    ///
+    /// <para>La gratuité du premier usage n'est pas qu'un adoucissement : le coût se paie sur la
+    /// cagnotte de prestige (PrestigeState.PrestigePoints), qui vaut zéro sur la première île d'un
+    /// cycle d'Ascension. Sans elle, le pouvoir serait inutilisable précisément là où une race à
+    /// terrain requis en a le plus besoin pour ouvrir son premier emplacement de ville.</para>
     /// </summary>
-    public int GetWalkOfGodCost() => (_godState?.PrestigeState?.WalkOfGodUsesSinceLastPrestige ?? 0) + 1;
+    public int GetWalkOfGodCost() => _godState?.PrestigeState?.WalkOfGodUsesSinceLastPrestige ?? 0;
 
     /// <summary>Vrai si Marche de Dieu est débloquée et que le joueur a assez de points de prestige pour son prochain coût.</summary>
     public bool CanUseWalkOfGod()
@@ -403,13 +423,31 @@ public class AscensionController : IModifierProvider
     }
 
     /// <summary>
-    /// Assigne un terrain aléatoire (différent de l'actuel si possible) à un hex de surface portant
-    /// un Dominion de niveau <see cref="WalkOfGodMinDominionLevel"/> ou plus, contre un coût en
-    /// points de prestige croissant (voir <see cref="GetWalkOfGodCost"/>) plus 1 niveau du Dominion
-    /// de l'hex (jamais retiré : il reste au moins au niveau 1 après la marche).
-    /// Si l'hex ciblé était de l'eau, les hexs voisins qui n'existaient pas encore sont créés en tant qu'eau.
+    /// Terrain de prédilection de la race jouée — celui dont ses villes exigent l'adjacence (voir
+    /// <see cref="RaceDefinition.RequiredAdjacentTerrain"/> : Forêt pour les Elfes, Montagne pour les
+    /// Nains, Eau pour les Sirènes). <c>null</c> pour les races sans contrainte de placement, qui
+    /// n'ont donc rien de particulier à faire pousser.
     /// </summary>
-    public bool ChangeTerrainRandomly(HexCoord hex)
+    public TerrainType? FavouredTerrain => RaceDefinitions.Get(SelectedRace).RequiredAdjacentTerrain;
+
+    /// <summary>
+    /// Transforme le terrain d'un hex de surface portant un Dominion de niveau
+    /// <see cref="WalkOfGodMinDominionLevel"/> ou plus, contre un coût en points de prestige croissant
+    /// (voir <see cref="GetWalkOfGodCost"/>, premier usage gratuit) plus 1 niveau du Dominion de l'hex
+    /// (jamais retiré : il reste au moins au niveau 1 après la marche).
+    ///
+    /// <para>Le terrain obtenu dépend de la race jouée. Pour une race à terrain de prédilection
+    /// (<see cref="FavouredTerrain"/>), marcher sur <b>n'importe quel autre terrain</b> y fait pousser
+    /// ce terrain — c'est le seul moyen pour un Elfe d'ouvrir un emplacement de ville là où il n'y a
+    /// pas de forêt, et le pouvoir serait sans valeur pour lui s'il fallait retomber au hasard sur le
+    /// bon terrain (1 chance sur 4). Marcher sur le terrain de prédilection lui-même retire ce
+    /// déterminisme et retombe sur un terrain tiré au sort : la marche transforme, elle ne conserve
+    /// pas. Pour une race sans contrainte, tout tirage est aléatoire, comme avant.</para>
+    ///
+    /// <para>Si l'hex ciblé était de l'eau, les hexs voisins qui n'existaient pas encore sont créés en
+    /// tant qu'eau.</para>
+    /// </summary>
+    public bool ApplyWalkOfGod(HexCoord hex)
     {
         if (_state == null || _prng == null || !CanUseWalkOfGod()) return false;
 
@@ -423,8 +461,15 @@ public class AscensionController : IModifierProvider
         bool wasWater = tile.TerrainType == TerrainType.Water;
 
         TerrainType newType;
-        do { newType = RandomTerrainPool[_prng.Next(RandomTerrainPool.Length)]; }
-        while (newType == tile.TerrainType);
+        if (FavouredTerrain is { } favoured && tile.TerrainType != favoured)
+        {
+            newType = favoured;
+        }
+        else
+        {
+            do { newType = RandomTerrainPool[_prng.Next(RandomTerrainPool.Length)]; }
+            while (newType == tile.TerrainType);
+        }
 
         tile.TerrainType = newType;
         _state.NotifyTerrainChanged();
@@ -450,6 +495,10 @@ public class AscensionController : IModifierProvider
         var prestigeState = _godState!.PrestigeState!;
         prestigeState.PrestigePoints -= GetWalkOfGodCost();
         prestigeState.WalkOfGodUsesSinceLastPrestige++;
+
+        // Le terrain façonné peut rendre une ville inoccupable — engloutie sous l'eau, ou privée du
+        // terrain qu'exige sa race. Dieu ne fait pas d'exception pour ses fidèles : elle tombe.
+        _cityBuilderController?.DestroyCitiesInvalidatedByTerrain();
 
         return true;
     }

@@ -20,6 +20,16 @@ namespace SettlersOfIdlestan.Controller
     {
         bool IsComplete();
         bool TryAdvanceOnce();
+
+        /// <summary>
+        /// Libellé de diagnostic, pour <see cref="PriorityAutoplayStrategy.DescribeFirstIncomplete"/>.
+        /// Une stratégie bloquée l'est toujours sur son premier objectif incomplet, qui refuse
+        /// d'avancer sans jamais se déclarer terminé ; savoir lequel c'est est la moitié du travail
+        /// d'instruction d'un blocage. Le nom du type seul ne suffit pas — la liste de
+        /// <see cref="CivilizationAutoplayerPriorities.Unified"/> contient une dizaine de
+        /// BuildingLevelObjective —, d'où les surcharges qui rappellent les paramètres.
+        /// </summary>
+        string Describe() => GetType().Name;
     }
 
     /// <summary>
@@ -92,6 +102,8 @@ namespace SettlersOfIdlestan.Controller
             return false;
         }
 
+        public string Describe() => $"Building({string.Join('/', _buildingTypes)} → {_targetLevel})";
+
         private bool IsDone(City city, BuildingType bt)
         {
             var building = _buildingController.GetBuildingOrBuildable(city, bt);
@@ -123,6 +135,7 @@ namespace SettlersOfIdlestan.Controller
 
         public bool IsComplete() => !_predicate() || _inner.IsComplete();
         public bool TryAdvanceOnce() => _inner.TryAdvanceOnce();
+        public string Describe() => $"If[{_inner.Describe()}]";
     }
 
     /// <summary>
@@ -145,6 +158,7 @@ namespace SettlersOfIdlestan.Controller
 
         public bool IsComplete() => !_predicate() || _inner.IsComplete();
         public bool TryAdvanceOnce() => _inner.TryAdvanceOnce();
+        public string Describe() => $"If[{_inner.Describe()}]";
     }
 
     /// <summary>
@@ -156,16 +170,54 @@ namespace SettlersOfIdlestan.Controller
     {
         private readonly CivilizationAutoplayer _autoplayer;
         private readonly int _targetCount;
+        private readonly bool _completeWhenExpansionExhausted;
 
-        public CityCountObjective(CivilizationAutoplayer autoplayer, int targetCount)
+        /// <param name="completeWhenExpansionExhausted">
+        /// Vrai (défaut) : l'objectif se déclare terminé quand la carte n'offre plus rien
+        /// (<see cref="CivilizationAutoplayer.HasExpansionTarget"/>), pour laisser la main à la
+        /// suite de la liste. Faux : il reste incomplet quoi qu'il arrive — réservé à l'objectif
+        /// d'expansion illimitée qui clôt <see cref="CivilizationAutoplayerPriorities.Unified"/>, dont
+        /// c'est justement le rôle d'empêcher <see cref="PriorityAutoplayStrategy.IsComplete"/> de
+        /// devenir vrai (les boucles qui tournent sur <c>!strategy.IsComplete()</c> s'arrêteraient net
+        /// dès la carte saturée, abandonnant par exemple une guerre en cours — voir
+        /// StepIslandScenarios.ExterminateCivilizationsStep).
+        /// </param>
+        public CityCountObjective(CivilizationAutoplayer autoplayer, int targetCount, bool completeWhenExpansionExhausted = true)
         {
             _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
             _targetCount = targetCount;
+            _completeWhenExpansionExhausted = completeWhenExpansionExhausted;
         }
 
-        public bool IsComplete() => _autoplayer.Civilization.Cities.Count >= _targetCount;
+        /// <summary>
+        /// Atteint le nombre de villes voulu — ou, sauf opt-out explicite, il n'y a plus rien à faire
+        /// pour s'en approcher (<see cref="CivilizationAutoplayer.HasExpansionTarget"/> : plus aucun
+        /// vertex constructible ni aucun vertex prospectif à viser).
+        ///
+        /// <para>Ce second cas n'est pas un détail : <see cref="PriorityAutoplayStrategy.TryStepOnce"/>
+        /// s'arrête au premier objectif incomplet, qu'il ait agi ou non. Un objectif d'expansion
+        /// impossible à satisfaire gèle donc définitivement tout ce qui le suit — Port Impérial,
+        /// niveaux de bâtiments, Merveille — et la partie s'arrête sur une île saturée sous la cible.
+        /// C'est ce qui bloquait toutes les races dont la carte plafonne sous les 12 villes de
+        /// CivilizationAutoplayerPriorities.Unified (Elfes et Nains par adjacence de terrain, Géants à
+        /// distance 4, Sirènes hors du littoral). Réévalué à chaque passe : si l'expansion redevient
+        /// possible (carte agrandie, terrain transformé), l'objectif redevient actif de lui-même.</para>
+        ///
+        /// <para>Critère volontairement plus strict que <c>HasBuildableExpansion</c> : le réseau routier
+        /// peut presque toujours croître d'un cran de plus, donc « il reste des routes constructibles »
+        /// n'est jamais faux assez longtemps pour libérer la suite de la liste. Ce que le repli routier
+        /// de TryExpandOnce cherche — découvrir du terrain — reste fait par le puits d'expansion qui
+        /// clôt Unified, simplement à sa place, derrière le Port Impérial au lieu de devant.</para>
+        /// </summary>
+        public bool IsComplete() =>
+            _autoplayer.Civilization.Cities.Count >= _targetCount ||
+            (_completeWhenExpansionExhausted && !_autoplayer.HasExpansionTarget());
 
         public bool TryAdvanceOnce() => _autoplayer.TryExpandOnce();
+
+        public string Describe() =>
+            $"CityCount(→ {(_targetCount == int.MaxValue ? "∞" : _targetCount.ToString())}, " +
+            $"{_autoplayer.Civilization.Cities.Count} now)";
     }
 
     /// <summary>
@@ -221,6 +273,42 @@ namespace SettlersOfIdlestan.Controller
             }
             return didSomething;
         }
+    }
+
+    /// <summary>
+    /// Satisfied once no unique building can be placed anywhere any more — the open-ended counterpart to
+    /// <see cref="UniqueBuildingObjective"/>, which chases one named building. Covers every unique the
+    /// civilization has unlocked, whatever unlocked it: prestige vertices, the permanent slots granted by
+    /// Ascension, and the racial building of the race currently being played (they all go through
+    /// BUILDING_MAX_LEVEL, so nothing here needs to know which race that is). Nothing else in the
+    /// priority list ever asks for a unique other than the Imperial Port, so without this objective a
+    /// racial building is simply never built.
+    ///
+    /// <para>Blocking: while a unique is placeable it takes priority over the stages after it, so the
+    /// strategy grinds its cost out instead of pouring everything into the next production level.
+    /// <paramref name="typeFilter"/> is what keeps that from being too blunt —
+    /// <see cref="CivilizationAutoplayerPriorities.Unified"/> only ever asks for the racial building, and
+    /// documents at the call site why widening it to the prestige guilds degrades runs today.</para>
+    ///
+    /// <para>A unique whose prerequisites aren't met yet is not a candidate at all (see
+    /// <see cref="BuildingController.GetBuildableUniqueBuildings"/>), so this never holds the list hostage
+    /// waiting on a Forge 4 that a later stage is the one meant to build — the re-scan from the top on
+    /// every call picks it up again the moment that stage delivers.</para>
+    /// </summary>
+    public class UniqueBuildingsObjective : IAutoplayObjective
+    {
+        private readonly CivilizationAutoplayer _autoplayer;
+        private readonly Func<BuildingType, bool>? _typeFilter;
+
+        public UniqueBuildingsObjective(CivilizationAutoplayer autoplayer, Func<BuildingType, bool>? typeFilter = null)
+        {
+            _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+            _typeFilter = typeFilter;
+        }
+
+        public bool IsComplete() => _autoplayer.FindNextUniqueBuildingToBuild(_typeFilter) == null;
+
+        public bool TryAdvanceOnce() => _autoplayer.TryBuildAnyUniqueBuildingOnce(_typeFilter);
     }
 
     /// <summary>
@@ -297,6 +385,12 @@ namespace SettlersOfIdlestan.Controller
             return _autoplayer.TryExtendRoadTowardUnexploredOnce();
         }
 
+        public string Describe()
+        {
+            var missing = GetMissingTerrains();
+            return $"ResourceCoverage(manque {(missing.Count == 0 ? "rien" : string.Join('/', missing))})";
+        }
+
         private List<TerrainType> GetMissingTerrains()
         {
             var ws = _autoplayer.WorldState;
@@ -305,8 +399,13 @@ namespace SettlersOfIdlestan.Controller
             var map = ws.GetMapForZ(IslandMap.SurfaceLayer);
             if (map == null) return new List<TerrainType>();
 
-            var contestedHexes = new HashSet<HexCoord>(
-                ws.Features.OfType<ContestedTerritory>().Select(ct => ct.Position));
+            // Parcours direct plutôt qu'un OfType/Select LINQ : appelé à chaque passe de la stratégie
+            // sur la totalité des features de la carte, et le plus souvent aucune n'est contestée —
+            // auquel cas aucun HashSet n'est alloué du tout.
+            HashSet<HexCoord>? contestedHexes = null;
+            foreach (var feature in ws.Features)
+                if (feature is ContestedTerritory ct)
+                    (contestedHexes ??= new HashSet<HexCoord>()).Add(ct.Position);
 
             var covered = new HashSet<TerrainType>();
             foreach (var city in _autoplayer.Civilization.Cities)
@@ -314,15 +413,23 @@ namespace SettlersOfIdlestan.Controller
                 if (city.Position.Z != IslandMap.SurfaceLayer) continue;
                 foreach (var hex in city.Position.GetHexes())
                 {
-                    if (contestedHexes.Contains(hex)) continue;
+                    if (contestedHexes != null && contestedHexes.Contains(hex)) continue;
                     var terrain = map.GetTile(hex)?.TerrainType;
                     if (terrain.HasValue && ResourceTerrainSet.Contains(terrain.Value))
                         covered.Add(terrain.Value);
                 }
             }
 
-            return ResourceTerrains.Where(t => !covered.Contains(t)).ToList();
+            if (covered.Count >= ResourceTerrains.Length) return EmptyTerrains;
+
+            List<TerrainType>? missing = null;
+            foreach (var t in ResourceTerrains)
+                if (!covered.Contains(t))
+                    (missing ??= new List<TerrainType>()).Add(t);
+            return missing ?? EmptyTerrains;
         }
+
+        private static readonly List<TerrainType> EmptyTerrains = new();
     }
 
     /// <summary>
@@ -354,7 +461,7 @@ namespace SettlersOfIdlestan.Controller
             bool shouldBeActive = ShouldBarracksBeActive();
             return _autoplayer.Civilization.Cities.All(city =>
             {
-                var barracks = city.Buildings.OfType<Barracks>().FirstOrDefault();
+                var barracks = city.FindBuilding(BuildingType.Barracks);
                 if (barracks == null || barracks.Level == 0) return true;
                 return barracks.ActivationStatus == (shouldBeActive ? ActivationStatus.ACTIVE : ActivationStatus.INACTIVE);
             });
@@ -367,7 +474,7 @@ namespace SettlersOfIdlestan.Controller
             bool didSomething = false;
             foreach (var city in _autoplayer.Civilization.Cities)
             {
-                var barracks = city.Buildings.OfType<Barracks>().FirstOrDefault();
+                var barracks = city.FindBuilding(BuildingType.Barracks);
                 if (barracks == null || barracks.Level == 0) continue;
                 if (barracks.ActivationStatus == targetStatus) continue;
                 barracks.ActivationStatus = targetStatus;
@@ -499,6 +606,21 @@ namespace SettlersOfIdlestan.Controller
                 return objective.TryAdvanceOnce();
             }
             return false;
+        }
+
+        /// <summary>
+        /// Objectif sur lequel <see cref="TryStepOnce"/> vient de rendre la main, décrit — soit
+        /// « rien » si tout est terminé. Purement diagnostique : une stratégie qui n'agit plus est
+        /// arrêtée sur exactement cet objectif, incomplet et incapable d'avancer, et tout ce qui le
+        /// suit dans la liste est gelé avec lui (voir CityCountObjective.IsComplete). Sans ce point
+        /// d'observation, un blocage d'autoplay se lit dans une sauvegarde exportée à la main.
+        /// </summary>
+        public string DescribeFirstIncomplete()
+        {
+            for (int i = 0; i < _objectives.Count; i++)
+                if (!_objectives[i].IsComplete())
+                    return $"#{i} {_objectives[i].Describe()}";
+            return "rien (tous les objectifs sont terminés)";
         }
     }
 }

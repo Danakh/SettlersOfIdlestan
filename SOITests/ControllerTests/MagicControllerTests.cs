@@ -40,14 +40,14 @@ namespace SOITests.ControllerTests
         private static MageTower AddMageTower(WorldState state, int level = 1)
         {
             var tower = new MageTower { Level = level };
-            state.PlayerCivilization.Cities[0].Buildings.Add(tower);
+            state.PlayerCivilization.Cities[0].AddBuilding(tower);
             return tower;
         }
 
         private static (WorldState state, GameClock clock, MagicController controller) CreateSetup()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.PlayerCivilization.Cities[0].Buildings.Add(new TownHall { Level = TownHallLevel });
+            state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
 
             var clock = new GameClock();
             clock.Start();
@@ -251,7 +251,7 @@ namespace SOITests.ControllerTests
             Assert.Equal(2, controller.GetActiveRitual(RitualId.Growth)!.Power);
 
             // La tour est détruite : le budget retombe à 1 (base sans tour)
-            state.PlayerCivilization.Cities[0].Buildings.Remove(tower);
+            state.PlayerCivilization.Cities[0].RemoveBuilding(tower);
             clock.SimulateAdvance(MagicController.UpkeepIntervalTicks);
 
             Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
@@ -444,7 +444,7 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             civ.AddResource(Resource.Crystal, 200);
-            civ.Cities[0].Buildings.Add(new Barracks { Level = 5 });
+            civ.Cities[0].AddBuilding(new Barracks { Level = 5 });
 
             Assert.False(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
         }
@@ -455,7 +455,7 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.SummonTroops);
-            civ.Cities[0].Buildings.Add(new Barracks { Level = 30 });
+            civ.Cities[0].AddBuilding(new Barracks { Level = 30 });
             civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
             {
                 new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 400),
@@ -474,7 +474,7 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.SummonTroops);
-            civ.Cities[0].Buildings.Add(new Barracks { Level = 30 });
+            civ.Cities[0].AddBuilding(new Barracks { Level = 30 });
             civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
             {
                 new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 400),
@@ -496,7 +496,7 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.SummonTroops);
-            civ.Cities[0].Buildings.Add(new Barracks { Level = 1 }); // MaxSoldiers = 5
+            civ.Cities[0].AddBuilding(new Barracks { Level = 1 }); // MaxSoldiers = 5
             civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
             {
                 new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),
@@ -517,7 +517,7 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.SummonTroops);
-            civ.Cities[0].Buildings.Add(new Barracks { Level = 1 }); // MaxSoldiers = 5
+            civ.Cities[0].AddBuilding(new Barracks { Level = 1 }); // MaxSoldiers = 5
             civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
             {
                 new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),
@@ -536,7 +536,7 @@ namespace SOITests.ControllerTests
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.SummonTroops);
-            civ.Cities[0].Buildings.Add(new Barracks { Level = 5 });
+            civ.Cities[0].AddBuilding(new Barracks { Level = 5 });
             civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
             {
                 new(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, 200),

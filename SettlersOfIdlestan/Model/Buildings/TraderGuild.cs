@@ -23,16 +23,16 @@ public class TraderGuild : Building, IUniqueBuilding
 
     public override bool HasBuildPrerequisites(IBuildingContext city)
     {
-        bool hasMarket = city.Buildings.Any(b => b.Type == BuildingType.Market && b.Level >= 1);
-        bool hasSeaport4 = city.Buildings.Any(b => b.Type == BuildingType.Seaport && b.Level >= 4);
+        bool hasMarket = city.HasBuildingAtLevel(BuildingType.Market, 1);
+        bool hasSeaport4 = city.HasBuildingAtLevel(BuildingType.Seaport, 4);
         return hasMarket && hasSeaport4;
     }
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city)
     {
-        if (!city.Buildings.Any(b => b.Type == BuildingType.Market && b.Level >= 1))
+        if (!city.HasBuildingAtLevel(BuildingType.Market, 1))
             return "tooltip_requires_market";
-        if (!city.Buildings.Any(b => b.Type == BuildingType.Seaport && b.Level >= 4))
+        if (!city.HasBuildingAtLevel(BuildingType.Seaport, 4))
             return "tooltip_requires_seaport_4";
         return null;
     }
