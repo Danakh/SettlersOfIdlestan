@@ -4,8 +4,10 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.Prestige;
 using SOIStrategyTester.Model;
 
 namespace SOIStrategyTester;
@@ -25,11 +27,48 @@ public class EndlessRunOptions
     /// whichever of (2× previous points) or this time limit is reached first ends the island.</summary>
     public double MaxIslandHoursAfterFixedTargets { get; set; } = 24.0;
 
+    /// <summary>
+    /// Applies MaxIslandHoursAfterFixedTargets to <b>every</b> island, including the ones still covered
+    /// by a fixed PrestigePointTargets entry (which normally have no time cap at all). Used by the race
+    /// gauntlet, where a fixed target a given race simply cannot reach must not turn into an unbounded
+    /// grind: the island ends on whichever of "target reached" or "time cap" comes first.
+    /// </summary>
+    public bool TimeCapAllIslands { get; set; }
+
+    /// <summary>
+    /// Hard stop, in simulated hours of a single island: if the island is still not
+    /// PrestigeIsAvailable() by then, the whole run is abandoned rather than looping. 0 disables it.
+    /// Distinct from the time cap above, which only ends an island that <i>can</i> prestige — a run
+    /// that never gets an Imperial Port up would otherwise keep going until MaxPassesPerCycle.
+    /// </summary>
+    public double AbandonIslandAfterHours { get; set; }
+
     /// <summary>Pure safety valve: if a single island still hasn't triggered a prestige after this many
     /// full passes through every phase (each pass being cheap once everything is already built), force
     /// a prestige with whatever points are available rather than hang forever. Only relevant for the
     /// fixed (no-time-cap) targets, where a genuinely unreachable target would otherwise loop forever.</summary>
     public int MaxPassesPerCycle { get; set; } = 500;
+}
+
+/// <summary>
+/// Outcome of an <see cref="EndlessRunner.Run"/> call. The caller decides what counts as success:
+/// the endless mode itself only cares about <see cref="ObjectiveReached"/>, while the race gauntlet
+/// judges on <see cref="PrestigeCount"/> (did this race clear N islands?) and reads
+/// <see cref="IslandStats"/> for the per-island summary table.
+/// </summary>
+public class EndlessRunResult
+{
+    public bool ObjectiveReached { get; set; }
+    public int PrestigeCount { get; set; }
+    public long Tick { get; set; }
+    public long Iterations { get; set; }
+
+    /// <summary>Non-null only when the run stopped on a problem (never reached Prestige-available,
+    /// abandoned an island). A run that simply exhausted MaxCycles leaves this null.</summary>
+    public string? FailureReason { get; set; }
+
+    /// <summary>One entry per completed island, in order — PrestigeState.RunHistory's own stats.</summary>
+    public List<PrestigeRunStats> IslandStats { get; } = new();
 }
 
 /// <summary>
@@ -53,7 +92,7 @@ public static class EndlessRunner
         "ResearchCompleted,UniqueBuildings,WonderLevel,HasDeepestMine,HasCorruptionSpire,HasAbyssGate," +
         "AbyssGateEverUnlocked";
 
-    public static void Run(MainGameController controller, StrategyDefinition strategy, ObjectiveSpec globalObjective,
+    public static EndlessRunResult Run(MainGameController controller, StrategyDefinition strategy, ObjectiveSpec globalObjective,
         StrategyRunOptions options, EndlessRunOptions endlessOptions)
     {
         if (strategy.Phases.Count == 0)
@@ -70,6 +109,7 @@ public static class EndlessRunner
         if (checkpointIntervalTicks <= 0)
             throw new ArgumentException("--checkpoint-hours must be positive.");
         long maxIslandTicks = (long)Math.Round(endlessOptions.MaxIslandHoursAfterFixedTargets * 3600.0 * 100.0);
+        long abandonIslandTicks = (long)Math.Round(endlessOptions.AbandonIslandAfterHours * 3600.0 * 100.0);
 
         var fullCsvPath = Path.GetFullPath(endlessOptions.CsvPath);
         var csvDir = Path.GetDirectoryName(fullCsvPath);
@@ -83,6 +123,7 @@ public static class EndlessRunner
         Console.WriteLine($"Endless run started for strategy '{strategy.Name}' — objective: {globalObjective.Kind}.");
         Console.WriteLine($"CSV: {fullCsvPath}");
 
+        var result = new EndlessRunResult();
         long iterationsUsed = 0;
         int prestigeCount = 0;
         long nextCheckpointTick = checkpointIntervalTicks;
@@ -91,14 +132,15 @@ public static class EndlessRunner
         for (long cycle = 1; cycle <= endlessOptions.MaxCycles; cycle++)
         {
             int cycleIdx0 = (int)Math.Min(cycle - 1, int.MaxValue);
-            bool hasTimeCap = cycleIdx0 >= endlessOptions.PrestigePointTargets.Count;
-            int pointsTarget = hasTimeCap
+            bool pastFixedTargets = cycleIdx0 >= endlessOptions.PrestigePointTargets.Count;
+            bool hasTimeCap = pastFixedTargets || endlessOptions.TimeCapAllIslands;
+            int pointsTarget = pastFixedTargets
                 ? Math.Max(1, lastAchievedPoints * 2)
                 : endlessOptions.PrestigePointTargets[cycleIdx0];
             long islandStartTick = mainState.CurrentWorldState?.StartTick ?? clock.CurrentTick;
 
             Console.WriteLine(hasTimeCap
-                ? $"== Cycle {cycle}: target {pointsTarget} prestige points (2x previous), or {endlessOptions.MaxIslandHoursAfterFixedTargets}h simulated — whichever comes first =="
+                ? $"== Cycle {cycle}: target {pointsTarget} prestige points{(pastFixedTargets ? " (2x previous)" : "")}, or {endlessOptions.MaxIslandHoursAfterFixedTargets}h simulated — whichever comes first =="
                 : $"== Cycle {cycle}: target {pointsTarget} prestige points ==");
 
             bool prestigedThisCycle = false;
@@ -140,7 +182,8 @@ public static class EndlessRunner
                                 $"tick {clock.CurrentTick} ({FormatHours(clock.CurrentTick)} simulated hours), {iterationsUsed} iterations.");
                             WriteRow(csv, "Objective", cycle, phaseIndex, phase.Kind, iterationsUsed, prestigeCount, pointsTarget, clock, controller, mainState);
                             csv.Flush();
-                            return;
+                            result.ObjectiveReached = true;
+                            return Finish(result, prestigeCount, clock, iterationsUsed);
                         }
 
                         int currentPoints = controller.PrestigeController.CalculatePrestigePoints();
@@ -161,10 +204,30 @@ public static class EndlessRunner
                             {
                                 prestigeCount++;
                                 Console.WriteLine($"[trigger] {reason}");
-                                lastAchievedPoints = LogPrestige(csv, cycle, phaseIndex, phase.Kind, iterationsUsed, prestigeCount, pointsTarget, clock, mainState);
+                                var stats = LogPrestige(csv, cycle, phaseIndex, phase.Kind, iterationsUsed, prestigeCount, pointsTarget, clock, mainState);
+                                lastAchievedPoints = stats?.PrestigePoints ?? 0;
+                                if (stats != null)
+                                    result.IslandStats.Add(stats);
                             }
                             prestigedThisCycle = true;
                             break;
+                        }
+
+                        // Hard stop: this island has run long enough that it clearly isn't going to
+                        // prestige at all (an Imperial Port it can't build, points that never reach 20).
+                        // Without it the cycle would keep grinding until MaxPassesPerCycle — see
+                        // EndlessRunOptions.AbandonIslandAfterHours.
+                        if (abandonIslandTicks > 0 && islandAge >= abandonIslandTicks && !controller.PrestigeController.PrestigeIsAvailable())
+                        {
+                            string why = DescribeMissingPrestigeRequirements(controller, currentPoints);
+                            Console.WriteLine(
+                                $"Cycle {cycle}: abandoned after {FormatHours(islandAge)}h on this island without ever reaching " +
+                                $"Prestige-available ({why}).");
+                            WriteRow(csv, "Abandoned", cycle, phaseIndex, phase.Kind, iterationsUsed, prestigeCount, pointsTarget, clock, controller, mainState);
+                            csv.Flush();
+                            result.FailureReason =
+                                $"island {cycle}: no prestige after {FormatHours(islandAge)}h simulated ({why})";
+                            return Finish(result, prestigeCount, clock, iterationsUsed);
                         }
 
                         if (phase.Until != null && ObjectiveEvaluator.Evaluate(phase.Until, controller))
@@ -216,24 +279,65 @@ public static class EndlessRunner
 
             if (!prestigedThisCycle)
             {
+                string why = DescribeMissingPrestigeRequirements(controller, controller.PrestigeController.CalculatePrestigePoints());
                 Console.WriteLine(
-                    $"Cycle {cycle}: gave up without ever reaching Prestige-available " +
-                    $"(needs an Imperial Port + {PrestigeControllerRequiredPoints} points) — aborting endless run.");
+                    $"Cycle {cycle}: gave up after {endlessOptions.MaxPassesPerCycle} passes without ever reaching " +
+                    $"Prestige-available ({why}) — aborting endless run.");
                 csv.Flush();
-                return;
+                result.FailureReason = $"island {cycle}: no prestige after {endlessOptions.MaxPassesPerCycle} passes ({why})";
+                return Finish(result, prestigeCount, clock, iterationsUsed);
             }
         }
 
         Console.WriteLine(
-            $"Reached the {endlessOptions.MaxCycles}-cycle safety cap without meeting the objective. " +
+            $"Stopped after {endlessOptions.MaxCycles} cycles (--max-cycles). " +
             $"{prestigeCount} prestiges performed, tick {clock.CurrentTick} ({FormatHours(clock.CurrentTick)} simulated hours).");
+        return Finish(result, prestigeCount, clock, iterationsUsed);
+    }
+
+    private static EndlessRunResult Finish(EndlessRunResult result, int prestigeCount, GameClock clock, long iterationsUsed)
+    {
+        result.PrestigeCount = prestigeCount;
+        result.Tick = clock.CurrentTick;
+        result.Iterations = iterationsUsed;
+        return result;
+    }
+
+    /// <summary>
+    /// Why this island never became prestigeable. Two things are worth telling apart, and neither is
+    /// visible from the points count alone:
+    /// - which half of PrestigeController.PrestigeIsAvailable() is missing — "20 points short" is a
+    ///   pacing problem, "no Imperial Port" is usually structural (no coastal city this civilization
+    ///   can build here, or a Seaport it cannot level to 4);
+    /// - whether the map still offers anywhere to expand. Zero buildable vertices *and* zero buildable
+    ///   roads means the run is genuinely walled in (city-placement rules, terrain); a healthy count
+    ///   alongside a stalled city count means the autoplayer is the one not getting there.
+    /// </summary>
+    private static string DescribeMissingPrestigeRequirements(MainGameController controller, int currentPoints)
+    {
+        var civ = controller.CurrentMainState?.CurrentWorldState?.Civilizations.FirstOrDefault(c => !c.IsNpc);
+        bool hasPort = civ?.UniqueBuildings.Contains(BuildingType.ImperialPort) ?? false;
+        bool hasPoints = currentPoints >= PrestigeControllerRequiredPoints;
+
+        string missing =
+            !hasPort && !hasPoints ? $"no Imperial Port, and {currentPoints}/{PrestigeControllerRequiredPoints} points"
+            : !hasPort ? $"no Imperial Port ({currentPoints} points)"
+            : $"{currentPoints}/{PrestigeControllerRequiredPoints} points";
+
+        if (civ == null) return missing;
+
+        int buildableVertices = controller.CityBuilderController.GetBuildableVertices(civ.Index).Count;
+        int buildableRoads = controller.RoadController.GetBuildableRoads(civ.Index).Count;
+        return $"{missing}; {civ.Cities.Count} cities, {buildableVertices} buildable vertices, {buildableRoads} buildable roads";
     }
 
     private const int PrestigeControllerRequiredPoints = 20; // SettlersOfIdlestan.Controller.Expand.PrestigeController.PrestigeRequiredPoints
     private const int IdleBreakThreshold = 300; // consecutive no-op iterations (≈150 simulated seconds at the default time step) before giving up on a phase early
     private const int StagnantPassLimit = 8; // full passes through every phase with zero prestige-point movement before giving up on the whole cycle
 
-    private static int LogPrestige(StreamWriter csv, long cycle, int phaseIndex, PhaseKind phaseKind,
+    /// <summary>Logs the prestige that just happened and returns its recorded stats (null if the run
+    /// history somehow has no entry — the caller then just has nothing to report for this island).</summary>
+    private static PrestigeRunStats? LogPrestige(StreamWriter csv, long cycle, int phaseIndex, PhaseKind phaseKind,
         long iterationsUsed, int prestigeCount, int pointsTarget, GameClock clock, MainGameState mainState)
     {
         var stats = mainState.PrestigeState?.RunHistory.LastOrDefault();
@@ -257,7 +361,7 @@ public static class EndlessRunner
         }));
         csv.Flush();
 
-        return stats?.PrestigePoints ?? 0;
+        return stats;
     }
 
     private static void LogCheckpoint(StreamWriter csv, long cycle, int phaseIndex, PhaseKind phaseKind,
