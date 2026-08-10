@@ -8,12 +8,18 @@ namespace SettlersOfIdlestanUI.Controls;
 /// Icone d'engrenage des parametres.
 ///
 /// Il n'existe pas de SVG pour cette icone : l'ancien renderer la construisait
-/// geometriquement. On reprend exactement la meme construction (8 dents, rayon de dent a
-/// 1,3x le rayon) pour que l'icone reste identique apres migration.
+/// geometriquement. On reprend sa construction exacte — 8 dents, rayon de dent a 1,3x le
+/// rayon, moyeu a 0,3x — et surtout son rendu : un TRAIT de 1,5 px, pas un aplat.
+///
+/// Le detail qui fait tout : les dents forment une seule et meme figure. La derniere ligne
+/// d'une dent finit exactement ou commence la suivante (meme angle, meme rayon), si bien que
+/// la couronne se referme d'un seul trait continu. Dessinees en figures fermees et remplies,
+/// les memes coordonnees donnent huit quartiers separes — une fleur pleine, pas un engrenage.
 /// </summary>
 internal static class GearIcon
 {
     private const int TeethCount = 8;
+    private const double StrokeWidth = 1.5;
 
     public static AvaloniaPath Create(double size, IBrush brush)
     {
@@ -24,26 +30,24 @@ internal static class GearIcon
         var geometry = new StreamGeometry();
         using (var ctx = geometry.Open())
         {
+            ctx.BeginFigure(Point(cx, cy, Angle(0), radius), isFilled: false);
             for (int i = 0; i < TeethCount; i++)
             {
-                double a1 = Angle(i), a2 = Angle(i + 0.4), a3 = Angle(i + 0.6), a4 = Angle(i + 1);
-
-                ctx.BeginFigure(Point(cx, cy, a1, radius), isFilled: true);
-                ctx.LineTo(Point(cx, cy, a2, teethRadius));
-                ctx.LineTo(Point(cx, cy, a3, teethRadius));
-                ctx.LineTo(Point(cx, cy, a4, radius));
-                ctx.EndFigure(isClosed: true);
+                ctx.LineTo(Point(cx, cy, Angle(i + 0.4), teethRadius));
+                ctx.LineTo(Point(cx, cy, Angle(i + 0.6), teethRadius));
+                ctx.LineTo(Point(cx, cy, Angle(i + 1), radius));
             }
+            ctx.EndFigure(isClosed: true);
 
-            // Moyeu central, evide par la regle de remplissage alternee.
-            AddCircle(ctx, cx, cy, radius * 0.45);
-            ctx.SetFillRule(FillRule.EvenOdd);
+            AddCircle(ctx, cx, cy, radius * 0.3);
         }
 
         return new AvaloniaPath
         {
             Data = geometry,
-            Fill = brush,
+            Stroke = brush,
+            StrokeThickness = StrokeWidth,
+            StrokeJoin = PenLineJoin.Round,
             Width = size,
             Height = size,
         };
@@ -56,7 +60,7 @@ internal static class GearIcon
 
     private static void AddCircle(StreamGeometryContext ctx, double cx, double cy, double r)
     {
-        ctx.BeginFigure(new Point(cx - r, cy), isFilled: true);
+        ctx.BeginFigure(new Point(cx - r, cy), isFilled: false);
         ctx.ArcTo(new Point(cx + r, cy), new Size(r, r), 0, false, SweepDirection.Clockwise);
         ctx.ArcTo(new Point(cx - r, cy), new Size(r, r), 0, false, SweepDirection.Clockwise);
         ctx.EndFigure(isClosed: true);

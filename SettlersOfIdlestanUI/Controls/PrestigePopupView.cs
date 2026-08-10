@@ -31,6 +31,9 @@ public sealed class PrestigePopupView : UserControl
     private static readonly SolidColorBrush ActionDisabled = new(Color.FromRgb(70, 70, 78));
     private static readonly SolidColorBrush CloseButton = new(Color.FromArgb(230, 90, 50, 50));
 
+    /// <summary>Place laissee libre a droite pour l'ascenseur, qui se dessine par-dessus le contenu.</summary>
+    private const double ScrollGutter = 14;
+
     public PrestigePopupView(PrestigePopupViewModel viewModel)
     {
         DataContext = viewModel;
@@ -45,7 +48,9 @@ public sealed class PrestigePopupView : UserControl
             FontWeight = FontWeight.Bold,
             Foreground = Brushes.White,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 12),
+            // Meme gouttiere que les lignes : sinon le titre se centre sur une largeur que le
+            // reste du contenu n'occupe plus.
+            Margin = new Thickness(0, 0, ScrollGutter, 12),
             [!TextBlock.TextProperty] = new Binding(nameof(PrestigePopupViewModel.Title)),
         };
 
@@ -62,10 +67,16 @@ public sealed class PrestigePopupView : UserControl
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             MaxHeight = 300,
+            // L'ascenseur Fluent est en survol : il ne prend pas de place dans la mise en page et
+            // se dessine PAR-DESSUS le bord droit. Comme les valeurs des lignes sont justement
+            // ancrees a droite, il faut lui reserver sa gouttiere a la main.
+            Padding = new Thickness(0, 0, ScrollGutter, 0),
             Content = rows,
         };
 
-        var footer = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 10, 0, 0) };
+        // Meme gouttiere que la zone defilante : le total doit rester aligne sur les valeurs des
+        // lignes qu'il additionne.
+        var footer = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 10, ScrollGutter, 0) };
         footer.Children.Add(BuildWonderRow(viewModel));
         footer.Children.Add(BuildTotalRow());
         footer.Children.Add(BuildTierPicker(viewModel));
