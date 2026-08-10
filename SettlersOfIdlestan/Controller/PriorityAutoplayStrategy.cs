@@ -276,6 +276,42 @@ namespace SettlersOfIdlestan.Controller
     }
 
     /// <summary>
+    /// Satisfied once no unique building can be placed anywhere any more — the open-ended counterpart to
+    /// <see cref="UniqueBuildingObjective"/>, which chases one named building. Covers every unique the
+    /// civilization has unlocked, whatever unlocked it: prestige vertices, the permanent slots granted by
+    /// Ascension, and the racial building of the race currently being played (they all go through
+    /// BUILDING_MAX_LEVEL, so nothing here needs to know which race that is). Nothing else in the
+    /// priority list ever asks for a unique other than the Imperial Port, so without this objective a
+    /// racial building is simply never built.
+    ///
+    /// <para>Blocking: while a unique is placeable it takes priority over the stages after it, so the
+    /// strategy grinds its cost out instead of pouring everything into the next production level.
+    /// <paramref name="typeFilter"/> is what keeps that from being too blunt —
+    /// <see cref="CivilizationAutoplayerPriorities.Unified"/> only ever asks for the racial building, and
+    /// documents at the call site why widening it to the prestige guilds degrades runs today.</para>
+    ///
+    /// <para>A unique whose prerequisites aren't met yet is not a candidate at all (see
+    /// <see cref="BuildingController.GetBuildableUniqueBuildings"/>), so this never holds the list hostage
+    /// waiting on a Forge 4 that a later stage is the one meant to build — the re-scan from the top on
+    /// every call picks it up again the moment that stage delivers.</para>
+    /// </summary>
+    public class UniqueBuildingsObjective : IAutoplayObjective
+    {
+        private readonly CivilizationAutoplayer _autoplayer;
+        private readonly Func<BuildingType, bool>? _typeFilter;
+
+        public UniqueBuildingsObjective(CivilizationAutoplayer autoplayer, Func<BuildingType, bool>? typeFilter = null)
+        {
+            _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+            _typeFilter = typeFilter;
+        }
+
+        public bool IsComplete() => _autoplayer.FindNextUniqueBuildingToBuild(_typeFilter) == null;
+
+        public bool TryAdvanceOnce() => _autoplayer.TryBuildAnyUniqueBuildingOnce(_typeFilter);
+    }
+
+    /// <summary>
     /// Maintenance objective that keeps research flowing: starts the cheapest available research
     /// whenever none is in progress, and sets the cheapest queueable research whenever the queue slot
     /// is empty (once the research-queue prestige perk is unlocked). No-ops entirely until research is

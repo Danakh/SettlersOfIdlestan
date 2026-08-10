@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Races;
 
 namespace SettlersOfIdlestan.Controller
 {
@@ -250,8 +251,25 @@ namespace SettlersOfIdlestan.Controller
                 new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, MilitaryBuildings, 1)),
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, new[] { BuildingType.Temple }, 1)),
 
-                // Expansion finie pour accumuler des points de prestige, puis Port Impérial
+                // Expansion finie pour accumuler des points de prestige, puis bâtiment racial et
+                // Port Impérial. Le bâtiment racial passe avant le Port, et pas après : le Grand Terrier
+                // gobelin abaisse d'un niveau les prérequis de tous les uniques, seule façon pour une
+                // race dont les Comptoirs plafonnent à 3 d'atteindre un Port Impérial qui en exige 4 —
+                // le bâtir après le Port n'aiderait plus personne. La ville côtière visée par le Port
+                // garde sa place d'unique réservée tant qu'il n'est pas bâti (voir
+                // CivilizationAutoplayer.FindNextUniqueBuildingToBuild).
+                //
+                // Volontairement limité au bâtiment racial : le même objectif sans filtre (donc toutes
+                // les guildes de prestige) a été essayé à quatre emplacements et budgets d'itérations
+                // différents, et dégrade les runs à chaque fois. Un unique n'est pas une dépense
+                // ponctuelle — les guildes allument des automatismes de construction qui puisent ensuite
+                // en continu dans le stock (voir BuildingController.PerformHarvestersGuildProductionAutomation
+                // et consorts), ce qui affame la production de soldats d'une île d'extermination (guerre
+                // jamais finie, même à 3× le budget d'itérations) ou le financement du Port Impérial
+                // lui-même. Élargir au-delà du racial demande d'abord d'apprendre à l'autoplay à piloter
+                // ces automatismes, pas seulement à poser les bâtiments.
                 new CityCountObjective(auto, expansionTarget),
+                new UniqueBuildingsObjective(auto, RaceDefinitions.IsRacialBuilding),
                 new ImperialPortObjective(auto),
 
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, ProductionBuildings, 4)),

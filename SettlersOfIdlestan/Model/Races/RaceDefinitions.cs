@@ -172,6 +172,18 @@ public static class RaceDefinitions
         => All.First(r => r.Id == id);
 
     /// <summary>
+    /// Bâtiments raciaux, toutes races confondues. Sert à reconnaître un unique racial sans savoir
+    /// quelle race est jouée : une seule race à la fois débloque le sien (son BUILDING_MAX_LEVEL +1),
+    /// donc appartenir à cet ensemble et être constructible suffit à l'identifier comme le bâtiment
+    /// racial de la partie en cours.
+    /// </summary>
+    public static IReadOnlySet<BuildingType> RacialBuildings { get; } =
+        All.Where(r => r.RacialBuilding.HasValue).Select(r => r.RacialBuilding!.Value).ToHashSet();
+
+    /// <inheritdoc cref="RacialBuildings"/>
+    public static bool IsRacialBuilding(BuildingType type) => RacialBuildings.Contains(type);
+
+    /// <summary>
     /// Modifiers de niveau max (±delta) pour les bâtiments « standards » : non uniques, hors Hôtel
     /// de Ville (son niveau pilote le niveau de ville et les seuils AvailableAtLevel) et hors
     /// bâtiments dont le niveau max par défaut est 0 ou 1 (uniques de prestige partant de 0,

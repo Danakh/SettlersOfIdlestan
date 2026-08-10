@@ -37,6 +37,15 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private static readonly BuildingType[] _allBuildingTypes = (BuildingType[])Enum.GetValues(typeof(BuildingType));
 
+        /// <summary>
+        /// Types de bâtiments uniques, résolus une fois pour toutes. IsUnique est une constante par
+        /// type : scanner l'enum entier — et instancier un prototype par type pour le lire — n'a besoin
+        /// d'être fait qu'au chargement, pas à chaque appel de
+        /// <see cref="GetBuildableUniqueBuildings"/>, que l'autoplayer emprunte à chaque tick.
+        /// </summary>
+        private static readonly BuildingType[] _uniqueBuildingTypes =
+            _allBuildingTypes.Where(bt => CreateBuilding(bt)?.IsUnique == true).ToArray();
+
         public event EventHandler<BuildingBuiltEventArgs>? OnBuildingBuilt;
 
         internal BuildingController(WorldState? state = null)
@@ -573,6 +582,51 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     result.Add(prototype);
                 }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Bâtiments uniques que cette ville peut réellement poser maintenant, ressources mises à part :
+        /// débloqués pour la civilisation (niveau max > 0), pas déjà bâtis ailleurs, disponibles pour la
+        /// ville (niveau/terrain/couche) et dont les prérequis sont remplis — le tout vu à travers le
+        /// même contexte allégé que <see cref="BuildBuilding"/> (voir
+        /// <see cref="BuildReducedPrerequisiteContext"/>). Liste vide si la ville héberge déjà un unique :
+        /// elle ne peut en accueillir qu'un seul.
+        ///
+        /// <para>Là où <see cref="GetUniqueBuildingsAndBuildables"/> alimente l'affichage et inclut
+        /// délibérément les uniques déjà bâtis comme ceux montrés grisés faute de prérequis, celle-ci ne
+        /// rend que des candidats sur lesquels <see cref="BuildBuilding"/> peut aboutir. C'est ce qui
+        /// permet à l'autoplay de ne jamais s'enfermer à farmer le coût d'un unique qu'il ne pourrait de
+        /// toute façon pas poser (voir <c>UniqueBuildingsObjective</c>).</para>
+        /// </summary>
+        public List<Building> GetBuildableUniqueBuildings(City city)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var result = new List<Building>();
+            if (city.Buildings.Any(b => b.IsUnique)) return result;
+
+            var civ = _state.GetCivilization(city.CivilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
+
+            if (_state.GetMapFor(city.Position) is not { } map) return result;
+
+            var buildContext = BuildReducedPrerequisiteContext(city, civ);
+
+            foreach (var bt in _uniqueBuildingTypes)
+            {
+                // Same live-cache reasoning as BuildBuilding(): civ.UniqueBuildings never clears on
+                // city loss, so it must not be treated as "currently built" here either.
+                if (civ.GetUniqueBuilding(bt) != null) continue;
+
+                var prototype = CreateBuilding(bt);
+                if (prototype == null || GetMaxLevel(prototype, civ) <= 0) continue;
+                if (!prototype.IsBuildingAvailableForCity(map, buildContext, civ)) continue;
+                if (!prototype.HasBuildPrerequisites(buildContext, _state)) continue;
+
+                result.Add(prototype);
             }
 
             return result;

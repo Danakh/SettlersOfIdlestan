@@ -491,6 +491,17 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
+        /// La ville sur laquelle <see cref="TryBuildImperialPortOnce"/> concentre tous ses efforts : la
+        /// première ville côtière de la couche courante. Exposée parce que sa place d'unique lui est de
+        /// fait réservée — une ville n'héberge qu'un bâtiment unique, et le Port Impérial est la
+        /// condition du prestige (voir <see cref="FindNextUniqueBuildingToBuild"/>).
+        /// </summary>
+        public City? GetImperialPortCity() =>
+            _civ.Cities.FirstOrDefault(c =>
+                _map.IsOnSameLayer(c.Position) &&
+                _map.VertexHasTerrainType(c.Position, TerrainType.Water));
+
+        /// <summary>
         /// Focuses exclusively on the first coastal city to unlock the Imperial Port: Seaport 4,
         /// Warehouse 4, TownHall 4, then the (unique) Imperial Port itself. Spreading these levels
         /// across every city the way BuildingLevelObjective does would be far more expensive — the
@@ -498,9 +509,7 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool TryBuildImperialPortOnce()
         {
-            var coastalCity = _civ.Cities.FirstOrDefault(c =>
-                _map.IsOnSameLayer(c.Position) &&
-                _map.VertexHasTerrainType(c.Position, TerrainType.Water));
+            var coastalCity = GetImperialPortCity();
             if (coastalCity == null) return false;
 
             bool didSomething = false;
@@ -785,6 +794,89 @@ namespace SettlersOfIdlestan.Controller
             if (withGrind)
                 TryGrindOnce(target.GetBuildCost());
 
+            return false;
+        }
+
+        /// <summary>
+        /// Prochain bâtiment unique à poser, et la ville qui l'accueillera — null si aucun n'est
+        /// constructible pour l'instant. Couvre indifféremment les uniques débloqués par la carte de
+        /// prestige, ceux offerts en permanence par l'Ascension et le bâtiment racial de la race en
+        /// cours : tous passent par le même BUILDING_MAX_LEVEL, donc
+        /// <see cref="BuildingController.GetBuildableUniqueBuildings"/> les voit sans que l'autoplay
+        /// ait à savoir quelle race est jouée.
+        ///
+        /// <para>Le moins cher d'abord (somme des ressources du coût de construction) : le grind est
+        /// séquentiel, et viser d'emblée le plus accessible évite d'immobiliser la liste de priorités
+        /// derrière une guilde à plus de mille ressources alors qu'un unique bien plus court — le
+        /// bâtiment racial en particulier — est déjà à portée.</para>
+        ///
+        /// <para>La ville du Port Impérial (<see cref="GetImperialPortCity"/>) est écartée tant que le
+        /// Port n'est pas bâti : une ville n'accueille qu'un unique, et lui prendre sa place la rendrait
+        /// définitivement inéligible au Port, donc au prestige. Toutes les autres villes sont
+        /// candidates, chacune portant le sien.</para>
+        ///
+        /// <para><paramref name="typeFilter"/> restreint les types considérés — voir l'étape dédiée au
+        /// bâtiment racial de <see cref="CivilizationAutoplayerPriorities.Unified"/>.</para>
+        /// </summary>
+        public (City City, Building Building)? FindNextUniqueBuildingToBuild(Func<BuildingType, bool>? typeFilter = null)
+        {
+            var reservedCity = _civ.UniqueBuildings.Contains(BuildingType.ImperialPort)
+                ? null
+                : GetImperialPortCity();
+
+            (City City, Building Building)? best = null;
+            int bestCost = int.MaxValue;
+
+            foreach (var city in _civ.Cities)
+            {
+                if (ReferenceEquals(city, reservedCity)) continue;
+
+                foreach (var candidate in _buildingController.GetBuildableUniqueBuildings(city))
+                {
+                    if (typeFilter != null && !typeFilter(candidate.Type)) continue;
+
+                    var cost = candidate.GetBuildCost();
+
+                    // Une ressource que la civilisation ne peut pas stocker ne peut être ni récoltée ni
+                    // achetée : viser un unique qui en réclame bloquerait la stratégie à farmer un coût
+                    // inatteignable, cet objectif restant incomplet tant qu'un candidat existe.
+                    bool unreachable = false;
+                    foreach (var (resource, amount) in cost)
+                    {
+                        if (_civ.GetResourceQuantity(resource) >= amount) continue;
+                        if (_civ.GetResourceMaxQuantity(resource) >= amount) continue;
+                        unreachable = true;
+                        break;
+                    }
+                    if (unreachable) continue;
+
+                    int total = cost.Values.Sum();
+                    if (total >= bestCost) continue;
+                    bestCost = total;
+                    best = (city, candidate);
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Construit le prochain bâtiment unique disponible (voir <see cref="FindNextUniqueBuildingToBuild"/>),
+        /// en récoltant/commerçant pour son coût quand les ressources manquent. Une seule cible à la
+        /// fois : les uniques ont des coûts très dissemblables, et grinder pour plusieurs dans le même
+        /// tick ferait chasser une ressource différente à chaque tentative — exactement le brassage de
+        /// stock documenté sur <see cref="BuildingLevelObjective"/>.
+        /// </summary>
+        public bool TryBuildAnyUniqueBuildingOnce(Func<BuildingType, bool>? typeFilter = null)
+        {
+            var next = FindNextUniqueBuildingToBuild(typeFilter);
+            if (next == null) return false;
+
+            var (city, building) = next.Value;
+            if (_buildingController.BuildBuilding(city, building.Type))
+                return true;
+
+            TryGrindOnce(building.GetBuildCost());
             return false;
         }
 
