@@ -57,6 +57,7 @@ public sealed class GameScreen : IDisposable
     private GameOverPopupRenderer? _gameOverPopup;
     private bool _gameOverPending;
     private HardResetPopupRenderer? _hardResetPopup;
+    private RestartIslandPopupRenderer? _restartIslandPopup;
     private DebugPanelRenderer? _debugPanelRenderer;
     private DemoEndPopupRenderer? _demoEndPopup;
     private bool _prestigeTransitionPending;
@@ -298,6 +299,10 @@ public sealed class GameScreen : IDisposable
             _fileSystemService,
             onConfirm: () => ReturnToTitleRequested?.Invoke());
 
+        _restartIslandPopup = new RestartIslandPopupRenderer(
+            _localizationService,
+            onConfirm: HandleGameOverRestart);
+
         var settingsMenu = new SettingsMenu(
             _gameControllerService.MainGameController,
             _inputService, _localizationService,
@@ -306,7 +311,10 @@ public sealed class GameScreen : IDisposable
             allowDebugMode, debugPanelRenderer,
             StartNewGameIntro, _uiLayoutService,
             onReturnToMenu: () => ReturnToTitleRequested?.Invoke(),
-            onRestartIsland: HandleGameOverRestart,
+            // Recommencer l'île depuis le menu passe par une confirmation : le joueur perd sa
+            // partie sans rien gagner. La modale de fin de partie, elle, redémarre directement —
+            // il n'y a alors plus rien à perdre.
+            onRestartIsland: () => _restartIslandPopup?.Open(),
             // Seul rappel du menu qui arrive après une attente du joueur (le sélecteur de
             // fichier) : il faut donc reprendre le verrou de l'hôte avant de toucher au modèle.
             onLoadGame: json => RunSynchronized(() => HandleLoadGame(json)));
@@ -408,6 +416,7 @@ public sealed class GameScreen : IDisposable
     public ModalPopupSnapshot GetModalPopupSnapshot()
     {
         if (_hardResetPopup?.IsOpen   == true) return _hardResetPopup.GetSnapshot();
+        if (_restartIslandPopup?.IsOpen == true) return _restartIslandPopup.GetSnapshot();
         if (_corruptSavePopup?.IsOpen == true) return _corruptSavePopup.GetSnapshot();
         if (_gameOverPopup?.IsOpen    == true) return _gameOverPopup.GetSnapshot();
         if (_demoEndPopup?.IsOpen     == true) return _demoEndPopup.GetSnapshot();
@@ -423,6 +432,7 @@ public sealed class GameScreen : IDisposable
         switch (popupId)
         {
             case ModalPopupSnapshot.IdHardReset:   _hardResetPopup?.InvokeButton(buttonKey);   break;
+            case ModalPopupSnapshot.IdRestartIsland: _restartIslandPopup?.InvokeButton(buttonKey); break;
             case ModalPopupSnapshot.IdCorruptSave: _corruptSavePopup?.InvokeButton(buttonKey); break;
             case ModalPopupSnapshot.IdGameOver:    _gameOverPopup?.InvokeButton(buttonKey);    break;
             case ModalPopupSnapshot.IdDemoEnd:     _demoEndPopup?.InvokeButton(buttonKey);     break;
@@ -772,6 +782,7 @@ public sealed class GameScreen : IDisposable
         // Une modale ouverte est bloquante : elle est dessinée par l'hôte, qui intercepte déjà
         // les clics, mais la garde reste ici — c'est le renderer qui détient l'état d'ouverture.
         if (_hardResetPopup?.IsOpen    == true) return;
+        if (_restartIslandPopup?.IsOpen == true) return;
         if (_corruptSavePopup?.IsOpen  == true) return;
         if (_gameOverPopup?.IsOpen     == true) return;
         if (_demoEndPopup?.IsOpen      == true) return;
@@ -792,6 +803,7 @@ public sealed class GameScreen : IDisposable
     public void HandlePointerMoved(float x, float y, int pointerId)
     {
         if (_hardResetPopup?.IsOpen  == true) return;
+        if (_restartIslandPopup?.IsOpen == true) return;
         if (_corruptSavePopup?.IsOpen == true) return;
         if (_gameOverPopup?.IsOpen   == true) return;
         if (_demoEndPopup?.IsOpen    == true) return;
@@ -814,6 +826,7 @@ public sealed class GameScreen : IDisposable
     public void HandlePointerReleased(float x, float y, int pointerId, PointerButton button)
     {
         if (_hardResetPopup?.IsOpen  == true) return;
+        if (_restartIslandPopup?.IsOpen == true) return;
         if (_corruptSavePopup?.IsOpen == true) return;
         if (_gameOverPopup?.IsOpen   == true) return;
         if (_demoEndPopup?.IsOpen    == true) return;
@@ -1380,6 +1393,7 @@ public sealed class GameScreen : IDisposable
         _debugPanelRenderer?.Dispose();
         _corruptSavePopup?.Dispose();
         _hardResetPopup?.Dispose();
+        _restartIslandPopup?.Dispose();
         _demoEndPopup?.Dispose();
         _constructionInteractionService?.Cleanup();
         _militaryInteractionService?.Cleanup();

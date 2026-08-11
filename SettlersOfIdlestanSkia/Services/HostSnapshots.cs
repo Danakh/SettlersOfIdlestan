@@ -647,6 +647,7 @@ public sealed record ModalPopupSnapshot(
     public const string IdCorruptSave = "corruptSave";
     public const string IdGameOver    = "gameOver";
     public const string IdDemoEnd     = "demoEnd";
+    public const string IdRestartIsland = "restartIsland";
 
     /// Confirmation de perte d'essences divines avant un prestige. Portee par le popup Prestige
     /// et non par GameScreen, mais de meme forme : elle emprunte cette vue.
