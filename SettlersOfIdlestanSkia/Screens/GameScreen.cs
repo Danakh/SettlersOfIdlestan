@@ -303,7 +303,8 @@ public sealed class GameScreen : IDisposable
             allowDebugMode, debugPanelRenderer,
             StartNewGameIntro, _uiLayoutService,
             onReturnToMenu: () => ReturnToTitleRequested?.Invoke(),
-            onRestartIsland: HandleGameOverRestart);
+            onRestartIsland: HandleGameOverRestart,
+            onLoadGame: HandleLoadGame);
 
         _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
         _playerResourcesOverlayRenderer.ConnectLowStock(null, _gameControllerService.PlayerCivilization!);
@@ -1158,6 +1159,36 @@ public sealed class GameScreen : IDisposable
     }
 
     private void ResetPointerState() { _isPointerDown = false; _isPanning = false; }
+
+    /// <summary>
+    /// Charge une sauvegarde en cours de partie (menu « Charger »). Le MainGameState entier est
+    /// remplacé : villes, civilisations et WorldState de l'écran courant deviennent des objets
+    /// orphelins. On refait donc exactement le ménage des autres changements de monde
+    /// (voir <see cref="CompletePrestigeTransition"/> et <see cref="HandleGameOverRestart"/>) —
+    /// la sélection de ville, la structure investissable sélectionnée, les caches de
+    /// constructibles et l'abonnement au stock bas pointent tous sur la partie précédente.
+    /// </summary>
+    private void HandleLoadGame(string saveJson)
+    {
+        var prevCiv = _gameControllerService.PlayerCivilization;
+        _gameControllerService.ImportMainState(saveJson);
+
+        if (_playerResourcesOverlayRenderer != null && _gameControllerService.PlayerCivilization != null)
+            _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);
+        _gameControllerService.CityBuildingService.ClearSelectedCity();
+        _monumentService?.ClearSelectedInvestable();
+        _constructionInteractionService?.ClearHover();
+
+        if (_gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState loadedState)
+            _tutorialService?.InitializeForLoadedGame(loadedState);
+
+        CenterCameraOnStartingCity();
+        ResetPointerState();
+
+        // La partie chargée peut déjà être perdue (plus aucune ville), comme au démarrage.
+        var playerCiv = _gameControllerService.PlayerCivilization;
+        _gameOverPending = playerCiv != null && playerCiv.Cities.Count == 0;
+    }
 
     private void StartNewGameIntro()
     {

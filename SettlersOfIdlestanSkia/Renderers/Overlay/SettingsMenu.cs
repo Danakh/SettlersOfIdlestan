@@ -46,6 +46,7 @@ public class SettingsMenu
     private readonly Action? _onAfterNewGame;
     private readonly Action? _onReturnToMenu;
     private readonly Action? _onRestartIsland;
+    private readonly Action<string>? _onLoadGame;
     private readonly UILayoutService? _uiLayout;
     private List<MenuItem> _menuItems = new();
 
@@ -63,7 +64,7 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null, Action? onReturnToMenu = null, Action? onRestartIsland = null)
+    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null, Action? onReturnToMenu = null, Action? onRestartIsland = null, Action<string>? onLoadGame = null)
     {
         _gameController = gameController;
         _inputService = inputService;
@@ -75,6 +76,7 @@ public class SettingsMenu
         _onAfterNewGame = onAfterNewGame;
         _onReturnToMenu = onReturnToMenu;
         _onRestartIsland = onRestartIsland;
+        _onLoadGame = onLoadGame;
         _uiLayout = uiLayout;
         _inputService.PointerPressed += HandlePointerPressed;
 
@@ -489,10 +491,19 @@ public class SettingsMenu
     private async void LoadGame()
     {
         var json = await _fileSystemService.LoadText("savegame.json");
-        if (!string.IsNullOrEmpty(json))
-        {
+        if (string.IsNullOrEmpty(json)) return;
+
+        // Charger une sauvegarde remplace le WorldState et toutes les civilisations : c'est un
+        // changement de monde au même titre qu'un prestige ou un redémarrage d'île, et la couche UI
+        // doit faire le même ménage (sélections, abonnements, caches de constructibles décrivant
+        // l'ancien monde). C'est le rôle du rappel — l'import direct qui se faisait ici ne
+        // prévenait personne, et l'overlay gardait par exemple les routes constructibles de la
+        // partie précédente tant qu'aucun compteur du cache de ConstructionInteractionService ne
+        // bougeait.
+        if (_onLoadGame != null)
+            _onLoadGame(json);
+        else
             _gameController.ImportMainState(json);
-        }
     }
 
     public void Dispose()

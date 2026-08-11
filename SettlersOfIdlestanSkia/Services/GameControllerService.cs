@@ -13,11 +13,21 @@ namespace SettlersOfIdlestanSkia.Services;
 public class GameControllerService
 {
     private readonly MainGameController _controller;
-    private CityBuildingService? _cityBuildingService;
+    private readonly CityBuildingService _cityBuildingService;
 
     public MainGameState? CurrentGameState => _controller.CurrentMainState;
     public WorldState? CurrentWorldState => _controller.CurrentMainState?.CurrentWorldState;
-    public CityBuildingService? CityBuildingService => _cityBuildingService;
+    /// <summary>
+    /// Instance unique pour toute la durée de vie de l'écran de jeu. Elle ne dépend que du
+    /// MainGameController (elle relit le WorldState courant à chaque accès), donc la recréer à
+    /// chaque changement de monde ne servait qu'à remettre <c>SelectedCity</c> à null — au prix
+    /// d'un dédoublement : les renderers qui l'ont reçue en constructeur (SelectedCityPanelRenderer,
+    /// ConstructionInteractionService, SettingsMenu) gardaient l'ancienne instance et sa sélection
+    /// périmée, pendant que ceux qui passent par cette propriété voyaient la nouvelle. Chaque
+    /// recréation laissait de plus l'ancienne abonnée à CityBuilderController.OnCityDestroyed.
+    /// Les changements de monde appellent maintenant <see cref="Services.CityBuildingService.ClearSelectedCity"/>.
+    /// </summary>
+    public CityBuildingService CityBuildingService => _cityBuildingService;
 
     /// <summary>
     /// Gets the player's civilization.
@@ -31,6 +41,7 @@ public class GameControllerService
     public GameControllerService()
     {
         _controller = new MainGameController();
+        _cityBuildingService = new CityBuildingService(_controller);
     }
 
     /// <summary>
@@ -40,13 +51,13 @@ public class GameControllerService
     public void InitializeNewGame()
     {
         _controller.CreateNewGame();
-        _cityBuildingService = new CityBuildingService(_controller);
+        _cityBuildingService.ClearSelectedCity();
     }
 
     internal void ImportMainState(string autoJson)
     {
         MainGameController.ImportMainState(autoJson);
-        _cityBuildingService = new CityBuildingService(_controller);
+        _cityBuildingService.ClearSelectedCity();
     }
 
     /// <summary>
@@ -79,20 +90,20 @@ public class GameControllerService
     public void RestartIsland()
     {
         _controller.RestartIsland();
-        _cityBuildingService = new CityBuildingService(_controller);
+        _cityBuildingService.ClearSelectedCity();
     }
 
     public void PerformAscension()
     {
         _controller.PerformAscension();
-        _cityBuildingService = new CityBuildingService(_controller);
+        _cityBuildingService.ClearSelectedCity();
     }
 
     /// <summary>Ascension avec choix de la race du prochain cycle (voir AscensionController.GetSelectableRaces).</summary>
     public void PerformAscension(SettlersOfIdlestan.Model.Races.RaceId chosenRace)
     {
         _controller.PerformAscension(chosenRace);
-        _cityBuildingService = new CityBuildingService(_controller);
+        _cityBuildingService.ClearSelectedCity();
     }
 
     public List<Vertex> GetBuildableCityVerticesForPlayer()
