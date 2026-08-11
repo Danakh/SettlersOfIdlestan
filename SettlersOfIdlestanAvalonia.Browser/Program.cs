@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Browser;
 using SettlersOfIdlestanAvalonia.Browser.Services;
+using SettlersOfIdlestanUI;
 
 namespace SettlersOfIdlestanAvalonia.Browser;
 
@@ -16,5 +17,6 @@ internal static class Program
 
     public static AppBuilder BuildAvaloniaApp() => AppBuilder
         .Configure<App>()
+        .WithGameFonts()
         .LogToTrace();
 }

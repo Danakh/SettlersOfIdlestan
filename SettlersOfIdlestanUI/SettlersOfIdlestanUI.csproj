@@ -20,6 +20,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Memes fichiers que ceux embarques par le projet Skia pour la carte : lies plutot que
+         dupliques (3,7 Mo), pour que les controles et la carte partagent exactement la meme
+         fonte. Le Link fixe le chemin avares:// vu par GameFonts. -->
+    <AvaloniaResource Include="..\SettlersOfIdlestanSkia\Resources\fonts\*.ttf"
+                      Link="Assets\Fonts\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.1" />
     <PackageReference Include="Avalonia.Skia" Version="12.1.1" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />

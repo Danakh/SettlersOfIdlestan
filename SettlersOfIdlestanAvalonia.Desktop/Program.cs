@@ -1,4 +1,5 @@
 using Avalonia;
+using SettlersOfIdlestanUI;
 
 namespace SettlersOfIdlestanAvalonia.Desktop;
 
@@ -12,5 +13,6 @@ internal static class Program
     public static AppBuilder BuildAvaloniaApp() => AppBuilder
         .Configure<App>()
         .UsePlatformDetect()
+        .WithGameFonts()
         .LogToTrace();
 }

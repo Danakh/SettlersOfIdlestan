@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Data;
+using Avalonia.Media;
 using Avalonia.Styling;
 
 namespace SettlersOfIdlestanUI;
@@ -26,6 +27,18 @@ public static class GameControlStyles
     /// </summary>
     public const string ToneButton = "tone";
 
+    /// <summary>
+    /// Fond d'un controle indisponible. Meme gris que celui deja peint a la main par les
+    /// panneaux civilisation, prestige et rituels pour leurs actions indisponibles.
+    /// </summary>
+    private static readonly SolidColorBrush DisabledBackground = new(Color.FromRgb(70, 70, 78));
+
+    /// <summary>
+    /// Texte d'un controle indisponible : assez clair pour rester lisible sur le gris ci-dessus
+    /// (~5:1) tout en restant nettement en retrait du blanc pur d'un controle actif.
+    /// </summary>
+    private static readonly SolidColorBrush DisabledForeground = new(Color.FromRgb(198, 201, 210));
+
     public static Styles Create()
     {
         var styles = new Styles();
@@ -50,6 +63,29 @@ public static class GameControlStyles
         styles.Add(new Style(x => x.OfType<Button>().Class(ToneButton).Class(":pressed"))
         {
             Setters = { new Setter(Avalonia.Visual.OpacityProperty, 0.7d) },
+        });
+
+        // Indisponible. Fluent peint ici un fond et un texte semi-transparents tires du theme :
+        // en variante claire cela donnait du noir a 40 % sur nos panneaux sombres — le libelle
+        // « Construire » d'un batiment trop cher etait quasiment illisible. On reprend donc les
+        // deux couleurs, plutot que de laisser le theme decider par transparence sur un fond
+        // qu'il ne connait pas.
+        styles.Add(new Style(x => x.OfType<Button>().Class(ToneButton).Class(":disabled")
+                                   .Template().OfType<ContentPresenter>())
+        {
+            Setters =
+            {
+                new Setter(ContentPresenter.BackgroundProperty, DisabledBackground),
+                new Setter(ContentPresenter.ForegroundProperty, DisabledForeground),
+            },
+        });
+
+        // Meme probleme pour les cases a cocher indisponibles (ligne d'investissement deja
+        // complete, reglage verrouille) : leur libelle passait au noir translucide.
+        styles.Add(new Style(x => x.OfType<CheckBox>().Class(":disabled")
+                                   .Template().OfType<ContentPresenter>())
+        {
+            Setters = { new Setter(ContentPresenter.ForegroundProperty, DisabledForeground) },
         });
 
         return styles;
