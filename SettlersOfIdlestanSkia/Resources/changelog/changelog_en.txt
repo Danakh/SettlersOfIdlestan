@@ -3,6 +3,10 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.15
+
+---
+
 v0.14
 • New advanced race: the Dark Elves, a people of the depths.
 • UI overhaul: the whole interface now runs on a new UI engine, more responsive and better suited to varying screen sizes
