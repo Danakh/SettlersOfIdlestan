@@ -10,6 +10,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using SettlersOfIdlestanUI.ViewModels;
 
 namespace SettlersOfIdlestanUI.Controls;
@@ -37,6 +38,9 @@ public sealed class ResourceBarView : UserControl
 
     private const double ItemSpacing = 16;
 
+    /// Deplacement en deca duquel un appui reste un tapotement plutot qu'un glissement.
+    private const double TapMaxDistance = 6;
+
     private static readonly Cursor GrabCursor = new(StandardCursorType.SizeWestEast);
 
     private readonly ScrollViewer _scroller;
@@ -44,6 +48,9 @@ public sealed class ResourceBarView : UserControl
     private double _dragOriginX;
     private double _dragOriginOffset;
     private bool _isDragging;
+
+    private Point _pressPosition;
+    private bool _hasPress;
 
     public ResourceBarView(ResourceBarViewModel viewModel, SvgIconCache icons)
     {
@@ -95,11 +102,16 @@ public sealed class ResourceBarView : UserControl
     /// et le laisser passer ici le ferait defiler deux fois plus vite.
     ///
     /// Aucun seuil de deplacement a respecter avant de saisir : rien n'est cliquable dans la
-    /// barre, les pastilles ne portent qu'une infobulle.
+    /// barre, les pastilles ne portent qu'une infobulle. Un appui qui ne deplace pas la barre
+    /// est en revanche relu comme un tapotement, seul moyen d'ouvrir cette infobulle au doigt
+    /// (voir <see cref="ShowTooltipAt"/>).
     /// </summary>
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+
+        _pressPosition = e.GetPosition(this);
+        _hasPress = true;
 
         if (e.Pointer.Type != PointerType.Mouse || MaxOffset <= 0) return;
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
@@ -130,12 +142,43 @@ public sealed class ResourceBarView : UserControl
     {
         base.OnPointerReleased(e);
         EndDrag(e.Pointer);
+
+        if (!_hasPress) return;
+        _hasPress = false;
+
+        var position = e.GetPosition(this);
+        double dx = position.X - _pressPosition.X;
+        double dy = position.Y - _pressPosition.Y;
+        if (dx * dx + dy * dy > TapMaxDistance * TapMaxDistance) return;
+
+        ShowTooltipAt(position);
     }
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
         base.OnPointerCaptureLost(e);
         _isDragging = false;
+
+        // Le geste est parti en defilement — le ScrollViewer a saisi le pointeur et le
+        // relachement ne nous reviendra pas. Ce n'etait donc pas un tapotement.
+        _hasPress = false;
+    }
+
+    /// <summary>
+    /// Un tapotement sur une pastille en affiche l'infobulle. Au doigt c'est le seul moyen de la
+    /// consulter : il n'y a pas de survol, donc rien qui declenche jamais ToolTipService.
+    ///
+    /// La pastille est retrouvee par test de collision et non via <c>e.Source</c> : quand le
+    /// glisser a la souris a saisi le pointeur, l'evenement est route vers la barre et Source
+    /// designe cette derniere, et non la pastille touchee.
+    /// </summary>
+    private void ShowTooltipAt(Point position)
+    {
+        if (this.InputHitTest(position) is Visual hit
+            && hit.FindAncestorOfType<ResourcePill>(includeSelf: true) is { } pill)
+            pill.ShowTappedTooltip();
+        else
+            TapTooltip.Hide();
     }
 
     private void EndDrag(IPointer pointer)
@@ -287,6 +330,16 @@ internal sealed class ResourcePill : Border
     {
         base.OnPointerEntered(e);
         UpdateTooltip();
+    }
+
+    /// <summary>
+    /// Affiche l'infobulle sur un tapotement. Les taux sont rafraichis au passage, comme ils le
+    /// sont a l'entree du pointeur : sans survol prealable, rien ne les aurait recalcules.
+    /// </summary>
+    internal void ShowTappedTooltip()
+    {
+        UpdateTooltip();
+        TapTooltip.Show(this);
     }
 
     private void UpdateTooltip()
