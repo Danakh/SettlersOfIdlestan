@@ -141,7 +141,6 @@ public sealed class TabBarRenderer : IDisposable
         if (_allowDebugMode)   _activeTabs.Add((TabHistory, default));
 
         float uiScale = _uiLayout.UiScale;
-        _uiLayout.SetTabsInlineWidth(ComputeInlineWidth(uiScale));
 
         bool tabsAtBottom = _uiLayout.TabsAtBottom;
         bool showTabBar   = tabsAtBottom || _activeTabs.Count > 1;
@@ -150,7 +149,6 @@ public sealed class TabBarRenderer : IDisposable
         if (showTabBar)
         {
             ComputeTabRects(tabsAtBottom, uiScale);
-            if (_uiLayout.ResourcesOnOwnRow) ResourceStartX = UILayoutService.BarPadding * uiScale;
             UpdateEventNotification();
             UpdatePrestigeNotification();
             UpdateResearchNotification();
@@ -336,6 +334,26 @@ public sealed class TabBarRenderer : IDisposable
     }
 
     public void SetActiveTab(int tabId) => _activeTab = tabId;
+
+    /// <summary>
+    /// Instantané pour une barre d'onglets portée par l'hôte. Les règles de déblocage, de
+    /// notification et de repli restent ici : seul le dessin passe côté Avalonia.
+    /// </summary>
+    public TabBarSnapshot GetSnapshot()
+    {
+        var tabs = new List<TabSnapshot>(_activeTabs.Count);
+        foreach (var (tabId, _) in _activeTabs)
+        {
+            bool glowing = (_prestigeGlowing  && tabId == TabPrestige)
+                        || (_researchGlowing  && tabId == TabResearch)
+                        || (_hasNewEvent      && tabId == TabEvents)
+                        || (_underworldGlowing && tabId == TabUnderworld);
+
+            tabs.Add(new TabSnapshot(tabId, GetTabLabel(tabId), tabId == _activeTab, glowing));
+        }
+
+        return new TabBarSnapshot(IsVisible, _uiLayout.TabsAtBottom, tabs);
+    }
 
     private bool HasPrestigePoints(GameRenderContext context)
     {

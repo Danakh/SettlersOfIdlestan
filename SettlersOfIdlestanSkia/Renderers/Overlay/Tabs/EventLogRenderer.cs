@@ -94,7 +94,8 @@ public sealed class EventLogRenderer : IDisposable
         {
             if (y + CardHeight > _canvasSize.Height - Padding) break;
 
-            var (cardPaint, borderPaint, titlePaint, title, body) = GetEntryStyle(entry);
+            var (tone, title, body) = GetEntryContent(entry);
+            var (cardPaint, borderPaint, titlePaint) = PaintsFor(tone);
             var cardRect = new SKRect(x, y, x + contentWidth, y + CardHeight);
             canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, cardPaint);
             canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, borderPaint);
@@ -104,189 +105,230 @@ public sealed class EventLogRenderer : IDisposable
         }
     }
 
-    private (SKPaint card, SKPaint border, SKPaint title, string titleText, string bodyText) GetEntryStyle(GameLogEntry entry) => entry.Type switch
+    /// <summary>Paints correspondant à un ton, pour le rendu Skia.</summary>
+    private (SKPaint Card, SKPaint Border, SKPaint Title) PaintsFor(EventLogTone tone) => tone switch
+    {
+        EventLogTone.Warning   => (_warningCardPaint,   _warningBorderPaint,   _warningTextPaint),
+        EventLogTone.Success   => (_successCardPaint,   _successBorderPaint,   _successTextPaint),
+        EventLogTone.Reward    => (_rewardCardPaint,    _rewardBorderPaint,    _rewardTextPaint),
+        EventLogTone.Discovery => (_discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint),
+        _                      => (_dangerCardPaint,    _dangerBorderPaint,    _dangerTextPaint),
+    };
+
+    /// <summary>
+    /// Instantané de l'onglet pour une vue portée par l'hôte. Réutilise <see cref="GetEntryContent"/> :
+    /// le classement des dizaines de types d'événement en cinq tons n'existe qu'à un seul endroit.
+    /// </summary>
+    /// <param name="isVisible">L'onglet Journal est-il actif ? La règle appartient à
+    /// <c>OverlayRenderer</c>, qui détient l'onglet courant.</param>
+    public EventLogSnapshot GetSnapshot(bool isVisible)
+    {
+        if (_disposed || !isVisible) return EventLogSnapshot.Hidden;
+
+        var eventLog = _gameControllerService.CurrentGameState?.CurrentWorldState?.EventLog;
+
+        var entries = new List<EventLogEntrySnapshot>();
+        if (eventLog != null)
+        {
+            // Pas de troncature ici, contrairement au rendu Skia qui s'arrête au bas de l'écran :
+            // la vue défile, et affiche donc les 50 entrées que le modèle conserve.
+            foreach (var entry in eventLog.Entries)
+            {
+                var (tone, title, body) = GetEntryContent(entry);
+                entries.Add(new EventLogEntrySnapshot(title, body, tone));
+            }
+        }
+
+        return new EventLogSnapshot(
+            IsVisible: true,
+            Title: _localization.Get("tab_events"),
+            EmptyMessage: _localization.Get("events_empty"),
+            Entries: entries);
+    }
+
+    private (EventLogTone Tone, string Title, string Body) GetEntryContent(GameLogEntry entry) => entry.Type switch
     {
         GameEventType.RuntimeError => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_runtime_error_title"),
             entry.Message ?? ""),
         GameEventType.BanditDiscovered => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_bandit_title"),
             _localization.Get("event_bandit_body")),
         GameEventType.BanditHideoutDiscovered => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_bandit_hideout_title"),
             _localization.Get("event_bandit_hideout_body")),
         GameEventType.SoldierStarved => (
-            _warningCardPaint, _warningBorderPaint, _warningTextPaint,
+            EventLogTone.Warning,
             _localization.Get("event_soldier_starved_title"),
             _localization.Get("event_soldier_starved_body")),
         GameEventType.BanditDefeated => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_bandit_defeated_title"),
             _localization.Get("event_bandit_defeated_body")),
         GameEventType.TreasureTroveClaimed => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_treasure_claimed_title"),
             _localization.Get("event_treasure_claimed_body")),
         GameEventType.BanditHideoutDestroyed => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_bandit_hideout_destroyed_title"),
             _localization.Get("event_bandit_hideout_destroyed_body")),
         GameEventType.TreasureTroveDiscovered => (
-            _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
+            EventLogTone.Reward,
             _localization.Get("event_treasure_found_title"),
             _localization.Get("event_treasure_found_body")),
         GameEventType.CivilizationDiscovered => (
-            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            EventLogTone.Discovery,
             _localization.Get("event_civilization_discovered_title"),
             _localization.Get("event_civilization_discovered_body")),
         GameEventType.CivilizationDestroyed => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_civilization_destroyed_title"),
             _localization.Get("event_civilization_destroyed_body")),
         GameEventType.WonderPlaced => (
-            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            EventLogTone.Discovery,
             _localization.Get("event_wonder_placed_title"),
             _localization.Get("event_wonder_placed_body")),
         GameEventType.WonderLevelUp => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_wonder_levelup_title"),
             _localization.GetFormated("event_wonder_levelup_body", entry.Message ?? "?")),
         GameEventType.GreatLighthousePlaced => (
-            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            EventLogTone.Discovery,
             _localization.Get("event_great_lighthouse_placed_title"),
             _localization.Get("event_great_lighthouse_placed_body")),
         GameEventType.GreatLighthouseLevelUp => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_great_lighthouse_levelup_title"),
             _localization.GetFormated("event_great_lighthouse_levelup_body", entry.Message ?? "?")),
         GameEventType.RatsDiscovered => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_rats_title"),
             _localization.Get("event_rats_body")),
         GameEventType.RatsDefeated => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_rats_defeated_title"),
             _localization.Get("event_rats_defeated_body")),
         GameEventType.TrollDiscovered => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_troll_title"),
             _localization.Get("event_troll_body")),
         GameEventType.TrollDefeated => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_troll_defeated_title"),
             _localization.Get("event_troll_defeated_body")),
         GameEventType.OgreDiscovered => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_ogre_title"),
             _localization.Get("event_ogre_body")),
         GameEventType.OgreDefeated => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_ogre_defeated_title"),
             _localization.Get("event_ogre_defeated_body")),
         GameEventType.DragonDiscovered => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_dragon_discovered_title"),
             _localization.Get("event_dragon_discovered_body")),
         GameEventType.DragonDefeated => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_dragon_defeated_title"),
             _localization.Get("event_dragon_defeated_body")),
         GameEventType.MinorDemonDiscovered => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_minor_demon_discovered_title"),
             _localization.Get("event_minor_demon_discovered_body")),
         GameEventType.VolcanoDiscovered => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_volcano_discovered_title"),
             _localization.Get("event_volcano_discovered_body")),
         GameEventType.MinorDemonDefeated => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_minor_demon_defeated_title"),
             _localization.Get("event_minor_demon_defeated_body")),
         GameEventType.MajorDemonDiscovered => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_major_demon_discovered_title"),
             _localization.Get("event_major_demon_discovered_body")),
         GameEventType.MajorDemonDefeated => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_major_demon_defeated_title"),
             _localization.Get("event_major_demon_defeated_body")),
         GameEventType.DeepestMinePlaced => (
-            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            EventLogTone.Discovery,
             _localization.Get("event_deepest_mine_placed_title"),
             _localization.Get("event_deepest_mine_placed_body")),
         GameEventType.DeepestMineDug => (
-            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            EventLogTone.Discovery,
             _localization.Get("event_deepest_mine_dug_title"),
             _localization.Get("event_deepest_mine_dug_body")),
         GameEventType.FairyCircleDiscovered => (
-            _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
+            EventLogTone.Reward,
             _localization.Get("event_fairy_circle_title"),
             _localization.Get("event_fairy_circle_body")),
         GameEventType.RitualCollapsed => (
-            _warningCardPaint, _warningBorderPaint, _warningTextPaint,
+            EventLogTone.Warning,
             _localization.Get("event_ritual_collapsed_title"),
             _localization.Get("event_ritual_collapsed_body")),
         GameEventType.UnderworldLost => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_underworld_lost_title"),
             _localization.Get("event_underworld_lost_body")),
         GameEventType.CityLostToTerrain => (
-            _dangerCardPaint, _dangerBorderPaint, _dangerTextPaint,
+            EventLogTone.Danger,
             _localization.Get("event_city_lost_to_terrain_title"),
             _localization.Get("event_city_lost_to_terrain_body")),
         GameEventType.CorruptionSpirePlaced => (
-            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            EventLogTone.Discovery,
             _localization.Get("event_corruption_spire_placed_title"),
             _localization.Get("event_corruption_spire_placed_body")),
         GameEventType.CorruptionSpireBuilt => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_corruption_spire_built_title"),
             _localization.Get("event_corruption_spire_built_body")),
         GameEventType.CorruptionSpireRadiusUpgraded => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_corruption_spire_radius_upgraded_title"),
             _localization.GetFormated("event_corruption_spire_radius_upgraded_body", entry.Message ?? "?")),
         GameEventType.AdventurerDiscovered => (
-            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            EventLogTone.Discovery,
             _localization.Get("event_adventurer_title"),
             _localization.Get("event_adventurer_body")),
         GameEventType.AdventurerDefeated => (
-            _warningCardPaint, _warningBorderPaint, _warningTextPaint,
+            EventLogTone.Warning,
             _localization.Get("event_adventurer_defeated_title"),
             _localization.Get("event_adventurer_defeated_body")),
         GameEventType.RaidMissingBarracks => (
-            _warningCardPaint, _warningBorderPaint, _warningTextPaint,
+            EventLogTone.Warning,
             _localization.Get("event_raid_missing_barracks_title"),
             _localization.Get("event_raid_missing_barracks_body")),
         GameEventType.WarHeraldAutoReinforcementConflict => (
-            _warningCardPaint, _warningBorderPaint, _warningTextPaint,
+            EventLogTone.Warning,
             _localization.Get("event_war_herald_auto_reinforcement_conflict_title"),
             _localization.Get("event_war_herald_auto_reinforcement_conflict_body")),
         GameEventType.AbyssGateEligible => (
-            _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
+            EventLogTone.Reward,
             _localization.Get("event_abyss_gate_eligible_title"),
             _localization.Get("event_abyss_gate_eligible_body")),
         GameEventType.AbyssGatePlaced => (
-            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            EventLogTone.Discovery,
             _localization.Get("event_abyss_gate_placed_title"),
             _localization.Get("event_abyss_gate_placed_body")),
         GameEventType.AbyssGateBuilt => (
-            _successCardPaint, _successBorderPaint, _successTextPaint,
+            EventLogTone.Success,
             _localization.Get("event_abyss_gate_built_title"),
             _localization.Get("event_abyss_gate_built_body")),
         GameEventType.DivineBonesPurified => (
-            _rewardCardPaint, _rewardBorderPaint, _rewardTextPaint,
+            EventLogTone.Reward,
             _localization.Get("event_divine_bones_purified_title"),
             _localization.Get("event_divine_bones_purified_body")),
         GameEventType.DivineBonesPurifiedNoEssence => (
-            _discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint,
+            EventLogTone.Discovery,
             _localization.Get("event_divine_bones_purified_no_essence_title"),
             _localization.Get("event_divine_bones_purified_no_essence_body")),
-        _ => (_dangerCardPaint, _dangerBorderPaint, _bodyTextPaint, "?", entry.Message ?? "")
+        _ => (EventLogTone.Danger, "?", entry.Message ?? "")
     };
 
     public void Dispose()

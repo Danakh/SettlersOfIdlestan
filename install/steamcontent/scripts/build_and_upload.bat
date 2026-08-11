@@ -12,6 +12,11 @@ set SCRIPT_DIR=%~dp0
 set ROOT_DIR=%SCRIPT_DIR%..\..\..
 set STEAM_LOGIN=%~1
 
+rem Les scripts appeles s'arretent sur un pause quand on les lance a la main. Ici la
+rem chaine doit se derouler sans intervention : seul ce script attend, a la fin ou
+rem sur la premiere erreur.
+set SOI_NOPAUSE=1
+
 for %%P in (win linux) do (
     echo.
     echo =============================================
@@ -20,13 +25,13 @@ for %%P in (win linux) do (
 
     echo.
     echo === Nettoyage des repertoires temporaires ===
-    if exist "%ROOT_DIR%\SettlersOfIdlestanOpenTK\bin" rd /s /q "%ROOT_DIR%\SettlersOfIdlestanOpenTK\bin"
-    if exist "%ROOT_DIR%\SettlersOfIdlestanOpenTK\obj" rd /s /q "%ROOT_DIR%\SettlersOfIdlestanOpenTK\obj"
+    if exist "%ROOT_DIR%\SettlersOfIdlestanAvalonia.Desktop\bin" rd /s /q "%ROOT_DIR%\SettlersOfIdlestanAvalonia.Desktop\bin"
+    if exist "%ROOT_DIR%\SettlersOfIdlestanAvalonia.Desktop\obj" rd /s /q "%ROOT_DIR%\SettlersOfIdlestanAvalonia.Desktop\obj"
     if exist "%SCRIPT_DIR%..\output" rd /s /q "%SCRIPT_DIR%..\output"
 
     echo.
     echo === Generation de la version %%P ===
-    call "%ROOT_DIR%\install\build_opentk_%%P.bat"
+    call "%ROOT_DIR%\install\build_desktop_%%P.bat"
     if errorlevel 1 (
         echo.
         echo [ERREUR] La generation de la version %%P a echoue.

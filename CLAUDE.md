@@ -14,8 +14,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 dotnet build SettlersOfIdlestan.slnx
-dotnet run --project SettlersOfIdlestanDesktop
+dotnet run --project SettlersOfIdlestanAvalonia.Desktop
+dotnet run --project SettlersOfIdlestanAvalonia.Browser
 dotnet test SOITests
+dotnet test SOIUITests
 dotnet test SOITests --filter "FullyQualifiedName~HarvestControllerTests"
 ```
 
@@ -24,10 +26,21 @@ dotnet test SOITests --filter "FullyQualifiedName~HarvestControllerTests"
 | Project | Role |
 |---|---|
 | `SettlersOfIdlestan` | Core model + controller library — no UI |
-| `SettlersOfIdlestanSkia` | SkiaSharp rendering engine + game loop |
-| `SettlersOfIdlestanDesktop` | MAUI desktop shell |
-| `SettlersOfIdlestanWeb` | Blazor WebAssembly |
-| `SOITests` | xUnit tests |
+| `SettlersOfIdlestanSkia` | Hex map rendering (SkiaSharp) + game loop |
+| `SettlersOfIdlestanUI` | Avalonia overlay — controls, view models, `GameRuntimeHost` |
+| `SettlersOfIdlestanAvalonia.Desktop` | Desktop head (Windows/Linux/macOS, Steam) |
+| `SettlersOfIdlestanAvalonia.Browser` | WebAssembly head |
+| `SettlersOfIdlestanAvalonia.iOS` | iOS head |
+| `SOITests` | xUnit tests — model and controllers |
+| `SOIUITests` | xUnit v3 + Avalonia.Headless — overlay tests |
+
+**UI split.** The hex map is still drawn in SkiaSharp inside an Avalonia control; everything
+laid over it (top bar, panels, popups, title screen) is made of real Avalonia controls. Click
+arbitration is the visual tree's job — never reintroduce a hand-maintained hit-test structure.
+
+**Threading.** Avalonia renders on the render thread while the game loop and input live on the
+UI thread, but the runtime and the whole model are single-threaded. Every access to the
+runtime, reads included, must go through `GameRuntimeHost.Read`/`Invoke`.
 
 ---
 

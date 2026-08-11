@@ -7,6 +7,7 @@ using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
+using System.Linq;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 
@@ -201,6 +202,43 @@ public class SettingsMenu
         _separatorTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 180), IsAntialias = true };
     }
 
+    private bool _hostedByAvalonia;
+
+    /// <summary>
+    /// Declare que ce menu est desormais affiche par l'hote Avalonia : il cesse de se dessiner
+    /// et d'intercepter les clics du service d'entree Skia, sans quoi chaque clic serait traite
+    /// deux fois — une fois par la vue, une fois ici.
+    /// </summary>
+    public void MigrateToHost() => _hostedByAvalonia = true;
+
+    /// <summary>Instantane du menu pour une vue portee par l'hote.</summary>
+    public SettingsMenuSnapshot GetSnapshot()
+    {
+        if (!_isOpen) return SettingsMenuSnapshot.Closed;
+
+        var items = _menuItems
+            .Select(item => new SettingsMenuItemSnapshot(
+                Key: item.LabelKey,
+                Label: item.IsSeparator ? item.LabelKey : (item.DynamicLabel?.Invoke() ?? _localization.Get(item.LabelKey)),
+                IsSeparator: item.IsSeparator))
+            .ToList();
+
+        return new SettingsMenuSnapshot(IsOpen: true, Items: items);
+    }
+
+    /// <summary>
+    /// Declenche un item depuis une vue portee par l'hote, et referme le menu — comme le fait le
+    /// hit-testing Skia. Un separateur n'est pas cliquable et ne referme rien.
+    /// </summary>
+    public void InvokeItemFromHost(string key)
+    {
+        var item = _menuItems.FirstOrDefault(i => i.IsClickable && i.LabelKey == key);
+        if (item == null) return;
+
+        item.Action?.Invoke();
+        Close();
+    }
+
     public void ToggleMenu()
     {
         _isOpen = !_isOpen;
@@ -224,7 +262,7 @@ public class SettingsMenu
         _gearX = gearX;
         _barHeight = barHeight;
 
-        if (!_isOpen)
+        if (!_isOpen || _hostedByAvalonia)
             return;
 
         float s = _uiLayout?.UiScale ?? 1f;
@@ -305,7 +343,7 @@ public class SettingsMenu
         if (e.Button != PointerButton.Left)
             return;
 
-        if (!_isOpen)
+        if (!_isOpen || _hostedByAvalonia)
             return;
 
         float s = _uiLayout?.UiScale ?? 1f;

@@ -48,6 +48,7 @@ public sealed class GameScreen : IDisposable
     private TutorialService? _tutorialService;
     private MilitaryInteractionService? _militaryInteractionService;
     private PlayerResourcesOverlayRenderer? _playerResourcesOverlayRenderer;
+    private TooltipRenderer? _tooltipRenderer;
     private NotificationToastRenderer? _notificationToastRenderer;
     private CorruptSavePopupRenderer? _corruptSavePopup;
     private bool _corruptSavePending;
@@ -210,7 +211,8 @@ public sealed class GameScreen : IDisposable
 
         _harvestService = new HarvestService(_gameControllerService);
 
-        var tooltipRenderer = new TooltipRenderer(_localizationService, _gameControllerService, _resourceManager);
+        var tooltipRenderer = _tooltipRenderer =
+            new TooltipRenderer(_localizationService, _gameControllerService, _resourceManager);
 
         _constructionInteractionService = new ConstructionInteractionService(
             _gameControllerService,
@@ -349,9 +351,6 @@ public sealed class GameScreen : IDisposable
             (_overlayRenderer.IsPointBlockedByUI(pos))
             || (_targetSelectionService.IsActive);
 
-        selectedCityPanelRenderer.ShouldSuppressInput    = () => _overlayRenderer.IsAnyOverlayOpen;
-        selectedMonumentPanelRenderer.ShouldSuppressInput = () => _overlayRenderer.IsAnyOverlayOpen;
-
         if (allowDebugMode)
         {
             _renderService.RegisterRenderer(new DebugOverlayRenderer(_inputService, _cameraService, islandMainRenderer, _localizationService));
@@ -361,7 +360,11 @@ public sealed class GameScreen : IDisposable
         _tutorialRenderer = new TutorialRenderer(_localizationService, _inputService);
         _tutorialRenderer.LayoutService = _uiLayoutService;
         _renderService.RegisterRenderer(_tutorialRenderer);
-        _renderService.RegisterRenderer(tooltipRenderer);
+
+        // Pas de RegisterRenderer : les infobulles sont dessinées par RenderTooltips, une passe
+        // séparée que l'hôte place au-dessus des contrôles de l'overlay. Enregistrées ici, elles
+        // finiraient sur le canevas de la carte, donc derrière les panneaux Avalonia.
+        // Leur Initialize est appelé par EnsureCanvasInitialized, comme celui du RenderService.
 
         _tutorialService = new TutorialService(_tutorialRenderer);
         if (_gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState tutorialState)
@@ -370,8 +373,9 @@ public sealed class GameScreen : IDisposable
             else           _tutorialService.InitializeForLoadedGame(tutorialState);
         }
 
+        // Pas de RegisterRenderer : ce renderer ne dessine plus, la pile de toasts est une vue
+        // Avalonia. Il reste la machine à états, avancée depuis Tick.
         _notificationToastRenderer = new NotificationToastRenderer(_uiLayoutService);
-        _renderService.RegisterRenderer(_notificationToastRenderer);
 
         _gameControllerService.MainGameController.AchievementController.OnAchievementUnlocked += OnAchievementUnlocked;
 
@@ -383,6 +387,200 @@ public sealed class GameScreen : IDisposable
 
         _gameControllerService.MainGameController.CityBuilderController.OnCityDestroyed += OnCityDestroyedCheckGameOver;
     }
+
+    /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
+    public ToastListSnapshot GetToastSnapshot() =>
+        _notificationToastRenderer?.GetSnapshot() ?? ToastListSnapshot.Empty;
+
+    public void DismissToastFromHost(long id) => _notificationToastRenderer?.Dismiss(id);
+
+    /// <summary>
+    /// Instantané de la modale bloquante ouverte, pour une vue portée par l'hôte.
+    /// Même ordre de priorité que le dispatch de <see cref="HandlePointerPressed"/> : ces modales
+    /// s'excluent, mais rien n'interdit à deux d'entre elles d'être ouvertes simultanément.
+    /// </summary>
+    public ModalPopupSnapshot GetModalPopupSnapshot()
+    {
+        if (_hardResetPopup?.IsOpen   == true) return _hardResetPopup.GetSnapshot();
+        if (_corruptSavePopup?.IsOpen == true) return _corruptSavePopup.GetSnapshot();
+        if (_gameOverPopup?.IsOpen    == true) return _gameOverPopup.GetSnapshot();
+        if (_demoEndPopup?.IsOpen     == true) return _demoEndPopup.GetSnapshot();
+
+        // Puis les modales portées par l'overlay (confirmation de perte d'essences) : même
+        // forme, même vue, donc même chaîne.
+        return _overlayRenderer?.GetOverlayModalSnapshot() ?? ModalPopupSnapshot.None;
+    }
+
+    /// <summary>Déclenche un bouton de modale depuis une vue portée par l'hôte.</summary>
+    public void InvokeModalPopupButtonFromHost(string popupId, string buttonKey)
+    {
+        switch (popupId)
+        {
+            case ModalPopupSnapshot.IdHardReset:   _hardResetPopup?.InvokeButton(buttonKey);   break;
+            case ModalPopupSnapshot.IdCorruptSave: _corruptSavePopup?.InvokeButton(buttonKey); break;
+            case ModalPopupSnapshot.IdGameOver:    _gameOverPopup?.InvokeButton(buttonKey);    break;
+            case ModalPopupSnapshot.IdDemoEnd:     _demoEndPopup?.InvokeButton(buttonKey);     break;
+            case ModalPopupSnapshot.IdPrestigeEssenceLoss:
+                _overlayRenderer?.InvokeOverlayModalButtonFromHost(buttonKey);
+                break;
+        }
+    }
+
+    /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
+    public TabBarSnapshot GetTabBarSnapshot() =>
+        _overlayRenderer?.GetTabBarSnapshot() ?? TabBarSnapshot.Unavailable;
+
+    /// <summary>Sélectionne un onglet depuis l'hôte (et applique la couche correspondante).</summary>
+    public void SetActiveTabFromHost(int tabId) => _overlayRenderer?.SetActiveTabFromHost(tabId);
+
+    /// <summary>Instantané du panneau ville pour une vue portée par l'hôte.</summary>
+    public CityPanelSnapshot GetCityPanelSnapshot() =>
+        _overlayRenderer?.GetCityPanelSnapshot() ?? CityPanelSnapshot.Hidden;
+
+    public void CloseCityPanelFromHost() => _overlayRenderer?.CloseCityPanelFromHost();
+    public void SetCityShowUniqueFromHost(bool v) => _overlayRenderer?.SetCityShowUniqueFromHost(v);
+    public void ToggleCityBuildingActivationFromHost(string k) => _overlayRenderer?.ToggleCityBuildingActivationFromHost(k);
+    public void ExecuteCityBuildingActionFromHost(string k) => _overlayRenderer?.ExecuteCityBuildingActionFromHost(k);
+    public void GoToOtherCityFromHost(string k) => _overlayRenderer?.GoToOtherCityFromHost(k);
+    public void SetHoveredCityBuildingFromHost(string? k, float x, float y) => _overlayRenderer?.SetHoveredCityBuildingFromHost(k, x, y);
+
+    /// <summary>Instantané de l'onglet Journal pour une vue portée par l'hôte.</summary>
+    public EventLogSnapshot GetEventLogSnapshot() =>
+        _overlayRenderer?.GetEventLogSnapshot() ?? EventLogSnapshot.Hidden;
+
+    /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
+    public StatsSnapshot GetStatsSnapshot() =>
+        _overlayRenderer?.GetStatsSnapshot() ?? StatsSnapshot.Hidden;
+
+    public void SetStatsSubTabFromHost(string key) => _overlayRenderer?.SetStatsSubTabFromHost(key);
+
+    /// <summary>Instantané de l'onglet Rituels pour une vue portée par l'hôte.</summary>
+    public RitualsSnapshot GetRitualsSnapshot() =>
+        _overlayRenderer?.GetRitualsSnapshot() ?? RitualsSnapshot.Hidden;
+
+    public void ToggleRitualFromHost(string key) => _overlayRenderer?.ToggleRitualFromHost(key);
+    public void ChangeRitualPowerFromHost(string key, bool increase) => _overlayRenderer?.ChangeRitualPowerFromHost(key, increase);
+    public void CastSpellFromHost(string key) => _overlayRenderer?.CastSpellFromHost(key);
+
+    /// <summary>Instantané de l'onglet Automatisation pour une vue portée par l'hôte.</summary>
+    public AutomationSnapshot GetAutomationSnapshot() =>
+        _overlayRenderer?.GetAutomationSnapshot() ?? AutomationSnapshot.Hidden;
+
+    public void ToggleAutomationFromHost(string key) => _overlayRenderer?.ToggleAutomationFromHost(key);
+    public void ToggleAutomationPinFromHost(string key) => _overlayRenderer?.ToggleAutomationPinFromHost(key);
+    public void ToggleAutomationsGloballyFromHost() => _overlayRenderer?.ToggleAutomationsGloballyFromHost();
+
+    /// <summary>Instantané du menu de l'engrenage pour une vue portée par l'hôte.</summary>
+    public SettingsMenuSnapshot GetSettingsMenuSnapshot() =>
+        _overlayRenderer?.GetSettingsMenuSnapshot() ?? SettingsMenuSnapshot.Closed;
+
+    public void InvokeSettingsMenuItemFromHost(string key) => _overlayRenderer?.InvokeSettingsMenuItemFromHost(key);
+    public void CloseSettingsMenuFromHost() => _overlayRenderer?.CloseSettingsMenuFromHost();
+
+    /// <summary>Instantané du popup de commerce pour une vue portée par l'hôte.</summary>
+    public TradePopupSnapshot GetTradePopupSnapshot() =>
+        _overlayRenderer?.GetTradePopupSnapshot() ?? TradePopupSnapshot.Closed;
+
+    public void TradeSellFromHost(string key) => _overlayRenderer?.TradeSellFromHost(key);
+    public void TradeBuyFromHost(string key) => _overlayRenderer?.TradeBuyFromHost(key);
+    public void TradeSetMultiplierFromHost(int m) => _overlayRenderer?.TradeSetMultiplierFromHost(m);
+    public void TradeSetHistoryTabFromHost(bool h) => _overlayRenderer?.TradeSetHistoryTabFromHost(h);
+    public void CloseTradePopupFromHost() => _overlayRenderer?.CloseTradePopupFromHost();
+
+    /// <summary>Instantané du popup de prestige pour une vue portée par l'hôte.</summary>
+    public PrestigePopupSnapshot GetPrestigePopupSnapshot() =>
+        _overlayRenderer?.GetPrestigePopupSnapshot() ?? PrestigePopupSnapshot.Closed;
+
+    public void InvokePrestigeActionFromHost(string key) => _overlayRenderer?.InvokePrestigeActionFromHost(key);
+    public void PrestigeSkipWonderTimeFromHost() => _overlayRenderer?.PrestigeSkipWonderTimeFromHost();
+    public void PrestigeChangeTierFromHost(bool increase) => _overlayRenderer?.PrestigeChangeTierFromHost(increase);
+    public void ClosePrestigePopupFromHost() => _overlayRenderer?.ClosePrestigePopupFromHost();
+
+    /// <summary>Instantané du popup de réglages pour une vue portée par l'hôte.</summary>
+    public SettingsPopupSnapshot GetSettingsPopupSnapshot() =>
+        _overlayRenderer?.GetSettingsPopupSnapshot() ?? SettingsPopupSnapshot.Closed;
+
+    public void ToggleSettingFromHost(string k) => _overlayRenderer?.ToggleSettingFromHost(k);
+    public void SetSettingChoiceFromHost(string k, string c) => _overlayRenderer?.SetSettingChoiceFromHost(k, c);
+    public void SetSettingSliderFromHost(string k, double v) => _overlayRenderer?.SetSettingSliderFromHost(k, v);
+    public void SetSettingTextFromHost(string k, string v) => _overlayRenderer?.SetSettingTextFromHost(k, v);
+    public void CloseSettingsPopupFromHost() => _overlayRenderer?.CloseSettingsPopupFromHost();
+
+    /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
+    public CivPanelSnapshot GetCivPanelSnapshot() =>
+        _overlayRenderer?.GetCivPanelSnapshot() ?? CivPanelSnapshot.Hidden;
+
+    public void ExecuteCivActionFromHost(string k) => _overlayRenderer?.ExecuteCivActionFromHost(k);
+    public void ToggleCivPinnedFromHost(string k) => _overlayRenderer?.ToggleCivPinnedFromHost(k);
+    public void SetCivPanelCollapsedFromHost(bool c) => _overlayRenderer?.SetCivPanelCollapsedFromHost(c);
+
+    /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
+    public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
+        _overlayRenderer?.GetMonumentPanelSnapshot() ?? MonumentPanelSnapshot.Hidden;
+
+    public void CloseMonumentPanelFromHost() => _overlayRenderer?.CloseMonumentPanelFromHost();
+    public void ToggleMonumentInvestmentFromHost(string rowKey) =>
+        _overlayRenderer?.ToggleMonumentInvestmentFromHost(rowKey);
+    public void EvolveMonumentFromHost() => _overlayRenderer?.EvolveMonumentFromHost();
+    public void SkipWonderFromHost() => _overlayRenderer?.SkipWonderFromHost();
+
+    /// <summary>Ouvre/ferme le menu paramètres depuis une icône portée par l'hôte.</summary>
+    public void ToggleSettingsMenuFromHost() => _overlayRenderer?.ToggleSettingsMenuFromHost();
+
+    /// <summary>Instantané de la barre de ressources pour une vue portée par l'hôte.</summary>
+    public ResourceBarSnapshot GetResourceBarSnapshot() =>
+        _overlayRenderer?.GetResourceBarSnapshot() ?? ResourceBarSnapshot.Unavailable;
+
+    /// <summary>
+    /// Signale que le pointeur est entré ou sorti du canevas. Les infobulles Skia ne
+    /// s'affichent que dans le premier cas, ce qui les rend mutuellement exclusives avec
+    /// celles d'Avalonia — qui n'existent, elles, que sur les contrôles de l'overlay.
+    /// </summary>
+    public void SetPointerOverMap(bool isOver) => _tooltipRenderer?.SetSuppressed(!isOver);
+
+    /// <summary>
+    /// Infobulle d'une pastille de ressource, désignée par son nom d'enum — celui que
+    /// l'instantané expose en <c>IconName</c>, seul identifiant dont dispose la vue.
+    /// </summary>
+    public string? GetResourceTooltip(string resourceName) =>
+        Enum.TryParse<Resource>(resourceName, out var resource)
+            ? _overlayRenderer?.GetResourceTooltip(resource)
+            : null;
+
+    /// <summary>Instantané de l'état du temps pour un contrôle porté par l'hôte.</summary>
+    public TimeControlSnapshot GetTimeControlSnapshot()
+    {
+        var clock = _gameControllerService.CurrentGameState?.Clock;
+        if (clock == null) return TimeControlSnapshot.Unavailable;
+
+        return new TimeControlSnapshot(
+            IsAvailable: true,
+            IsPaused: clock.SpeedMultiplier == 0,
+            ActiveSpeed: clock.ActiveSpeed,
+            OfflineBankTicks: clock.OfflineBankTicks);
+    }
+
+    /// <summary>Bascule pause/lecture, pour un contrôle de temps porté par l'hôte.</summary>
+    public void ToggledPauseFromHost()
+    {
+        var clock = _gameControllerService.CurrentGameState?.Clock;
+        if (clock == null) return;
+        if (clock.SpeedMultiplier == 0) clock.Resume();
+        else clock.Pause();
+    }
+
+    /// <summary>Change la vitesse de jeu, pour un contrôle de temps porté par l'hôte.</summary>
+    public void SetGameSpeedFromHost(int multiplier) =>
+        _gameControllerService.CurrentGameState?.Clock?.SetSpeed(multiplier);
+
+    /// <summary>Zoom avant, pour un contrôle de zoom porté par l'hôte plutôt que par l'overlay Skia.</summary>
+    public void ZoomIn() => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep);
+
+    /// <summary>Zoom arrière, pour un contrôle de zoom porté par l'hôte plutôt que par l'overlay Skia.</summary>
+    public void ZoomOut() => _cameraService.SetZoom(_cameraService.ZoomLevel / ZoomStep);
+
+    /// <summary>Vrai quand la vue courante est une carte hex (île/inframonde/abysse).</summary>
+    public bool IsMapViewActive => _overlayRenderer?.IsIslandTabActive ?? false;
 
     /// <summary>Définit l'échelle UI automatique détectée par la plateforme hôte (densité d'écran, grande résolution…).</summary>
     public void SetUiScale(float scale)
@@ -420,6 +618,7 @@ public sealed class GameScreen : IDisposable
         else                       _cameraService.CenterOn(prevCenterX, prevCenterY);
 
         _renderService.Initialize(canvasSize);
+        _tooltipRenderer?.Initialize(canvasSize);
         _lastCanvasSize      = canvasSize;
         _isCanvasInitialized = true;
     }
@@ -434,6 +633,10 @@ public sealed class GameScreen : IDisposable
 
         _gameControllerService.Update(deltaTime);
         DrainEventToasts();
+
+        // Les toasts sont dessinés par l'hôte : leur Render ne tourne plus, c'est donc la boucle
+        // de jeu qui doit les faire vieillir — sinon plus rien ne les ferait expirer.
+        _notificationToastRenderer?.Advance(deltaTime);
 
         bool introActive = _introRenderer?.IsActive == true;
         if (introActive)       _gameControllerService.CurrentGameState?.Clock?.Pause();
@@ -497,22 +700,49 @@ public sealed class GameScreen : IDisposable
 
         _renderService.RenderFrame(canvas, gameState, _cameraService);
 
-        float uiScale = _uiLayoutService.UiScale;
-        _debugPanelRenderer?.Render(canvas, _lastCanvasSize, uiScale);
-        _corruptSavePopup?.Render(canvas, _lastCanvasSize, uiScale);
-        _gameOverPopup?.Render(canvas, _lastCanvasSize, uiScale);
-        _hardResetPopup?.Render(canvas, _lastCanvasSize, uiScale);
-        _demoEndPopup?.Render(canvas, _lastCanvasSize, uiScale);
+        // Les modales sont rendues par l'hôte ; ne reste ici que le panneau de debug.
+        _debugPanelRenderer?.Render(canvas, _lastCanvasSize, _uiLayoutService.UiScale);
+    }
+
+    /// <summary>
+    /// Seconde passe de rendu : les infobulles, posées par les renderers pendant
+    /// <see cref="Render"/> et dessinées ici seulement.
+    ///
+    /// L'hôte l'appelle depuis un contrôle placé au-dessus de l'overlay Avalonia. Dessinée dans
+    /// la passe principale, une infobulle atterrit sur le canevas de la carte — le premier enfant
+    /// de l'arbre visuel — et disparaît derrière le panneau de ville ou la barre du haut dès
+    /// qu'elle les déborde.
+    /// </summary>
+    public void RenderTooltips(SKCanvas canvas, SKSize canvasSize)
+    {
+        if (_isDisposed) return;
+
+        var gameState = _gameControllerService.CurrentGameState;
+        if (gameState == null) return;
+
+        // Contexte minimal : cette passe ne fait que dessiner un état déjà calculé. Ni le temps
+        // écoulé ni la caméra n'y interviennent — seule l'échelle UI compte pour les polices.
+        var context = new GameRenderContext
+        {
+            GameState  = gameState,
+            DeltaTime  = 0f,
+            CanvasSize = canvasSize,
+            UiScale    = _uiLayoutService.UiScale,
+        };
+
+        _overlayRenderer?.RenderTooltipLayer(canvas, context);
+        _tooltipRenderer?.Render(canvas, context);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId, PointerButton button)
     {
-        if (_hardResetPopup?.IsOpen == true)  { _hardResetPopup.HandlePointerPressed(new SKPoint(x, y), button);  return; }
-        if (_corruptSavePopup?.IsOpen == true) { _corruptSavePopup.HandlePointerPressed(new SKPoint(x, y), button); return; }
-        if (_gameOverPopup?.IsOpen == true)    { _gameOverPopup.HandlePointerPressed(new SKPoint(x, y), button);   return; }
-        if (_demoEndPopup?.IsOpen == true)     { _demoEndPopup.HandlePointerPressed(new SKPoint(x, y), button);    return; }
-        if (_introRenderer?.IsActive == true)  return;
-        if (_notificationToastRenderer?.HandlePointerPressed(new SKPoint(x, y)) == true) return;
+        // Une modale ouverte est bloquante : elle est dessinée par l'hôte, qui intercepte déjà
+        // les clics, mais la garde reste ici — c'est le renderer qui détient l'état d'ouverture.
+        if (_hardResetPopup?.IsOpen    == true) return;
+        if (_corruptSavePopup?.IsOpen  == true) return;
+        if (_gameOverPopup?.IsOpen     == true) return;
+        if (_demoEndPopup?.IsOpen      == true) return;
+        if (_introRenderer?.IsActive   == true) return;
 
         _isPointerDown        = true;
         _isPanning            = false;
@@ -679,6 +909,9 @@ public sealed class GameScreen : IDisposable
             using (surface)
             {
                 _renderService.RenderFrame(surface.Canvas, gameState, _cameraService);
+                // Les infobulles ne font plus partie de la passe principale : sans cet appel la
+                // capture perdrait celle qui est affichée au moment du raccourci.
+                RenderTooltips(surface.Canvas, canvasSize);
                 SaveExportPng(surface, "screenshot_interface.png");
             }
         }
@@ -1077,6 +1310,9 @@ public sealed class GameScreen : IDisposable
         _constructionInteractionService?.Cleanup();
         _militaryInteractionService?.Cleanup();
         _renderService.Dispose();
+        // Hors RenderService depuis qu'il est rendu dans sa propre passe : personne d'autre ne
+        // le libere.
+        _tooltipRenderer?.Dispose();
         _isDisposed = true;
     }
 }

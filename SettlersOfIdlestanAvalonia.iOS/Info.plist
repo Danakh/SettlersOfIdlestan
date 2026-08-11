@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Idlestan</string>
+	<key>CFBundleName</key>
+	<string>Settlers of Idlestan</string>
+	<key>CFBundleIdentifier</key>
+	<string>fr.ratzngodz.settlersofidlestan</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>MinimumOSVersion</key>
+	<string>15.0</string>
+
+	<!--
+		L'interface du jeu est concue en large (barre du haut + panneaux lateraux) : en portrait
+		les panneaux se recouvrent. On ne propose donc que le paysage, dans les deux sens.
+	-->
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	<key>UIStatusBarHidden</key>
+	<true/>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+
+	<!--
+		Ecran de lancement declaratif (iOS 14+) : sans lui l'app demarre dans une fenetre
+		320x480 mise a l'echelle, et la carte est rendue a la mauvaise resolution.
+	-->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string></string>
+	</dict>
+
+	<!--
+		Expose le dossier Documents dans l'app Fichiers : c'est par la que passent l'export et
+		l'import de sauvegarde, iOS n'ayant pas de systeme de fichiers accessible au jeu.
+		Voir IosFileSystemService.
+	-->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+</dict>
+</plist>

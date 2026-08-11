@@ -499,11 +499,112 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _lastPointerPosition = e.Position;
     }
 
+    /// <summary>
+    /// Instantané du panneau pour une vue portée par l'hôte. Toute la logique polymorphe
+    /// (Merveille, Grand Phare, Os Divins, Faille des Abysses) reste ici : la vue n'a aucune
+    /// connaissance du modèle et ne peut donc pas diverger de l'affichage Skia.
+    /// </summary>
+    public MonumentPanelSnapshot GetSnapshot()
+    {
+        var monument = _monumentService.SelectedInvestable;
+        var playerCiv = _gameControllerService.PlayerCivilization;
+        if (monument == null || playerCiv == null) return MonumentPanelSnapshot.Hidden;
+
+        bool wonderMaxed = (monument is Wonder { IsMaxLevel: true }) || (monument is GreatLighthouse { IsMaxLevel: true });
+        bool bonesPurified = monument is DivineBones { Purified: true };
+        bool showResearchRow = monument is DivineBones { Purified: false };
+        bool showCorruptedPrestige = monument is CorruptionSpire { Built: true };
+        bool showEvolve = showCorruptedPrestige
+                       && _gameControllerService.MainGameController.AbyssGateController.IsAbyssGateEligible();
+        bool showWonderSkip = monument is Wonder { Level: >= 1 };
+        bool showNoCityWarning = !wonderMaxed && !MonumentInvestment.HasAdjacentCity(monument.Position, playerCiv);
+
+        var rows = new List<InvestmentRowSnapshot>();
+        if (!wonderMaxed)
+        {
+            foreach (var kvp in monument.GetInvestmentCost(playerCiv))
+            {
+                long invested = monument.InvestedResources.TryGetValue(kvp.Key, out var inv) ? inv : 0;
+                rows.Add(new InvestmentRowSnapshot(
+                    Key: kvp.Key.ToString(),
+                    IconName: kvp.Key.ToString(),
+                    Label: _localization.Get("resource_" + kvp.Key.ToString().ToLower()),
+                    Invested: invested,
+                    Required: kvp.Value,
+                    IsEnabled: monument.InvestmentEnabled.Contains(kvp.Key),
+                    IsDone: invested >= kvp.Value));
+            }
+        }
+
+        if (showResearchRow && monument is DivineBones bones)
+        {
+            long required = bones.GetRequiredResearch(playerCiv);
+            rows.Add(new InvestmentRowSnapshot(
+                Key: InvestmentRowSnapshot.ResearchKey,
+                IconName: null,
+                Label: _localization.Get("research_points_label"),
+                Invested: bones.InvestedResearch,
+                Required: required,
+                IsEnabled: bones.ResearchInvestmentEnabled,
+                IsDone: bones.InvestedResearch >= required));
+        }
+
+        string title = _localization.Get(monument.PanelTitleKey)
+                     + (monument.PanelTitleSuffix != null ? " " + monument.PanelTitleSuffix : "");
+
+        return new MonumentPanelSnapshot(
+            IsVisible: true,
+            Title: title,
+            Rows: rows,
+            BonusLines: GetBonusLines(monument, playerCiv)
+                .Select(b => new BonusLineSnapshot(b.Text, b.Active)).ToList(),
+            WonderMaxedMessage: wonderMaxed ? _localization.Get("wonder_max_level_reached") : null,
+            PurifiedMessage: bonesPurified
+                ? _localization.Get(monument is DivineBones { EssenceGranted: true }
+                    ? "divine_bones_purified_message"
+                    : "divine_bones_purified_no_essence_message")
+                : null,
+            PurifiedGrantedEssence: monument is DivineBones { EssenceGranted: true },
+            NoCityWarning: showNoCityWarning ? _localization.Get("tooltip_requires_adjacent_city") : null,
+            CorruptedPrestigeMessage: showCorruptedPrestige
+                ? _localization.Get("corruption_spire_panel_corrupted_prestige_available")
+                : null,
+            EvolveButtonLabel: showEvolve ? _localization.Get("abyss_gate_evolve_button") : null,
+            WonderSkipButtonLabel: showWonderSkip ? _localization.Get("wonder_skip_time_button") : null,
+            CanSkipWonder: showWonderSkip
+                && _gameControllerService.MainGameController.PrestigeController.CanSkipToNextWonderMultiplier());
+    }
+
+    /// <summary>Ferme le panneau depuis une vue portée par l'hôte.</summary>
+    public void CloseFromHost() => _monumentService.ClearSelectedInvestable();
+
+    /// <summary>Bascule l'investissement d'une ligne depuis une vue portée par l'hôte.</summary>
+    public void ToggleInvestmentFromHost(string rowKey)
+    {
+        if (rowKey == InvestmentRowSnapshot.ResearchKey)
+        {
+            _monumentService.ToggleResearchInvestment();
+            return;
+        }
+
+        if (Enum.TryParse<Resource>(rowKey, out var resource))
+            _monumentService.ToggleInvestment(resource);
+    }
+
+    /// <summary>Fait évoluer la Spire en Faille des Abysses, depuis une vue portée par l'hôte.</summary>
+    public void EvolveFromHost()
+    {
+        var gate = _gameControllerService.MainGameController.AbyssGateController.PlaceAbyssGate();
+        if (gate != null) _monumentService.SetSelectedInvestable(gate);
+    }
+
+    /// <summary>Saute au prochain multiplicateur de merveille, depuis une vue portée par l'hôte.</summary>
+    public void SkipWonderFromHost() =>
+        _gameControllerService.MainGameController.PrestigeController.SkipToNextWonderMultiplier();
+
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
         if (e.Button != PointerButton.Left) return;
-        if (ShouldSuppressInput?.Invoke() == true) return;
-
         if (HandleCollapseTabPress(e.Position)) return;
         if (!IsInputEnabled) return;
 

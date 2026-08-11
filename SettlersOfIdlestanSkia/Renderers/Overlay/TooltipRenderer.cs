@@ -61,6 +61,19 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             _tooltipCost = null; _tooltipResearchCost = null;
         }
 
+        /// <summary>
+        /// Coupe les infobulles Skia tant que le pointeur n'est pas au-dessus du canevas.
+        ///
+        /// Sans cela elles cohabitent avec celles d'Avalonia : les survols de la carte sont
+        /// détectés pendant le rendu, à partir d'un état de survol que le canevas cesse de
+        /// recevoir dès que le pointeur passe sur un contrôle de l'overlay. Cet état reste
+        /// donc figé sur le dernier hexagone survolé, et son infobulle continue de s'afficher
+        /// derrière celle du contrôle que l'on survole vraiment.
+        /// </summary>
+        public void SetSuppressed(bool suppressed) => _suppressed = suppressed;
+
+        private bool _suppressed;
+
         public void SetIslandRenderContext(IslandMainRenderer? islandRenderer, GameRenderContext? context)
         {
             _islandRendererContext = islandRenderer;
@@ -449,6 +462,14 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
         public void Render(SKCanvas canvas, GameRenderContext context)
         {
+            // Les renderers de la frame ont deja pose leur infobulle : on la jette ici plutot
+            // que de tester la suppression a chaque point d'appel.
+            if (_suppressed)
+            {
+                ClearTooltip();
+                return;
+            }
+
             if (context.UiScale != _lastUiScale)
             {
                 _lastUiScale = context.UiScale;

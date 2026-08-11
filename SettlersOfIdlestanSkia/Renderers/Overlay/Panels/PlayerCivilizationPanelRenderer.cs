@@ -77,13 +77,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private int _hoveredPinnedIndex = -1;
 
     private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredWarHerald, _hoveredLocateHero, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredPresenceOfGod, _hoveredGreatLighthouse;
-    private bool _wonderEnabled;
-    private bool _greatLighthouseEnabled;
-    private bool _deepestMineEnabled;
-    private bool _spireEnabled;
-    private bool _relocationEnabled;
-    private bool _walkOfGodEnabled;
-    private bool _presenceOfGodEnabled;
     private bool _disposed;
     private SKPaint? _btnRaidActivePaint;
     private SKPaint? _btnRaidActiveHoverPaint;
@@ -152,6 +145,45 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     public void ConnectTargetSelectionService(TargetSelectionService service)
         => _targetSelectionService = service;
 
+    // ── Visibilité et disponibilité des actions ───────────────────────────────
+    //
+    // Source de vérité unique, partagée par le rendu Skia, son hit-testing, l'instantané destiné
+    // à l'hôte et l'exécution des actions. Ces règles étaient auparavant évaluées dans Render et
+    // mémorisées dans des champs : le clic les relisait donc avec une frame de retard, et une
+    // fois le panneau porté par l'hôte, Render ne tourne plus du tout et les champs restaient
+    // figés sur leur dernière valeur.
+
+    private AscensionController Ascension => _gameControllerService.MainGameController.AscensionController;
+
+    private int CurrentLayer => _gameControllerService.CurrentWorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer;
+
+    private bool WonderVisible => IsWonderVisible() && CanPlaceWonder();
+    private bool WonderEnabled => WonderVisible && CurrentLayer == IslandMap.SurfaceLayer;
+
+    private bool GreatLighthouseVisible => IsGreatLighthouseVisible() && CanPlaceGreatLighthouse();
+    private bool GreatLighthouseEnabled => GreatLighthouseVisible && CurrentLayer == IslandMap.SurfaceLayer;
+
+    private bool DeepestMineVisible => CanPlaceDeepestMine();
+    private bool DeepestMineEnabled => DeepestMineVisible && CurrentLayer == IslandMap.SurfaceLayer;
+
+    private bool SpireVisible => CanPlaceSpire();
+    private bool SpireEnabled => SpireVisible && CurrentLayer == LayerState.UnderworldZ;
+
+    private bool RelocationVisible => IsRelocationVisible();
+    private bool RelocationEnabled => RelocationVisible && CanAffordRelocation();
+
+    private bool WalkOfGodVisible => Ascension.IsPowerUnlocked(AscensionPowerId.WalkOfGod);
+    private bool WalkOfGodEnabled => WalkOfGodVisible
+                                  && CurrentLayer == IslandMap.SurfaceLayer
+                                  && Ascension.GetWalkOfGodTargetHexes().Count > 0
+                                  && Ascension.CanUseWalkOfGod();
+
+    private bool PresenceOfGodVisible => Ascension.IsPowerUnlocked(AscensionPowerId.PresenceOfGod);
+    private bool PresenceOfGodEnabled => PresenceOfGodVisible
+                                      && CurrentLayer == IslandMap.SurfaceLayer
+                                      && Ascension.GetPresenceOfGodTargetHexes().Count > 0
+                                      && Ascension.CanUsePresenceOfGod();
+
     /// <summary>Défilement au clavier/molette de souris quand le contenu du panneau dépasse la hauteur disponible.</summary>
     public new void HandleScroll(float delta)
     {
@@ -197,26 +229,28 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool prestigeVisible = IsPrestigeVisible();
         bool prestigeAvail   = prestigeVisible && IsPrestigeAvailable();
         int  prestigePoints  = prestigeVisible ? GetPrestigePoints() : 0;
-        bool wonderVisible   = IsWonderVisible() && CanPlaceWonder();
-        _wonderEnabled = wonderVisible && context.CurrentLayer == 0;
-        bool greatLighthouseVisible = IsGreatLighthouseVisible() && CanPlaceGreatLighthouse();
-        _greatLighthouseEnabled = greatLighthouseVisible && context.CurrentLayer == 0;
-        bool deepestMineVisible = CanPlaceDeepestMine();
-        _deepestMineEnabled = deepestMineVisible && context.CurrentLayer == 0;
-        bool spireVisible   = CanPlaceSpire();
-        _spireEnabled = spireVisible && context.CurrentLayer == LayerState.UnderworldZ;
+        bool wonderVisible          = WonderVisible;
+        bool greatLighthouseVisible = GreatLighthouseVisible;
+        bool deepestMineVisible     = DeepestMineVisible;
+        bool spireVisible           = SpireVisible;
+        // Capturées une fois pour la frame : le dessin du bouton et son infobulle doivent
+        // s'accorder, et certaines de ces règles parcourent la carte entière.
+        bool wonderEnabled          = wonderVisible          && CurrentLayer == IslandMap.SurfaceLayer;
+        bool greatLighthouseEnabled = greatLighthouseVisible && CurrentLayer == IslandMap.SurfaceLayer;
+        bool deepestMineEnabled     = deepestMineVisible     && CurrentLayer == IslandMap.SurfaceLayer;
+        bool spireEnabled           = spireVisible           && CurrentLayer == LayerState.UnderworldZ;
         bool raidVisible   = IsRaidVisible();
         bool raidActive    = raidVisible && IsRaidActive();
         bool warHeraldVisible = IsWarHeraldVisible();
         var adventurersGuildCity = GetAdventurersGuildCity(civ);
         bool locateHeroVisible = adventurersGuildCity != null;
-        bool relocationVisible = IsRelocationVisible();
-        _relocationEnabled = relocationVisible && CanAffordRelocation();
-        var ascensionController = _gameControllerService.MainGameController.AscensionController;
-        bool walkOfGodVisible = ascensionController.IsPowerUnlocked(AscensionPowerId.WalkOfGod);
-        _walkOfGodEnabled = walkOfGodVisible && context.CurrentLayer == 0 && ascensionController.GetWalkOfGodTargetHexes().Count > 0 && ascensionController.CanUseWalkOfGod();
-        bool presenceOfGodVisible = ascensionController.IsPowerUnlocked(AscensionPowerId.PresenceOfGod);
-        _presenceOfGodEnabled = presenceOfGodVisible && context.CurrentLayer == 0 && ascensionController.GetPresenceOfGodTargetHexes().Count > 0 && ascensionController.CanUsePresenceOfGod();
+        bool relocationVisible = RelocationVisible;
+        bool relocationEnabled = RelocationEnabled;
+        var ascensionController = Ascension;
+        bool walkOfGodVisible = WalkOfGodVisible;
+        bool walkOfGodEnabled = WalkOfGodEnabled;
+        bool presenceOfGodVisible = PresenceOfGodVisible;
+        bool presenceOfGodEnabled = PresenceOfGodEnabled;
         bool hasBarracks     = HasBuilt<Barracks>(civ);
         bool hasArsenal      = HasBuilt<Arsenal>(civ);
         bool hasLabs         = HasBuilt<Laboratory>(civ);
@@ -386,57 +420,57 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             if (wonderVisible)
             {
                 _wonderButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_wonderButtonRect, 6 * s, 6 * s, _wonderEnabled ? (_hoveredWonder ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                SkiaTextUtils.DrawText(canvas, _localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _wonderEnabled ? TextPaint : _btnDisabledTxtPaint);
+                canvas.DrawRoundRect(_wonderButtonRect, 6 * s, 6 * s, wonderEnabled ? (_hoveredWonder ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("wonder_action_short"), _wonderButtonRect.MidX, _wonderButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, wonderEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             if (greatLighthouseVisible)
             {
                 _greatLighthouseButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_greatLighthouseButtonRect, 6 * s, 6 * s, _greatLighthouseEnabled ? (_hoveredGreatLighthouse ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                SkiaTextUtils.DrawText(canvas, _localization.Get("great_lighthouse_action_short"), _greatLighthouseButtonRect.MidX, _greatLighthouseButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _greatLighthouseEnabled ? TextPaint : _btnDisabledTxtPaint);
+                canvas.DrawRoundRect(_greatLighthouseButtonRect, 6 * s, 6 * s, greatLighthouseEnabled ? (_hoveredGreatLighthouse ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("great_lighthouse_action_short"), _greatLighthouseButtonRect.MidX, _greatLighthouseButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, greatLighthouseEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             if (deepestMineVisible)
             {
                 _deepestMineButtonRect = BtnRect(btnIdx++, allowFullWidth: false);
-                canvas.DrawRoundRect(_deepestMineButtonRect, 6 * s, 6 * s, _deepestMineEnabled ? (_hoveredDeepestMine ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                DrawWrappedButtonText(canvas, _deepestMineButtonRect, _localization.Get("deepest_mine_action_short"), _btnSmFont!, _deepestMineEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
+                canvas.DrawRoundRect(_deepestMineButtonRect, 6 * s, 6 * s, deepestMineEnabled ? (_hoveredDeepestMine ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                DrawWrappedButtonText(canvas, _deepestMineButtonRect, _localization.Get("deepest_mine_action_short"), _btnSmFont!, deepestMineEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
             }
 
             if (spireVisible)
             {
                 _spireButtonRect = BtnRect(btnIdx++, allowFullWidth: false);
-                canvas.DrawRoundRect(_spireButtonRect, 6 * s, 6 * s, _spireEnabled ? (_hoveredSpire ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                DrawWrappedButtonText(canvas, _spireButtonRect, _localization.Get("spire_action_short"), _btnSmFont!, _spireEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
+                canvas.DrawRoundRect(_spireButtonRect, 6 * s, 6 * s, spireEnabled ? (_hoveredSpire ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                DrawWrappedButtonText(canvas, _spireButtonRect, _localization.Get("spire_action_short"), _btnSmFont!, spireEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
             }
 
             if (relocationVisible)
             {
                 _relocationButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_relocationButtonRect, 6 * s, 6 * s, _relocationEnabled ? (_hoveredRelocation ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
-                SkiaTextUtils.DrawText(canvas, _localization.Get("relocation_action_short"), _relocationButtonRect.MidX, _relocationButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _relocationEnabled ? TextPaint : _btnDisabledTxtPaint);
+                canvas.DrawRoundRect(_relocationButtonRect, 6 * s, 6 * s, relocationEnabled ? (_hoveredRelocation ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                SkiaTextUtils.DrawText(canvas, _localization.Get("relocation_action_short"), _relocationButtonRect.MidX, _relocationButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, relocationEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             if (walkOfGodVisible)
             {
                 _walkOfGodButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_walkOfGodButtonRect, 6 * s, 6 * s, _walkOfGodEnabled ? (_hoveredWalkOfGod ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                canvas.DrawRoundRect(_walkOfGodButtonRect, 6 * s, 6 * s, walkOfGodEnabled ? (_hoveredWalkOfGod ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 // Le premier usage depuis le dernier prestige est gratuit : afficher « (0) » sur le
                 // bouton se lit comme une erreur, pas comme une bonne nouvelle.
                 int walkOfGodButtonCost = ascensionController.GetWalkOfGodCost();
                 string walkOfGodLabel = walkOfGodButtonCost == 0
                     ? $"{_localization.Get("walkofgod_action_short")} ({_localization.Get("cost_free")})"
                     : $"{_localization.Get("walkofgod_action_short")} ({walkOfGodButtonCost})";
-                SkiaTextUtils.DrawText(canvas, walkOfGodLabel, _walkOfGodButtonRect.MidX, _walkOfGodButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _walkOfGodEnabled ? TextPaint : _btnDisabledTxtPaint);
+                SkiaTextUtils.DrawText(canvas, walkOfGodLabel, _walkOfGodButtonRect.MidX, _walkOfGodButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, walkOfGodEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             if (presenceOfGodVisible)
             {
                 _presenceOfGodButtonRect = BtnRect(btnIdx++);
-                canvas.DrawRoundRect(_presenceOfGodButtonRect, 6 * s, 6 * s, _presenceOfGodEnabled ? (_hoveredPresenceOfGod ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                canvas.DrawRoundRect(_presenceOfGodButtonRect, 6 * s, 6 * s, presenceOfGodEnabled ? (_hoveredPresenceOfGod ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
                 string presenceOfGodLabel = $"{_localization.Get("presenceofgod_action_short")} ({ascensionController.GetPresenceOfGodCost()})";
-                SkiaTextUtils.DrawText(canvas, presenceOfGodLabel, _presenceOfGodButtonRect.MidX, _presenceOfGodButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, _presenceOfGodEnabled ? TextPaint : _btnDisabledTxtPaint);
+                SkiaTextUtils.DrawText(canvas, presenceOfGodLabel, _presenceOfGodButtonRect.MidX, _presenceOfGodButtonRect.MidY + 4f * s, SKTextAlign.Center, _btnSmFont, presenceOfGodEnabled ? TextPaint : _btnDisabledTxtPaint);
             }
 
             y = actionsY + ((btnIdx + 1) / 2) * (btnHeight + btnSpacing);
@@ -462,44 +496,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 int idx = _pinnedItemRects.Count;
                 bool isHovered = _hoveredPinnedIndex == idx;
 
-                SKRect toggleRect;
-                string tooltipKey;
-
-                switch (key)
-                {
-                    case AutomationRenderer.PinKeyBarracks:
-                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Barracks>(civ), isHovered, _localization.Get("building_barracks_name"));
-                        tooltipKey = "tooltip_toggle_barracks";
-                        break;
-                    case AutomationRenderer.PinKeyArsenal:
-                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Arsenal>(civ), isHovered, _localization.Get("building_arsenal_name"));
-                        tooltipKey = "tooltip_toggle_arsenal";
-                        break;
-                    case AutomationRenderer.PinKeyLaboratory:
-                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Laboratory>(civ), isHovered, _localization.Get("building_laboratory_name"));
-                        tooltipKey = "tooltip_toggle_lab";
-                        break;
-                    case AutomationRenderer.PinKeySmelter:
-                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<Smelter>(civ), isHovered, _localization.Get("building_smelter_name"));
-                        tooltipKey = "tooltip_toggle_smelter";
-                        break;
-                    case AutomationRenderer.PinKeyWeaponSmith:
-                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<WeaponSmith>(civ), isHovered, _localization.Get("building_weaponsmith_name"));
-                        tooltipKey = "tooltip_toggle_weaponsmith";
-                        break;
-                    case AutomationRenderer.PinKeyArmorSmith:
-                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<ArmorSmith>(civ), isHovered, _localization.Get("building_armorsmith_name"));
-                        tooltipKey = "tooltip_toggle_armorsmith";
-                        break;
-                    case AutomationRenderer.PinKeyAlchimistHut:
-                        toggleRect = DrawToggleRow(canvas, x, y, AreAllActiveNullable<AlchimistHut>(civ), isHovered, _localization.Get("building_alchimisthut_name"));
-                        tooltipKey = "tooltip_toggle_alchimisthut";
-                        break;
-                    default:
-                        toggleRect = DrawAutomationToggleRow(canvas, x, y, key, worldState!, isHovered, contentW);
-                        tooltipKey = GetAutomationPinDescKey(key);
-                        break;
-                }
+                var (value, nameKey, tooltipKey) = ResolvePinnedToggle(key, civ, worldState);
+                var toggleRect = DrawToggleRow(canvas, x, y, value, isHovered, _localization.Get(nameKey));
                 _pinnedItemRects.Add((toggleRect, key, tooltipKey));
                 y += rowHeight;
             }
@@ -577,25 +575,25 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             lines.Add(_localization.Get("tooltip_prestige_next_island"));
             _tooltipRenderer.SetTooltipLines(lines.ToArray(), new SKPoint(_prestigeButtonRect.Right, TipY(_prestigeButtonRect.Top)));
         }
-        else if (_hoveredWonder && _wonderEnabled)
+        else if (_hoveredWonder && wonderEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder"), new SKPoint(_wonderButtonRect.Right, TipY(_wonderButtonRect.Top)));
-        else if (_hoveredWonder && !_wonderEnabled)
+        else if (_hoveredWonder && !wonderEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_wonder_surface_only"), new SKPoint(_wonderButtonRect.Right, TipY(_wonderButtonRect.Top)));
-        else if (_hoveredGreatLighthouse && _greatLighthouseEnabled)
+        else if (_hoveredGreatLighthouse && greatLighthouseEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_great_lighthouse"), new SKPoint(_greatLighthouseButtonRect.Right, TipY(_greatLighthouseButtonRect.Top)));
-        else if (_hoveredGreatLighthouse && !_greatLighthouseEnabled)
+        else if (_hoveredGreatLighthouse && !greatLighthouseEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_great_lighthouse_surface_only"), new SKPoint(_greatLighthouseButtonRect.Right, TipY(_greatLighthouseButtonRect.Top)));
-        else if (_hoveredDeepestMine && !_deepestMineEnabled)
+        else if (_hoveredDeepestMine && !deepestMineEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine_surface_only"), new SKPoint(_deepestMineButtonRect.Right, TipY(_deepestMineButtonRect.Top)));
         else if (_hoveredDeepestMine)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine"), new SKPoint(_deepestMineButtonRect.Right, TipY(_deepestMineButtonRect.Top)));
-        else if (_hoveredSpire && !_spireEnabled)
+        else if (_hoveredSpire && !spireEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_spire_underworld_only"), new SKPoint(_spireButtonRect.Right, TipY(_spireButtonRect.Top)));
         else if (_hoveredSpire)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_spire"), new SKPoint(_spireButtonRect.Right, TipY(_spireButtonRect.Top)));
-        else if (_hoveredRelocation && _relocationEnabled)
+        else if (_hoveredRelocation && relocationEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation"), new SKPoint(_relocationButtonRect.Right, TipY(_relocationButtonRect.Top)));
-        else if (_hoveredRelocation && !_relocationEnabled)
+        else if (_hoveredRelocation && !relocationEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_relocation_insufficient_resources"), new SKPoint(_relocationButtonRect.Right, TipY(_relocationButtonRect.Top)));
         else if (_hoveredWalkOfGod)
         {
@@ -706,164 +704,23 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
         // The Actions header icon buttons (trade/raid/war herald/locate hero) are pinned above
         // the scroll clip/translate, so they're hit-tested against the raw pointer position.
-        if (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(pos.X, pos.Y))
-        {
-            _closeAll();
-            _tradeRenderer.Open();
-            return true;
-        }
+        if (!_tradeButtonRect.IsEmpty && _tradeButtonRect.Contains(pos.X, pos.Y)) { DoTrade(); return true; }
 
         // Everything else below is stored in unscrolled content coordinates — convert the
         // (already viewport-clamped, thanks to the PanelBounds check above) pointer into that space.
         float py = _needsScroll ? pos.Y + _scrollOffsetPx : pos.Y;
 
-        if (!_prestigeButtonRect.IsEmpty && _prestigeButtonRect.Contains(pos.X, py) && IsPrestigeAvailable())
-        {
-            _closeAll();
-            _prestigeRenderer.Open();
-            return true;
-        }
-
-        if (!_wonderButtonRect.IsEmpty && _wonderButtonRect.Contains(pos.X, py) && _wonderEnabled && _targetSelectionService != null)
-        {
-            _closeAll();
-            var wonderController = _gameControllerService.MainGameController.WonderController;
-            _targetSelectionService.EnterHexSelection("wonder_select_hex", wonderController.GetPlaceableHexes(),
-                hex => wonderController.PlaceWonder(hex), TargetSelectionTheme.Friendly);
-            return true;
-        }
-
-        if (!_greatLighthouseButtonRect.IsEmpty && _greatLighthouseButtonRect.Contains(pos.X, py) && _greatLighthouseEnabled && _targetSelectionService != null)
-        {
-            _closeAll();
-            var greatLighthouseController = _gameControllerService.MainGameController.GreatLighthouseController;
-            _targetSelectionService.EnterHexSelection("great_lighthouse_select_hex", greatLighthouseController.GetPlaceableHexes(),
-                hex => greatLighthouseController.PlaceGreatLighthouse(hex), TargetSelectionTheme.Friendly);
-            return true;
-        }
-
-        if (!_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, py) && _deepestMineEnabled && _targetSelectionService != null)
-        {
-            _closeAll();
-            var deepestMineController = _gameControllerService.MainGameController.DeepestMineController;
-            _targetSelectionService.EnterHexSelection("deepest_mine_select_hex", deepestMineController.GetPlaceableHexes(),
-                hex => deepestMineController.PlaceDeepestMine(hex), TargetSelectionTheme.Friendly);
-            return true;
-        }
-
-        if (!_spireButtonRect.IsEmpty && _spireButtonRect.Contains(pos.X, py) && _spireEnabled && _targetSelectionService != null)
-        {
-            _closeAll();
-            var spireController = _gameControllerService.MainGameController.CorruptionSpireController;
-            var spireHexes = spireController.GetPlaceableHexes();
-            var spireHexLabels = spireHexes.ToDictionary(hex => hex,
-                hex => _localization.GetFormated("map_switch_corruption_level", spireController.GetCorruptionLevel(hex)));
-            _targetSelectionService.EnterHexSelection("spire_select_hex", spireHexes,
-                hex => spireController.PlaceCorruptionSpire(hex), TargetSelectionTheme.Friendly, spireHexLabels);
-            return true;
-        }
-
-        if (!_raidButtonRect.IsEmpty && _raidButtonRect.Contains(pos.X, pos.Y))
-        {
-            var playerCiv = _gameControllerService.PlayerCivilization;
-            if (IsRaidActive())
-            {
-                if (playerCiv != null)
-                    _gameControllerService.MainGameController.MilitaryController.StopRaid(playerCiv);
-            }
-            else if (_targetSelectionService != null && playerCiv != null)
-            {
-                _closeAll();
-                var militaryController = _gameControllerService.MainGameController.MilitaryController;
-                var cityTargets = militaryController.GetSelectableTargets(playerCiv);
-                var monsterTargets = militaryController.GetSelectableMonsterTargets();
-                if (cityTargets.Count > 0 || monsterTargets.Count > 0)
-                    _targetSelectionService.EnterMixedSelection("raid_select_city",
-                        cityTargets, target => militaryController.StartRaid(playerCiv, target),
-                        monsterTargets, target => militaryController.StartMonsterRaid(playerCiv, target),
-                        TargetSelectionTheme.Hostile);
-            }
-            return true;
-        }
-
-        if (!_warHeraldButtonRect.IsEmpty && _warHeraldButtonRect.Contains(pos.X, pos.Y) && _targetSelectionService != null)
-        {
-            var playerCiv = _gameControllerService.PlayerCivilization;
-            if (playerCiv != null)
-            {
-                _closeAll();
-                var militaryController = _gameControllerService.MainGameController.MilitaryController;
-                var allyTargets = militaryController.GetWarHeraldTargets(playerCiv);
-                if (allyTargets.Count > 0)
-                    _targetSelectionService.EnterVertexSelection("warherald_select_target", allyTargets,
-                        target => militaryController.StartWarHeraldRaid(playerCiv, target),
-                        TargetSelectionTheme.Friendly);
-            }
-            return true;
-        }
-
-        if (!_locateHeroButtonRect.IsEmpty && _locateHeroButtonRect.Contains(pos.X, pos.Y))
-        {
-            var playerCiv = _gameControllerService.PlayerCivilization;
-            var guildCity = playerCiv != null ? GetAdventurersGuildCity(playerCiv) : null;
-            if (guildCity != null)
-            {
-                var activeAdventurer = _gameControllerService.CityBuildingService?.GetActiveAdventurer();
-                if (activeAdventurer != null)
-                {
-                    var (wx, wy) = HexToWorld(activeAdventurer.Position);
-                    _centerCameraOnMapPosition(activeAdventurer.Position.Z, wx, wy);
-                }
-                else
-                {
-                    var (wx, wy) = VertexToWorld(guildCity.Position);
-                    _centerCameraOnMapPosition(guildCity.Position.Z, wx, wy);
-                }
-            }
-            return true;
-        }
-
-        if (!_relocationButtonRect.IsEmpty && _relocationButtonRect.Contains(pos.X, py) && _relocationEnabled && _targetSelectionService != null)
-        {
-            var playerCiv = _gameControllerService.PlayerCivilization;
-            if (playerCiv != null)
-            {
-                _closeAll();
-                var cityBuilderController = _gameControllerService.MainGameController.CityBuilderController;
-                var cityTargets = playerCiv.Cities.Select(c => c.Position).ToList();
-                if (cityTargets.Count > 0)
-                    _targetSelectionService.EnterVertexSelection("relocation_select_city", cityTargets,
-                        source =>
-                        {
-                            var city = playerCiv.Cities.FirstOrDefault(c => c.Position.Equals(source));
-                            if (city == null) return;
-                            var destinations = cityBuilderController.GetRelocationTargets(city);
-                            if (destinations.Count == 0) return;
-                            _targetSelectionService.EnterVertexSelection("relocation_select_destination", destinations,
-                                destination => cityBuilderController.RelocateCity(city, destination),
-                                TargetSelectionTheme.Friendly);
-                        }, TargetSelectionTheme.Friendly);
-            }
-            return true;
-        }
-
-        if (!_walkOfGodButtonRect.IsEmpty && _walkOfGodButtonRect.Contains(pos.X, py) && _walkOfGodEnabled && _targetSelectionService != null)
-        {
-            _closeAll();
-            var ascensionController = _gameControllerService.MainGameController.AscensionController;
-            _targetSelectionService.EnterHexSelection("walkofgod_select_hex", ascensionController.GetWalkOfGodTargetHexes(),
-                hex => ascensionController.ApplyWalkOfGod(hex), TargetSelectionTheme.Friendly);
-            return true;
-        }
-
-        if (!_presenceOfGodButtonRect.IsEmpty && _presenceOfGodButtonRect.Contains(pos.X, py) && _presenceOfGodEnabled && _targetSelectionService != null)
-        {
-            _closeAll();
-            var ascensionControllerPresence = _gameControllerService.MainGameController.AscensionController;
-            _targetSelectionService.EnterHexSelection("presenceofgod_select_hex", ascensionControllerPresence.GetPresenceOfGodTargetHexes(),
-                hex => ascensionControllerPresence.ApplyPresenceOfGod(hex), TargetSelectionTheme.Friendly);
-            return true;
-        }
+        if (!_prestigeButtonRect.IsEmpty        && _prestigeButtonRect.Contains(pos.X, py))        { DoPrestige();        return true; }
+        if (!_wonderButtonRect.IsEmpty          && _wonderButtonRect.Contains(pos.X, py))          { DoWonder();          return true; }
+        if (!_greatLighthouseButtonRect.IsEmpty && _greatLighthouseButtonRect.Contains(pos.X, py)) { DoGreatLighthouse(); return true; }
+        if (!_deepestMineButtonRect.IsEmpty     && _deepestMineButtonRect.Contains(pos.X, py))     { DoDeepestMine();     return true; }
+        if (!_spireButtonRect.IsEmpty           && _spireButtonRect.Contains(pos.X, py))           { DoSpire();           return true; }
+        if (!_raidButtonRect.IsEmpty            && _raidButtonRect.Contains(pos.X, pos.Y))         { DoRaid();            return true; }
+        if (!_warHeraldButtonRect.IsEmpty       && _warHeraldButtonRect.Contains(pos.X, pos.Y))    { DoWarHerald();       return true; }
+        if (!_locateHeroButtonRect.IsEmpty      && _locateHeroButtonRect.Contains(pos.X, pos.Y))   { DoLocateHero();      return true; }
+        if (!_relocationButtonRect.IsEmpty      && _relocationButtonRect.Contains(pos.X, py))      { DoRelocation();      return true; }
+        if (!_walkOfGodButtonRect.IsEmpty       && _walkOfGodButtonRect.Contains(pos.X, py))       { DoWalkOfGod();       return true; }
+        if (!_presenceOfGodButtonRect.IsEmpty   && _presenceOfGodButtonRect.Contains(pos.X, py))   { DoPresenceOfGod();   return true; }
 
         var civ = _gameControllerService.PlayerCivilization;
         var worldState = _gameControllerService.CurrentWorldState;
@@ -879,6 +736,166 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         return true;
     }
 
+    // ── Actions ───────────────────────────────────────────────────────────────
+    //
+    // Chaque action porte sa propre garde de disponibilité plutôt que de la laisser à l'appelant :
+    // elles sont déclenchées aussi bien par le hit-testing Skia que par le panneau porté par
+    // l'hôte, et une garde dupliquée finirait par diverger entre les deux.
+
+    private void DoTrade()
+    {
+        if (!IsTradeVisible()) return;
+        _closeAll();
+        _tradeRenderer.Open();
+    }
+
+    private void DoPrestige()
+    {
+        if (!IsPrestigeAvailable()) return;
+        _closeAll();
+        _prestigeRenderer.Open();
+    }
+
+    private void DoWonder()
+    {
+        if (!WonderEnabled || _targetSelectionService == null) return;
+        _closeAll();
+        var wonderController = _gameControllerService.MainGameController.WonderController;
+        _targetSelectionService.EnterHexSelection("wonder_select_hex", wonderController.GetPlaceableHexes(),
+            hex => wonderController.PlaceWonder(hex), TargetSelectionTheme.Friendly);
+    }
+
+    private void DoGreatLighthouse()
+    {
+        if (!GreatLighthouseEnabled || _targetSelectionService == null) return;
+        _closeAll();
+        var greatLighthouseController = _gameControllerService.MainGameController.GreatLighthouseController;
+        _targetSelectionService.EnterHexSelection("great_lighthouse_select_hex", greatLighthouseController.GetPlaceableHexes(),
+            hex => greatLighthouseController.PlaceGreatLighthouse(hex), TargetSelectionTheme.Friendly);
+    }
+
+    private void DoDeepestMine()
+    {
+        if (!DeepestMineEnabled || _targetSelectionService == null) return;
+        _closeAll();
+        var deepestMineController = _gameControllerService.MainGameController.DeepestMineController;
+        _targetSelectionService.EnterHexSelection("deepest_mine_select_hex", deepestMineController.GetPlaceableHexes(),
+            hex => deepestMineController.PlaceDeepestMine(hex), TargetSelectionTheme.Friendly);
+    }
+
+    private void DoSpire()
+    {
+        if (!SpireEnabled || _targetSelectionService == null) return;
+        _closeAll();
+        var spireController = _gameControllerService.MainGameController.CorruptionSpireController;
+        var spireHexes = spireController.GetPlaceableHexes();
+        var spireHexLabels = spireHexes.ToDictionary(hex => hex,
+            hex => _localization.GetFormated("map_switch_corruption_level", spireController.GetCorruptionLevel(hex)));
+        _targetSelectionService.EnterHexSelection("spire_select_hex", spireHexes,
+            hex => spireController.PlaceCorruptionSpire(hex), TargetSelectionTheme.Friendly, spireHexLabels);
+    }
+
+    /// <summary>Lance un pillage, ou arrête celui en cours si le bouton est déjà actif.</summary>
+    private void DoRaid()
+    {
+        if (!IsRaidVisible()) return;
+        var playerCiv = _gameControllerService.PlayerCivilization;
+        if (playerCiv == null) return;
+
+        if (IsRaidActive())
+        {
+            _gameControllerService.MainGameController.MilitaryController.StopRaid(playerCiv);
+            return;
+        }
+
+        if (_targetSelectionService == null) return;
+        _closeAll();
+        var militaryController = _gameControllerService.MainGameController.MilitaryController;
+        var cityTargets = militaryController.GetSelectableTargets(playerCiv);
+        var monsterTargets = militaryController.GetSelectableMonsterTargets();
+        if (cityTargets.Count > 0 || monsterTargets.Count > 0)
+            _targetSelectionService.EnterMixedSelection("raid_select_city",
+                cityTargets, target => militaryController.StartRaid(playerCiv, target),
+                monsterTargets, target => militaryController.StartMonsterRaid(playerCiv, target),
+                TargetSelectionTheme.Hostile);
+    }
+
+    private void DoWarHerald()
+    {
+        if (!IsWarHeraldVisible() || _targetSelectionService == null) return;
+        var playerCiv = _gameControllerService.PlayerCivilization;
+        if (playerCiv == null) return;
+
+        _closeAll();
+        var militaryController = _gameControllerService.MainGameController.MilitaryController;
+        var allyTargets = militaryController.GetWarHeraldTargets(playerCiv);
+        if (allyTargets.Count > 0)
+            _targetSelectionService.EnterVertexSelection("warherald_select_target", allyTargets,
+                target => militaryController.StartWarHeraldRaid(playerCiv, target),
+                TargetSelectionTheme.Friendly);
+    }
+
+    /// <summary>Recentre la caméra sur l'aventurier en vadrouille, ou à défaut sur sa guilde.</summary>
+    private void DoLocateHero()
+    {
+        var playerCiv = _gameControllerService.PlayerCivilization;
+        var guildCity = playerCiv != null ? GetAdventurersGuildCity(playerCiv) : null;
+        if (guildCity == null) return;
+
+        var activeAdventurer = _gameControllerService.CityBuildingService?.GetActiveAdventurer();
+        if (activeAdventurer != null)
+        {
+            var (ax, ay) = HexToWorld(activeAdventurer.Position);
+            _centerCameraOnMapPosition(activeAdventurer.Position.Z, ax, ay);
+            return;
+        }
+
+        var (wx, wy) = VertexToWorld(guildCity.Position);
+        _centerCameraOnMapPosition(guildCity.Position.Z, wx, wy);
+    }
+
+    private void DoRelocation()
+    {
+        if (!RelocationEnabled || _targetSelectionService == null) return;
+        var playerCiv = _gameControllerService.PlayerCivilization;
+        if (playerCiv == null) return;
+
+        _closeAll();
+        var cityBuilderController = _gameControllerService.MainGameController.CityBuilderController;
+        var cityTargets = playerCiv.Cities.Select(c => c.Position).ToList();
+        if (cityTargets.Count == 0) return;
+
+        _targetSelectionService.EnterVertexSelection("relocation_select_city", cityTargets,
+            source =>
+            {
+                var city = playerCiv.Cities.FirstOrDefault(c => c.Position.Equals(source));
+                if (city == null) return;
+                var destinations = cityBuilderController.GetRelocationTargets(city);
+                if (destinations.Count == 0) return;
+                _targetSelectionService.EnterVertexSelection("relocation_select_destination", destinations,
+                    destination => cityBuilderController.RelocateCity(city, destination),
+                    TargetSelectionTheme.Friendly);
+            }, TargetSelectionTheme.Friendly);
+    }
+
+    private void DoWalkOfGod()
+    {
+        if (!WalkOfGodEnabled || _targetSelectionService == null) return;
+        _closeAll();
+        var ascension = Ascension;
+        _targetSelectionService.EnterHexSelection("walkofgod_select_hex", ascension.GetWalkOfGodTargetHexes(),
+            hex => ascension.ApplyWalkOfGod(hex), TargetSelectionTheme.Friendly);
+    }
+
+    private void DoPresenceOfGod()
+    {
+        if (!PresenceOfGodEnabled || _targetSelectionService == null) return;
+        _closeAll();
+        var ascension = Ascension;
+        _targetSelectionService.EnterHexSelection("presenceofgod_select_hex", ascension.GetPresenceOfGodTargetHexes(),
+            hex => ascension.ApplyPresenceOfGod(hex), TargetSelectionTheme.Friendly);
+    }
+
     private void HandlePinnedToggle(string key, Civilization? civ, SettlersOfIdlestan.Model.IslandMap.WorldState? worldState)
     {
         var settings = worldState?.AutomationSettings;
@@ -891,6 +908,11 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyWeaponSmith:   if (civ != null) ToggleAll<WeaponSmith>(civ); break;
             case AutomationRenderer.PinKeyArmorSmith:    if (civ != null) ToggleAll<ArmorSmith>(civ);  break;
             case AutomationRenderer.PinKeyAlchimistHut:  if (civ != null) ToggleAll<AlchimistHut>(civ); break;
+            case AutomationRenderer.PinKeyTownHall:      if (settings != null) settings.TownHallAutomationEnabled = !settings.TownHallAutomationEnabled;                   break;
+            case AutomationRenderer.PinKeyGrandTemple:   if (settings != null) settings.TempleAutomationEnabled = !settings.TempleAutomationEnabled;                       break;
+            case AutomationRenderer.PinKeyMithrilMine:   if (settings != null) settings.MithrilMineBuildingAutomationEnabled = !settings.MithrilMineBuildingAutomationEnabled;   break;
+            case AutomationRenderer.PinKeyArcaneTower:   if (settings != null) settings.ArcaneTowerBuildingAutomationEnabled = !settings.ArcaneTowerBuildingAutomationEnabled;   break;
+            case AutomationRenderer.PinKeyMonumentInvestment: if (settings != null) settings.MonumentInvestmentAutomationEnabled = !settings.MonumentInvestmentAutomationEnabled; break;
             case AutomationRenderer.PinKeyRoad:          if (settings != null) settings.RoadAutomationEnabled = !settings.RoadAutomationEnabled;                           break;
             case AutomationRenderer.PinKeyOutpost:       if (settings != null) settings.OutpostAutomationEnabled = !settings.OutpostAutomationEnabled;                     break;
             case AutomationRenderer.PinKeyRoadUnderworld:    if (settings != null) settings.RoadAutomationEnabledUnderworld = !settings.RoadAutomationEnabledUnderworld;       break;
@@ -958,60 +980,106 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         };
     }
 
-    private SKRect DrawAutomationToggleRow(SKCanvas canvas, float x, float y, string key,
-        SettlersOfIdlestan.Model.IslandMap.WorldState worldState, bool isHovered, float contentW)
+    /// <summary>
+    /// Etat, libellé et infobulle d'une bascule épinglée. Source de vérité unique, partagée par
+    /// le rendu Skia et l'instantané destiné à l'hôte : les deux affichages ne peuvent pas
+    /// diverger sur ce qu'une bascule montre.
+    /// </summary>
+    private (bool? Value, string NameKey, string TooltipKey) ResolvePinnedToggle(
+        string key, Civilization civ, SettlersOfIdlestan.Model.IslandMap.WorldState? worldState)
     {
-        var settings = worldState.AutomationSettings;
-        (bool value, string nameKey) = key switch
+        switch (key)
         {
-            AutomationRenderer.PinKeyRoad         => (settings.RoadAutomationEnabled,                      "automation_road_name"),
-            AutomationRenderer.PinKeyOutpost      => (settings.OutpostAutomationEnabled,                   "automation_outpost_name"),
-            AutomationRenderer.PinKeyRoadUnderworld    => (settings.RoadAutomationEnabledUnderworld,        "automation_road_underworld_name"),
-            AutomationRenderer.PinKeyOutpostUnderworld => (settings.OutpostAutomationEnabledUnderworld,     "automation_outpost_underworld_name"),
-            AutomationRenderer.PinKeyProduction   => (settings.ProductionBuildingAutomationEnabled,        "automation_production_name"),
-            AutomationRenderer.PinKeyArtisan      => (settings.ArtisanBuildingAutomationEnabled,           "automation_artisan_name"),
-            AutomationRenderer.PinKeyLibrary      => (settings.LibraryBuildingAutomationEnabled,           "automation_library_name"),
-            AutomationRenderer.PinKeyMarket       => (settings.MarketBuildingAutomationEnabled,            "automation_market_name"),
-            AutomationRenderer.PinKeySeaport      => (settings.SeaportBuildingAutomationEnabled,           "automation_seaport_name"),
-            AutomationRenderer.PinKeyMilBuildings => (settings.MilitaryBuildingAutomationEnabled,          "automation_military_buildings_name"),
-            AutomationRenderer.PinKeyMilReinforce => (settings.MilitaryReinforcementAutomationEnabled,     "automation_military_reinforcement_name"),
-            AutomationRenderer.PinKeyMilVendetta  => (settings.MilitaryVendettaAutomationEnabled,          "automation_military_vendetta_name"),
+            case AutomationRenderer.PinKeyBarracks:     return (AreAllActiveNullable<Barracks>(civ),     "building_barracks_name",     "tooltip_toggle_barracks");
+            case AutomationRenderer.PinKeyArsenal:      return (AreAllActiveNullable<Arsenal>(civ),      "building_arsenal_name",      "tooltip_toggle_arsenal");
+            case AutomationRenderer.PinKeyLaboratory:   return (AreAllActiveNullable<Laboratory>(civ),   "building_laboratory_name",   "tooltip_toggle_lab");
+            case AutomationRenderer.PinKeySmelter:      return (AreAllActiveNullable<Smelter>(civ),      "building_smelter_name",      "tooltip_toggle_smelter");
+            case AutomationRenderer.PinKeyWeaponSmith:  return (AreAllActiveNullable<WeaponSmith>(civ),  "building_weaponsmith_name",  "tooltip_toggle_weaponsmith");
+            case AutomationRenderer.PinKeyArmorSmith:   return (AreAllActiveNullable<ArmorSmith>(civ),   "building_armorsmith_name",   "tooltip_toggle_armorsmith");
+            case AutomationRenderer.PinKeyAlchimistHut: return (AreAllActiveNullable<AlchimistHut>(civ), "building_alchimisthut_name", "tooltip_toggle_alchimisthut");
+        }
+
+        var settings = worldState?.AutomationSettings;
+        if (settings == null) return (false, key, GetAutomationPinDescKey(key));
+
+        // Seule la valeur depend d'un switch : le libelle vient de la table des racines, pour
+        // qu'un automatisme ne puisse pas etre bascule ici sans y etre nomme.
+        bool value = key switch
+        {
+            AutomationRenderer.PinKeyTownHall     => settings.TownHallAutomationEnabled,
+            AutomationRenderer.PinKeyGrandTemple  => settings.TempleAutomationEnabled,
+            AutomationRenderer.PinKeyMithrilMine  => settings.MithrilMineBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyArcaneTower  => settings.ArcaneTowerBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyMonumentInvestment => settings.MonumentInvestmentAutomationEnabled,
+            AutomationRenderer.PinKeyRoad         => settings.RoadAutomationEnabled,
+            AutomationRenderer.PinKeyOutpost      => settings.OutpostAutomationEnabled,
+            AutomationRenderer.PinKeyRoadUnderworld    => settings.RoadAutomationEnabledUnderworld,
+            AutomationRenderer.PinKeyOutpostUnderworld => settings.OutpostAutomationEnabledUnderworld,
+            AutomationRenderer.PinKeyProduction   => settings.ProductionBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyArtisan      => settings.ArtisanBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyLibrary      => settings.LibraryBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyMarket       => settings.MarketBuildingAutomationEnabled,
+            AutomationRenderer.PinKeySeaport      => settings.SeaportBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyMilBuildings => settings.MilitaryBuildingAutomationEnabled,
+            AutomationRenderer.PinKeyMilReinforce => settings.MilitaryReinforcementAutomationEnabled,
+            AutomationRenderer.PinKeyMilVendetta  => settings.MilitaryVendettaAutomationEnabled,
             AutomationRenderer.PinKeyRestrictSoldierProduction =>
-                (IsRestrictSoldierProductionByLayer(settings, IslandMap.SurfaceLayer), "automation_restrict_soldier_production_name"),
+                IsRestrictSoldierProductionByLayer(settings, IslandMap.SurfaceLayer),
             AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld =>
-                (IsRestrictSoldierProductionByLayer(settings, LayerState.UnderworldZ), "automation_restrict_soldier_production_underworld_name"),
+                IsRestrictSoldierProductionByLayer(settings, LayerState.UnderworldZ),
             AutomationRenderer.PinKeyRestrictSoldierProductionAbyss =>
-                (IsRestrictSoldierProductionByLayer(settings, LayerState.AbyssZ), "automation_restrict_soldier_production_abyss_name"),
-            _                                     => (false, key),
+                IsRestrictSoldierProductionByLayer(settings, LayerState.AbyssZ),
+            _ => false,
         };
-        return DrawToggleRow(canvas, x, y, (bool?)value, isHovered, _localization.Get(nameKey));
+
+        string nameKey = AutomationPinLocalizationRoots.TryGetValue(key, out var root) ? $"{root}_name" : key;
+
+        return (value, nameKey, GetAutomationPinDescKey(key));
     }
 
     /// <summary>
-    /// Clé de localisation de la description (au lieu du générique "tooltip_pin_to_civ_panel", qui
-    /// n'a de sens que sur la case à cocher de la pin — pas une fois l'élément déjà épinglé) pour un
-    /// pin d'automatisme générique affiché via <see cref="DrawAutomationToggleRow"/>. Miroir de son
-    /// switch nameKey (suffixe "_desc" au lieu de "_name").
+    /// Racine de clé de localisation de chaque automatisme épinglable : le libellé est
+    /// <c>{racine}_name</c> et la description <c>{racine}_desc</c>.
+    ///
+    /// Une seule table plutôt que deux switch en miroir — ils divergeaient déjà, et c'est ainsi
+    /// que cinq automatismes (hôtel de ville, grand temple, mine de mithril, tour des arcanes,
+    /// investissement monument) se retrouvaient épinglables mais sans libellé ici.
+    ///
+    /// Toute case à cocher d'épinglage ajoutée dans <see cref="AutomationRenderer"/> doit y
+    /// figurer, sinon le panneau afficherait la clé brute. Un test le vérifie.
     /// </summary>
-    private static string GetAutomationPinDescKey(string key) => key switch
-    {
-        AutomationRenderer.PinKeyRoad         => "automation_road_desc",
-        AutomationRenderer.PinKeyOutpost      => "automation_outpost_desc",
-        AutomationRenderer.PinKeyRoadUnderworld    => "automation_road_underworld_desc",
-        AutomationRenderer.PinKeyOutpostUnderworld => "automation_outpost_underworld_desc",
-        AutomationRenderer.PinKeyProduction   => "automation_production_desc",
-        AutomationRenderer.PinKeyArtisan      => "automation_artisan_desc",
-        AutomationRenderer.PinKeyLibrary      => "automation_library_desc",
-        AutomationRenderer.PinKeyMarket       => "automation_market_desc",
-        AutomationRenderer.PinKeySeaport      => "automation_seaport_desc",
-        AutomationRenderer.PinKeyMilBuildings => "automation_military_buildings_desc",
-        AutomationRenderer.PinKeyMilReinforce => "automation_military_reinforcement_desc",
-        AutomationRenderer.PinKeyMilVendetta  => "automation_military_vendetta_desc",
-        AutomationRenderer.PinKeyRestrictSoldierProduction           => "automation_restrict_soldier_production_desc",
-        AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld => "automation_restrict_soldier_production_underworld_desc",
-        AutomationRenderer.PinKeyRestrictSoldierProductionAbyss      => "automation_restrict_soldier_production_abyss_desc",
-        _ => "tooltip_pin_to_civ_panel",
-    };
+    public static readonly IReadOnlyDictionary<string, string> AutomationPinLocalizationRoots =
+        new Dictionary<string, string>
+        {
+            [AutomationRenderer.PinKeyTownHall]           = "automation_townhall",
+            [AutomationRenderer.PinKeyGrandTemple]        = "automation_grandtemple",
+            [AutomationRenderer.PinKeyMithrilMine]        = "automation_mithrilmine",
+            [AutomationRenderer.PinKeyArcaneTower]        = "automation_arcanetower",
+            [AutomationRenderer.PinKeyMonumentInvestment] = "automation_monument_investment",
+            [AutomationRenderer.PinKeyRoad]               = "automation_road",
+            [AutomationRenderer.PinKeyOutpost]            = "automation_outpost",
+            [AutomationRenderer.PinKeyRoadUnderworld]     = "automation_road_underworld",
+            [AutomationRenderer.PinKeyOutpostUnderworld]  = "automation_outpost_underworld",
+            [AutomationRenderer.PinKeyProduction]         = "automation_production",
+            [AutomationRenderer.PinKeyArtisan]            = "automation_artisan",
+            [AutomationRenderer.PinKeyLibrary]            = "automation_library",
+            [AutomationRenderer.PinKeyMarket]             = "automation_market",
+            [AutomationRenderer.PinKeySeaport]            = "automation_seaport",
+            [AutomationRenderer.PinKeyMilBuildings]       = "automation_military_buildings",
+            [AutomationRenderer.PinKeyMilReinforce]       = "automation_military_reinforcement",
+            [AutomationRenderer.PinKeyMilVendetta]        = "automation_military_vendetta",
+            [AutomationRenderer.PinKeyRestrictSoldierProduction]           = "automation_restrict_soldier_production",
+            [AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld] = "automation_restrict_soldier_production_underworld",
+            [AutomationRenderer.PinKeyRestrictSoldierProductionAbyss]      = "automation_restrict_soldier_production_abyss",
+        };
+
+    /// <summary>
+    /// Clé de description d'un automatisme épinglé — et non le générique
+    /// "tooltip_pin_to_civ_panel", qui n'a de sens que sur la case à cocher de l'épinglage,
+    /// pas une fois l'élément déjà épinglé.
+    /// </summary>
+    private static string GetAutomationPinDescKey(string key) =>
+        AutomationPinLocalizationRoots.TryGetValue(key, out var root) ? $"{root}_desc" : "tooltip_pin_to_civ_panel";
 
     private bool IsTradeVisible()
     {
@@ -1194,6 +1262,229 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool allActive = list.All(b => b.ActivationStatus == ActivationStatus.ACTIVE);
         var next = allActive ? ActivationStatus.INACTIVE : ActivationStatus.ACTIVE;
         foreach (var b in list) b.ActivationStatus = next;
+    }
+
+    // ── Pont vers l'hôte Avalonia ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Instantané du panneau pour une vue portée par l'hôte. Reprend les règles de visibilité,
+    /// de disponibilité, les libellés et les infobulles de <see cref="Render"/> — les mêmes
+    /// prédicats, pas une réécriture — afin que les deux affichages ne divergent pas.
+    ///
+    /// Les infobulles sont ici du texte simple : la vue les rend en ToolTip Avalonia natif,
+    /// contrairement à celle du panneau ville qui reste dessinée en Skia.
+    /// </summary>
+    public CivPanelSnapshot GetSnapshot()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return CivPanelSnapshot.Hidden;
+
+        var worldState = _gameControllerService.CurrentWorldState;
+        var pinned = _gameControllerService.CurrentGameState?.Settings.PinnedCivPanelKeys
+                     ?? (IReadOnlySet<string>)new HashSet<string>();
+
+        var iconActions = new List<CivActionSnapshot>();
+        var actions     = new List<CivActionSnapshot>();
+
+        // ── En-tête : boutons icône, dans l'ordre d'affichage de gauche à droite ──
+
+        if (IsTradeVisible())
+            iconActions.Add(new CivActionSnapshot(
+                CivPanelSnapshot.KeyTrade, _localization.Get("trade_action"), true, false,
+                IconName: null, Glyph: "💰",
+                TooltipLines: [_localization.Get("trade_action"), _localization.Get("tooltip_trade")]));
+
+        if (IsRaidVisible())
+        {
+            bool raidActive = IsRaidActive();
+            var raidTooltip = raidActive
+                ? new List<string>
+                {
+                    _localization.Get("raid_action_stop"),
+                    _localization.Get("tooltip_raid_active"),
+                    _localization.GetFormated("raid_upkeep_cost_current", worldState?.AutomationSettings.RaidCurrentUpkeep ?? 0),
+                }
+                : new List<string>
+                {
+                    _localization.Get("raid_action"),
+                    _localization.Get("tooltip_raid"),
+                    _localization.Get("raid_upkeep_cost"),
+                };
+            iconActions.Add(new CivActionSnapshot(
+                CivPanelSnapshot.KeyRaid,
+                _localization.Get(raidActive ? "raid_action_stop" : "raid_action"),
+                IsEnabled: true, IsHighlighted: raidActive,
+                IconName: "Resources.icons.military.attack.svg", Glyph: null,
+                TooltipLines: raidTooltip));
+        }
+
+        if (IsWarHeraldVisible())
+            iconActions.Add(new CivActionSnapshot(
+                CivPanelSnapshot.KeyWarHerald, _localization.Get("warherald_action_short"), true, false,
+                IconName: "Resources.icons.military.defense.svg", Glyph: null,
+                TooltipLines: [_localization.Get("warherald_action_short"), _localization.Get("tooltip_warherald")]));
+
+        if (GetAdventurersGuildCity(civ) != null)
+            iconActions.Add(new CivActionSnapshot(
+                CivPanelSnapshot.KeyLocateHero, _localization.Get("locate_hero_action"), true, false,
+                IconName: "Resources.icons.military.hero-armor.svg", Glyph: null,
+                TooltipLines: [_localization.Get("locate_hero_action"), _localization.Get("tooltip_locate_hero")]));
+
+        // ── Grille d'actions, dans l'ordre du rendu Skia ──
+
+        if (IsPrestigeVisible())
+        {
+            bool available = IsPrestigeAvailable();
+            int points = GetPrestigePoints();
+
+            var tooltip = new List<string>();
+            if (!available)
+            {
+                if (!HasPrestigeImperialPort())
+                    tooltip.Add(_localization.Get("tooltip_prestige_no_imperial_port"));
+                if (points < PrestigeController.PrestigeRequiredPoints)
+                    tooltip.Add(_localization.GetFormated("tooltip_prestige_not_enough_points",
+                        SkiaTextUtils.FormatNumber(points), SkiaTextUtils.FormatNumber(PrestigeController.PrestigeRequiredPoints)));
+            }
+            tooltip.Add(_localization.Get("tooltip_prestige_next_island"));
+
+            actions.Add(new CivActionSnapshot(
+                CivPanelSnapshot.KeyPrestige,
+                $"{_localization.Get("prestige_action")} (+{SkiaTextUtils.FormatNumber(points)})",
+                available, false, null, null, tooltip));
+        }
+
+        if (WonderVisible)
+            actions.Add(SimpleAction(CivPanelSnapshot.KeyWonder, "wonder_action_short",
+                WonderEnabled, "tooltip_wonder", "tooltip_wonder_surface_only"));
+
+        if (GreatLighthouseVisible)
+            actions.Add(SimpleAction(CivPanelSnapshot.KeyGreatLighthouse, "great_lighthouse_action_short",
+                GreatLighthouseEnabled, "tooltip_great_lighthouse", "tooltip_great_lighthouse_surface_only"));
+
+        if (DeepestMineVisible)
+            actions.Add(SimpleAction(CivPanelSnapshot.KeyDeepestMine, "deepest_mine_action_short",
+                DeepestMineEnabled, "tooltip_deepest_mine", "tooltip_deepest_mine_surface_only"));
+
+        if (SpireVisible)
+            actions.Add(SimpleAction(CivPanelSnapshot.KeySpire, "spire_action_short",
+                SpireEnabled, "tooltip_spire", "tooltip_spire_underworld_only"));
+
+        if (RelocationVisible)
+            actions.Add(SimpleAction(CivPanelSnapshot.KeyRelocation, "relocation_action_short",
+                RelocationEnabled, "tooltip_relocation", "tooltip_relocation_insufficient_resources"));
+
+        if (WalkOfGodVisible)
+        {
+            int cost = Ascension.GetWalkOfGodCost();
+            var tooltip = new List<string>
+            {
+                _localization.Get("tooltip_walkofgod"),
+                _localization.GetFormated("tooltip_walkofgod_cost", cost),
+            };
+            if (!Ascension.CanUseWalkOfGod())
+                tooltip.Add(_localization.Get("tooltip_walkofgod_insufficient_prestige"));
+            if (Ascension.GetWalkOfGodTargetHexes().Count == 0)
+                tooltip.Add(_localization.Get("tooltip_walkofgod_no_dominion"));
+
+            actions.Add(new CivActionSnapshot(
+                CivPanelSnapshot.KeyWalkOfGod,
+                $"{_localization.Get("walkofgod_action_short")} ({cost})",
+                WalkOfGodEnabled, false, null, null, tooltip));
+        }
+
+        if (PresenceOfGodVisible)
+        {
+            int cost = Ascension.GetPresenceOfGodCost();
+            var tooltip = new List<string>
+            {
+                _localization.Get("tooltip_presenceofgod"),
+                _localization.GetFormated("tooltip_presenceofgod_cost", cost),
+            };
+            if (!Ascension.CanUsePresenceOfGod())
+                tooltip.Add(_localization.Get("tooltip_presenceofgod_insufficient_prestige"));
+
+            actions.Add(new CivActionSnapshot(
+                CivPanelSnapshot.KeyPresenceOfGod,
+                $"{_localization.Get("presenceofgod_action_short")} ({cost})",
+                PresenceOfGodEnabled, false, null, null, tooltip));
+        }
+
+        // ── Bascules épinglées ──
+
+        bool hasBarracks      = HasBuilt<Barracks>(civ);
+        bool hasArsenal       = HasBuilt<Arsenal>(civ);
+        bool hasLabs          = HasBuilt<Laboratory>(civ);
+        bool hasSmelters      = HasBuilt<Smelter>(civ);
+        bool hasWeaponSmiths  = HasBuilt<WeaponSmith>(civ);
+        bool hasArmorSmiths   = HasBuilt<ArmorSmith>(civ);
+        bool hasAlchimistHuts = HasBuilt<AlchimistHut>(civ);
+
+        var toggles = new List<CivToggleSnapshot>();
+        foreach (var key in pinned)
+        {
+            if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters,
+                    hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
+                continue;
+
+            var (value, nameKey, tooltipKey) = ResolvePinnedToggle(key, civ, worldState);
+            toggles.Add(new CivToggleSnapshot(key, _localization.Get(nameKey), value, _localization.Get(tooltipKey)));
+        }
+
+        // Même règle que Render : sans action ni bascule, le panneau n'a rien à montrer.
+        if (iconActions.Count == 0 && actions.Count == 0 && toggles.Count == 0)
+            return CivPanelSnapshot.Hidden;
+
+        return new CivPanelSnapshot(
+            IsVisible: true,
+            IsCollapsed: Collapsed,
+            ActionsTitle: _localization.Get("panel_civ_actions"),
+            ControlsTitle: _localization.Get("panel_civ_controls"),
+            IconActions: iconActions,
+            Actions: actions,
+            Toggles: toggles);
+    }
+
+    /// Action de la grille dont l'infobulle se réduit à une raison unique selon sa disponibilité.
+    private CivActionSnapshot SimpleAction(string key, string labelKey, bool enabled,
+        string enabledTooltipKey, string disabledTooltipKey) =>
+        new(key, _localization.Get(labelKey), enabled, false, null, null,
+            [_localization.Get(enabled ? enabledTooltipKey : disabledTooltipKey)]);
+
+    /// <summary>Déclenche une action du panneau depuis une vue portée par l'hôte.</summary>
+    public void ExecuteActionFromHost(string key)
+    {
+        switch (key)
+        {
+            case CivPanelSnapshot.KeyTrade:           DoTrade();           break;
+            case CivPanelSnapshot.KeyPrestige:        DoPrestige();        break;
+            case CivPanelSnapshot.KeyWonder:          DoWonder();          break;
+            case CivPanelSnapshot.KeyGreatLighthouse: DoGreatLighthouse(); break;
+            case CivPanelSnapshot.KeyDeepestMine:     DoDeepestMine();     break;
+            case CivPanelSnapshot.KeySpire:           DoSpire();           break;
+            case CivPanelSnapshot.KeyRaid:            DoRaid();            break;
+            case CivPanelSnapshot.KeyWarHerald:       DoWarHerald();       break;
+            case CivPanelSnapshot.KeyLocateHero:      DoLocateHero();      break;
+            case CivPanelSnapshot.KeyRelocation:      DoRelocation();      break;
+            case CivPanelSnapshot.KeyWalkOfGod:       DoWalkOfGod();       break;
+            case CivPanelSnapshot.KeyPresenceOfGod:   DoPresenceOfGod();   break;
+        }
+    }
+
+    /// <summary>Bascule un élément épinglé depuis une vue portée par l'hôte.</summary>
+    public void ToggleFromHost(string key) =>
+        HandlePinnedToggle(key, _gameControllerService.PlayerCivilization, _gameControllerService.CurrentWorldState);
+
+    /// <summary>
+    /// Replie/déplie le panneau depuis une vue portée par l'hôte. Le repli reste stocké ici :
+    /// en disposition mobile, <c>OverlayRenderer</c> replie ce panneau quand un panneau latéral
+    /// droit s'ouvre, et cette règle doit continuer de s'imposer à la vue.
+    /// </summary>
+    public void SetCollapsedFromHost(bool collapsed)
+    {
+        bool wasCollapsed = Collapsed;
+        Collapsed = collapsed;
+        if (wasCollapsed && !collapsed) OnExpanded?.Invoke();
     }
 
     public override void Dispose()

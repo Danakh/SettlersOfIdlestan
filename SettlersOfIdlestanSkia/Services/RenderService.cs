@@ -56,7 +56,12 @@ public class RenderService : IDisposable
     /// <summary>
     /// Rend un frame en appelant tous les renderers dans l'ordre.
     /// </summary>
-    public void RenderFrame(SKCanvas canvas, MainGameState gameState, CameraService? cameraService = null)
+    /// <param name="canvasSize">
+    /// Taille logique de la surface. A fournir explicitement quand le canvas est partage avec un
+    /// hote qui lui applique deja une transformation (cas d'Avalonia) : <see cref="SKCanvas.DeviceClipBounds"/>
+    /// renvoie alors des pixels device, donc une taille erronee des que le DPI n'est pas a 100%.
+    /// </param>
+    public void RenderFrame(SKCanvas canvas, MainGameState gameState, CameraService? cameraService = null, SKSize? canvasSize = null)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(RenderService));
@@ -73,13 +78,14 @@ public class RenderService : IDisposable
         var deltaTime = (float)elapsed;
         _totalTime += deltaTime;
 
-        var canvasSize = new SKSize(canvas.DeviceClipBounds.Width, canvas.DeviceClipBounds.Height);
+        var effectiveSize = canvasSize
+            ?? new SKSize(canvas.DeviceClipBounds.Width, canvas.DeviceClipBounds.Height);
 
         var context = new GameRenderContext
         {
             GameState = gameState,
             DeltaTime = deltaTime,
-            CanvasSize = canvasSize,
+            CanvasSize = effectiveSize,
             TotalTime = _totalTime,
             CameraPosition = cameraService?.Position ?? SKPoint.Empty,
             ZoomLevel = cameraService?.ZoomLevel ?? 1.0f,

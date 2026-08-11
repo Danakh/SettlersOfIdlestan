@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SettlersOfIdlestan\SettlersOfIdlestanCore.csproj" />
+    <ProjectReference Include="..\SettlersOfIdlestanSkia\SettlersOfIdlestanSkia.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Les controles internes (TabButton, ResourcePill) sont testes pour garantir qu'ils
+         recoivent bien un template : un controle derive qui n'en a pas occupe zero pixel
+         sans lever d'erreur. -->
+    <InternalsVisibleTo Include="SOIUITests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Skia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+  </ItemGroup>
+
+</Project>

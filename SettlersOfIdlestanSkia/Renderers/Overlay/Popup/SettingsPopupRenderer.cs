@@ -29,9 +29,6 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     public event Action<float>? UiScaleChanged;
     public event Action<int, int>? DebugWindowResizeRequested;
 
-    private SKRect _closeButtonRect = SKRect.Empty;
-    private SKRect _popupRect       = SKRect.Empty;
-
     public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, IFileSystemService fileSystemService, UILayoutService uiLayout, bool allowDebugMode = false, StoreController? storeController = null)
     {
         _gameController    = gameController;
@@ -45,89 +42,37 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         _contentPanel.DebugWindowResizeRequested    += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
     }
 
-    public void Render(SKCanvas canvas, float scale = 1f)
+    /// <summary>Instantane du popup pour une vue portee par l'hote.</summary>
+    public SettingsPopupSnapshot GetSnapshot()
     {
-        if (!IsOpen || Disposed) return;
-
         var settings = _gameController.CurrentMainState?.Settings;
-        if (settings == null) return;
+        if (!IsOpen || Disposed || settings == null) return SettingsPopupSnapshot.Closed;
 
-        float s      = ComputeScale(scale);
-        UpdateFonts(s);
-
-        float popupW = PopupWidth  * s;
-        float popupH = PopupHeight * s;
-        float x      = (CanvasSize.Width  - popupW) / 2;
-        float y      = (CanvasSize.Height - popupH) / 2;
-        _popupRect   = new SKRect(x, y, x + popupW, y + popupH);
-
-        DrawBackground(canvas, _popupRect, s);
-
-        _closeButtonRect = GetCloseRect(_popupRect, s);
-        DrawCloseButton(canvas, _closeButtonRect, s);
-
-        string title  = _localization.Get("settings_title");
-        float  titleW = TitleFont!.MeasureText(title);
-        SkiaTextUtils.DrawText(canvas, title, x + (popupW - titleW) / 2f, y + 34f * s, TitleFont, TextPaint);
-
-        float maxContentHeight = popupH - FirstRowY * s - BottomMargin * s;
-        _contentPanel.Render(canvas, x, y + FirstRowY * s, popupW - BtnRightMargin * s, s, settings, _localization, _allowDebugMode, CanvasSize, maxContentHeight, _storeController);
+        return new SettingsPopupSnapshot(
+            IsOpen: true,
+            Title: _localization.Get("settings_title"),
+            Panel: _contentPanel.GetSnapshot(settings, _localization, _allowDebugMode, CanvasSize, _storeController));
     }
 
-    /// <summary>Fait défiler le contenu des paramètres à la molette, s'il dépasse la hauteur du popup.</summary>
-    public bool HandleScroll(float delta)
+    public void ToggleSettingFromHost(string key)
     {
-        if (!IsOpen || Disposed) return false;
-        return _contentPanel.HandleScroll(delta);
-    }
-
-    public bool HandlePointerPressed(SKPoint pos, PointerButton button)
-    {
-        if (!IsOpen) return false;
-        if (JustOpened) { JustOpened = false; return true; }
-
-        if (_closeButtonRect.Contains(pos.X, pos.Y)) { Close(); return true; }
-
         var settings = _gameController.CurrentMainState?.Settings;
-        if (settings != null && _contentPanel.HandleClick(pos, settings, _localization, _allowDebugMode, _storeController))
-        {
-            _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
-            return true;
-        }
-
-        if (!_popupRect.Contains(pos.X, pos.Y)) { Close(); return false; }
-        return true;
+        if (settings != null) _contentPanel.ToggleFromHost(key, settings, _storeController);
     }
 
-    public void HandlePointerMoved(SKPoint pos)
+    public void SetSettingChoiceFromHost(string key, string choiceKey)
     {
-        if (!IsOpen || Disposed) return;
         var settings = _gameController.CurrentMainState?.Settings;
-        if (settings != null) _contentPanel.HandlePointerMoved(pos, settings);
+        if (settings != null) _contentPanel.SetChoiceFromHost(key, choiceKey, settings, _localization);
     }
 
-    public void HandlePointerReleased(SKPoint pos)
+    public void SetSettingSliderFromHost(string key, double value)
     {
-        if (!IsOpen || Disposed) return;
         var settings = _gameController.CurrentMainState?.Settings;
-        if (settings == null) return;
-        if (!_contentPanel.HandlePointerReleased(settings)) return;
-
-        _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
+        if (settings != null) _contentPanel.SetSliderFromHost(key, value, settings);
     }
 
-    /// <summary>Flèches gauche/droite pour ajuster le slider d'échelle UI quand il est survolé.</summary>
-    public bool HandleKeyPressed(string key)
-    {
-        if (!IsOpen || Disposed) return false;
-        if (_contentPanel.HandleTextKey(key)) return true;
-
-        var settings = _gameController.CurrentMainState?.Settings;
-        if (settings == null || !_contentPanel.HandleArrowKey(key, settings)) return false;
-
-        _ = _fileSystemService.SaveSettings(System.Text.Json.JsonSerializer.Serialize(settings));
-        return true;
-    }
+    public void SetSettingTextFromHost(string key, string value) => _contentPanel.SetTextFromHost(key, value);
 
     public override void Close()
     {

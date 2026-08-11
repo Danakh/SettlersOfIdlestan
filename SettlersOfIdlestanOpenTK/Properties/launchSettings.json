@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "SettlersOfIdlestanOpenTK": {
-      "commandName": "Project",
-      "commandLineArgs": "--debug"
-    }
-  }
-}

@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-ios</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+
+    <ApplicationId>fr.ratzngodz.settlersofidlestan</ApplicationId>
+    <ApplicationTitle>Settlers of Idlestan</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+
+    <!--
+      Meme raison que le head navigateur : le jeu serialise MainGameState, les reglages et les
+      statistiques par reflexion, sans source generator. Le SDK iOS active le trimming en
+      Release, ce qui desactive la reflexion de System.Text.Json et retirerait les types que
+      seule elle atteint — la sauvegarde se rechargerait incomplete, sans la moindre erreur.
+    -->
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <PublishTrimmed>false</PublishTrimmed>
+    <!-- Ne lier que les assemblies du SDK : celles du jeu doivent rester entieres. -->
+    <MtouchLink>SdkOnly</MtouchLink>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.iOS" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SettlersOfIdlestanUI\SettlersOfIdlestanUI.csproj" />
+  </ItemGroup>
+
+</Project>

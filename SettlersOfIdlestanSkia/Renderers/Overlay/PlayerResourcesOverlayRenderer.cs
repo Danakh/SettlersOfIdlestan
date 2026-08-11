@@ -475,6 +475,44 @@ public class PlayerResourcesOverlayRenderer : IGameRenderer
         }
     }
 
+    /// <summary>
+    /// Instantané pour une barre de ressources portée par l'hôte. Réutilise exactement le
+    /// filtrage du rendu (ressources découvertes, consommables débloqués, capacité non nulle)
+    /// pour que les deux affichages ne puissent pas diverger pendant la migration.
+    /// </summary>
+    public ResourceBarSnapshot GetSnapshot(
+        SettlersOfIdlestan.Model.Civilization.Civilization? civilization,
+        SettlersOfIdlestan.Model.Prestige.PrestigeState? prestigeState)
+    {
+        if (civilization == null) return ResourceBarSnapshot.Unavailable;
+
+        var map = PrestigeMapController.DefaultMap;
+        var items = new List<ResourceSnapshot>();
+
+        foreach (var resource in Enum.GetValues<Resource>())
+        {
+            if (ResourceUtils.DiscoverableResources.Contains(resource)
+                && !(prestigeState?.IsResourceDiscovered(resource, map) ?? false)) continue;
+
+            if (ResourceUtils.ConsumableResources.Contains(resource)
+                && !IsConsumableUnlocked(resource, civilization)) continue;
+
+            long maxQuantity = civilization.GetResourceMaxQuantity(resource);
+            if (maxQuantity <= 0) continue;
+
+            long quantity = civilization.GetResourceQuantity(resource);
+
+            items.Add(new ResourceSnapshot(
+                IconName: resource.ToString(),
+                QuantityLabel: SkiaTextUtils.FormatNumber(quantity),
+                MaxLabel: SkiaTextUtils.FormatNumber(maxQuantity),
+                IsFlickering: IsFlickering(resource),
+                IsAtMax: quantity >= maxQuantity));
+        }
+
+        return new ResourceBarSnapshot(true, items);
+    }
+
     public Resource? GetResourceAtPoint(SKPoint point)
     {
         foreach (var (resource, rect) in _resourceRects)

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
+    <title>Settlers of Idlestan</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        /* Avalonia dimensionne son canvas sur ce conteneur : sans hauteur explicite,
+           la page s'affiche vide. */
+        #out {
+            width: 100%;
+            height: 100%;
+        }
+
+        #loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #b8a375;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 0.08em;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="out"></div>
+    <div id="loading">Settlers of Idlestan…</div>
+    <script type="module" src="./main.js"></script>
+</body>
+</html>

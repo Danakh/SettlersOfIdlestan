@@ -1,7 +1,8 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Screens;
@@ -119,6 +120,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _titleScreen.DiscordLinkClicked        += url => DiscordLinkClicked?.Invoke(url);
         _titleScreen.FullscreenToggleRequested += v => FullscreenStateChanged?.Invoke(v);
         _titleScreen.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
+
         _onTitleScreen = true;
     }
 
@@ -213,15 +215,208 @@ public sealed class SkiaGameRuntime : IDisposable
         return new GameSettings();
     }
 
-    // ── API publique (inchangée pour les shells Desktop/Web) ─────────────────
+    // ── API publique ─────────────────────────────────────────────────────────
 
     private bool _isCanvasInitialized;
+
+    /// <summary>Vrai quand une partie est en cours et affiche une carte hex (pas l'écran titre ni un onglet plein écran).</summary>
+    public bool IsMapViewActive => !_onTitleScreen && (_gameScreen?.IsMapViewActive ?? false);
+
+    public void ZoomIn()  => _gameScreen?.ZoomIn();
+    public void ZoomOut() => _gameScreen?.ZoomOut();
+
+    /// <summary>Instantané de la barre d'onglets pour une vue portée par l'hôte.</summary>
+    public TabBarSnapshot GetTabBarSnapshot() =>
+        _onTitleScreen ? TabBarSnapshot.Unavailable
+                       : _gameScreen?.GetTabBarSnapshot() ?? TabBarSnapshot.Unavailable;
+
+    public void SetActiveTab(int tabId) => _gameScreen?.SetActiveTabFromHost(tabId);
+
+    /// <summary>Instantané du panneau ville pour une vue portée par l'hôte.</summary>
+    public CityPanelSnapshot GetCityPanelSnapshot() =>
+        _onTitleScreen ? CityPanelSnapshot.Hidden
+                       : _gameScreen?.GetCityPanelSnapshot() ?? CityPanelSnapshot.Hidden;
+
+    public void CloseCityPanel() => _gameScreen?.CloseCityPanelFromHost();
+    public void SetCityShowUnique(bool v) => _gameScreen?.SetCityShowUniqueFromHost(v);
+    public void ToggleCityBuildingActivation(string k) => _gameScreen?.ToggleCityBuildingActivationFromHost(k);
+    public void ExecuteCityBuildingAction(string k) => _gameScreen?.ExecuteCityBuildingActionFromHost(k);
+    public void GoToOtherCity(string k) => _gameScreen?.GoToOtherCityFromHost(k);
+    public void SetHoveredCityBuilding(string? k, float x, float y) => _gameScreen?.SetHoveredCityBuildingFromHost(k, x, y);
+
+    /// <summary>Instantané de l'onglet Journal pour une vue portée par l'hôte.</summary>
+    public EventLogSnapshot GetEventLogSnapshot() =>
+        _onTitleScreen ? EventLogSnapshot.Hidden
+                       : _gameScreen?.GetEventLogSnapshot() ?? EventLogSnapshot.Hidden;
+
+    /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
+    public StatsSnapshot GetStatsSnapshot() =>
+        _onTitleScreen ? StatsSnapshot.Hidden
+                       : _gameScreen?.GetStatsSnapshot() ?? StatsSnapshot.Hidden;
+
+    public void SetStatsSubTab(string key) => _gameScreen?.SetStatsSubTabFromHost(key);
+
+    /// <summary>Instantané de l'onglet Rituels pour une vue portée par l'hôte.</summary>
+    public RitualsSnapshot GetRitualsSnapshot() =>
+        _onTitleScreen ? RitualsSnapshot.Hidden
+                       : _gameScreen?.GetRitualsSnapshot() ?? RitualsSnapshot.Hidden;
+
+    public void ToggleRitual(string key) => _gameScreen?.ToggleRitualFromHost(key);
+    public void ChangeRitualPower(string key, bool increase) => _gameScreen?.ChangeRitualPowerFromHost(key, increase);
+    public void CastSpell(string key) => _gameScreen?.CastSpellFromHost(key);
+
+    /// <summary>Instantané de l'onglet Automatisation pour une vue portée par l'hôte.</summary>
+    public AutomationSnapshot GetAutomationSnapshot() =>
+        _onTitleScreen ? AutomationSnapshot.Hidden
+                       : _gameScreen?.GetAutomationSnapshot() ?? AutomationSnapshot.Hidden;
+
+    public void ToggleAutomation(string key) => _gameScreen?.ToggleAutomationFromHost(key);
+    public void ToggleAutomationPin(string key) => _gameScreen?.ToggleAutomationPinFromHost(key);
+    public void ToggleAutomationsGlobally() => _gameScreen?.ToggleAutomationsGloballyFromHost();
+
+    /// <summary>Instantané du menu de l'engrenage pour une vue portée par l'hôte.</summary>
+    public SettingsMenuSnapshot GetSettingsMenuSnapshot() =>
+        _onTitleScreen ? SettingsMenuSnapshot.Closed
+                       : _gameScreen?.GetSettingsMenuSnapshot() ?? SettingsMenuSnapshot.Closed;
+
+    public void InvokeSettingsMenuItem(string key) => _gameScreen?.InvokeSettingsMenuItemFromHost(key);
+    public void CloseSettingsMenu() => _gameScreen?.CloseSettingsMenuFromHost();
+
+    /// <summary>Instantané du popup de commerce pour une vue portée par l'hôte.</summary>
+    public TradePopupSnapshot GetTradePopupSnapshot() =>
+        _onTitleScreen ? TradePopupSnapshot.Closed
+                       : _gameScreen?.GetTradePopupSnapshot() ?? TradePopupSnapshot.Closed;
+
+    public void TradeSell(string key) => _gameScreen?.TradeSellFromHost(key);
+    public void TradeBuy(string key) => _gameScreen?.TradeBuyFromHost(key);
+    public void TradeSetMultiplier(int m) => _gameScreen?.TradeSetMultiplierFromHost(m);
+    public void TradeSetHistoryTab(bool h) => _gameScreen?.TradeSetHistoryTabFromHost(h);
+    public void CloseTradePopup() => _gameScreen?.CloseTradePopupFromHost();
+
+    /// <summary>Instantané du popup de prestige pour une vue portée par l'hôte.</summary>
+    public PrestigePopupSnapshot GetPrestigePopupSnapshot() =>
+        _onTitleScreen ? PrestigePopupSnapshot.Closed
+                       : _gameScreen?.GetPrestigePopupSnapshot() ?? PrestigePopupSnapshot.Closed;
+
+    public void InvokePrestigeAction(string key) => _gameScreen?.InvokePrestigeActionFromHost(key);
+    public void PrestigeSkipWonderTime() => _gameScreen?.PrestigeSkipWonderTimeFromHost();
+    public void PrestigeChangeTier(bool increase) => _gameScreen?.PrestigeChangeTierFromHost(increase);
+    public void ClosePrestigePopup() => _gameScreen?.ClosePrestigePopupFromHost();
+
+    /// <summary>Instantané du popup de réglages pour une vue portée par l'hôte.</summary>
+    public SettingsPopupSnapshot GetSettingsPopupSnapshot() =>
+        _onTitleScreen ? SettingsPopupSnapshot.Closed
+                       : _gameScreen?.GetSettingsPopupSnapshot() ?? SettingsPopupSnapshot.Closed;
+
+    public void ToggleSetting(string k) => _gameScreen?.ToggleSettingFromHost(k);
+    public void SetSettingChoice(string k, string c) => _gameScreen?.SetSettingChoiceFromHost(k, c);
+    public void SetSettingSlider(string k, double v) => _gameScreen?.SetSettingSliderFromHost(k, v);
+    public void SetSettingText(string k, string v) => _gameScreen?.SetSettingTextFromHost(k, v);
+    public void CloseSettingsPopup() => _gameScreen?.CloseSettingsPopupFromHost();
+
+    // ── Ecran-titre ───────────────────────────────────────────────────────────
+    //
+    // Seul bloc d'instantanés gaté à l'inverse des autres : il ne répond que **sur** l'écran-titre.
+
+    public TitleScreenSnapshot GetTitleScreenSnapshot() =>
+        _onTitleScreen ? _titleScreen?.GetSnapshot() ?? TitleScreenSnapshot.Hidden
+                       : TitleScreenSnapshot.Hidden;
+
+    public void SetTitleTab(string key) { if (_onTitleScreen) _titleScreen?.SetTabFromHost(key); }
+    public void InvokeTitleAction(string key) { if (_onTitleScreen) _titleScreen?.InvokeActionFromHost(key); }
+    public void SetTitleSettingToggle(string k) { if (_onTitleScreen) _titleScreen?.ToggleSettingFromHost(k); }
+    public void SetTitleSettingChoice(string k, string c) { if (_onTitleScreen) _titleScreen?.SetSettingChoiceFromHost(k, c); }
+    public void SetTitleSettingSlider(string k, double v) { if (_onTitleScreen) _titleScreen?.SetSettingSliderFromHost(k, v); }
+    public void SetTitleSettingText(string k, string v) { if (_onTitleScreen) _titleScreen?.SetSettingTextFromHost(k, v); }
+
+    /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
+    public ToastListSnapshot GetToastSnapshot() =>
+        // L'écran-titre a ses propres toasts (connexion au store).
+        _onTitleScreen ? _titleScreen?.GetToastSnapshot() ?? ToastListSnapshot.Empty
+                       : _gameScreen?.GetToastSnapshot() ?? ToastListSnapshot.Empty;
+
+    public void DismissToast(long id)
+    {
+        if (_onTitleScreen) _titleScreen?.DismissToastFromHost(id);
+        else _gameScreen?.DismissToastFromHost(id);
+    }
+
+    /// <summary>Instantané de la modale bloquante ouverte, pour une vue portée par l'hôte.</summary>
+    public ModalPopupSnapshot GetModalPopupSnapshot() =>
+        // L'écran-titre a sa propre confirmation de remise à zéro, de même forme : même vue.
+        _onTitleScreen ? _titleScreen?.GetModalSnapshot() ?? ModalPopupSnapshot.None
+                       : _gameScreen?.GetModalPopupSnapshot() ?? ModalPopupSnapshot.None;
+
+    public void InvokeModalPopupButton(string popupId, string buttonKey)
+    {
+        if (_onTitleScreen) _titleScreen?.InvokeModalButtonFromHost(buttonKey);
+        else _gameScreen?.InvokeModalPopupButtonFromHost(popupId, buttonKey);
+    }
+
+    /// <summary>Instantané du panneau civilisation pour une vue portée par l'hôte.</summary>
+    public CivPanelSnapshot GetCivPanelSnapshot() =>
+        _onTitleScreen ? CivPanelSnapshot.Hidden
+                       : _gameScreen?.GetCivPanelSnapshot() ?? CivPanelSnapshot.Hidden;
+
+    public void ExecuteCivAction(string k) => _gameScreen?.ExecuteCivActionFromHost(k);
+    public void ToggleCivPinned(string k) => _gameScreen?.ToggleCivPinnedFromHost(k);
+    public void SetCivPanelCollapsed(bool c) => _gameScreen?.SetCivPanelCollapsedFromHost(c);
+
+    /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>
+    public MonumentPanelSnapshot GetMonumentPanelSnapshot() =>
+        _onTitleScreen ? MonumentPanelSnapshot.Hidden
+                       : _gameScreen?.GetMonumentPanelSnapshot() ?? MonumentPanelSnapshot.Hidden;
+
+    public void CloseMonumentPanel() => _gameScreen?.CloseMonumentPanelFromHost();
+    public void ToggleMonumentInvestment(string rowKey) => _gameScreen?.ToggleMonumentInvestmentFromHost(rowKey);
+    public void EvolveMonument() => _gameScreen?.EvolveMonumentFromHost();
+    public void SkipWonder() => _gameScreen?.SkipWonderFromHost();
+
+    /// <summary>Ouvre/ferme le menu paramètres depuis une icône portée par l'hôte.</summary>
+    public void ToggleSettingsMenu() => _gameScreen?.ToggleSettingsMenuFromHost();
+
+    /// <summary>Instantané de la barre de ressources pour une vue portée par l'hôte.</summary>
+    public ResourceBarSnapshot GetResourceBarSnapshot() =>
+        _onTitleScreen ? ResourceBarSnapshot.Unavailable
+                       : _gameScreen?.GetResourceBarSnapshot() ?? ResourceBarSnapshot.Unavailable;
+
+    /// <summary>Le pointeur est-il au-dessus du canevas ? Conditionne les infobulles Skia.</summary>
+    public void SetPointerOverMap(bool isOver) => _gameScreen?.SetPointerOverMap(isOver);
+
+    /// <summary>Infobulle d'une pastille de la barre de ressources portée par l'hôte.</summary>
+    public string? GetResourceTooltip(string resourceName) =>
+        _onTitleScreen ? null : _gameScreen?.GetResourceTooltip(resourceName);
+
+    /// <summary>Instantané de l'état du temps pour un contrôle de temps porté par l'hôte.</summary>
+    public TimeControlSnapshot GetTimeControlSnapshot() =>
+        _onTitleScreen ? TimeControlSnapshot.Unavailable
+                       : _gameScreen?.GetTimeControlSnapshot() ?? TimeControlSnapshot.Unavailable;
+
+    /// <summary>Traduction pour les contrôles d'overlay portés par l'hôte.</summary>
+    public string Localize(string key) => _localizationService?.Get(key) ?? key;
+
+    /// <summary>Traduction formatée pour les contrôles d'overlay portés par l'hôte.</summary>
+    public string LocalizeFormat(string key, params object[] args) =>
+        _localizationService?.GetFormated(key, args) ?? key;
+
+    public void TogglePause() => _gameScreen?.ToggledPauseFromHost();
+
+    public void SetGameSpeed(int multiplier) => _gameScreen?.SetGameSpeedFromHost(multiplier);
 
     /// <summary>Définit l'échelle UI automatique détectée par la plateforme hôte (densité d'écran, grande résolution…).</summary>
     public void SetUiScale(float scale)
     {
         if (_uiLayoutService != null) _uiLayoutService.AutoUiScale = scale;
         _gameScreen?.SetUiScale(scale);
+    }
+
+    /// <summary>
+    /// Hauteur réelle de la barre du haut dessinée par l'hôte, seconde ligne de ressources
+    /// comprise. Les vues plein écran encore rendues ici commencent dessous.
+    /// </summary>
+    public void SetTopBarHeight(float height)
+    {
+        if (_uiLayoutService != null) _uiLayoutService.HostTopBarHeight = height;
     }
 
     public void EnsureCanvasInitialized(SKSize canvasSize)
@@ -233,48 +428,59 @@ public sealed class SkiaGameRuntime : IDisposable
         _isCanvasInitialized = true;
 
         _gameScreen?.EnsureCanvasInitialized(canvasSize);
+        _titleScreen?.SetCanvasSize(canvasSize);
     }
 
     public void Tick()
     {
         if (_isDisposed || !_isInitialized) return;
         _gameScreen?.Tick();
+
+        // L ecran-titre n a pas de boucle de jeu : ses toasts vieillissent ici une fois qu il ne
+        // se dessine plus lui-meme.
+        if (_onTitleScreen) _titleScreen?.AdvanceToasts();
     }
 
+    /// <summary>
+    /// L'écran-titre n'a rien à dessiner : il est entièrement fait de contrôles Avalonia, et
+    /// le canevas reste noir derrière eux.
+    /// </summary>
     public void Render(SKCanvas canvas)
     {
         if (_isDisposed || !_isInitialized) return;
-
-        float uiScale = _uiLayoutService?.UiScale ?? 1f;
-
-        if (_onTitleScreen)
-            _titleScreen?.Render(canvas, _lastCanvasSize, uiScale);
-        else
-            _gameScreen?.Render(canvas);
+        if (!_onTitleScreen) _gameScreen?.Render(canvas);
     }
+
+    /// <summary>
+    /// Passe des infobulles, a dessiner apres l'overlay de l'hote (cf. GameScreen.RenderTooltips).
+    /// </summary>
+    public void RenderTooltips(SKCanvas canvas, SKSize canvasSize)
+    {
+        if (_isDisposed || !_isInitialized || !_isCanvasInitialized) return;
+        if (!_onTitleScreen) _gameScreen?.RenderTooltips(canvas, canvasSize);
+    }
+
+    // L'input ne concerne plus que la partie : l'écran-titre reçoit le sien par l'arbre visuel
+    // d'Avalonia, sans passer par ici.
 
     public void HandlePointerPressed(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
-        if (_onTitleScreen) _titleScreen?.HandlePointerPressed(x, y, button);
-        else                _gameScreen?.HandlePointerPressed(x, y, pointerId, button);
+        if (!_onTitleScreen) _gameScreen?.HandlePointerPressed(x, y, pointerId, button);
     }
 
     public void HandlePointerMoved(float x, float y, int pointerId = 0)
     {
-        if (_onTitleScreen) _titleScreen?.HandlePointerMoved(x, y);
-        else                _gameScreen?.HandlePointerMoved(x, y, pointerId);
+        if (!_onTitleScreen) _gameScreen?.HandlePointerMoved(x, y, pointerId);
     }
 
     public void HandlePointerReleased(float x, float y, int pointerId = 0, PointerButton button = PointerButton.Left)
     {
-        if (_onTitleScreen) _titleScreen?.HandlePointerReleased(x, y, button);
-        else                _gameScreen?.HandlePointerReleased(x, y, pointerId, button);
+        if (!_onTitleScreen) _gameScreen?.HandlePointerReleased(x, y, pointerId, button);
     }
 
     public void HandleZoom(float wheelDelta, float x, float y)
     {
-        if (_onTitleScreen) _titleScreen?.HandleScroll(wheelDelta);
-        else                _gameScreen?.HandleZoom(wheelDelta, x, y);
+        if (!_onTitleScreen) _gameScreen?.HandleZoom(wheelDelta, x, y);
     }
 
     public void HandlePinch(float scaleRatio, float x, float y, float panDeltaX = 0f, float panDeltaY = 0f)
@@ -289,8 +495,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void HandleKeyPressed(string key)
     {
-        if (_onTitleScreen) _titleScreen?.HandleKeyPressed(key);
-        else                _gameScreen?.HandleKeyPressed(key, _allowDebugMode);
+        if (!_onTitleScreen) _gameScreen?.HandleKeyPressed(key, _allowDebugMode);
     }
 
     public void NotifyPageVisible(double hiddenSeconds)

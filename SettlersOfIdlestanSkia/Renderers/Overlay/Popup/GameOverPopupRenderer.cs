@@ -66,11 +66,35 @@ public sealed class GameOverPopupRenderer : PopupRendererBase
     public void HandlePointerPressed(SKPoint pos, PointerButton button)
     {
         if (!IsOpen || Disposed) return;
-        if (_restartRect.Contains(pos.X, pos.Y))
-        {
-            IsOpen = false;
-            _onRestart();
-        }
+        if (_restartRect.Contains(pos.X, pos.Y)) InvokeButton(KeyRestart);
+    }
+
+    private const string KeyRestart = "restart";
+
+    /// <summary>Instantané pour une vue portée par l'hôte. Reprend les clés de <see cref="Render"/>.</summary>
+    public ModalPopupSnapshot GetSnapshot()
+    {
+        if (!IsOpen || Disposed) return ModalPopupSnapshot.None;
+
+        return new ModalPopupSnapshot(
+            IsOpen: true,
+            Id: ModalPopupSnapshot.IdGameOver,
+            Title: _localization.Get("game_over_title"),
+            Tone: ModalPopupTone.Danger,
+            Lines: [_localization.Get("game_over_line1"), _localization.Get("game_over_line2")],
+            Buttons: [new(KeyRestart, _localization.Get("game_over_btn_restart"), ModalPopupButtonTone.Primary)],
+            // La partie est finie : il n'y a pas d'etat auquel revenir, donc pas de croix.
+            HasCloseButton: false,
+            ButtonsSideBySide: false);
+    }
+
+    /// <summary>Déclenche un bouton, depuis le hit-testing Skia comme depuis la vue de l'hôte.</summary>
+    public void InvokeButton(string key)
+    {
+        if (!IsOpen || Disposed) return;
+        if (key != KeyRestart) return;
+        IsOpen = false;
+        _onRestart();
     }
 
     public override void Dispose()
