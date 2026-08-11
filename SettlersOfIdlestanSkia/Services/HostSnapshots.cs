@@ -736,8 +736,9 @@ public sealed record MonumentPanelSnapshot(
     string? CorruptedPrestigeMessage,
     string? EvolveButtonLabel,
     string? WonderSkipButtonLabel,
-    bool CanSkipWonder)
+    bool CanSkipWonder,
+    string? DestroyButtonLabel)
 {
     public static readonly MonumentPanelSnapshot Hidden =
-        new(false, "", [], [], null, null, false, null, null, null, null, false);
+        new(false, "", [], [], null, null, false, null, null, null, null, false, null);
 }

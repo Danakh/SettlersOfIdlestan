@@ -612,15 +612,53 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             EvolveButtonLabel: showEvolve ? _localization.Get("abyss_gate_evolve_button") : null,
             WonderSkipButtonLabel: showWonderSkip ? _localization.Get("wonder_skip_time_button") : null,
             CanSkipWonder: showWonderSkip
-                && _gameControllerService.MainGameController.PrestigeController.CanSkipToNextWonderMultiplier());
+                && _gameControllerService.MainGameController.PrestigeController.CanSkipToNextWonderMultiplier(),
+            // Le libellé porte l'état d'armement : la confirmation en deux temps reste ici, la vue
+            // se contente d'afficher le texte courant et de renvoyer les clics.
+            DestroyButtonLabel: monument is CorruptionSpire
+                ? _localization.Get(_destroyConfirmPending
+                    ? "corruption_spire_destroy_confirm_button"
+                    : "corruption_spire_destroy_button")
+                : null);
     }
 
     /// <summary>Ferme le panneau depuis une vue portée par l'hôte.</summary>
-    public void CloseFromHost() => _monumentService.ClearSelectedInvestable();
+    public void CloseFromHost()
+    {
+        _destroyConfirmPending = false;
+        _monumentService.ClearSelectedInvestable();
+    }
+
+    /// <summary>
+    /// Détruit la Spire depuis une vue portée par l'hôte. Comme le bouton Skia, le premier appel
+    /// arme la confirmation et le second seulement détruit (voir <see cref="_destroyConfirmPending"/>).
+    /// </summary>
+    public void DestroyFromHost() => TryDestroySpire();
+
+    /// <summary>
+    /// Confirmation en deux temps de la destruction de la Spire, partagée par le bouton Skia et la
+    /// vue hôte. Retourne true une fois la Spire réellement détruite.
+    /// </summary>
+    private bool TryDestroySpire()
+    {
+        if (!_destroyConfirmPending)
+        {
+            _destroyConfirmPending = true;
+            return false;
+        }
+
+        _destroyConfirmPending = false;
+        if (!_gameControllerService.MainGameController.CorruptionSpireController.DestroyCorruptionSpire())
+            return false;
+
+        _monumentService.ClearSelectedInvestable();
+        return true;
+    }
 
     /// <summary>Bascule l'investissement d'une ligne depuis une vue portée par l'hôte.</summary>
     public void ToggleInvestmentFromHost(string rowKey)
     {
+        _destroyConfirmPending = false;
         if (rowKey == InvestmentRowSnapshot.ResearchKey)
         {
             _monumentService.ToggleResearchInvestment();
@@ -634,6 +672,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     /// <summary>Fait évoluer la Spire en Faille des Abysses, depuis une vue portée par l'hôte.</summary>
     public void EvolveFromHost()
     {
+        _destroyConfirmPending = false;
         var gate = _gameControllerService.MainGameController.AbyssGateController.PlaceAbyssGate();
         if (gate != null) _monumentService.SetSelectedInvestable(gate);
     }
@@ -669,14 +708,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
 
         if (!_destroyButtonRect.IsEmpty && _destroyButtonRect.Contains(e.Position.X, e.Position.Y))
         {
-            if (!_destroyConfirmPending)
-            {
-                _destroyConfirmPending = true;
-                return;
-            }
-            _destroyConfirmPending = false;
-            if (_gameControllerService.MainGameController.CorruptionSpireController.DestroyCorruptionSpire())
-                _monumentService.ClearSelectedInvestable();
+            TryDestroySpire();
             return;
         }
 

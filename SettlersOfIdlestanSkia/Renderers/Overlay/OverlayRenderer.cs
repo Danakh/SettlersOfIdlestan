@@ -421,6 +421,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _selectedMonumentPanelRenderer.ToggleInvestmentFromHost(rowKey);
     public void EvolveMonumentFromHost() => _selectedMonumentPanelRenderer.EvolveFromHost();
     public void SkipWonderFromHost() => _selectedMonumentPanelRenderer.SkipWonderFromHost();
+    public void DestroyMonumentFromHost() => _selectedMonumentPanelRenderer.DestroyFromHost();
 
     /// <summary>Instantané de la barre de ressources pour une vue portée par l'hôte.</summary>
     public ResourceBarSnapshot GetResourceBarSnapshot() =>

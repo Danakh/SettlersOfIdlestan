@@ -539,6 +539,7 @@ public sealed class GameScreen : IDisposable
         _overlayRenderer?.ToggleMonumentInvestmentFromHost(rowKey);
     public void EvolveMonumentFromHost() => _overlayRenderer?.EvolveMonumentFromHost();
     public void SkipWonderFromHost() => _overlayRenderer?.SkipWonderFromHost();
+    public void DestroyMonumentFromHost() => _overlayRenderer?.DestroyMonumentFromHost();
 
     /// <summary>Ouvre/ferme le menu paramètres depuis une icône portée par l'hôte.</summary>
     public void ToggleSettingsMenuFromHost() => _overlayRenderer?.ToggleSettingsMenuFromHost();

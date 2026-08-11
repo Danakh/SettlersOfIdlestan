@@ -86,6 +86,7 @@ public sealed class MonumentPanelViewModel : ViewModelBase
     private string? _evolveButtonLabel;
     private string? _wonderSkipButtonLabel;
     private bool _canSkipWonder;
+    private string? _destroyButtonLabel;
 
     public MonumentPanelViewModel(GameRuntimeHost host) => _host = host;
 
@@ -104,6 +105,10 @@ public sealed class MonumentPanelViewModel : ViewModelBase
     public string? WonderSkipButtonLabel { get => _wonderSkipButtonLabel; private set => SetProperty(ref _wonderSkipButtonLabel, value); }
     public bool CanSkipWonder { get => _canSkipWonder; private set => SetProperty(ref _canSkipWonder, value); }
 
+    /// Libelle du bouton de destruction de la Spire : il bascule sur un texte de confirmation une
+    /// fois le bouton arme, la logique en deux temps restant cote Skia.
+    public string? DestroyButtonLabel { get => _destroyButtonLabel; private set => SetProperty(ref _destroyButtonLabel, value); }
+
     public void Refresh()
     {
         var snapshot = _host.GetMonumentPanelSnapshot();
@@ -118,6 +123,7 @@ public sealed class MonumentPanelViewModel : ViewModelBase
         EvolveButtonLabel = snapshot.EvolveButtonLabel;
         WonderSkipButtonLabel = snapshot.WonderSkipButtonLabel;
         CanSkipWonder = snapshot.CanSkipWonder;
+        DestroyButtonLabel = snapshot.DestroyButtonLabel;
 
         SyncRows(snapshot.Rows);
         SyncBonusLines(snapshot.BonusLines);
@@ -176,6 +182,13 @@ public sealed class MonumentPanelViewModel : ViewModelBase
     public void SkipWonder()
     {
         _host.SkipWonder();
+        Refresh();
+    }
+
+    /// Premier clic : arme la confirmation (le libelle change). Second clic : detruit la Spire.
+    public void Destroy()
+    {
+        _host.DestroyMonument();
         Refresh();
     }
 }

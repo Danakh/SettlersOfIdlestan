@@ -389,6 +389,7 @@ public sealed class SkiaGameRuntime : IDisposable
     public void ToggleMonumentInvestment(string rowKey) => _gameScreen?.ToggleMonumentInvestmentFromHost(rowKey);
     public void EvolveMonument() => _gameScreen?.EvolveMonumentFromHost();
     public void SkipWonder() => _gameScreen?.SkipWonderFromHost();
+    public void DestroyMonument() => _gameScreen?.DestroyMonumentFromHost();
 
     /// <summary>Ouvre/ferme le menu paramètres depuis une icône portée par l'hôte.</summary>
     public void ToggleSettingsMenu() => _gameScreen?.ToggleSettingsMenuFromHost();

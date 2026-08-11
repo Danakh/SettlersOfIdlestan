@@ -252,6 +252,7 @@ public sealed class GameRuntimeHost : IDisposable
     public void ToggleMonumentInvestment(string rowKey) => Invoke(r => r.ToggleMonumentInvestment(rowKey));
     public void EvolveMonument() => Invoke(r => r.EvolveMonument());
     public void SkipWonder() => Invoke(r => r.SkipWonder());
+    public void DestroyMonument() => Invoke(r => r.DestroyMonument());
 
     public SkiaLayer.ResourceBarSnapshot GetResourceBarSnapshot() =>
         Read(r => r.GetResourceBarSnapshot()) ?? SkiaLayer.ResourceBarSnapshot.Unavailable;

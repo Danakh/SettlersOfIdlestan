@@ -76,6 +76,13 @@ public sealed class MonumentPanelView : UserControl
             Color.FromArgb(230, 60, 140, 220),
             viewModel.SkipWonder,
             enabledPath: nameof(MonumentPanelViewModel.CanSkipWonder)));
+        // Destruction de la Spire, en bas du panneau : le libelle bascule sur une confirmation au
+        // premier clic, le second seulement detruit.
+        content.Children.Add(ActionButton(
+            nameof(MonumentPanelViewModel.DestroyButtonLabel),
+            Color.FromArgb(230, 140, 45, 45),
+            viewModel.Destroy,
+            enabledPath: null));
 
         panel.Content = content;
         _panel = panel;
