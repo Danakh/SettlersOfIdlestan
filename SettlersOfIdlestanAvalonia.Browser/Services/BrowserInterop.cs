@@ -39,8 +39,13 @@ internal static partial class BrowserInterop
 
     // ── Fichiers ──────────────────────────────────────────────────────────────
 
-    [JSImport("downloadFile", Module)]
-    public static partial void DownloadFile(string fileName, string content);
+    /// <summary>
+    /// Enregistrement explicite : le joueur choisit le fichier a ecrire quand le navigateur le
+    /// permet, sinon la sauvegarde part en telechargement. Doit etre appele depuis la pile du
+    /// clic — le selecteur exige une activation utilisateur recente.
+    /// </summary>
+    [JSImport("saveFilePicker", Module)]
+    public static partial Task SaveFilePicker(string fileName, string content);
 
     [JSImport("openFilePicker", Module)]
     public static partial Task<string?> OpenFilePicker();

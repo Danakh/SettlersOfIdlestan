@@ -24,6 +24,48 @@ export function removeStorageItem(key) {
 
 // ── Fichiers ────────────────────────────────────────────────────────────────────
 
+// Enregistrement explicite (« Sauvegarder »). showSaveFilePicker laisse le joueur designer le
+// fichier a ecrire, comme le selecteur natif du head bureau — il ecrase une sauvegarde existante
+// au lieu d'accumuler savegame(1).json, savegame(2).json dans le dossier de telechargement.
+//
+// L'API n'existe que sur Chromium en contexte securise : ailleurs (Firefox, Safari, iframe
+// bridee) on retombe sur le telechargement, qui reste le seul moyen de sortir la sauvegarde.
+export function saveFilePicker(fileName, content) {
+    if (typeof window.showSaveFilePicker !== 'function') {
+        downloadFile(fileName, content);
+        return Promise.resolve();
+    }
+    return writeThroughPicker(fileName, content);
+}
+
+async function writeThroughPicker(fileName, content) {
+    let handle;
+    try {
+        handle = await window.showSaveFilePicker({
+            suggestedName: fileName,
+            types: [{
+                description: 'Settlers of Idlestan',
+                accept: { 'application/json': ['.json'] },
+            }],
+        });
+    } catch (e) {
+        // Boite fermee par le joueur : c'est un abandon, pas une erreur — on n'ecrit rien et on
+        // ne declenche surtout pas le telechargement de repli, qu'il n'a pas demande.
+        if (e && e.name === 'AbortError') return;
+        console.error('[SOI] selecteur d\'enregistrement indisponible', e);
+        downloadFile(fileName, content);
+        return;
+    }
+
+    try {
+        const stream = await handle.createWritable();
+        await stream.write(content);
+        await stream.close();
+    } catch (e) {
+        console.error('[SOI] ecriture de la sauvegarde impossible', e);
+    }
+}
+
 export function downloadFile(fileName, content) {
     const blob = new Blob([content], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
