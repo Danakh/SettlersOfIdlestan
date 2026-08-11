@@ -36,7 +36,7 @@ public sealed class GamePanelView : ContentControl
     /// <param name="onClose">Null pour un panneau sans bouton de fermeture.</param>
     public GamePanelView(string title, Action? onClose, GamePanelSide side = GamePanelSide.Right)
     {
-        Width = DefaultWidth + CollapseTabWidth;
+        // La largeur est posee par ApplyCollapsed : elle suit l'etat de repli.
         HorizontalAlignment = side == GamePanelSide.Left ? HorizontalAlignment.Left : HorizontalAlignment.Right;
         VerticalAlignment = VerticalAlignment.Top;
 
@@ -118,6 +118,8 @@ public sealed class GamePanelView : ContentControl
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(4),
         };
+        // Conserve fond sombre et bordure claire au survol : voir GameControlStyles.PanelTab.
+        _collapseTab.Classes.Add(GameControlStyles.PanelTab);
         _collapseTab.IsCheckedChanged += (_, _) =>
         {
             ApplyCollapsed();
@@ -184,6 +186,12 @@ public sealed class GamePanelView : ContentControl
     private void ApplyCollapsed()
     {
         _body.IsVisible = !IsCollapsed;
+
+        // Le corps replie est masque mais la largeur reservee restait celle du panneau ouvert :
+        // l'onglet, ancre du cote interieur, se retrouvait a 280 px du bord de la fenetre, comme
+        // suspendu au milieu de la carte. On rend cette place pour qu'il revienne au bord.
+        Width = IsCollapsed ? CollapseTabWidth : DefaultWidth + CollapseTabWidth;
+
         _collapseTab.Content = new AvaloniaPath
         {
             Data = Geometry.Parse(IsCollapsed ? "M 0,0 L 6,5 L 0,10 Z" : "M 6,0 L 0,5 L 6,10 Z"),

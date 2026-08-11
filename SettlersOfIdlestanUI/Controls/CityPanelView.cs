@@ -40,8 +40,13 @@ public sealed class CityPanelView : UserControl
         HorizontalAlignment = HorizontalAlignment.Right;
         VerticalAlignment = VerticalAlignment.Top;
 
-        var panel = new GamePanelView(title: "", onClose: viewModel.Close);
-        panel.TitleBlock.IsVisible = false;
+        // Ni titre ni bouton de fermeture : le panneau se replie par son onglet lateral et se
+        // ferme en deselectionnant la ville. Sa barre de titre n'aurait plus rien a montrer, on
+        // la masque entierement plutot que de laisser 32 px de vide au-dessus des batiments.
+        var panel = new GamePanelView(title: "", onClose: null);
+        panel.HeaderHost.IsVisible = false;
+        // La barre de titre servait aussi de respiration sous le coin arrondi du panneau.
+        panel.ContentHost.Margin = new Thickness(0, 10, 0, 0);
 
         var rows = new ItemsControl
         {

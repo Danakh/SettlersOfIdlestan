@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -26,6 +27,22 @@ public static class GameControlStyles
     /// (<c>button.Classes.Add(GameControlStyles.ToneButton)</c>).
     /// </summary>
     public const string ToneButton = "tone";
+
+    /// <summary>
+    /// A poser sur l'onglet de repli d'un panneau lateral (voir <c>GamePanelView</c>). Meme
+    /// probleme que ci-dessus, en pire : l'onglet est pose directement sur la carte. Au survol,
+    /// Fluent remplacait son fond sombre et sa bordure claire par les siens — au-dessus d'une
+    /// zone de carte claire, l'onglet et sa fleche blanche se fondaient dans le decor au moment
+    /// meme ou le curseur les designe.
+    /// </summary>
+    public const string PanelTab = "panel-tab";
+
+    /// <summary>
+    /// Bordure de l'onglet de repli survole. L'or de l'interface, sur le fond sombre conserve :
+    /// le retour visuel passe par la bordure plutot que par le fond, qui doit rester opaque et
+    /// contraste quelle que soit la couleur de la carte en dessous.
+    /// </summary>
+    private static readonly SolidColorBrush PanelTabHoverBorder = new(Color.FromRgb(255, 215, 0));
 
     /// <summary>
     /// Fond d'un controle indisponible. Meme gris que celui deja peint a la main par les
@@ -65,6 +82,18 @@ public static class GameControlStyles
             Setters = { new Setter(Avalonia.Visual.OpacityProperty, 0.7d) },
         });
 
+        // Onglet de repli : on retablit fond ET bordure dans les trois etats ou Fluent les
+        // remplace. Le style de survol vient en dernier pour que sa bordure doree l'emporte
+        // aussi quand l'onglet est deja coche.
+        styles.Add(PanelTabState(":checked"));
+        styles.Add(PanelTabState(":pressed"));
+        styles.Add(PanelTabState(":pointerover"));
+        styles.Add(new Style(x => x.OfType<ToggleButton>().Class(PanelTab).Class(":pointerover")
+                                   .Template().OfType<ContentPresenter>())
+        {
+            Setters = { new Setter(ContentPresenter.BorderBrushProperty, PanelTabHoverBorder) },
+        });
+
         // Indisponible. Fluent peint ici un fond et un texte semi-transparents tires du theme :
         // en variante claire cela donnait du noir a 40 % sur nos panneaux sombres — le libelle
         // « Construire » d'un batiment trop cher etait quasiment illisible. On reprend donc les
@@ -91,16 +120,24 @@ public static class GameControlStyles
         return styles;
     }
 
-    private static Style BackgroundOf(string pseudoClass) =>
-        new(x => x.OfType<Button>().Class(ToneButton).Class(pseudoClass)
+    private static Style PanelTabState(string pseudoClass) =>
+        new(x => x.OfType<ToggleButton>().Class(PanelTab).Class(pseudoClass)
                   .Template().OfType<ContentPresenter>())
         {
             Setters =
             {
-                new Setter(ContentPresenter.BackgroundProperty, new Binding(nameof(Button.Background))
-                {
-                    RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent),
-                }),
+                new Setter(ContentPresenter.BackgroundProperty, TemplatedParent(nameof(ToggleButton.Background))),
+                new Setter(ContentPresenter.BorderBrushProperty, TemplatedParent(nameof(ToggleButton.BorderBrush))),
             },
+        };
+
+    private static Binding TemplatedParent(string property) =>
+        new(property) { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) };
+
+    private static Style BackgroundOf(string pseudoClass) =>
+        new(x => x.OfType<Button>().Class(ToneButton).Class(pseudoClass)
+                  .Template().OfType<ContentPresenter>())
+        {
+            Setters = { new Setter(ContentPresenter.BackgroundProperty, TemplatedParent(nameof(Button.Background))) },
         };
 }
