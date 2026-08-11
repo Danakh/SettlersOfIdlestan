@@ -79,11 +79,19 @@ public sealed class CityBuildingRowViewModel : ViewModelBase
         {
             if (!SetProperty(ref _action, value)) return;
             RaisePropertyChanged(nameof(HasAction));
+            RaisePropertyChanged(nameof(HasActionButton));
+            RaisePropertyChanged(nameof(IsMaxLevel));
             RaisePropertyChanged(nameof(IsGoToOtherCity));
         }
     }
 
     public bool HasAction => Action != SkiaLayer.CityBuildingAction.None;
+
+    /// Le batiment est au niveau maximum : la ligne affiche un badge dore au lieu d'un bouton.
+    public bool IsMaxLevel => Action == SkiaLayer.CityBuildingAction.MaxLevel;
+
+    /// Une action cliquable existe. Le niveau max en est exclu : il n'y a plus rien a declencher.
+    public bool HasActionButton => HasAction && !IsMaxLevel;
 
     /// Le bouton renvoie vers la ville qui possede deja ce batiment unique.
     public bool IsGoToOtherCity => Action == SkiaLayer.CityBuildingAction.GoToOtherCity;

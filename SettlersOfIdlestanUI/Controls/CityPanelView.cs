@@ -25,7 +25,10 @@ public sealed class CityPanelView : UserControl
     private static readonly SolidColorBrush DimText = new(Color.FromArgb(200, 130, 130, 140));
     private static readonly SolidColorBrush BuildBrush = new(Color.FromRgb(21, 101, 192));
     private static readonly SolidColorBrush UpgradeBrush = new(Color.FromRgb(46, 125, 50));
-    private static readonly SolidColorBrush MaxLevelBrush = new(Color.FromArgb(200, 120, 90, 20));
+    // Or du niveau max : le badge doit se lire comme une recompense, pas comme un bouton eteint.
+    private static readonly SolidColorBrush MaxLevelBrush = new(Color.FromRgb(224, 179, 60));
+    private static readonly SolidColorBrush MaxLevelBorder = new(Color.FromRgb(255, 226, 150));
+    private static readonly SolidColorBrush MaxLevelText = new(Color.FromRgb(59, 44, 5));
     private static readonly SolidColorBrush OtherCityBrush = new(Color.FromArgb(200, 60, 55, 80));
     private static readonly SolidColorBrush TabActive = new(Color.FromArgb(240, 60, 60, 85));
     private static readonly SolidColorBrush TabInactive = new(Color.FromArgb(180, 20, 20, 30));
@@ -190,14 +193,13 @@ public sealed class CityPanelView : UserControl
                 VerticalContentAlignment = VerticalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 [!ContentProperty] = new Binding(nameof(CityBuildingRowViewModel.ActionLabel)),
-                [!IsVisibleProperty] = new Binding(nameof(CityBuildingRowViewModel.HasAction)),
+                [!IsVisibleProperty] = new Binding(nameof(CityBuildingRowViewModel.HasActionButton)),
                 [!IsEnabledProperty] = new Binding(nameof(CityBuildingRowViewModel.IsActionEnabled)),
                 [!Button.BackgroundProperty] = new Binding(nameof(CityBuildingRowViewModel.Action))
                 {
                     Converter = new FuncValueConverter<SettlersOfIdlestanSkia.Services.CityBuildingAction, IBrush>(a => a switch
                     {
                         SettlersOfIdlestanSkia.Services.CityBuildingAction.Upgrade => UpgradeBrush,
-                        SettlersOfIdlestanSkia.Services.CityBuildingAction.MaxLevel => MaxLevelBrush,
                         SettlersOfIdlestanSkia.Services.CityBuildingAction.GoToOtherCity => OtherCityBrush,
                         _ => BuildBrush,
                     }),
@@ -208,6 +210,31 @@ public sealed class CityPanelView : UserControl
             action.Classes.Add(GameControlStyles.ToneButton);
             action.Click += (_, _) => { if (_row != null) _owner.ExecuteAction(_row); };
 
+            // Niveau max : un badge, pas un bouton. Un bouton desactive serait repeint en gris par
+            // le style « indisponible » partage, exactement comme un batiment trop cher — alors
+            // qu'ici il n'y a plus rien a cliquer et que l'etat est un aboutissement.
+            var maxLevel = new Border
+            {
+                MinWidth = 26,
+                Height = 26,
+                Padding = new Thickness(10, 0),
+                CornerRadius = new CornerRadius(7),
+                Background = MaxLevelBrush,
+                BorderBrush = MaxLevelBorder,
+                BorderThickness = new Thickness(1),
+                VerticalAlignment = VerticalAlignment.Center,
+                [!IsVisibleProperty] = new Binding(nameof(CityBuildingRowViewModel.IsMaxLevel)),
+                Child = new TextBlock
+                {
+                    FontSize = 12,
+                    FontWeight = FontWeight.SemiBold,
+                    Foreground = MaxLevelText,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    [!TextBlock.TextProperty] = new Binding(nameof(CityBuildingRowViewModel.ActionLabel)),
+                },
+            };
+
             var left = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };
             left.Children.Add(label);
             left.Children.Add(_cost);
@@ -215,8 +242,10 @@ public sealed class CityPanelView : UserControl
             var layout = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(checkbox, Dock.Left);
             DockPanel.SetDock(action, Dock.Right);
+            DockPanel.SetDock(maxLevel, Dock.Right);
             layout.Children.Add(checkbox);
             layout.Children.Add(action);
+            layout.Children.Add(maxLevel);
             layout.Children.Add(left);
 
             Child = layout;

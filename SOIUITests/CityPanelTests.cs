@@ -42,6 +42,20 @@ public class CityBuildingRowViewModelTests
         Assert.Equal(isChecked, row.IsActivated);
     }
 
+    [Theory]
+    [InlineData(SkiaLayer.CityBuildingAction.None, false, false)]
+    [InlineData(SkiaLayer.CityBuildingAction.Build, false, true)]
+    [InlineData(SkiaLayer.CityBuildingAction.Upgrade, false, true)]
+    [InlineData(SkiaLayer.CityBuildingAction.MaxLevel, true, false)]
+    [InlineData(SkiaLayer.CityBuildingAction.GoToOtherCity, false, true)]
+    public void Le_niveau_max_remplace_le_bouton_par_le_badge_dore(
+        SkiaLayer.CityBuildingAction action, bool isMaxLevel, bool hasButton)
+    {
+        var row = new CityBuildingRowViewModel(Row(action));
+        Assert.Equal(isMaxLevel, row.IsMaxLevel);
+        Assert.Equal(hasButton, row.HasActionButton);
+    }
+
     [Fact]
     public void Changer_d_action_notifie_les_proprietes_derivees()
     {
@@ -52,6 +66,8 @@ public class CityBuildingRowViewModelTests
         row.Apply(Row(SkiaLayer.CityBuildingAction.GoToOtherCity));
 
         Assert.Contains(nameof(CityBuildingRowViewModel.HasAction), changed);
+        Assert.Contains(nameof(CityBuildingRowViewModel.HasActionButton), changed);
+        Assert.Contains(nameof(CityBuildingRowViewModel.IsMaxLevel), changed);
         Assert.Contains(nameof(CityBuildingRowViewModel.IsGoToOtherCity), changed);
         Assert.True(row.IsGoToOtherCity);
     }
