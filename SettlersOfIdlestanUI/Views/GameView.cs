@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SettlersOfIdlestanUI.Controls;
@@ -173,8 +175,47 @@ public sealed class GameView : Panel, IDisposable
         // d'autre, aucun bouton d'aucune modale n'aurait d'effet visible tant qu'il dure.
         Children.Add(_timeJump);
 
+        // Clavier du popup de commerce : Ctrl/Maj pour le multiplicateur temporaire, Echap pour
+        // fermer. L'ecoute est ici et non sur GameRuntimeControl : le popup s'ouvre depuis un
+        // bouton Avalonia, qui prend le focus clavier, et la carte ne verrait alors jamais la
+        // touche. GameView est l'ancetre commun de tout l'overlay — l'evenement lui remonte quel
+        // que soit le controle focalise, y compris s'il l'a marque traite.
+        AddHandler(InputElement.KeyDownEvent, OnGameKeyDown, RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(InputElement.KeyUpEvent, OnGameKeyUp, RoutingStrategies.Bubble, handledEventsToo: true);
+
         ApplyTopBarHeight(TopBarView.BarHeight);
     }
+
+    private void OnGameKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && _tradeModel.IsOpen)
+        {
+            _tradeModel.Close();
+            e.Handled = true;
+            return;
+        }
+
+        if (MapModifier(e.Key) is not { } key) return;
+        _host.KeyPressed(key);
+
+        // Sans ce rafraichissement immediat, les quantites et le multiplicateur mis en avant
+        // attendraient le tick de synchronisation, jusqu'a 100 ms apres l'appui.
+        _tradeModel.Refresh();
+    }
+
+    private void OnGameKeyUp(object? sender, KeyEventArgs e)
+    {
+        if (MapModifier(e.Key) is not { } key) return;
+        _host.KeyReleased(key);
+        _tradeModel.Refresh();
+    }
+
+    private static string? MapModifier(Key key) => key switch
+    {
+        Key.LeftShift or Key.RightShift => "Shift",
+        Key.LeftCtrl or Key.RightCtrl => "Control",
+        _ => null,
+    };
 
     /// <summary>
     /// Recale tout ce qui s'ancre sous la barre du haut. Cote Avalonia ce sont des marges ;

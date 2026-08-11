@@ -210,8 +210,10 @@ public class GameRuntimeControl : SkiaCanvasControl
         _                  => SkiaInput.PointerButton.Unknown,
     };
 
-    /// Seules les touches reellement consommees par le jeu sont traduites (pause, debug,
-    /// modificateurs) ; le reste est ignore volontairement.
+    /// Seules les touches reellement consommees par le jeu sont traduites (pause, debug) ; le
+    /// reste est ignore volontairement. Ctrl/Maj sont ecoutes par <see cref="Views.GameView"/> et
+    /// non ici : ce controle n'a le focus clavier que tant qu'aucun controle Avalonia ne l'a
+    /// pris, ce qu'un simple clic sur un bouton de l'overlay suffit a faire.
     private static string? MapKey(Key key) => key switch
     {
         Key.Space                        => "Space",
@@ -220,8 +222,6 @@ public class GameRuntimeControl : SkiaCanvasControl
         Key.F10                          => "F10",
         Key.F11                          => "F11",
         Key.F12                          => "F12",
-        Key.LeftShift or Key.RightShift  => "Shift",
-        Key.LeftCtrl  or Key.RightCtrl   => "Control",
         _                                => null,
     };
 }

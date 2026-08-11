@@ -119,6 +119,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _inputService.PointerReleased += HandlePointerReleased;
         _inputService.ZoomChanged     += HandleZoomChanged;
         _inputService.KeyPressed      += HandleKeyInput;
+        _inputService.KeyReleased     += HandleKeyRelease;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -575,7 +576,22 @@ public sealed class OverlayRenderer : IGameRenderer
     private void HandleKeyInput(object? sender, KeyEventArgs e)
     {
         if (!_isVisible) return;
+
+        // Popup de commerce ouvert : Ctrl/Maj y imposent un multiplicateur temporaire, et les
+        // raccourcis d'onglet n'ont pas cours tant qu'il bloque l'ecran.
+        if (_tradeRenderer.IsOpen)
+        {
+            _tradeRenderer.HandleKeyDown(e.Key);
+            return;
+        }
+
         _tabBar.HandleKeyInput(e.Key);
+    }
+
+    private void HandleKeyRelease(object? sender, KeyEventArgs e)
+    {
+        if (!_isVisible) return;
+        if (_tradeRenderer.IsOpen) _tradeRenderer.HandleKeyUp(e.Key);
     }
 
     public void Dispose()
@@ -587,6 +603,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _inputService.PointerReleased -= HandlePointerReleased;
         _inputService.ZoomChanged     -= HandleZoomChanged;
         _inputService.KeyPressed      -= HandleKeyInput;
+        _inputService.KeyReleased     -= HandleKeyRelease;
 
         _playerResourcesOverlayRenderer.Dispose();
         _selectedCityPanelRenderer.Dispose();

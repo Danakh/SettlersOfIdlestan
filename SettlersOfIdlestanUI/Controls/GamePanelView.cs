@@ -32,10 +32,13 @@ public sealed class GamePanelView : ContentControl
 
     private readonly ToggleButton _collapseTab;
     private readonly Border _body;
+    private readonly GamePanelSide _side;
 
     /// <param name="onClose">Null pour un panneau sans bouton de fermeture.</param>
     public GamePanelView(string title, Action? onClose, GamePanelSide side = GamePanelSide.Right)
     {
+        _side = side;
+
         // La largeur est posee par ApplyCollapsed : elle suit l'etat de repli.
         HorizontalAlignment = side == GamePanelSide.Left ? HorizontalAlignment.Left : HorizontalAlignment.Right;
         VerticalAlignment = VerticalAlignment.Top;
@@ -192,9 +195,14 @@ public sealed class GamePanelView : ContentControl
         // suspendu au milieu de la carte. On rend cette place pour qu'il revienne au bord.
         Width = IsCollapsed ? CollapseTabWidth : DefaultWidth + CollapseTabWidth;
 
+        // La fleche montre le sens du mouvement que le clic va produire, pas le bord d'ancrage :
+        // un panneau ancre a droite s'ouvre vers la gauche et se replie vers la droite, un
+        // panneau ancre a gauche fait l'inverse.
+        bool pointsLeft = IsCollapsed ? _side == GamePanelSide.Right : _side == GamePanelSide.Left;
+
         _collapseTab.Content = new AvaloniaPath
         {
-            Data = Geometry.Parse(IsCollapsed ? "M 0,0 L 6,5 L 0,10 Z" : "M 6,0 L 0,5 L 6,10 Z"),
+            Data = Geometry.Parse(pointsLeft ? "M 6,0 L 0,5 L 6,10 Z" : "M 0,0 L 6,5 L 0,10 Z"),
             Fill = Brushes.White,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
