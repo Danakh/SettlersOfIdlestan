@@ -120,7 +120,14 @@ namespace SettlersOfIdlestan.Controller.Island
                     continue;
                 }
 
-                if (now - guild.LastRoadBuildTick < AutoRoadBuildCooldownTicks) continue;
+                // Même accélération par ville que l'automatisation des bâtiments
+                // (voir BuildingController.TickGuildAutomation) : sans elle, la cadence de pose des
+                // routes restait fixe alors que le réseau à couvrir grandit avec la civilisation.
+                double guildSpeedBonus = civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.GUILD_AUTOMATION_SPEED_PER_CITY, "", 0.0) * civ.Cities.Count;
+                long effectiveCooldown = guildSpeedBonus > 0
+                    ? Math.Max(1L, (long)(AutoRoadBuildCooldownTicks / (1.0 + guildSpeedBonus)))
+                    : AutoRoadBuildCooldownTicks;
+                if (now - guild.LastRoadBuildTick < effectiveCooldown) continue;
 
                 var candidates = new List<Road>();
                 if (surfaceEnabled)
