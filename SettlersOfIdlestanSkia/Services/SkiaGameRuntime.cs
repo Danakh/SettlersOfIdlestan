@@ -32,6 +32,22 @@ public sealed class SkiaGameRuntime : IDisposable
     private bool   _isDisposed;
     private bool   _isInitialized;
 
+    private Action<Action>? _stateSynchronizer;
+
+    /// <summary>
+    /// Installe le sérialiseur d'accès à l'état du jeu de l'hôte (cf. GameRuntimeHost).
+    ///
+    /// Les commandes venues de l'hôte s'exécutent déjà sous son verrou, mais une commande qui
+    /// attend le joueur — le sélecteur de fichier de « Charger » — rend la main au dispatcher à
+    /// son premier `await` : le verrou est relâché, et la suite de la méthode reprend plus tard
+    /// sans protection alors que le thread de rendu, lui, continue de dessiner. Tout ce qui
+    /// touche au modèle après un tel `await` doit repasser par ici.
+    ///
+    /// Appelé par l'hôte avant toute création de GameScreen. Null (tests, outils) exécute
+    /// directement, comme avant.
+    /// </summary>
+    public void SetStateSynchronizer(Action<Action>? synchronizer) => _stateSynchronizer = synchronizer;
+
     public event Action? QuitRequested;
     public event Action<string>? DiscordLinkClicked;
     public event Action<bool>? FullscreenStateChanged;
@@ -139,7 +155,8 @@ public sealed class SkiaGameRuntime : IDisposable
             _allowDebugMode,
             _demoMode,
             _storeController,
-            statsJson: _statsJson);
+            statsJson: _statsJson,
+            runSynchronized: _stateSynchronizer);
         _gameScreen.ReturnToTitleRequested     += OnReturnToTitle;
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
@@ -168,7 +185,8 @@ public sealed class SkiaGameRuntime : IDisposable
             _allowDebugMode,
             _demoMode,
             _storeController,
-            statsJson: _statsJson);
+            statsJson: _statsJson,
+            runSynchronized: _stateSynchronizer);
         _gameScreen.ReturnToTitleRequested     += OnReturnToTitle;
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);

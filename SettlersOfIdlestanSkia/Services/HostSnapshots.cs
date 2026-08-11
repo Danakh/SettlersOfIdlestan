@@ -465,7 +465,24 @@ public sealed record StatCardSnapshot(
     IReadOnlyList<StatCellSnapshot> Cells,
     int Columns,
     bool IsCurrent,
-    IReadOnlyList<string> TextRows);
+    IReadOnlyList<string> TextRows)
+{
+    /// <summary>
+    /// Egalite structurelle explicite : l'egalite synthetisee d'un record compare ses membres
+    /// avec <c>EqualityComparer&lt;T&gt;.Default</c>, ce qui pour une <c>List</c> revient a une
+    /// comparaison de references. Une carte reconstruite a l'identique serait donc toujours
+    /// declaree differente, et la vue rebatirait tout son arbre de controles dix fois par
+    /// seconde.
+    /// </summary>
+    public bool Equals(StatCardSnapshot? other) =>
+        other is not null
+        && Columns == other.Columns
+        && IsCurrent == other.IsCurrent
+        && Cells.SequenceEqual(other.Cells)
+        && TextRows.SequenceEqual(other.TextRows);
+
+    public override int GetHashCode() => HashCode.Combine(Columns, IsCurrent, Cells.Count, TextRows.Count);
+}
 
 /// <param name="IsAccent">Titre en or : section principale du sous-onglet.</param>
 /// <param name="EmptyMessage">Affiche a la place des cartes quand il n'y en a aucune.</param>
@@ -473,7 +490,18 @@ public sealed record StatSectionSnapshot(
     string Title,
     bool IsAccent,
     string? EmptyMessage,
-    IReadOnlyList<StatCardSnapshot> Cards);
+    IReadOnlyList<StatCardSnapshot> Cards)
+{
+    /// <inheritdoc cref="StatCardSnapshot.Equals(StatCardSnapshot)"/>
+    public bool Equals(StatSectionSnapshot? other) =>
+        other is not null
+        && Title == other.Title
+        && IsAccent == other.IsAccent
+        && EmptyMessage == other.EmptyMessage
+        && Cards.SequenceEqual(other.Cards);
+
+    public override int GetHashCode() => HashCode.Combine(Title, IsAccent, EmptyMessage, Cards.Count);
+}
 
 /// <summary>Un sous-onglet de la page Stats.</summary>
 public sealed record StatsSubTabSnapshot(string Key, string Label, bool IsActive);

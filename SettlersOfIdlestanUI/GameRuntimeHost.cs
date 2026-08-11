@@ -26,7 +26,15 @@ public sealed class GameRuntimeHost : IDisposable
     private readonly object _gate = new();
     private bool _disposed;
 
-    public GameRuntimeHost(SkiaLayer.SkiaGameRuntime runtime) => _runtime = runtime;
+    public GameRuntimeHost(SkiaLayer.SkiaGameRuntime runtime)
+    {
+        _runtime = runtime;
+
+        // Une commande qui attend le joueur (le selecteur de fichier de « Charger ») relache ce
+        // verrou a son premier await : le runtime a besoin d'un moyen de le reprendre pour la
+        // suite du traitement, faute de quoi l'import s'executerait pendant un rendu.
+        _runtime.SetStateSynchronizer(action => Invoke(_ => action()));
+    }
 
     /// <summary>
     /// Execute une lecture de l'etat du jeu sous verrou. Destine aux ViewModels et aux vues

@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -37,15 +38,77 @@ public class StatsViewModelTests
     {
         using var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
         var vm = new StatsViewModel(host);
-        vm.Refresh();
+        vm.SyncSections(Sections(playtime: "1m00s"));
 
         int rebuilds = 0;
         vm.Sections.CollectionChanged += (_, _) => rebuilds++;
-        vm.Refresh();
-        vm.Refresh();
+        vm.SyncSections(Sections(playtime: "1m00s"));
+        vm.SyncSections(Sections(playtime: "1m00s"));
 
         Assert.Equal(0, rebuilds);
     }
+
+    /// <summary>
+    /// Le temps de jeu de la section « partie en cours » bouge a chaque synchronisation, alors que
+    /// l'historique ne change qu'a un prestige. Vider puis remplir la collection rebatissait
+    /// l'arbre de controles de tout l'historique dix fois par seconde : sur une sauvegarde a
+    /// nombreuses parties passees, l'onglet figeait l'application.
+    /// </summary>
+    [Fact]
+    public void Seule_la_section_qui_change_est_remplacee()
+    {
+        using var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
+        var vm = new StatsViewModel(host);
+        vm.SyncSections(Sections(playtime: "1m00s"));
+        var historyBefore = vm.Sections[1];
+
+        var changes = new List<NotifyCollectionChangedEventArgs>();
+        vm.Sections.CollectionChanged += (_, e) => changes.Add(e);
+        vm.SyncSections(Sections(playtime: "1m01s"));
+
+        var change = Assert.Single(changes);
+        Assert.Equal(NotifyCollectionChangedAction.Replace, change.Action);
+        Assert.Equal(0, change.NewStartingIndex);
+        Assert.Same(historyBefore, vm.Sections[1]);
+    }
+
+    /// <summary>
+    /// Une section disparait quand le sous-onglet change de composition (les records d'ascension
+    /// n'apparaissent qu'apres une premiere ascension) : la collection doit se raccourcir.
+    /// </summary>
+    [Fact]
+    public void Une_section_en_moins_est_retiree()
+    {
+        using var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
+        var vm = new StatsViewModel(host);
+        vm.SyncSections(Sections(playtime: "1m00s"));
+
+        vm.SyncSections([Sections(playtime: "1m00s")[0]]);
+
+        Assert.Single(vm.Sections);
+    }
+
+    /// Deux sections construites a l'identique : la garde ne tient que si elles sont egales.
+    [Fact]
+    public void Deux_instantanes_identiques_sont_structurellement_egaux() =>
+        Assert.Equal(Sections(playtime: "1m00s")[1], Sections(playtime: "1m00s")[1]);
+
+    /// <summary>
+    /// Deux sections comme le renderer les produit : la partie en cours, dont le temps de jeu
+    /// bouge en continu, puis un historique fige.
+    /// </summary>
+    private static SkiaLayer.StatSectionSnapshot[] Sections(string playtime) =>
+    [
+        new("Partie en cours", true, null,
+        [
+            new([new("Ile", "#3"), new("Duree", playtime)], 4, true, []),
+        ]),
+        new("Parties precedentes", false, null,
+        [
+            new([new("Ile", "#1"), new("Duree", "12m00s")], 4, false, []),
+            new([new("Ile", "#2"), new("Duree", "9m00s")], 4, false, []),
+        ]),
+    ];
 }
 
 public class StatsViewTests

@@ -35,6 +35,7 @@ public sealed class GameScreen : IDisposable
     private readonly IFileSystemService _fileSystemService;
     private readonly UILayoutService _uiLayoutService;
     private readonly StoreController? _storeController;
+    private readonly Action<Action>? _runSynchronized;
 
     private HarvestService? _harvestService;
     private ConstructionInteractionService? _constructionInteractionService;
@@ -107,8 +108,10 @@ public sealed class GameScreen : IDisposable
         bool allowDebugMode,
         bool demoMode = false,
         StoreController? storeController = null,
-        string? statsJson = null)
+        string? statsJson = null,
+        Action<Action>? runSynchronized = null)
     {
+        _runSynchronized      = runSynchronized;
         _fileSystemService    = fileSystemService;
         _localizationService  = localizationService;
         _uiLayoutService      = uiLayoutService;
@@ -304,7 +307,9 @@ public sealed class GameScreen : IDisposable
             StartNewGameIntro, _uiLayoutService,
             onReturnToMenu: () => ReturnToTitleRequested?.Invoke(),
             onRestartIsland: HandleGameOverRestart,
-            onLoadGame: HandleLoadGame);
+            // Seul rappel du menu qui arrive après une attente du joueur (le sélecteur de
+            // fichier) : il faut donc reprendre le verrou de l'hôte avant de toucher au modèle.
+            onLoadGame: json => RunSynchronized(() => HandleLoadGame(json)));
 
         _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
         _playerResourcesOverlayRenderer.ConnectLowStock(null, _gameControllerService.PlayerCivilization!);
@@ -1159,6 +1164,17 @@ public sealed class GameScreen : IDisposable
     }
 
     private void ResetPointerState() { _isPointerDown = false; _isPanning = false; }
+
+    /// <summary>
+    /// Exécute une mutation du modèle sous le verrou de l'hôte (cf.
+    /// <see cref="Services.SkiaGameRuntime.SetStateSynchronizer"/>). Le verrou étant réentrant,
+    /// l'appel reste inoffensif quand on s'y trouve déjà.
+    /// </summary>
+    private void RunSynchronized(Action action)
+    {
+        if (_runSynchronized != null) _runSynchronized(action);
+        else action();
+    }
 
     /// <summary>
     /// Charge une sauvegarde en cours de partie (menu « Charger »). Le MainGameState entier est

@@ -29,7 +29,6 @@ public sealed class StatsViewModel : ViewModelBase
     private readonly GameRuntimeHost _host;
 
     private bool _isVisible;
-    private IReadOnlyList<SkiaLayer.StatSectionSnapshot> _lastSections = [];
 
     public StatsViewModel(GameRuntimeHost host) => _host = host;
 
@@ -49,14 +48,27 @@ public sealed class StatsViewModel : ViewModelBase
         IsVisible = snapshot.IsVisible;
 
         SyncSubTabs(snapshot.SubTabs);
+        SyncSections(snapshot.Sections);
+    }
 
-        // Les chiffres changent en continu, mais l'egalite structurelle des records rend la
-        // comparaison exacte : on ne reconstruit que lorsqu'une valeur a reellement bouge.
-        if (_lastSections.SequenceEqual(snapshot.Sections)) return;
-        _lastSections = snapshot.Sections;
+    /// <summary>
+    /// Mise a jour section par section, jamais par un vidage suivi d'un remplissage.
+    ///
+    /// La section « partie en cours » contient un temps de jeu, donc change a chaque
+    /// synchronisation ; l'historique, lui, ne bouge qu'a un prestige. Tout reconstruire des que
+    /// l'une bouge rebatissait l'arbre de controles de l'historique entier dix fois par seconde —
+    /// avec quelques dizaines de parties passees, l'onglet figeait l'application. Ne remplacer
+    /// que les sections reellement differentes laisse l'historique intact.
+    /// </summary>
+    internal void SyncSections(IReadOnlyList<SkiaLayer.StatSectionSnapshot> incoming)
+    {
+        for (int i = 0; i < incoming.Count; i++)
+        {
+            if (i >= Sections.Count) Sections.Add(incoming[i]);
+            else if (!Sections[i].Equals(incoming[i])) Sections[i] = incoming[i];
+        }
 
-        Sections.Clear();
-        foreach (var section in snapshot.Sections) Sections.Add(section);
+        while (Sections.Count > incoming.Count) Sections.RemoveAt(Sections.Count - 1);
     }
 
     /// La composition ne change qu'au deblocage de l'ascension ; l'etat actif change a chaque
