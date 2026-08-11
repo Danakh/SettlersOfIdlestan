@@ -494,10 +494,11 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Laboratory", EType.ADDITIVE, 2) }
             ),
             new(
-                PrestigeMap.HollowVeinVertex,
-                "prestige_vertex_hollow_vein",
-                cost: Cost(PrestigeMap.HollowVeinVertex),
-                modifiers: new Modifier[] { new(ECategory.MINE_GOLD_CHANCE_PERCENT, EType.ADDITIVE, 5) }
+                PrestigeMap.DeepTradeVertex,
+                "prestige_vertex_deep_trade",
+                cost: Cost(PrestigeMap.DeepTradeVertex),
+                // +100 % de vitesse = délai de production d'or des marchés divisé par deux.
+                modifiers: new Modifier[] { new(ECategory.MARKET_GOLD_SPEED, EType.ADDITIVE, 1.0) }
             ),
             new(
                 PrestigeMap.AbyssalBreachVertex,

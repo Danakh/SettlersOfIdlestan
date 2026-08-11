@@ -112,7 +112,7 @@ public class PrestigeMap
     public static readonly Vertex RuinedBastionVertex   = Vertex.Create(new( 4, -2, 0), new( 4, -1, 0), new( 5, -2, 0));
     // Porte de l'Inframonde — autour de AbyssDepths (-2,-1) / AbyssChasm (-1,-2)
     public static readonly Vertex OuterDepthsVertex     = Vertex.Create(new(-2, -1, 0), new(-3, -1, 0), new(-3,  0, 0));
-    public static readonly Vertex HollowVeinVertex      = Vertex.Create(new(-2, -1, 0), new(-3,  0, 0), new(-2,  0, 0));
+    public static readonly Vertex DeepTradeVertex       = Vertex.Create(new(-2, -1, 0), new(-3,  0, 0), new(-2,  0, 0));
     public static readonly Vertex AbyssalBreachVertex   = Vertex.Create(new(-2, -1, 0), new(-1, -2, 0), new(-2, -2, 0));
     public static readonly Vertex ForsakenTunnelVertex  = Vertex.Create(new(-2, -1, 0), new(-2, -2, 0), new(-3, -1, 0));
     public static readonly Vertex AdventurersGuildVertex = Vertex.Create(new(-1, -2, 0), new( 0, -2, 0), new( 0, -3, 0));
