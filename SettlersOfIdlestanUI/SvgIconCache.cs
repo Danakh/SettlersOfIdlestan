@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services;
 using SkiaSharp;
 
@@ -44,9 +45,17 @@ public sealed class SvgIconCache : IDisposable
         return bitmap;
     }
 
-    /// <summary>Icone de ressource de jeu (bois, brique...), par nom d'enum.</summary>
-    public Bitmap? GetResourceIcon(string resourceEnumName, int size) =>
-        Get($"Resources.icons.resources.{resourceEnumName.ToLowerInvariant()}.svg", size);
+    /// <summary>Icone de ressource de jeu (bois, brique...) ou de consommable (potion, arme, armure),
+    /// par nom d'enum <see cref="Resource"/>. Les consommables vivent dans un sous-dossier de
+    /// ressources embarquees distinct.</summary>
+    public Bitmap? GetResourceIcon(string resourceEnumName, int size)
+    {
+        var folder = Enum.TryParse<Resource>(resourceEnumName, out var resource)
+            && ResourceUtils.ConsumableResources.Contains(resource)
+                ? "consumable_sprites"
+                : "resources";
+        return Get($"Resources.icons.{folder}.{resourceEnumName.ToLowerInvariant()}.svg", size);
+    }
 
     private Bitmap? Rasterize(string resourceName, int size, SKColor? tint)
     {
