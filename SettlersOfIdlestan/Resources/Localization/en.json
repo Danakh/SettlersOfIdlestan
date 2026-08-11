@@ -196,6 +196,7 @@
   "automation_restrict_soldier_production_underworld_desc": "Underworld Barracks and Arsenals stop producing once they reach the free-fed soldier quota, even while active.",
   "automation_restrict_soldier_production_abyss_name": "Soldier limit (Abyss)",
   "automation_restrict_soldier_production_abyss_desc": "Abyss Barracks and Arsenals stop producing once they reach the free-fed soldier quota, even while active.",
+  "automation_restrict_soldier_production_note": "Current limit: {0} soldiers per city.",
   "level_abbrev": "lv",
   "automation_on": "ON",
   "automation_off": "OFF",

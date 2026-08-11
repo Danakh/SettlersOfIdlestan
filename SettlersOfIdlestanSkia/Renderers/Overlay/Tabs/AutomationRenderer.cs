@@ -346,13 +346,18 @@ public sealed class AutomationRenderer : IDisposable
         // connu, seulement si l'un des deux existe.
         if (BuildingExists<Barracks>(civ) || BuildingExists<Arsenal>(civ))
         {
+            // Le quota est celui lu par SoldierProductionEngine : le meme pour tous les layers,
+            // applique ville par ville. On l'affiche en note pour que la limite soit chiffree.
+            int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+            string note = _localization.GetFormated("automation_restrict_soldier_production_note", freePerCity);
+
             foreach (var layerZ in worldState.Layers.Keys.OrderBy(z => z))
             {
                 string root = RestrictSoldierProductionKeyPrefix(layerZ);
                 string key = RestrictSoldierProductionPinKey(layerZ);
                 bool isRestricted = settings.RestrictSoldierProductionToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v;
                 controls.Add(new RowModel(key, _localization.Get(root + "_name"), _localization.Get(root + "_desc"),
-                    null, isRestricted, IsLocked: false, CanPin: true, null));
+                    note, isRestricted, IsLocked: false, CanPin: true, null));
             }
         }
 

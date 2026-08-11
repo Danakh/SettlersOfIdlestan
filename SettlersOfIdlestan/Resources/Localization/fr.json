@@ -196,6 +196,7 @@
   "automation_restrict_soldier_production_underworld_desc": "Les Casernes et Arsenaux de l'Inframonde s'arrêtent au quota de soldats nourris gratuitement, même actifs.",
   "automation_restrict_soldier_production_abyss_name": "Limite soldats (Abysses)",
   "automation_restrict_soldier_production_abyss_desc": "Les Casernes et Arsenaux des Abysses s'arrêtent au quota de soldats nourris gratuitement, même actifs.",
+  "automation_restrict_soldier_production_note": "Limite actuelle : {0} soldats par ville.",
   "level_abbrev": "nv",
   "automation_on": "ACT.",
   "automation_off": "DÉS.",
