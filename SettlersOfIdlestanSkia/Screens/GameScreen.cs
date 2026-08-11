@@ -862,6 +862,10 @@ public sealed class GameScreen : IDisposable
             if (panDeltaX != 0f || panDeltaY != 0f) _cameraService.Pan(panDeltaX, panDeltaY);
             _cameraService.ZoomAt(_cameraService.ZoomLevel * scaleRatio, new SKPoint(x, y));
         }
+
+        // Comme pour la molette, l'overlay reçoit le geste dans tous les cas : c'est lui qui
+        // zoome les écrans qui ne sont pas la carte (recherche, carte de prestige).
+        _inputService.HandlePinch(scaleRatio, x, y, panDeltaX, panDeltaY);
     }
 
     public void HandleKeyReleased(string key) => _inputService.HandleKeyReleased(key);

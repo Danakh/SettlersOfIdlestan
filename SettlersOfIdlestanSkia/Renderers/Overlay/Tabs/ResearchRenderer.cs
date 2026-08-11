@@ -109,6 +109,7 @@ public sealed class ResearchRenderer : IGameRenderer
         _inputService.PointerMoved += HandlePointerMoved;
         _inputService.PointerReleased += HandlePointerReleased;
         _inputService.ZoomChanged += HandleZoom;
+        _inputService.PinchChanged += HandlePinch;
     }
 
     public void Initialize(SKSize canvasSize)
@@ -545,11 +546,29 @@ public sealed class ResearchRenderer : IGameRenderer
     private void HandleZoom(object? sender, ZoomEventArgs e)
     {
         if (!IsActive) return;
-        float newZoom = Math.Clamp(_zoom * (e.ZoomDelta > 0 ? ZoomStep : 1f / ZoomStep), MinZoom, MaxZoom);
+        ApplyZoom(e.ZoomDelta > 0 ? ZoomStep : 1f / ZoomStep, e.Center);
+    }
+
+    /// <summary>
+    /// Pincement à deux doigts : même zoom que la molette, mais au rapport continu fourni par le
+    /// geste, et le déplacement du centre du geste fait défiler l'arbre.
+    /// </summary>
+    private void HandlePinch(object? sender, PinchEventArgs e)
+    {
+        if (!IsActive || e.ScaleRatio <= 0f) return;
+
+        _panOffset = new SKPoint(_panOffset.X + e.PanDelta.X, _panOffset.Y + e.PanDelta.Y);
+        ApplyZoom(e.ScaleRatio, e.Center);
+    }
+
+    /// <summary>Zoom autour d'un point d'écran qui reste fixe.</summary>
+    private void ApplyZoom(float scaleRatio, SKPoint center)
+    {
+        float newZoom = Math.Clamp(_zoom * scaleRatio, MinZoom, MaxZoom);
         float ratio = newZoom / _zoom;
         _panOffset = new SKPoint(
-            e.Center.X - (e.Center.X - _panOffset.X) * ratio,
-            e.Center.Y - (e.Center.Y - _panOffset.Y) * ratio);
+            center.X - (center.X - _panOffset.X) * ratio,
+            center.Y - (center.Y - _panOffset.Y) * ratio);
         _zoom = newZoom;
         ClampPan();
     }
@@ -582,6 +601,7 @@ public sealed class ResearchRenderer : IGameRenderer
         _inputService.PointerPressed -= HandlePointerPressed;
         _inputService.PointerReleased -= HandlePointerReleased;
         _inputService.ZoomChanged -= HandleZoom;
+        _inputService.PinchChanged -= HandlePinch;
         _bgPaint.Dispose();
         _inactiveNodePaint.Dispose();
         _availableNodePaint.Dispose();

@@ -24,9 +24,16 @@ public class InputHandlingService
     public event EventHandler<PointerEventArgs>? PointerReleased;
 
     /// <summary>
-    /// Événement déclenché lors du zoom (molette/pinch).
+    /// Événement déclenché lors du zoom à la molette.
     /// </summary>
     public event EventHandler<ZoomEventArgs>? ZoomChanged;
+
+    /// <summary>
+    /// Événement déclenché lors d'un pincement à deux doigts. Distinct de <see cref="ZoomChanged"/> :
+    /// la molette avance par crans (un pas de zoom fixe par cran) là où le pincement fournit un
+    /// rapport d'échelle continu et un déplacement du centre du geste, qui vaut panoramique.
+    /// </summary>
+    public event EventHandler<PinchEventArgs>? PinchChanged;
 
     public SKPoint LastPointerPosition { get; private set; } = SKPoint.Empty;
 
@@ -86,6 +93,20 @@ public class InputHandlingService
     }
 
     /// <summary>
+    /// Traite un événement de pincement.
+    /// </summary>
+    public void HandlePinch(float scaleRatio, float centerX, float centerY, float panDeltaX, float panDeltaY)
+    {
+        PinchChanged?.Invoke(this, new PinchEventArgs
+        {
+            ScaleRatio = scaleRatio,
+            Center = new SKPoint(centerX, centerY),
+            PanDelta = new SKPoint(panDeltaX, panDeltaY),
+            Timestamp = DateTime.UtcNow
+        });
+    }
+
+    /// <summary>
     /// Événement déclenché lors de l'appui sur une touche clavier.
     /// </summary>
     public event EventHandler<KeyEventArgs>? KeyPressed;
@@ -138,6 +159,23 @@ public class ZoomEventArgs : EventArgs
 {
     public required float ZoomDelta { get; init; }
     public required SKPoint Center { get; init; }
+    public required DateTime Timestamp { get; init; }
+}
+
+/// <summary>
+/// Arguments d'événement pour les événements de pincement.
+/// </summary>
+public class PinchEventArgs : EventArgs
+{
+    /// <summary>Rapport d'échelle relatif à l'événement de pincement précédent (1 = inchangé).</summary>
+    public required float ScaleRatio { get; init; }
+
+    /// <summary>Centre du geste, point fixe du zoom.</summary>
+    public required SKPoint Center { get; init; }
+
+    /// <summary>Déplacement du centre du geste depuis l'événement précédent.</summary>
+    public required SKPoint PanDelta { get; init; }
+
     public required DateTime Timestamp { get; init; }
 }
 

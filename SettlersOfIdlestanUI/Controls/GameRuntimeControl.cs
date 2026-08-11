@@ -178,10 +178,14 @@ public class GameRuntimeControl : SkiaCanvasControl
         e.Handled = true;
     }
 
+    /// Relachement synthetique : le doigt n'a pas ete leve, c'est le recognizer qui a capture le
+    /// pointeur. Le bouton Unknown le signale au jeu, qui doit solder son etat de glissement sans
+    /// lire le geste comme un clic — sinon un pincement sur la carte de prestige acheterait le
+    /// vertex situe sous les doigts.
     private void ReleasePressedPointers(float x, float y)
     {
         foreach (var id in _pressedPointerIds)
-            _host.PointerReleased(x, y, id, SkiaInput.PointerButton.Left);
+            _host.PointerReleased(x, y, id, SkiaInput.PointerButton.Unknown);
         _pressedPointerIds.Clear();
     }
 

@@ -118,6 +118,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _inputService.PointerMoved    += HandlePointerMoved;
         _inputService.PointerReleased += HandlePointerReleased;
         _inputService.ZoomChanged     += HandleZoomChanged;
+        _inputService.PinchChanged    += HandlePinchChanged;
         _inputService.KeyPressed      += HandleKeyInput;
         _inputService.KeyReleased     += HandleKeyRelease;
     }
@@ -559,8 +560,12 @@ public sealed class OverlayRenderer : IGameRenderer
     {
         if (!_isVisible) return;
 
+        // Un bouton Unknown signale un relâchement synthétique — le recognizer de pincement vient
+        // de capturer les pointeurs. Il solde le glissement en cours mais ne vaut pas clic.
+        bool isClick = e.Button == PointerButton.Left;
+
         int activeTab = _tabBar.ActiveTab;
-        if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerReleased(e.Position);
+        if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerReleased(e.Position, isClick);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerReleased(e.Position);
     }
 
@@ -571,6 +576,15 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandleZoom(e);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandleScroll(e.ZoomDelta);
+    }
+
+    /// L'onglet Ascension est une liste défilante et non une carte : le pincement ne lui est pas
+    /// transmis, seul le zoom molette y sert de défilement.
+    private void HandlePinchChanged(object? sender, PinchEventArgs e)
+    {
+        if (!_isVisible) return;
+
+        if (_tabBar.ActiveTab == TabBarRenderer.TabPrestige) _prestigeMapRenderer.HandlePinch(e);
     }
 
     private void HandleKeyInput(object? sender, KeyEventArgs e)
@@ -602,6 +616,7 @@ public sealed class OverlayRenderer : IGameRenderer
         _inputService.PointerMoved    -= HandlePointerMoved;
         _inputService.PointerReleased -= HandlePointerReleased;
         _inputService.ZoomChanged     -= HandleZoomChanged;
+        _inputService.PinchChanged    -= HandlePinchChanged;
         _inputService.KeyPressed      -= HandleKeyInput;
         _inputService.KeyReleased     -= HandleKeyRelease;
 

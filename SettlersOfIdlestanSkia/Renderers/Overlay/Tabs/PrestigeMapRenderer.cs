@@ -473,13 +473,17 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         return false;
     }
 
-    public void HandlePointerReleased(SKPoint position)
+    /// <param name="isClick">
+    /// <c>false</c> pour un relâchement synthétique (début de pincement) : l'état de glissement est
+    /// soldé, mais le geste ne vaut pas clic.
+    /// </param>
+    public void HandlePointerReleased(SKPoint position, bool isClick = true)
     {
         bool wasPanning = _isPanning;
         _pointerDown = false;
         _isPanning = false;
 
-        if (wasPanning) return;
+        if (wasPanning || !isClick) return;
 
         if (ToggleVertexNamesBtn.Contains(position))
         {
@@ -515,11 +519,29 @@ public sealed class PrestigeMapRenderer : IGameRenderer
     public void HandleZoom(ZoomEventArgs e)
     {
         if (_canvasSize == default) return;
-        float newZoom = Math.Clamp(_zoom * (e.ZoomDelta > 0 ? ZoomStep : 1f / ZoomStep), MinZoom, MaxZoom);
+        ApplyZoom(e.ZoomDelta > 0 ? ZoomStep : 1f / ZoomStep, e.Center);
+    }
+
+    /// <summary>
+    /// Pincement à deux doigts : même zoom que la molette, mais au rapport continu fourni par le
+    /// geste, et le déplacement du centre du geste fait défiler la carte.
+    /// </summary>
+    public void HandlePinch(PinchEventArgs e)
+    {
+        if (_canvasSize == default || e.ScaleRatio <= 0f) return;
+
+        _mapCenter = new SKPoint(_mapCenter.X + e.PanDelta.X, _mapCenter.Y + e.PanDelta.Y);
+        ApplyZoom(e.ScaleRatio, e.Center);
+    }
+
+    /// <summary>Zoom autour d'un point d'écran qui reste fixe.</summary>
+    private void ApplyZoom(float scaleRatio, SKPoint center)
+    {
+        float newZoom = Math.Clamp(_zoom * scaleRatio, MinZoom, MaxZoom);
         float ratio = newZoom / _zoom;
         _mapCenter = new SKPoint(
-            e.Center.X - (e.Center.X - _mapCenter.X) * ratio,
-            e.Center.Y - (e.Center.Y - _mapCenter.Y) * ratio);
+            center.X - (center.X - _mapCenter.X) * ratio,
+            center.Y - (center.Y - _mapCenter.Y) * ratio);
         _zoom = newZoom;
         ClampMapCenter();
     }
