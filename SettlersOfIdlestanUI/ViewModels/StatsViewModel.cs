@@ -45,6 +45,17 @@ public sealed class StatsViewModel : ViewModelBase
     public void Refresh()
     {
         var snapshot = _host.GetStatsSnapshot();
+
+        // Onglet inactif : on masque la vue sans toucher aux collections. Repercuter
+        // l'instantane masque, qui est vide, detruisait tout l'arbre de controles de la page —
+        // a rebatir au retour sur l'onglet, ce qui rendait le changement d'onglet lent (voir
+        // AutomationViewModel.Refresh pour les mesures).
+        if (!snapshot.IsVisible)
+        {
+            IsVisible = false;
+            return;
+        }
+
         IsVisible = snapshot.IsVisible;
 
         SyncSubTabs(snapshot.SubTabs);

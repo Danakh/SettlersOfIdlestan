@@ -83,9 +83,17 @@ public sealed class TabBarViewModel : ViewModelBase
         return true;
     }
 
+    /// <summary>
+    /// Leve apres un changement d'onglet. La synchronisation de l'etat vers l'UI est cadencee a
+    /// 100 ms : sans ce signal, la page qui vient d'etre demandee resterait vide jusqu'au tick
+    /// suivant, soit un dixieme de seconde de page blanche a chaque changement d'onglet.
+    /// </summary>
+    public event Action? TabChanged;
+
     public void Select(int tabId)
     {
         _host.SetActiveTab(tabId);
         Refresh();
+        TabChanged?.Invoke();
     }
 }

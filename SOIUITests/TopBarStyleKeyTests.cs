@@ -23,6 +23,24 @@ namespace SOIUITests;
 /// </summary>
 public class TopBarStyleKeyTests
 {
+    /// <summary>
+    /// La synchronisation de l'etat vers l'UI est cadencee a 100 ms. Sans ce signal, la page
+    /// demandee resterait vide jusqu'au tick suivant : un dixieme de seconde de page blanche a
+    /// chaque changement d'onglet.
+    /// </summary>
+    [Fact]
+    public void Un_changement_d_onglet_demande_une_resynchronisation_immediate()
+    {
+        using var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
+        var vm = new TabBarViewModel(host);
+        int resyncs = 0;
+        vm.TabChanged += () => resyncs++;
+
+        vm.Select(0);
+
+        Assert.Equal(1, resyncs);
+    }
+
     [AvaloniaFact]
     public void La_barre_d_onglets_recoit_un_template()
     {

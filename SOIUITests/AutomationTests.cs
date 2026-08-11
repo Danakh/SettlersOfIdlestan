@@ -100,6 +100,28 @@ public class AutomationViewModelTests
 
         Assert.Equal(0, rebuilds);
     }
+
+    /// <summary>
+    /// Quitter l'onglet ne doit pas vider les colonnes : la vue reste construite, masquee, et
+    /// le retour sur l'onglet ne coute qu'une rebascule de visibilite. Repercuter l'instantane
+    /// masque detruisait l'arbre de controles des trente cartes, qu'il fallait rebatir a chaque
+    /// changement d'onglet — ~160 ms mesurees, bien davantage sous WebAssembly.
+    /// </summary>
+    [Fact]
+    public void Quitter_l_onglet_conserve_les_cartes_deja_construites()
+    {
+        using var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
+        var vm = new AutomationViewModel(host);
+        vm.LeftColumn.Add(new AutomationSectionViewModel(new SkiaLayer.AutomationSectionSnapshot(
+            "Batiments",
+            [new("Road", "Routes", "Construit les routes", "Note", true, false, true, false, [])])));
+
+        // Pas de partie en cours : l'instantane est celui d'un onglet inactif.
+        vm.Refresh();
+
+        Assert.False(vm.IsVisible);
+        Assert.Single(vm.LeftColumn);
+    }
 }
 
 public class AutomationViewTests

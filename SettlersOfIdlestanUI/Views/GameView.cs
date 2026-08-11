@@ -68,6 +68,11 @@ public sealed class GameView : Panel, IDisposable
         _host = host;
 
         _tabs = new TabBarViewModel(host);
+
+        // Le changement d'onglet ne peut pas attendre le tick de synchronisation : la page
+        // demandee s'afficherait vide pendant jusqu'a 100 ms.
+        _tabs.TabChanged += () => SyncFromGameState();
+
         _resources = new ResourceBarViewModel(host);
         _time = new TimeControlViewModel(host);
         _monument = new MonumentPanelViewModel(host);

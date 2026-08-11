@@ -125,6 +125,15 @@ public sealed class RitualsViewModel : ViewModelBase
     {
         var snapshot = _host.GetRitualsSnapshot();
 
+        // Onglet inactif : on masque la vue sans toucher aux collections, sous peine de
+        // detruire l'arbre de controles de la page et de devoir le rebatir au retour sur
+        // l'onglet (voir AutomationViewModel.Refresh pour les mesures).
+        if (!snapshot.IsVisible)
+        {
+            IsVisible = false;
+            return;
+        }
+
         IsVisible = snapshot.IsVisible;
         Title = snapshot.Title;
         PowerLabel = snapshot.PowerLabel;

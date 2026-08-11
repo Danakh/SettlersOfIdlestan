@@ -45,6 +45,15 @@ public sealed class EventLogViewModel : ViewModelBase
     {
         var snapshot = _host.GetEventLogSnapshot();
 
+        // Onglet inactif : on masque la vue sans toucher aux entrees, sous peine de detruire
+        // l'arbre de controles de la page et de devoir le rebatir au retour sur l'onglet (voir
+        // AutomationViewModel.Refresh pour les mesures).
+        if (!snapshot.IsVisible)
+        {
+            IsVisible = false;
+            return;
+        }
+
         IsVisible = snapshot.IsVisible;
         Title = snapshot.Title;
         EmptyMessage = snapshot.EmptyMessage;

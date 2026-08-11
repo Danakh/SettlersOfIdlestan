@@ -112,6 +112,19 @@ public sealed class AutomationViewModel : ViewModelBase
     {
         var snapshot = _host.GetAutomationSnapshot();
 
+        // Onglet inactif : on masque la vue sans toucher aux collections. L'instantane masque
+        // est vide ; le repercuter les vidait, donc detruisait l'arbre de controles de la page
+        // — qu'il fallait rebatir integralement au retour sur l'onglet. Mesure sur une trentaine
+        // de cartes : ~160 ms de reconstruction contre ~1 ms pour la seule rebascule de
+        // visibilite. C'est ce qui rendait le changement d'onglet lent, et davantage encore sous
+        // WebAssembly. Les valeurs affichees sont resynchronisees avant le retour a l'ecran,
+        // GameView appelant SyncFromGameState des le clic sur l'onglet.
+        if (!snapshot.IsVisible)
+        {
+            IsVisible = false;
+            return;
+        }
+
         IsVisible = snapshot.IsVisible;
         Title = snapshot.Title;
         GlobalToggleLabel = snapshot.GlobalToggleLabel;

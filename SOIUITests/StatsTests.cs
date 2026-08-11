@@ -88,6 +88,25 @@ public class StatsViewModelTests
         Assert.Single(vm.Sections);
     }
 
+    /// <summary>
+    /// Quitter l'onglet ne doit pas vider les sections : la vue reste construite, masquee, et le
+    /// retour sur l'onglet ne coute qu'une rebascule de visibilite (voir le test jumeau dans
+    /// AutomationTests pour les mesures).
+    /// </summary>
+    [Fact]
+    public void Quitter_l_onglet_conserve_les_sections_deja_construites()
+    {
+        using var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
+        var vm = new StatsViewModel(host);
+        vm.SyncSections(Sections(playtime: "1m00s"));
+
+        // Pas de partie en cours : l'instantane est celui d'un onglet inactif.
+        vm.Refresh();
+
+        Assert.False(vm.IsVisible);
+        Assert.Equal(2, vm.Sections.Count);
+    }
+
     /// Deux sections construites a l'identique : la garde ne tient que si elles sont egales.
     [Fact]
     public void Deux_instantanes_identiques_sont_structurellement_egaux() =>
