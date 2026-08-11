@@ -11,8 +11,19 @@ using SettlersOfIdlestanUI.ViewModels;
 
 namespace SettlersOfIdlestanUI.Controls;
 
+/// <summary>Ou la barre d'onglets est posee dans <c>GameView</c>.</summary>
+public enum TabBarPlacement
+{
+    /// Dans la barre du haut, a gauche des ressources : onglets a largeur naturelle.
+    Top,
+
+    /// Ancree au bas de l'ecran, pleine largeur : disposition compacte (navigateur mobile,
+    /// fenetre etroite, ou reglage « menus en bas »).
+    Bottom,
+}
+
 /// <summary>
-/// Barre d'onglets de la barre du haut.
+/// Barre d'onglets.
 ///
 /// Chaque onglet est un <see cref="TabButton"/> qui porte lui-meme son etat visuel : la liste
 /// etant mise a jour en place par le ViewModel, les boutons ne sont pas recrees a chaque
@@ -20,6 +31,9 @@ namespace SettlersOfIdlestanUI.Controls;
 /// </summary>
 public sealed class TabBarView : ItemsControl
 {
+    /// Hauteur de la barre ancree en bas — UILayoutService.MobileTabBarHeight.
+    public const double BottomBarHeight = 44;
+
     /// <summary>
     /// Obligatoire. Les ControlTheme d'Avalonia sont indexes sur le type EXACT : une classe
     /// derivee ne recoit pas le template de sa classe de base. Sans cette redirection,
@@ -28,20 +42,83 @@ public sealed class TabBarView : ItemsControl
     /// </summary>
     protected override Type StyleKeyOverride => typeof(ItemsControl);
 
-    public TabBarView(TabBarViewModel viewModel)
+    public TabBarView(TabBarViewModel viewModel, TabBarPlacement placement = TabBarPlacement.Top)
     {
         DataContext = viewModel;
         this[!ItemsSourceProperty] = new Binding(nameof(TabBarViewModel.Tabs));
-        this[!IsVisibleProperty] = new Binding(nameof(TabBarViewModel.IsVisible));
 
-        ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 5,
-        });
+        // Chaque exemplaire ne s'affiche que dans la disposition qui le concerne : sans cela les
+        // deux barres seraient visibles en meme temps.
+        this[!IsVisibleProperty] = new Binding(placement == TabBarPlacement.Bottom
+            ? nameof(TabBarViewModel.ShowAtBottom)
+            : nameof(TabBarViewModel.ShowAtTop));
+
+        ItemsPanel = placement == TabBarPlacement.Bottom
+            ? new FuncTemplate<Panel?>(() => new EvenColumnsPanel())
+            : new FuncTemplate<Panel?>(() => new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 5,
+            });
 
         ItemTemplate = new FuncDataTemplate<TabItemViewModel>(
-            (_, _) => new TabButton(viewModel), supportsRecycling: true);
+            (_, _) => new TabButton(viewModel, placement), supportsRecycling: true);
+    }
+}
+
+/// <summary>
+/// Repartit ses enfants en colonnes de largeur egale sur toute la largeur disponible, comme le
+/// faisait l'ancien rendu Skia de la barre du bas (<c>canvasWidth / nbOnglets</c>).
+///
+/// Ni StackPanel ni UniformGrid ne conviennent : le premier laisse chaque onglet a sa largeur
+/// naturelle et deborde des l'ouverture de l'inframonde, le second raisonne en lignes et
+/// colonnes alors qu'il n'y a jamais qu'une ligne, dont la hauteur doit etre celle de la barre.
+/// </summary>
+internal sealed class EvenColumnsPanel : Panel
+{
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        int count = 0;
+        foreach (var child in Children) if (child.IsVisible) count++;
+        if (count == 0) return default;
+
+        // Une largeur infinie n'arrive qu'en mesure hors contrainte : on retombe alors sur la
+        // largeur naturelle des onglets plutot que de produire une colonne infinie.
+        double columnWidth = double.IsInfinity(availableSize.Width)
+            ? double.PositiveInfinity
+            : availableSize.Width / count;
+
+        double height = 0;
+        double naturalWidth = 0;
+        foreach (var child in Children)
+        {
+            if (!child.IsVisible) continue;
+            child.Measure(new Size(columnWidth, availableSize.Height));
+            height = Math.Max(height, child.DesiredSize.Height);
+            naturalWidth += child.DesiredSize.Width;
+        }
+
+        return new Size(
+            double.IsInfinity(columnWidth) ? naturalWidth : availableSize.Width,
+            height);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        int count = 0;
+        foreach (var child in Children) if (child.IsVisible) count++;
+        if (count == 0) return finalSize;
+
+        double columnWidth = finalSize.Width / count;
+        int index = 0;
+        foreach (var child in Children)
+        {
+            if (!child.IsVisible) continue;
+            child.Arrange(new Rect(index * columnWidth, 0, columnWidth, finalSize.Height));
+            index++;
+        }
+
+        return finalSize;
     }
 }
 
@@ -79,9 +156,10 @@ internal sealed class TabButton : Button
     private TabItemViewModel? _tab;
     private CancellationTokenSource? _pulseCancellation;
 
-    public TabButton(TabBarViewModel owner)
+    public TabButton(TabBarViewModel owner, TabBarPlacement placement = TabBarPlacement.Top)
     {
         _owner = owner;
+        bool atBottom = placement == TabBarPlacement.Bottom;
 
         // L'onglet actif se distingue par son fond, et un onglet qui reclame l'attention par
         // son orange : sans cela le survol les remplacerait par la couleur du theme.
@@ -101,9 +179,14 @@ internal sealed class TabButton : Button
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        MinWidth = 62;
+        // En bas, c'est la barre qui impose la largeur : chaque onglet prend sa colonne, et une
+        // largeur minimale ferait deborder la barre des que le nombre d'onglets grimpe (onze au
+        // maximum, contre 400 px de large sur un telephone).
+        MinWidth = atBottom ? 0 : 62;
         // Deux lignes de 15 px + la bordure : 34 px, ce qui tient dans les 50 px de la barre.
-        Height = 34;
+        // En bas, l'onglet remplit la hauteur de la barre.
+        if (atBottom) HorizontalAlignment = HorizontalAlignment.Stretch;
+        else Height = 34;
         Padding = new Thickness(4, 0);
         CornerRadius = new CornerRadius(5);
         BorderThickness = new Thickness(1);

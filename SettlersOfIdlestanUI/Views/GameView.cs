@@ -21,6 +21,7 @@ public sealed class GameView : Panel, IDisposable
 
     private readonly ZoomControlView _zoomControl;
     private readonly TopBarView _topBar;
+    private readonly TabBarView _bottomTabBar;
     private readonly MonumentPanelView _monumentPanel;
     private readonly CityPanelView _cityPanel;
     private readonly CivPanelView _civPanel;
@@ -61,6 +62,17 @@ public sealed class GameView : Panel, IDisposable
 
     /// Hauteur courante de la barre du haut, seconde ligne de ressources comprise.
     private double _topBarHeight = TopBarView.BarHeight;
+
+    /// Vrai quand les onglets sont ancres en bas : tout ce qui se cale sur le bas de l'ecran
+    /// (zoom, onglets plein ecran, hauteur maximale des panneaux) doit leur laisser la place.
+    private bool _tabsAtBottom;
+
+    /// Jeu entre la barre du bas et le bord de l'ecran, repris du rendu Skia.
+    private const double BottomTabBarGap = 2;
+
+    /// Place totale prise par les onglets quand ils sont en bas, ce jeu compris.
+    private double BottomTabBarSpace =>
+        _tabsAtBottom ? TabBarView.BottomBarHeight + BottomTabBarGap : 0;
 
     /// Cadence de synchronisation de l'etat vers l'UI. Deliberement decouplee des 60 fps du
     /// rendu : lever des notifications de changement a chaque frame ferait relayouter Avalonia
@@ -106,9 +118,20 @@ public sealed class GameView : Panel, IDisposable
         };
         _topBar.TotalHeightChanged += OnTopBarHeightChanged;
 
-        // Les ancrages sous la barre du haut sont poses par ApplyTopBarHeight : la barre gagne
-        // une seconde ligne quand les ressources n'y tiennent plus, et tout ce qui se cale
-        // dessous doit suivre.
+        // Disposition compacte : les onglets quittent la barre du haut pour le bas de l'ecran,
+        // a portee du pouce. C'est le meme exemplaire de ViewModel que la barre du haut — seule
+        // celle des deux vues que designe la disposition courante est visible.
+        _bottomTabBar = new TabBarView(_tabs, TabBarPlacement.Bottom)
+        {
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+            Height = TabBarView.BottomBarHeight,
+            Margin = new Avalonia.Thickness(0, 0, 0, BottomTabBarGap),
+        };
+
+        // Les ancrages sur les barres sont poses par ApplyBarLayout : la barre du haut gagne une
+        // seconde ligne quand les ressources n'y tiennent plus, et les onglets passent en bas en
+        // disposition compacte — tout ce qui se cale dessus doit suivre.
         _monumentPanel = new MonumentPanelView(_monument, _icons);
         _cityPanel = new CityPanelView(_city, _icons);
         _civPanel = new CivPanelView(_civ, _icons);
@@ -143,6 +166,10 @@ public sealed class GameView : Panel, IDisposable
 
         Children.Add(_zoomControl);
         Children.Add(_topBar);
+
+        // Meme rang que la barre du haut : la navigation passe au-dessus des onglets plein
+        // ecran, mais reste sous les panneaux, les infobulles et les popups bloquants.
+        Children.Add(_bottomTabBar);
         Children.Add(_civPanel);
         Children.Add(_cityPanel);
         Children.Add(_monumentPanel);
@@ -183,7 +210,7 @@ public sealed class GameView : Panel, IDisposable
         AddHandler(InputElement.KeyDownEvent, OnGameKeyDown, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(InputElement.KeyUpEvent, OnGameKeyUp, RoutingStrategies.Bubble, handledEventsToo: true);
 
-        ApplyTopBarHeight(TopBarView.BarHeight);
+        ApplyBarLayout();
     }
 
     private void OnGameKeyDown(object? sender, KeyEventArgs e)
@@ -218,13 +245,14 @@ public sealed class GameView : Panel, IDisposable
     };
 
     /// <summary>
-    /// Recale tout ce qui s'ancre sous la barre du haut. Cote Avalonia ce sont des marges ;
-    /// cote Skia, les vues plein ecran encore dessinees par le runtime (recherche, carte de
-    /// prestige, ascension) lisent la hauteur poussee dans UILayoutService.
+    /// Recale tout ce qui s'ancre sur les barres. Cote Avalonia ce sont des marges ; cote Skia,
+    /// les vues plein ecran encore dessinees par le runtime (recherche, carte de prestige,
+    /// ascension) lisent la hauteur poussee dans UILayoutService.
     /// </summary>
-    private void ApplyTopBarHeight(double barHeight)
+    private void ApplyBarLayout()
     {
-        _topBarHeight = barHeight;
+        double barHeight = _topBarHeight;
+        double bottom = BottomTabBarSpace;
 
         // Panneaux lateraux : sous la barre, avec le meme jeu de 10 px que le rendu Skia.
         _monumentPanel.Margin = new Avalonia.Thickness(0, barHeight + 10, 10, 0);
@@ -232,11 +260,14 @@ public sealed class GameView : Panel, IDisposable
         _civPanel.Margin = new Avalonia.Thickness(10, barHeight + 10, 0, 0);
 
         // Onglets plein ecran : ils remplacent la carte, pas la navigation — donc jamais
-        // par-dessus la barre.
-        _eventLog.Margin = new Avalonia.Thickness(0, barHeight, 0, 0);
-        _stats.Margin = new Avalonia.Thickness(0, barHeight, 0, 0);
-        _rituals.Margin = new Avalonia.Thickness(0, barHeight, 0, 0);
-        _automation.Margin = new Avalonia.Thickness(0, barHeight, 0, 0);
+        // par-dessus les barres, en haut comme en bas.
+        _eventLog.Margin = new Avalonia.Thickness(0, barHeight, 0, bottom);
+        _stats.Margin = new Avalonia.Thickness(0, barHeight, 0, bottom);
+        _rituals.Margin = new Avalonia.Thickness(0, barHeight, 0, bottom);
+        _automation.Margin = new Avalonia.Thickness(0, barHeight, 0, bottom);
+
+        // Les boutons de zoom sont ancres en bas a droite : ils passeraient sous les onglets.
+        _zoomControl.Margin = new Avalonia.Thickness(0, 0, 10, bottom + 10);
 
         _settingsMenu.SetTopOffset(barHeight + 5);
 
@@ -245,7 +276,16 @@ public sealed class GameView : Panel, IDisposable
 
     private void OnTopBarHeightChanged(double barHeight)
     {
-        ApplyTopBarHeight(barHeight);
+        _topBarHeight = barHeight;
+        ApplyBarLayout();
+        InvalidateMeasure();
+    }
+
+    private void OnTabsPlacementChanged(bool atBottom)
+    {
+        if (_tabsAtBottom == atBottom) return;
+        _tabsAtBottom = atBottom;
+        ApplyBarLayout();
         InvalidateMeasure();
     }
 
@@ -266,7 +306,8 @@ public sealed class GameView : Panel, IDisposable
         // mesure n'a plus d'effet, les enfants ayant déjà été mesurés en hauteur infinie.
         if (!double.IsInfinity(availableSize.Height))
         {
-            double available = availableSize.Height - _topBarHeight - PanelBottomMargin - PanelChromeHeight;
+            double available = availableSize.Height
+                             - _topBarHeight - BottomTabBarSpace - PanelBottomMargin - PanelChromeHeight;
             _cityPanel.SetMaxContentHeight(available);
             _monumentPanel.SetMaxContentHeight(available);
             _civPanel.SetMaxContentHeight(available);
@@ -291,6 +332,10 @@ public sealed class GameView : Panel, IDisposable
     {
         // Lectures sous verrou : on est sur le thread UI pendant que le thread de rendu dessine.
         _tabs.Refresh();
+
+        // La disposition peut basculer en cours de partie : rotation de l'ecran ou
+        // redimensionnement de la fenetre (detection auto), ou reglage « menus en bas ».
+        OnTabsPlacementChanged(_tabs.ShowAtBottom);
         _resources.Refresh();
         _time.Refresh();
         _monument.Refresh();

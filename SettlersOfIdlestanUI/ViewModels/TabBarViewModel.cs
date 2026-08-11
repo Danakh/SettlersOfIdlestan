@@ -50,15 +50,46 @@ public sealed class TabBarViewModel : ViewModelBase
 
     public ObservableCollection<TabItemViewModel> Tabs { get; } = [];
 
-    public bool IsVisible { get => _isVisible; private set => SetProperty(ref _isVisible, value); }
-
-    /// Vrai en disposition compacte : les onglets passent en bas de l'ecran.
-    public bool TabsAtBottom { get => _tabsAtBottom; private set => SetProperty(ref _tabsAtBottom, value); }
-
-    public void Refresh()
+    public bool IsVisible
     {
-        var snapshot = _host.GetTabBarSnapshot();
+        get => _isVisible;
+        private set { if (SetProperty(ref _isVisible, value)) RaisePlacementChanged(); }
+    }
 
+    /// <summary>
+    /// Vrai en disposition compacte : les onglets passent en bas de l'ecran. Pilote par
+    /// UILayoutService.TabsAtBottom, soit le reglage Auto/Haut/Bas, Auto se rabattant sur la
+    /// detection d'un ecran etroit ou en orientation portrait — le cas du navigateur mobile.
+    /// </summary>
+    public bool TabsAtBottom
+    {
+        get => _tabsAtBottom;
+        private set { if (SetProperty(ref _tabsAtBottom, value)) RaisePlacementChanged(); }
+    }
+
+    /// <summary>
+    /// La barre existe en deux exemplaires — un dans la barre du haut, un ancre en bas — et
+    /// c'est la visibilite qui designe celui qui s'affiche. Deux vues distinctes plutot qu'un
+    /// reparentage : leur disposition differe (onglets a largeur naturelle en haut, colonnes
+    /// egales sur toute la largeur en bas), et Avalonia recreerait de toute facon leurs
+    /// conteneurs a chaque changement de parent.
+    /// </summary>
+    public bool ShowAtTop => _isVisible && !_tabsAtBottom;
+
+    public bool ShowAtBottom => _isVisible && _tabsAtBottom;
+
+    private void RaisePlacementChanged()
+    {
+        RaisePropertyChanged(nameof(ShowAtTop));
+        RaisePropertyChanged(nameof(ShowAtBottom));
+    }
+
+    public void Refresh() => Apply(_host.GetTabBarSnapshot());
+
+    /// Separe de <see cref="Refresh"/> pour que les tests puissent poser un etat sans avoir a
+    /// demarrer une partie complete derriere le runtime.
+    internal void Apply(SkiaLayer.TabBarSnapshot snapshot)
+    {
         IsVisible = snapshot.IsVisible;
         TabsAtBottom = snapshot.TabsAtBottom;
 
