@@ -15,14 +15,13 @@ public sealed class BrowserFileSystemService : IFileSystemService
     private const string SettingsKey = "settlers_settings";
     private const string StatsKey    = "settlers_stats";
 
-    public Task SaveText(string fileName, string content)
-    {
-        BrowserInterop.DownloadFile(fileName, content);
-        return Task.CompletedTask;
-    }
+    // Export et import passent tous deux par un selecteur, comme le head bureau : le nom de
+    // fichier n'est qu'une suggestion, c'est le joueur qui designe la cible et la source.
+    // La ou le navigateur ne sait pas ouvrir de selecteur d'enregistrement, l'interop retombe
+    // sur le telechargement.
+    public Task SaveText(string fileName, string content) =>
+        BrowserInterop.SaveFilePicker(fileName, content);
 
-    // Le navigateur ne donne pas acces au disque : le nom de fichier est ignore, c'est le
-    // joueur qui designe la source via le selecteur.
     public Task<string?> LoadText(string fileName) => BrowserInterop.OpenFilePicker();
 
     public Task SaveAuto(string content)
