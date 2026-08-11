@@ -87,14 +87,6 @@ namespace SettlersOfIdlestan.Controller.Expand
             return needed > 0 && _clock.OfflineBankTicks >= needed;
         }
 
-        /// <summary>Consomme la banque de temps hors ligne pour faire avancer l'horloge jusqu'au prochain multiplicateur de temps de la Merveille.</summary>
-        public bool SkipToNextWonderMultiplier()
-        {
-            if (_clock == null) return false;
-            long needed = GetTicksUntilNextWonderMultiplier();
-            return needed > 0 && _clock.AdvanceFromBank(needed, 10000);
-        }
-
         private bool HasNoSurfaceMonsters() => !HasSurfaceMonsters();
 
         public bool HasSurfaceMonsters() =>

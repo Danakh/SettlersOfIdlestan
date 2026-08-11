@@ -38,10 +38,28 @@ public class GameControllerService
 
     public MainGameController MainGameController => _controller;
 
+    /// <summary>
+    /// Saut de temps en cours, s'il y en a un. C'est la boucle de jeu (<c>GameScreen.Tick</c>) qui
+    /// le fait avancer ; les renderers ne font que le demander.
+    /// </summary>
+    public TimeJumpService TimeJump { get; } = new();
+
     public GameControllerService()
     {
         _controller = new MainGameController();
         _cityBuildingService = new CityBuildingService(_controller);
+    }
+
+    /// <summary>
+    /// Demande un saut de <paramref name="ticks"/> ticks preleves sur la banque hors-ligne. La
+    /// simulation est etalee sur les ticks suivants, derriere une popup de progression : aucun
+    /// appelant ne doit simuler un gros saut lui-meme, cela figerait la fenetre.
+    /// </summary>
+    /// <param name="reasonKey">Cle de localisation du motif, affichee dans la popup.</param>
+    public bool RequestTimeJump(long ticks, string reasonKey)
+    {
+        var clock = _controller.CurrentMainState?.Clock;
+        return clock != null && TimeJump.Request(clock, ticks, reasonKey);
     }
 
     /// <summary>

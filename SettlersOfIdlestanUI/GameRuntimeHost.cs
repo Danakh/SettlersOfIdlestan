@@ -262,6 +262,9 @@ public sealed class GameRuntimeHost : IDisposable
     public SkiaLayer.TimeControlSnapshot GetTimeControlSnapshot() =>
         Read(r => r.GetTimeControlSnapshot()) ?? SkiaLayer.TimeControlSnapshot.Unavailable;
 
+    public SkiaLayer.TimeJumpSnapshot GetTimeJumpSnapshot() =>
+        Read(r => r.GetTimeJumpSnapshot()) ?? SkiaLayer.TimeJumpSnapshot.Inactive;
+
     public string Localize(string key) => Read(r => r.Localize(key)) ?? key;
 
     public string LocalizeFormat(string key, params object[] args) =>

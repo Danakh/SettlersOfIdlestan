@@ -23,6 +23,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly CityPanelView _cityPanel;
     private readonly CivPanelView _civPanel;
     private readonly ModalPopupView _modalPopup;
+    private readonly TimeJumpView _timeJump;
     private readonly ToastStackView _toasts;
     private readonly EventLogView _eventLog;
     private readonly StatsView _stats;
@@ -42,6 +43,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly CityPanelViewModel _city;
     private readonly CivPanelViewModel _civ;
     private readonly ModalPopupViewModel _modal;
+    private readonly TimeJumpViewModel _timeJumpModel;
     private readonly ToastViewModel _toast;
     private readonly EventLogViewModel _events;
     private readonly StatsViewModel _statsModel;
@@ -79,6 +81,7 @@ public sealed class GameView : Panel, IDisposable
         _city = new CityPanelViewModel(host);
         _civ = new CivPanelViewModel(host);
         _modal = new ModalPopupViewModel(host);
+        _timeJumpModel = new TimeJumpViewModel(host);
         _toast = new ToastViewModel(host);
         _events = new EventLogViewModel(host);
         _statsModel = new StatsViewModel(host);
@@ -109,6 +112,7 @@ public sealed class GameView : Panel, IDisposable
         _civPanel = new CivPanelView(_civ, _icons);
 
         _modalPopup = new ModalPopupView(_modal);
+        _timeJump = new TimeJumpView(_timeJumpModel);
         _toasts = new ToastStackView(_toast);
 
         _eventLog = new EventLogView(_events);
@@ -164,6 +168,10 @@ public sealed class GameView : Panel, IDisposable
 
         // En dernier : une modale bloquante doit couvrir tout le reste de l'overlay.
         Children.Add(_modalPopup);
+
+        // Apres les modales : pendant un saut de temps la boucle de jeu ne traite plus rien
+        // d'autre, aucun bouton d'aucune modale n'aurait d'effet visible tant qu'il dure.
+        Children.Add(_timeJump);
 
         ApplyTopBarHeight(TopBarView.BarHeight);
     }
@@ -248,6 +256,7 @@ public sealed class GameView : Panel, IDisposable
         _city.Refresh();
         _civ.Refresh();
         _modal.Refresh();
+        _timeJumpModel.Refresh();
         _toast.Refresh();
         _events.Refresh();
         _statsModel.Refresh();

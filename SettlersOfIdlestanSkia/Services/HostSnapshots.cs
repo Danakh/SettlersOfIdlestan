@@ -22,6 +22,23 @@ public sealed record TimeControlSnapshot(
 }
 
 /// <summary>
+/// Saut de temps en cours (cf. <c>TimeJumpService</c>) : la simulation avance de plusieurs
+/// dizaines de minutes de jeu, etalee sur plusieurs ticks pour rester interruptible a l'affichage.
+/// Les libelles sont deja traduits — la vue ne fait qu'afficher.
+/// </summary>
+/// <param name="Reason">Motif du saut, en clair (« avance jusqu'a la prochaine heure de Merveille »).</param>
+/// <param name="Progress">Avancement dans [0,1].</param>
+public sealed record TimeJumpSnapshot(
+    bool IsActive,
+    string Title,
+    string Reason,
+    double Progress,
+    string PercentLabel)
+{
+    public static readonly TimeJumpSnapshot Inactive = new(false, "", "", 0d, "");
+}
+
+/// <summary>
 /// Un onglet visible de la barre du haut. <paramref name="IsGlowing"/> traduit la pulsation
 /// d'attention (recherche disponible, nouvel evenement, inframonde jamais visite...).
 /// </summary>

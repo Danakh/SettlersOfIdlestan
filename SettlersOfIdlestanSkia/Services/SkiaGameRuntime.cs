@@ -410,6 +410,11 @@ public sealed class SkiaGameRuntime : IDisposable
         _onTitleScreen ? TimeControlSnapshot.Unavailable
                        : _gameScreen?.GetTimeControlSnapshot() ?? TimeControlSnapshot.Unavailable;
 
+    /// <summary>Instantané du saut de temps en cours, pour la popup de progression de l'hôte.</summary>
+    public TimeJumpSnapshot GetTimeJumpSnapshot() =>
+        _onTitleScreen ? TimeJumpSnapshot.Inactive
+                       : _gameScreen?.GetTimeJumpSnapshot() ?? TimeJumpSnapshot.Inactive;
+
     /// <summary>Traduction pour les contrôles d'overlay portés par l'hôte.</summary>
     public string Localize(string key) => _localizationService?.Get(key) ?? key;
 

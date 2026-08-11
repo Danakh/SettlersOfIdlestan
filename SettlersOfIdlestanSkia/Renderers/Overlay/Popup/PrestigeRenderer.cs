@@ -611,7 +611,21 @@ public sealed class PrestigeRenderer : PopupRendererBase
     public void SkipWonderTimeFromHost()
     {
         if (!IsOpen) return;
-        _gameControllerService.MainGameController.PrestigeController.SkipToNextWonderMultiplier();
+        RequestWonderTimeJump();
+    }
+
+    /// <summary>
+    /// Programme le saut jusqu'au prochain palier de la Merveille. La simulation elle-même est
+    /// étalée par <see cref="TimeJumpService"/> sur les ticks suivants : la déclencher ici
+    /// figerait la fenêtre le temps de simuler jusqu'à une heure de jeu.
+    /// </summary>
+    private void RequestWonderTimeJump()
+    {
+        var prestige = _gameControllerService.MainGameController.PrestigeController;
+        if (!prestige.CanSkipToNextWonderMultiplier()) return;
+
+        _gameControllerService.RequestTimeJump(
+            prestige.GetTicksUntilNextWonderMultiplier(), "time_jump_reason_wonder");
     }
 
     /// <summary>Ajuste le palier choisi pour la prochaine ile, depuis la vue de l'hote.</summary>
@@ -714,7 +728,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
         if (!_wonderSkipButtonRect.IsEmpty && _wonderSkipButtonRect.Contains(position.X, position.Y))
         {
-            prestigeController.SkipToNextWonderMultiplier();
+            RequestWonderTimeJump();
             return true;
         }
 

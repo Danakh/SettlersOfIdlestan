@@ -599,8 +599,21 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     }
 
     /// <summary>Saute au prochain multiplicateur de merveille, depuis une vue portée par l'hôte.</summary>
-    public void SkipWonderFromHost() =>
-        _gameControllerService.MainGameController.PrestigeController.SkipToNextWonderMultiplier();
+    public void SkipWonderFromHost() => RequestWonderTimeJump();
+
+    /// <summary>
+    /// Programme le saut jusqu'au prochain palier de la Merveille. La simulation elle-même est
+    /// étalée par <see cref="TimeJumpService"/> sur les ticks suivants : la déclencher ici
+    /// figerait la fenêtre le temps de simuler jusqu'à une heure de jeu.
+    /// </summary>
+    private void RequestWonderTimeJump()
+    {
+        var prestige = _gameControllerService.MainGameController.PrestigeController;
+        if (!prestige.CanSkipToNextWonderMultiplier()) return;
+
+        _gameControllerService.RequestTimeJump(
+            prestige.GetTicksUntilNextWonderMultiplier(), "time_jump_reason_wonder");
+    }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
     {
@@ -624,7 +637,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
 
         if (!_wonderSkipButtonRect.IsEmpty && _wonderSkipButtonRect.Contains(e.Position.X, e.Position.Y))
         {
-            _gameControllerService.MainGameController.PrestigeController.SkipToNextWonderMultiplier();
+            RequestWonderTimeJump();
             return;
         }
 

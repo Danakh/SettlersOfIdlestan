@@ -566,6 +566,21 @@ public sealed class GameScreen : IDisposable
             OfflineBankTicks: clock.OfflineBankTicks);
     }
 
+    /// <summary>Instantané du saut de temps en cours, pour la popup de progression de l'hôte.</summary>
+    public TimeJumpSnapshot GetTimeJumpSnapshot()
+    {
+        var jump = _gameControllerService.TimeJump;
+        if (!jump.IsActive) return TimeJumpSnapshot.Inactive;
+
+        double progress = jump.Progress;
+        return new TimeJumpSnapshot(
+            IsActive: true,
+            Title: _localizationService.Get("time_jump_title"),
+            Reason: _localizationService.Get(jump.ReasonKey),
+            Progress: progress,
+            PercentLabel: $"{(int)(progress * 100)} %");
+    }
+
     /// <summary>Bascule pause/lecture, pour un contrôle de temps porté par l'hôte.</summary>
     public void ToggledPauseFromHost()
     {
@@ -636,6 +651,18 @@ public sealed class GameScreen : IDisposable
         var elapsed   = _tickStopwatch.Elapsed.TotalSeconds;
         _tickStopwatch.Restart();
         var deltaTime = (float)Math.Max(elapsed, 0f);
+
+        // Saut de temps en cours : la simulation avance par tranches bornées en temps et rien
+        // d'autre ne tourne. Le temps réel est volontairement ignoré pendant ce temps — l'horloge
+        // plafonne de toute façon son rattrapage à 100 ms au retour — et la sauvegarde auto attend
+        // la fin du saut plutôt que de sérialiser un état à mi-parcours.
+        var timeJump = _gameControllerService.TimeJump;
+        if (timeJump.IsActive)
+        {
+            if (_gameControllerService.CurrentGameState?.Clock is { } jumpClock) timeJump.Advance(jumpClock);
+            else                                                                 timeJump.Cancel();
+            return;
+        }
 
         _gameControllerService.Update(deltaTime);
         DrainEventToasts();

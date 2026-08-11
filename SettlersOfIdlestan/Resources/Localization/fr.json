@@ -361,6 +361,8 @@
   "wonder_skip_time_button": "⏩ Heure suivante",
   "tooltip_wonder_skip_time": "Fait avancer le temps jusqu'au prochain multiplicateur de temps de la Merveille.\nLe multiplicateur de la Merveille dépend de son niveau et du temps passé sur l'île.\nConsomme la banque de temps hors ligne.",
   "tooltip_wonder_skip_time_disabled": "Banque de temps hors ligne insuffisante pour atteindre le prochain multiplicateur.",
+  "time_jump_title": "Simulation en cours…",
+  "time_jump_reason_wonder": "Avance jusqu'au prochain multiplicateur de temps de la Merveille.",
   "prestige_tooltip_corruption_spire_bonus": "Multiplicateur : 2 × le niveau de pointe le plus élevé jamais entièrement nettoyé (par la Spire de Corruption ou par le Dominion)",
   "tab_island": "Île",
   "tab_underworld": "Infra\nmonde",

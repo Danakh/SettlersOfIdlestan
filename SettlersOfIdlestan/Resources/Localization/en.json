@@ -361,6 +361,8 @@
   "wonder_skip_time_button": "⏩ Next hour",
   "tooltip_wonder_skip_time": "Advances time until the Wonder's next time multiplier.\nThe Wonder's multiplier depends on its level and the time spent on the island.\nConsumes the offline time bank.",
   "tooltip_wonder_skip_time_disabled": "Not enough banked offline time to reach the next multiplier.",
+  "time_jump_title": "Simulating…",
+  "time_jump_reason_wonder": "Fast-forwarding to the Wonder's next time multiplier.",
   "prestige_tooltip_corruption_spire_bonus": "Multiplier: 2 × the highest peak corruption level ever fully cleared (by the Corruption Spire or the Dominion)",
   "tab_island": "Island",
   "tab_underworld": "Under\nworld",
