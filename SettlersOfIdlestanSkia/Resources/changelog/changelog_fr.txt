@@ -4,6 +4,9 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.13
+• Nouvelle race avancée : les Elfes noirs, peuple des profondeurs.
+• Refonte de l'interface : tout l'affichage repose désormais sur un nouveau moteur d'UI, plus réactif et mieux adapté aux différentes tailles d'écran
+• Optimisation des performances : la simulation des grandes parties est nettement plus rapide et consomme beaucoup moins de mémoire, pour un jeu plus fluide en fin de partie
 • Polish de fin de partie : nombreux ajustements des recherches et de la carte de prestige
 
 ---
