@@ -150,10 +150,20 @@ public sealed class AutomationView : UserControl
             };
             toggle.Click += (_, _) => { if (_row != null) _owner.Toggle(_row); };
 
+            // Case discrete, calee dans le coin haut-droit de la carte. Fluent impose une taille
+            // fixe a la boite : on la reduit par une mise a l'echelle ancree en haut a droite,
+            // apres avoir annule les tailles minimales du theme qui decalaient la boite dans son
+            // emplacement. Les marges negatives ramenent la case au tiers du rembourrage de la
+            // carte (12 a droite, 10 en haut).
             var pin = new CheckBox
             {
                 VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(6, 0, 0, 0),
+                MinWidth = 0,
+                MinHeight = 0,
+                Padding = new Thickness(0),
+                RenderTransform = new ScaleTransform(0.8, 0.8),
+                RenderTransformOrigin = new RelativePoint(1, 0, RelativeUnit.Relative),
+                Margin = new Thickness(6, -7, -8, 0),
                 [!IsVisibleProperty] = new Binding(nameof(AutomationRowViewModel.CanPin)),
                 [!ToggleButton.IsCheckedProperty] = new Binding(nameof(AutomationRowViewModel.IsPinned)),
                 [!ToolTip.TipProperty] = new Binding(nameof(AutomationViewModel.PinTooltip))
