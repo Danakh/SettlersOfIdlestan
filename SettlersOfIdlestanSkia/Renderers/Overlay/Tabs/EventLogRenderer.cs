@@ -288,6 +288,10 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Success,
             _localization.Get("event_corruption_spire_built_title"),
             _localization.Get("event_corruption_spire_built_body")),
+        GameEventType.CorruptionSpireDestroyed => (
+            _warningCardPaint, _warningBorderPaint, _warningTextPaint,
+            _localization.Get("event_corruption_spire_destroyed_title"),
+            _localization.Get("event_corruption_spire_destroyed_body")),
         GameEventType.CorruptionSpireRadiusUpgraded => (
             EventLogTone.Success,
             _localization.Get("event_corruption_spire_radius_upgraded_title"),

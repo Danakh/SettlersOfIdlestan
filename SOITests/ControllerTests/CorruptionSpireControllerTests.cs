@@ -79,6 +79,34 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void DestroyCorruptionSpire_RemovesSpireAndAllowsReplacement()
+        {
+            var (state, _, controller) = CreateSetup();
+            UnlockAbyss(state.PlayerCivilization, 3);
+            var spire = controller.PlaceCorruptionSpire(UnderworldHex);
+            spire!.Built = true;
+            spire.Radius = 4;
+
+            Assert.True(controller.DestroyCorruptionSpire());
+
+            Assert.Empty(state.Features.OfType<CorruptionSpire>());
+            Assert.False(controller.HasCorruptionSpireBuilt());
+            Assert.True(controller.CanPlaceCorruptionSpire(state.PlayerCivilization));
+
+            // Reconstruction complète : la nouvelle Spire repart d'un rayon 1, non bâtie.
+            var rebuilt = controller.PlaceCorruptionSpire(UnderworldHex);
+            Assert.False(rebuilt!.Built);
+            Assert.Equal(1, rebuilt.Radius);
+        }
+
+        [Fact]
+        public void DestroyCorruptionSpire_FalseWhenNoSpire()
+        {
+            var (_, _, controller) = CreateSetup();
+            Assert.False(controller.DestroyCorruptionSpire());
+        }
+
+        [Fact]
         public void GetPlaceableHexes_OnlyCorruptedUnderworldHexes()
         {
             var (state, _, controller) = CreateSetup();

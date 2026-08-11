@@ -30,6 +30,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         public event EventHandler? OnCorruptionSpirePlaced;
         public event EventHandler? OnCorruptionSpireBuilt;
         public event EventHandler<int>? OnCorruptionSpireRadiusUpgraded;
+        public event EventHandler? OnCorruptionSpireDestroyed;
 
         internal CorruptionSpireController() { }
 
@@ -152,6 +153,26 @@ namespace SettlersOfIdlestan.Controller.Expand
                 MonumentInvestment.TryAutoStartInvestment(spire, spire.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
             OnCorruptionSpirePlaced?.Invoke(this, EventArgs.Empty);
             return spire;
+        }
+
+        /// <summary>
+        /// Détruit la Spire de Corruption existante, ce qui libère <see cref="CanPlaceCorruptionSpire"/>
+        /// et permet d'en replacer une ailleurs (l'hex d'origine peut avoir été entièrement nettoyé,
+        /// rendant la Spire inutile là où elle est). C'est une reconstruction, pas un déplacement :
+        /// les ressources déjà investies sont perdues et le rayon acquis repart à sa valeur de base.
+        /// Retourne false s'il n'y a aucune Spire (une Faille des Abysses n'est jamais détruisible :
+        /// elle a consommé la Spire et ouvre l'Abysse — voir AbyssGateController.PlaceAbyssGate).
+        /// </summary>
+        public bool DestroyCorruptionSpire()
+        {
+            if (_state == null) return false;
+            var spire = _state.Features.OfType<CorruptionSpire>().FirstOrDefault();
+            if (spire == null) return false;
+
+            _state.RemoveFeature(spire);
+            _state.EventLog.Add(GameEventType.CorruptionSpireDestroyed);
+            OnCorruptionSpireDestroyed?.Invoke(this, EventArgs.Empty);
+            return true;
         }
     }
 }

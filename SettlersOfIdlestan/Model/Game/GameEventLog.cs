@@ -61,6 +61,9 @@ public enum GameEventType
     /// CityBuilderController.DestroyCitiesInvalidatedByTerrain. En pratique : sa propre Marche de Dieu.
     /// </summary>
     CityLostToTerrain,
+
+    /// <summary>Spire de Corruption démolie volontairement par le joueur pour en replacer une ailleurs.</summary>
+    CorruptionSpireDestroyed,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

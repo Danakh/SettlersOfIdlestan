@@ -35,6 +35,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     private SKPaint? _warningPaint;
     private SKPaint? _skipTimeButtonPaint;
     private SKPaint? _skipTimeButtonDisabledPaint;
+    private SKPaint? _destroyButtonPaint;
+    private SKPaint? _destroyConfirmButtonPaint;
 
     private const float PanelWidth = 280;
     private const float RowHeight = 50;
@@ -50,9 +52,18 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     private SKRect _closeRect = SKRect.Empty;
     private SKRect _evolveButtonRect = SKRect.Empty;
     private SKRect _wonderSkipButtonRect = SKRect.Empty;
+    private SKRect _destroyButtonRect = SKRect.Empty;
     private readonly Dictionary<SKRect, Resource> _checkboxRects = new();
     private SKRect _researchCheckboxRect = SKRect.Empty;
     private SKPoint _lastPointerPosition;
+
+    /// <summary>
+    /// Destruction de la Spire en deux temps : le premier clic arme le bouton, le second confirme.
+    /// L'action est irréversible et coûteuse (ressources investies perdues, rayon remis à 1), et le
+    /// bouton siège juste sous ceux d'investissement — un clic isolé ne doit pas suffire. Désarmé
+    /// par tout autre clic, par la fermeture du panneau et par un changement de sélection.
+    /// </summary>
+    private bool _destroyConfirmPending;
 
     public SelectedMonumentPanelRenderer(
         MonumentService monumentService,
@@ -70,7 +81,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _tooltipRenderer = tooltipRenderer;
         _inputService.PointerPressed += HandlePointerPressed;
         _inputService.PointerMoved += HandlePointerMoved;
-        _monumentService.SelectionChanged += (_, _) => Collapsed = false;
+        _monumentService.SelectionChanged += (_, _) => { Collapsed = false; _destroyConfirmPending = false; };
     }
 
     public override void Initialize(SKSize canvasSize)
@@ -85,6 +96,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _warningPaint = new SKPaint { Color = new SKColor(220, 90, 90, 230), IsAntialias = true };
         _skipTimeButtonPaint = new SKPaint { Color = new SKColor(60, 140, 220, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
         _skipTimeButtonDisabledPaint = new SKPaint { Color = new SKColor(60, 60, 75, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _destroyButtonPaint = new SKPaint { Color = new SKColor(110, 45, 45, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _destroyConfirmButtonPaint = new SKPaint { Color = new SKColor(200, 60, 60, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
 
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
@@ -104,7 +117,9 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             _checkboxRects.Clear();
             _evolveButtonRect = SKRect.Empty;
             _wonderSkipButtonRect = SKRect.Empty;
+            _destroyButtonRect = SKRect.Empty;
             _researchCheckboxRect = SKRect.Empty;
+            _destroyConfirmPending = false;
             return;
         }
 
@@ -134,6 +149,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
 
         if (Collapsed)
         {
+            _destroyButtonRect = SKRect.Empty;
+            _destroyConfirmPending = false;
             CollapseTabRect = new SKRect(CanvasSize.Width - collapseTabW, tabTop, CanvasSize.Width, tabTop + collapseTabH);
             PanelBounds = CollapseTabRect;
             DrawCollapseTabRect(canvas, CollapseTabRect, false);
@@ -144,6 +161,9 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         bool showEvolveButton = monument is CorruptionSpire { Built: true }
             && _gameControllerService.MainGameController.AbyssGateController.IsAbyssGateEligible();
         bool showWonderSkipButton = monument is Wonder { Level: >= 1 };
+        // Destruction volontaire de la Spire pour en replacer une ailleurs — pas proposée sur la
+        // Faille des Abysses, qui a consommé la Spire et n'est plus relocalisable.
+        bool showDestroyButton = monument is CorruptionSpire;
         bool showNoCityWarning = !wonderMaxed && !MonumentInvestment.HasAdjacentCity(monument.Position, playerCiv);
         var bonusLines = GetBonusLines(monument, playerCiv);
         float bonusTextWidth = panelWidth - 2 * padding;
@@ -158,6 +178,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             + (showCorruptedPrestigeAvailable ? FooterHeight * s : 0f)
             + (showEvolveButton ? EvolveButtonHeight * s : 0f)
             + (showWonderSkipButton ? EvolveButtonHeight * s : 0f)
+            + (showDestroyButton ? EvolveButtonHeight * s : 0f)
             + (showNoCityWarning ? FooterHeight * s : 0f)
             + (showResearchRow ? rowHeight : 0f)
             + bonusHeight;
@@ -341,6 +362,25 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         else
         {
             _wonderSkipButtonRect = SKRect.Empty;
+        }
+
+        if (showDestroyButton)
+        {
+            float btnH = EvolveButtonHeight * s;
+            _destroyButtonRect = new SKRect(panelX + padding, y + 4 * s, panelX + panelWidth - padding, y + btnH - 4 * s);
+            canvas.DrawRoundRect(_destroyButtonRect, 6 * s, 6 * s, _destroyConfirmPending ? _destroyConfirmButtonPaint : _destroyButtonPaint);
+            SkiaTextUtils.DrawText(canvas,
+                _localization.Get(_destroyConfirmPending ? "corruption_spire_destroy_confirm_button" : "corruption_spire_destroy_button"),
+                _destroyButtonRect.MidX, _destroyButtonRect.MidY + 5 * s, SKTextAlign.Center, Font12, TextPaint);
+            y += btnH;
+
+            if (_destroyButtonRect.Contains(_lastPointerPosition.X, _lastPointerPosition.Y))
+                _tooltipRenderer.SetTooltipLines(new[] { _localization.Get("tooltip_corruption_spire_destroy") },
+                    new SKPoint(_destroyButtonRect.Right, _destroyButtonRect.Top));
+        }
+        else
+        {
+            _destroyButtonRect = SKRect.Empty;
         }
 
         if (needsScrollbar)
@@ -627,6 +667,22 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             return;
         }
 
+        if (!_destroyButtonRect.IsEmpty && _destroyButtonRect.Contains(e.Position.X, e.Position.Y))
+        {
+            if (!_destroyConfirmPending)
+            {
+                _destroyConfirmPending = true;
+                return;
+            }
+            _destroyConfirmPending = false;
+            if (_gameControllerService.MainGameController.CorruptionSpireController.DestroyCorruptionSpire())
+                _monumentService.ClearSelectedInvestable();
+            return;
+        }
+
+        // Tout clic ailleurs désarme la confirmation de destruction.
+        _destroyConfirmPending = false;
+
         if (!_evolveButtonRect.IsEmpty && _evolveButtonRect.Contains(e.Position.X, e.Position.Y))
         {
             var gate = _gameControllerService.MainGameController.AbyssGateController.PlaceAbyssGate();
@@ -666,6 +722,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _closeRect = SKRect.Empty;
         _evolveButtonRect = SKRect.Empty;
         _wonderSkipButtonRect = SKRect.Empty;
+        _destroyButtonRect = SKRect.Empty;
+        _destroyConfirmPending = false;
         CollapseTabRect = SKRect.Empty;
         _checkboxRects.Clear();
         _researchCheckboxRect = SKRect.Empty;
@@ -684,6 +742,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         _warningPaint?.Dispose();
         _skipTimeButtonPaint?.Dispose();
         _skipTimeButtonDisabledPaint?.Dispose();
+        _destroyButtonPaint?.Dispose();
+        _destroyConfirmButtonPaint?.Dispose();
         base.Dispose();
     }
 }
