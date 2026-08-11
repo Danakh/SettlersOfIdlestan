@@ -33,6 +33,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly PrestigePopupView _prestigePopup;
     private readonly SettingsPopupView _settingsPopup;
     private readonly TitleScreenView _titleScreen;
+    private readonly TooltipLayerControl _tooltipLayer;
 
     private readonly TabBarViewModel _tabs;
     private readonly ResourceBarViewModel _resources;
@@ -114,6 +115,7 @@ public sealed class GameView : Panel, IDisposable
         _prestigePopup = new PrestigePopupView(_prestigeModel);
         _settingsPopup = new SettingsPopupView(_settingsModel);
         _titleScreen = new TitleScreenView(_titleModel);
+        _tooltipLayer = new TooltipLayerControl(host);
 
         Children.Add(new GameRuntimeControl(host));
 
@@ -126,7 +128,7 @@ public sealed class GameView : Panel, IDisposable
 
         // Avant la barre du haut : le capteur de fermeture ne doit pas voler son clic a
         // l'engrenage, qui referme le menu en le rebasculant.
-        Children.Add(_settingsMenu);
+        Children.Add(_settingsMenu.Catcher);
 
         Children.Add(_zoomControl);
         Children.Add(_topBar);
@@ -134,7 +136,16 @@ public sealed class GameView : Panel, IDisposable
         Children.Add(_cityPanel);
         Children.Add(_monumentPanel);
 
+        // Apres les panneaux : la boite du menu s'ouvre sous la barre du haut a droite, soit
+        // exactement l'emplacement du panneau de ville, qui la recouvrirait.
+        Children.Add(_settingsMenu);
+
         Children.Add(_toasts);
+
+        // Les infobulles Skia se dessinent ici, et non sur le canevas de la carte : ancrees a une
+        // ligne du panneau de ville ou au bord d'un hexagone, elles debordent sur les panneaux et
+        // passaient donc derriere eux. Sous les popups, qui sont bloquants.
+        Children.Add(_tooltipLayer);
 
         // Le popup de commerce est bloquant lui aussi : au-dessus des panneaux, mais sous les
         // modales, qui priment sur tout.

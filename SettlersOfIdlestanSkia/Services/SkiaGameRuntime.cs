@@ -451,6 +451,15 @@ public sealed class SkiaGameRuntime : IDisposable
         if (!_onTitleScreen) _gameScreen?.Render(canvas);
     }
 
+    /// <summary>
+    /// Passe des infobulles, a dessiner apres l'overlay de l'hote (cf. GameScreen.RenderTooltips).
+    /// </summary>
+    public void RenderTooltips(SKCanvas canvas, SKSize canvasSize)
+    {
+        if (_isDisposed || !_isInitialized || !_isCanvasInitialized) return;
+        if (!_onTitleScreen) _gameScreen?.RenderTooltips(canvas, canvasSize);
+    }
+
     // L'input ne concerne plus que la partie : l'écran-titre reçoit le sien par l'arbre visuel
     // d'Avalonia, sans passer par ici.
 

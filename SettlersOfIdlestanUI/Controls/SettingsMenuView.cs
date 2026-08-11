@@ -13,12 +13,11 @@ namespace SettlersOfIdlestanUI.Controls;
 /// <summary>
 /// Menu deroulant de l'engrenage, ancre sous la barre du haut a droite.
 ///
-/// Un capteur transparent plein ecran est pose derriere la boite : c'est lui qui referme le menu
-/// sur un clic ailleurs, la ou le rendu Skia comparait la position du clic au rectangle du menu.
-///
-/// Ce capteur est volontairement place SOUS la barre du haut dans l'arbre : l'engrenage garde
-/// ainsi son propre clic, qui referme le menu en le rebasculant — exactement ce que faisait le
-/// rendu Skia, qui ignorait explicitement les clics tombant sur l'engrenage.
+/// Cette vue ne porte que la boite du menu. Le capteur de fermeture est expose a part
+/// (<see cref="Catcher"/>) parce que les deux ne vont pas au meme etage de l'arbre visuel :
+/// la boite s'ouvre a l'emplacement exact du panneau de ville et doit donc passer AU-DESSUS des
+/// panneaux, alors que le capteur doit rester SOUS la barre du haut pour laisser son clic a
+/// l'engrenage, qui referme le menu en le rebasculant.
 /// </summary>
 public sealed class SettingsMenuView : UserControl
 {
@@ -31,13 +30,22 @@ public sealed class SettingsMenuView : UserControl
 
     private readonly Border _box;
 
+    /// <summary>
+    /// Capteur transparent plein ecran qui referme le menu sur un clic ailleurs, la ou le rendu
+    /// Skia comparait la position du clic au rectangle du menu. A poser separement dans l'arbre,
+    /// sous la barre du haut (cf. GameView).
+    /// </summary>
+    public Control Catcher { get; }
+
     public SettingsMenuView(SettingsMenuViewModel viewModel, double topOffset)
     {
         DataContext = viewModel;
         this[!IsVisibleProperty] = new Binding(nameof(SettingsMenuViewModel.IsOpen));
 
-        HorizontalAlignment = HorizontalAlignment.Stretch;
-        VerticalAlignment = VerticalAlignment.Stretch;
+        // Sans alignement explicite le UserControl s'etire sur toute la fenetre : ses bornes ne
+        // correspondraient plus a la boite visible et le hit-testing deviendrait imprevisible.
+        HorizontalAlignment = HorizontalAlignment.Right;
+        VerticalAlignment = VerticalAlignment.Top;
 
         var items = new ItemsControl
         {
@@ -60,17 +68,18 @@ public sealed class SettingsMenuView : UserControl
             Child = items,
         };
 
-        var catcher = new Border { Background = Brushes.Transparent };
+        // DataContext propre : le capteur ne fait pas partie des enfants de cette vue, il ne
+        // l'heriterait donc pas.
+        var catcher = new Border { Background = Brushes.Transparent, DataContext = viewModel };
+        catcher[!IsVisibleProperty] = new Binding(nameof(SettingsMenuViewModel.IsOpen));
         catcher.PointerPressed += (_, e) =>
         {
             e.Handled = true;
             viewModel.Close();
         };
+        Catcher = catcher;
 
-        var layout = new Panel();
-        layout.Children.Add(catcher);
-        layout.Children.Add(_box);
-        Content = layout;
+        Content = _box;
     }
 
     /// <summary>

@@ -195,13 +195,25 @@ public sealed class OverlayRenderer : IGameRenderer
             case TabBarRenderer.TabHistory:
                 _historyRenderer?.RenderHistory(canvas, context);
                 break;
-            default:
-                // Le panneau ville est rendu par l'hôte, mais son infobulle de survol se dessine
-                // par-dessus la carte : elle reste produite ici, faute d'équivalent Avalonia
-                // pour ses ~450 lignes de règles.
-                _selectedCityPanelRenderer.RenderHostTooltipOnly(canvas, context);
-                break;
         }
+    }
+
+    /// <summary>
+    /// Deuxième passe, dessinée par l'hôte au-dessus des contrôles de l'overlay : les infobulles.
+    ///
+    /// Elles ne peuvent pas rester dans <see cref="Render"/>, qui remplit le canevas de la carte —
+    /// donc le tout premier enfant de l'arbre visuel. Une infobulle qui déborde sur un panneau
+    /// Avalonia (celui de la ville au premier chef, dont chaque ligne en produit une) passerait
+    /// derrière lui.
+    /// </summary>
+    public void RenderTooltipLayer(SKCanvas canvas, GameRenderContext context)
+    {
+        if (_disposed || !_isVisible) return;
+
+        // Les onglets plein écran dessinent leurs propres infobulles pendant leur rendu : seul
+        // le panneau ville, porté par l'hôte, a encore besoin de cette passe.
+        if (IsMapViewTab(_tabBar.ActiveTab))
+            _selectedCityPanelRenderer.RenderHostTooltipOnly(canvas, context);
     }
 
     /// <summary>
@@ -303,8 +315,8 @@ public sealed class OverlayRenderer : IGameRenderer
     public TabBarSnapshot GetTabBarSnapshot() => _tabBar.GetSnapshot();
 
     /// <summary>
-    /// Les panneaux latéraux n'existent que sur les onglets carte : c'est la branche
-    /// <c>default</c> du switch de <see cref="Render"/> qui les dessine. Leurs instantanés
+    /// Les panneaux latéraux n'existent que sur les onglets carte, seul cas où <see cref="Render"/>
+    /// laisse le canevas à la carte. Leurs instantanés
     /// doivent donc porter la même condition, sinon ils resteraient affichés par-dessus un
     /// onglet plein écran, qui ne les recouvre pas — l'overlay de l'hôte est au-dessus du canevas.
     /// </summary>

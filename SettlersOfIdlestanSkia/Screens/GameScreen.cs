@@ -360,7 +360,11 @@ public sealed class GameScreen : IDisposable
         _tutorialRenderer = new TutorialRenderer(_localizationService, _inputService);
         _tutorialRenderer.LayoutService = _uiLayoutService;
         _renderService.RegisterRenderer(_tutorialRenderer);
-        _renderService.RegisterRenderer(tooltipRenderer);
+
+        // Pas de RegisterRenderer : les infobulles sont dessinées par RenderTooltips, une passe
+        // séparée que l'hôte place au-dessus des contrôles de l'overlay. Enregistrées ici, elles
+        // finiraient sur le canevas de la carte, donc derrière les panneaux Avalonia.
+        // Leur Initialize est appelé par EnsureCanvasInitialized, comme celui du RenderService.
 
         _tutorialService = new TutorialService(_tutorialRenderer);
         if (_gameControllerService.CurrentGameState is SettlersOfIdlestan.Model.Game.MainGameState tutorialState)
@@ -614,6 +618,7 @@ public sealed class GameScreen : IDisposable
         else                       _cameraService.CenterOn(prevCenterX, prevCenterY);
 
         _renderService.Initialize(canvasSize);
+        _tooltipRenderer?.Initialize(canvasSize);
         _lastCanvasSize      = canvasSize;
         _isCanvasInitialized = true;
     }
@@ -697,6 +702,36 @@ public sealed class GameScreen : IDisposable
 
         // Les modales sont rendues par l'hôte ; ne reste ici que le panneau de debug.
         _debugPanelRenderer?.Render(canvas, _lastCanvasSize, _uiLayoutService.UiScale);
+    }
+
+    /// <summary>
+    /// Seconde passe de rendu : les infobulles, posées par les renderers pendant
+    /// <see cref="Render"/> et dessinées ici seulement.
+    ///
+    /// L'hôte l'appelle depuis un contrôle placé au-dessus de l'overlay Avalonia. Dessinée dans
+    /// la passe principale, une infobulle atterrit sur le canevas de la carte — le premier enfant
+    /// de l'arbre visuel — et disparaît derrière le panneau de ville ou la barre du haut dès
+    /// qu'elle les déborde.
+    /// </summary>
+    public void RenderTooltips(SKCanvas canvas, SKSize canvasSize)
+    {
+        if (_isDisposed) return;
+
+        var gameState = _gameControllerService.CurrentGameState;
+        if (gameState == null) return;
+
+        // Contexte minimal : cette passe ne fait que dessiner un état déjà calculé. Ni le temps
+        // écoulé ni la caméra n'y interviennent — seule l'échelle UI compte pour les polices.
+        var context = new GameRenderContext
+        {
+            GameState  = gameState,
+            DeltaTime  = 0f,
+            CanvasSize = canvasSize,
+            UiScale    = _uiLayoutService.UiScale,
+        };
+
+        _overlayRenderer?.RenderTooltipLayer(canvas, context);
+        _tooltipRenderer?.Render(canvas, context);
     }
 
     public void HandlePointerPressed(float x, float y, int pointerId, PointerButton button)
@@ -874,6 +909,9 @@ public sealed class GameScreen : IDisposable
             using (surface)
             {
                 _renderService.RenderFrame(surface.Canvas, gameState, _cameraService);
+                // Les infobulles ne font plus partie de la passe principale : sans cet appel la
+                // capture perdrait celle qui est affichée au moment du raccourci.
+                RenderTooltips(surface.Canvas, canvasSize);
                 SaveExportPng(surface, "screenshot_interface.png");
             }
         }
@@ -1272,6 +1310,9 @@ public sealed class GameScreen : IDisposable
         _constructionInteractionService?.Cleanup();
         _militaryInteractionService?.Cleanup();
         _renderService.Dispose();
+        // Hors RenderService depuis qu'il est rendu dans sa propre passe : personne d'autre ne
+        // le libere.
+        _tooltipRenderer?.Dispose();
         _isDisposed = true;
     }
 }

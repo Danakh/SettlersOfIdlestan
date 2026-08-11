@@ -70,6 +70,13 @@ public sealed class GameRuntimeHost : IDisposable
         }
     }
 
+    /// <summary>
+    /// Passe des infobulles, dessinee par un controle pose au-dessus de l'overlay. Le canevas
+    /// n'est pas efface : cette couche ne contient que l'infobulle du frame, s'il y en a une.
+    /// </summary>
+    public void RenderTooltips(SKCanvas canvas, SKSize canvasSize) =>
+        Invoke(r => r.RenderTooltips(canvas, canvasSize));
+
     // ── Input ─────────────────────────────────────────────────────────────────
 
     public void PointerPressed(float x, float y, int id, SkiaLayer.PointerButton button) =>

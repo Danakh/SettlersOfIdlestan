@@ -118,11 +118,15 @@ public class SettingsMenuViewTests
 
         var view = new SettingsMenuView(vm, topOffset: 40) { IsVisible = open };
 
+        // Le capteur se pose a part dans l'arbre, comme le fait GameView : sous la barre du haut
+        // pour l'engrenage, alors que la boite passe au-dessus des panneaux lateraux.
+        view.Catcher.IsVisible = open;
+
         var window = new Window
         {
             Width = 800,
             Height = 600,
-            Content = new Panel { Children = { map, view } },
+            Content = new Panel { Children = { map, view.Catcher, view } },
         };
         window.Show();
         Dispatcher.UIThread.RunJobs();
