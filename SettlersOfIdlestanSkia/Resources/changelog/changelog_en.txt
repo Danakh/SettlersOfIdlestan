@@ -3,10 +3,14 @@ The changelog is not actively maintained at the moment.
 
 ---
 
-v0.13
+v0.14
 • New advanced race: the Dark Elves, a people of the depths.
 • UI overhaul: the whole interface now runs on a new UI engine, more responsive and better suited to varying screen sizes
 • Performance optimization: large games simulate much faster and use far less memory, for smoother play in the late game
+
+---
+
+v0.13
 • Endgame polish: numerous adjustments to research and the prestige map
 
 ---
