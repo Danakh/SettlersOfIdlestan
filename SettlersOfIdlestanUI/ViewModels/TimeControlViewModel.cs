@@ -29,9 +29,6 @@ public sealed class TimeControlViewModel : ViewModelBase
     /// Temps de jeu accumule hors ligne, deja formate (ex. "1,5h").
     public string BankLabel { get => _bankLabel; private set => SetProperty(ref _bankLabel, value); }
 
-    /// Libelle du bouton pause/lecture : "||" en marche, ">" en pause.
-    public string ToggleLabel => IsPaused ? ">" : "||";
-
     /// <summary>Relit l'etat du jeu. Appele par la boucle de synchronisation de la vue.</summary>
     public void Refresh()
     {
@@ -40,9 +37,7 @@ public sealed class TimeControlViewModel : ViewModelBase
         IsAvailable = snapshot.IsAvailable;
         ActiveSpeed = snapshot.ActiveSpeed;
         BankLabel = FormatBankTime(snapshot.OfflineBankTicks / 100.0);
-
-        if (SetProperty(ref _isPaused, snapshot.IsPaused, nameof(IsPaused)))
-            RaisePropertyChanged(nameof(ToggleLabel));
+        IsPaused = snapshot.IsPaused;
     }
 
     public void TogglePause()

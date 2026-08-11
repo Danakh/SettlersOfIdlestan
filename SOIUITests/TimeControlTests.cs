@@ -98,4 +98,65 @@ public class TimeControlViewTests
 
         Assert.Equal(0, map.PointerPressedCount);
     }
+
+    [AvaloniaFact]
+    public void Le_bouton_de_temps_montre_l_etat_courant_et_non_l_action()
+    {
+        using var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
+        var toggle = ShowTimeControl(host);
+
+        // Sans partie en cours l'instantane rend IsPaused = false : le jeu est cense tourner,
+        // donc le triangle. C'est l'etat COURANT — l'ancien libelle affichait « || », l'action.
+        var play = toggle.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single();
+        var bars = toggle.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Rectangle>().ToList();
+
+        Assert.True(play.IsVisible);
+        Assert.Equal(2, bars.Count);
+        Assert.All(bars, bar => Assert.False(bar.GetVisualParent<Control>()!.IsVisible));
+    }
+
+    [AvaloniaFact]
+    public void En_pause_le_fond_du_bouton_de_temps_pulse()
+    {
+        using var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
+        var toggle = ShowTimeControl(host);
+
+        var atRest = toggle.Background;
+
+        // L'etat de pause n'est pas atteignable sans partie : on pose la classe que la vue
+        // poserait, ce qui verifie le seul maillon fragile — l'animation attachee au style.
+        toggle.Classes.Add("paused");
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.NotEqual(atRest, toggle.Background);
+
+        toggle.Classes.Remove("paused");
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+
+        // Le jeu repart : le bouton doit retrouver sa couleur locale, pas rester dore.
+        Assert.Equal(atRest, toggle.Background);
+    }
+
+    /// <summary>Affiche le bloc de temps dans une fenetre et rend son bouton pause/lecture.</summary>
+    private static Button ShowTimeControl(GameRuntimeHost host)
+    {
+        var vm = new TimeControlViewModel(host);
+        var view = new TimeControlView(vm, host.Localize, (k, a) => host.LocalizeFormat(k, a))
+        {
+            IsVisible = true,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+        };
+
+        var window = new Window { Width = 800, Height = 600, Content = view };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        // Ordre de construction : banque (Border), bascule, vitesse.
+        return view.GetVisualDescendants().OfType<Button>().First();
+    }
 }
