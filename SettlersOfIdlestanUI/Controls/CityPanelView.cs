@@ -177,7 +177,12 @@ public sealed class CityPanelView : UserControl
                 Foreground = Brushes.White,
                 BorderThickness = new Thickness(0),
                 CornerRadius = new CornerRadius(7),
+                // Marge verticale a zero : le defaut Fluent (11,5,11,6) ne laisserait que 15 px
+                // de haut utile dans les 26 px imposes, moins que la ligne d'un texte en 12 px —
+                // les jambages de « Upgrade » etaient rognes en bas.
+                Padding = new Thickness(10, 0),
                 HorizontalContentAlignment = HorizontalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 [!ContentProperty] = new Binding(nameof(CityBuildingRowViewModel.ActionLabel)),
                 [!IsVisibleProperty] = new Binding(nameof(CityBuildingRowViewModel.HasAction)),
