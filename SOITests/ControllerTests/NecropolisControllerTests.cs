@@ -263,8 +263,9 @@ namespace SOITests.ControllerTests
             Assert.Equal(0.30, ascension.GetNecropolisAscensionBonus(), 6);
             Assert.Equal(13, ascension.GetGodPointsGain(godState));
 
+            // Au niveau maximum (4), le bonus plafonne à +60%
             necropolis.Level = Necropolis.MaxLevel;
-            Assert.Equal(17, ascension.GetGodPointsGain(godState));
+            Assert.Equal(16, ascension.GetGodPointsGain(godState));
         }
     }
 }

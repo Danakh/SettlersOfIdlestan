@@ -17,16 +17,18 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// </summary>
 public class Necropolis : Monument
 {
-    public override string? TextIcon => "⚱";
-    public override float SvgIconSize => 26f;
+    private static readonly string[] IconStages = { "01-enceinte", "02-steles", "03-tombeaux", "04-mausolee", "05-complet" };
+
+    public override string? SvgIconResourceName => $"Resources.icons.features.necropole-{IconStages[Math.Clamp(Level, 0, IconStages.Length - 1)]}.svg";
+    public override float SvgIconSize => 50f;
 
     public override LocalizedEntry GetTooltipEntry() =>
         new("hex_tooltip_necropolis", new object[] { Level, (int)Math.Round(GetAscensionGainBonusForLevel(Level) * 100) });
 
     public int Level { get; set; } = 0;
 
-    /// <summary>Niveau maximum — bonus d'Ascension plafonné à +75%.</summary>
-    public const int MaxLevel = 5;
+    /// <summary>Niveau maximum — dernière étape d'icône (nécropole complète) et bonus d'Ascension plafonné à +60%.</summary>
+    public const int MaxLevel = 4;
 
     /// <summary>Part de points divins supplémentaires accordée par niveau de Nécropole.</summary>
     public const double AscensionGainBonusPerLevel = 0.15;
