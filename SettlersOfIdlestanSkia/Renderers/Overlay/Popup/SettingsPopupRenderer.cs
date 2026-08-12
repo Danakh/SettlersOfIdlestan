@@ -79,11 +79,4 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
         _contentPanel.ClearFocus();
         base.Close();
     }
-
-    public override void Dispose()
-    {
-        if (Disposed) return;
-        _contentPanel.Dispose();
-        base.Dispose();
-    }
 }

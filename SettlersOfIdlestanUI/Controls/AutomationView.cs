@@ -18,7 +18,7 @@ namespace SettlersOfIdlestanUI.Controls;
 /// </summary>
 public sealed class AutomationView : UserControl
 {
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(240, 18, 18, 24));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(240, 18, 18, 24));
     private static readonly SolidColorBrush Card = new(Color.FromArgb(220, 30, 30, 40));
     private static readonly SolidColorBrush CardBorder = new(Color.FromRgb(60, 60, 80));
     private static readonly SolidColorBrush Accent = new(Color.FromRgb(255, 215, 0));
@@ -78,7 +78,7 @@ public sealed class AutomationView : UserControl
 
         Content = new Border
         {
-            Background = Background,
+            Background = PanelBackground,
             Child = new ScrollViewer
             {
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,

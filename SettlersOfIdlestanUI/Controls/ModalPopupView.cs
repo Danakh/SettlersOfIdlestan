@@ -24,7 +24,7 @@ namespace SettlersOfIdlestanUI.Controls;
 public sealed class ModalPopupView : UserControl
 {
     private static readonly SolidColorBrush Veil = new(Color.FromArgb(120, 0, 0, 0));
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(245, 24, 24, 30));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(245, 24, 24, 30));
     private static readonly SolidColorBrush Border_ = new(Colors.Gold);
     private static readonly SolidColorBrush DangerTitle = new(Color.FromRgb(240, 90, 90));
     private static readonly SolidColorBrush HighlightTitle = new(Color.FromRgb(255, 200, 50));
@@ -132,7 +132,7 @@ public sealed class ModalPopupView : UserControl
         {
             MinWidth = 460,
             MaxWidth = 560,
-            Background = Background,
+            Background = PanelBackground,
             BorderBrush = Border_,
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(10),

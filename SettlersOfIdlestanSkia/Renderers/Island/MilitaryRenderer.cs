@@ -40,7 +40,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private sealed class ConsumableParticle
     {
         public SKPoint Position;
-        public Vertex SourceVertex;
+        public required Vertex SourceVertex;
         public Resource Resource;
         public float Progress;
         /// <summary>-1 = part vers la gauche, +1 = part vers la droite.</summary>

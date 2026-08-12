@@ -24,7 +24,7 @@ namespace SettlersOfIdlestanUI.Controls;
 public sealed class TradePopupView : UserControl
 {
     private static readonly SolidColorBrush Veil = new(Color.FromArgb(120, 0, 0, 0));
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(245, 24, 24, 30));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(245, 24, 24, 30));
     private static readonly SolidColorBrush Border_ = new(Colors.Gold);
     private static readonly SolidColorBrush RowFill = new(Color.FromArgb(245, 55, 55, 65));
     private static readonly SolidColorBrush RowDisabled = new(Color.FromArgb(220, 70, 70, 76));
@@ -186,7 +186,7 @@ public sealed class TradePopupView : UserControl
         var box = new Border
         {
             Width = 700,
-            Background = Background,
+            Background = PanelBackground,
             BorderBrush = Border_,
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(10),

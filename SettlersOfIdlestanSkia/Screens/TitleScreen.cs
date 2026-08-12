@@ -235,7 +235,6 @@ public sealed class TitleScreen : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        _settingsPanel.Dispose();
         _hardResetPopup?.Dispose();
         _notificationToastRenderer.Dispose();
         _disposed = true;

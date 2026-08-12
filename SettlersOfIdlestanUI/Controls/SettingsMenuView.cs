@@ -23,7 +23,7 @@ public sealed class SettingsMenuView : UserControl
 {
     private const double MenuWidth = 250;
 
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(220, 0, 0, 0));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(220, 0, 0, 0));
     private static readonly SolidColorBrush ItemBackground = new(Color.FromArgb(240, 40, 40, 40));
     private static readonly SolidColorBrush Border_ = new(Colors.Gold);
     private static readonly SolidColorBrush SeparatorText = new(Color.FromArgb(180, 150, 150, 150));
@@ -58,7 +58,7 @@ public sealed class SettingsMenuView : UserControl
         _box = new Border
         {
             Width = MenuWidth,
-            Background = Background,
+            Background = PanelBackground,
             BorderBrush = Border_,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),

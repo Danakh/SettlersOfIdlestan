@@ -21,7 +21,7 @@ namespace SettlersOfIdlestanUI.Controls;
 public sealed class PrestigePopupView : UserControl
 {
     private static readonly SolidColorBrush Veil = new(Color.FromArgb(120, 0, 0, 0));
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(245, 24, 24, 30));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(245, 24, 24, 30));
     private static readonly SolidColorBrush Border_ = new(Colors.Gold);
     private static readonly SolidColorBrush Separator = new(Color.FromArgb(120, 120, 120, 140));
     private static readonly SolidColorBrush Subtle = new(Color.FromRgb(180, 180, 190));
@@ -126,7 +126,7 @@ public sealed class PrestigePopupView : UserControl
         var box = new Border
         {
             Width = 460,
-            Background = Background,
+            Background = PanelBackground,
             BorderBrush = Border_,
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(10),
