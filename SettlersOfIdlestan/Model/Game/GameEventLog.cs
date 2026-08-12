@@ -19,6 +19,8 @@ public enum GameEventType
     WonderLevelUp,
     GreatLighthousePlaced,
     GreatLighthouseLevelUp,
+    ObservatoryPlaced,
+    ObservatoryLevelUp,
     RuntimeError,
     DragonDiscovered,
     DragonDefeated,

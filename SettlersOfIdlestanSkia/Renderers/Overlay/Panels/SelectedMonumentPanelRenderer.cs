@@ -136,9 +136,11 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         float collapseTabW = CollapseTabW * s;
         float collapseTabH = CollapseTabH * s;
 
-        bool wonderMaxed = (monument is Wonder { IsMaxLevel: true }) || (monument is GreatLighthouse { IsMaxLevel: true });
+        bool wonderMaxed = (monument is Wonder { IsMaxLevel: true })
+                        || (monument is GreatLighthouse { IsMaxLevel: true })
+                        || (monument is Observatory { IsMaxLevel: true });
         bool bonesPurified = monument is DivineBones { Purified: true };
-        bool showResearchRow = monument is DivineBones { Purified: false };
+        bool showResearchRow = monument.UsesResearchInvestment;
         var cost = monument.GetInvestmentCost(playerCiv);
         int resourceCount = wonderMaxed ? 0 : cost.Count;
         var costList = wonderMaxed ? new List<KeyValuePair<Resource, int>>() : cost.ToList();
@@ -273,8 +275,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             y += rowHeight;
         }
 
-        if (showResearchRow && monument is DivineBones bonesRow)
-            y = DrawResearchInvestmentRow(canvas, bonesRow, playerCiv, panelX, panelWidth, padding, rowHeight, barH, y, s);
+        if (showResearchRow)
+            y = DrawResearchInvestmentRow(canvas, monument, playerCiv, panelX, panelWidth, padding, rowHeight, barH, y, s);
 
         foreach (var (lines, active) in bonusLineLayouts)
         {
@@ -397,16 +399,16 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     }
 
     /// <summary>
-    /// Dessine la ligne d'investissement en points de recherche des Os Divins — même présentation
-    /// que les lignes de ressource (checkbox/emoji/nom/montant/barre), mais pilotée par
-    /// DivineBones.InvestedResearch (pool séparé, hors ResourceSet) plutôt que par InvestedResources.
+    /// Dessine la ligne d'investissement en points de recherche (Os Divins, Observatoire) — même
+    /// présentation que les lignes de ressource (checkbox/emoji/nom/montant/barre), mais pilotée par
+    /// Monument.InvestedResearch (pool séparé, hors ResourceSet) plutôt que par InvestedResources.
     /// Retourne le nouveau y après la ligne.
     /// </summary>
-    private float DrawResearchInvestmentRow(SKCanvas canvas, DivineBones bones, Civilization playerCiv, float panelX, float panelWidth, float padding, float rowHeight, float barH, float y, float s)
+    private float DrawResearchInvestmentRow(SKCanvas canvas, Monument monument, Civilization playerCiv, float panelX, float panelWidth, float padding, float rowHeight, float barH, float y, float s)
     {
-        long required = bones.GetRequiredResearch(playerCiv);
-        long invested = bones.InvestedResearch;
-        bool enabled = bones.ResearchInvestmentEnabled;
+        long required = monument.GetRequiredResearch(playerCiv);
+        long invested = monument.InvestedResearch;
+        bool enabled = monument.ResearchInvestmentEnabled;
         bool done = invested >= required;
 
         float rowCenterY = y + rowHeight / 2;
@@ -493,6 +495,18 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                     lines.Add((_localization.Get("monument_bonus_great_lighthouse_tier_picker_active"), true));
                 break;
             }
+            case Observatory observatory:
+            {
+                // Le multiplicateur est la grandeur qui compte pour le joueur : il pilote la marche
+                // exponentielle du coût en points de recherche de chaque nouvelle route du Vide.
+                lines.Add((_localization.GetFormated("monument_bonus_observatory_current",
+                    observatory.Level, FormatMultiplier(observatory.VoidRouteCostMultiplier)), observatory.Level > 0));
+                if (!observatory.IsMaxLevel)
+                    lines.Add((_localization.GetFormated("monument_bonus_observatory_next",
+                        observatory.Level + 1,
+                        FormatMultiplier(Observatory.GetVoidRouteCostMultiplierForLevel(observatory.Level + 1))), false));
+                break;
+            }
             case DeepestMine mine:
                 lines.Add(mine.Dug
                     ? (_localization.Get("monument_bonus_deepest_mine_current"), true)
@@ -518,6 +532,13 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
 
         return lines;
     }
+
+    /// <summary>
+    /// Multiplicateur du coût des routes du Vide, sans décimale inutile : "4" plutôt que "4,00",
+    /// mais "3,67" quand l'Observatoire est à mi-chemin.
+    /// </summary>
+    private static string FormatMultiplier(double multiplier)
+        => multiplier == Math.Floor(multiplier) ? multiplier.ToString("0") : multiplier.ToString("0.00");
 
     /// <summary>
     /// Ligne de bonus commune à la Spire de Corruption et à la Faille des Abysses : le bonus de
@@ -550,9 +571,11 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         var playerCiv = _gameControllerService.PlayerCivilization;
         if (monument == null || playerCiv == null) return MonumentPanelSnapshot.Hidden;
 
-        bool wonderMaxed = (monument is Wonder { IsMaxLevel: true }) || (monument is GreatLighthouse { IsMaxLevel: true });
+        bool wonderMaxed = (monument is Wonder { IsMaxLevel: true })
+                        || (monument is GreatLighthouse { IsMaxLevel: true })
+                        || (monument is Observatory { IsMaxLevel: true });
         bool bonesPurified = monument is DivineBones { Purified: true };
-        bool showResearchRow = monument is DivineBones { Purified: false };
+        bool showResearchRow = monument.UsesResearchInvestment;
         bool showCorruptedPrestige = monument is CorruptionSpire { Built: true };
         bool showEvolve = showCorruptedPrestige
                        && _gameControllerService.MainGameController.AbyssGateController.IsAbyssGateEligible();
@@ -576,17 +599,17 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             }
         }
 
-        if (showResearchRow && monument is DivineBones bones)
+        if (showResearchRow)
         {
-            long required = bones.GetRequiredResearch(playerCiv);
+            long required = monument.GetRequiredResearch(playerCiv);
             rows.Add(new InvestmentRowSnapshot(
                 Key: InvestmentRowSnapshot.ResearchKey,
                 IconName: null,
                 Label: _localization.Get("research_points_label"),
-                Invested: bones.InvestedResearch,
+                Invested: monument.InvestedResearch,
                 Required: required,
-                IsEnabled: bones.ResearchInvestmentEnabled,
-                IsDone: bones.InvestedResearch >= required));
+                IsEnabled: monument.ResearchInvestmentEnabled,
+                IsDone: monument.InvestedResearch >= required));
         }
 
         string title = _localization.Get(monument.PanelTitleKey)

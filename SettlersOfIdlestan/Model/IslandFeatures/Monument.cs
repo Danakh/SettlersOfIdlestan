@@ -28,8 +28,28 @@ public abstract class Monument : IslandFeature
     /// <summary>Tick du dernier cycle d'investissement.</summary>
     public long LastInvestmentTick { get; set; } = 0;
 
+    /// <summary>Points de recherche déjà investis vers l'objectif courant (pool séparé de <see cref="InvestedResources"/>, qui ne couvre que les Resource).</summary>
+    public long InvestedResearch { get; set; } = 0;
+
+    /// <summary>True si le joueur a activé le prélèvement progressif de points de recherche.</summary>
+    public bool ResearchInvestmentEnabled { get; set; } = false;
+
+    /// <summary>Tick du dernier cycle d'investissement en recherche (indépendant de <see cref="LastInvestmentTick"/>, dédié aux ressources).</summary>
+    public long LastResearchInvestmentTick { get; set; } = 0;
+
     /// <summary>Coût total de l'objectif d'investissement courant (modificateurs de la civilisation appliqués).</summary>
     public abstract ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv);
+
+    /// <summary>
+    /// True si l'objectif courant demande aussi des points de recherche — le panneau d'investissement
+    /// affiche alors une ligne dédiée (voir <see cref="GetRequiredResearch"/> et
+    /// MonumentInvestment.ProcessResearchTick).
+    /// </summary>
+    [JsonIgnore]
+    public virtual bool UsesResearchInvestment => false;
+
+    /// <summary>Coût en points de recherche de l'objectif courant (0 si le monument n'en consomme pas).</summary>
+    public virtual long GetRequiredResearch(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => 0;
 
     /// <summary>Clé de localisation du titre du panneau d'investissement.</summary>
     [JsonIgnore]

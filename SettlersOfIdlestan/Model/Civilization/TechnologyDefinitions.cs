@@ -691,6 +691,16 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "VoidBridge", EType.ADDITIVE, 1) },
             tier: 11, line: 10),
 
+        // Seconde suite de la Magie du Vide : débloque l'Observatoire, monument bâti sur une Montagne
+        // de la surface. Chaque niveau abaisse le multiplicateur exponentiel du coût en points de
+        // recherche des routes du Vide, de ×4 à ×3 une fois l'Observatoire complet (voir Observatory).
+        new(TechnologyId.CartesDesEtoiles,
+            "tech_cartes_des_etoiles_name", "tech_cartes_des_etoiles_desc",
+            cost: 418750000,
+            prerequisites: new[] { TechnologyId.MagieDuVide },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_OBSERVATORY, EType.ADDITIVE, 1) },
+            tier: 11, line: 11),
+
         // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.CoeurDeLaTerre,
             "tech_coeur_de_la_terre_name", "tech_coeur_de_la_terre_desc",

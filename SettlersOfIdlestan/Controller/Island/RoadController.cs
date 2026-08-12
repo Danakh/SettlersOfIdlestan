@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestan.Controller.Island
@@ -732,16 +733,20 @@ namespace SettlersOfIdlestan.Controller.Island
             return hex1IsVoid && hex2IsVoid;
         }
 
+        /// <summary>Coût en points de recherche de la première route du Vide.</summary>
+        public const long VoidRouteBaseResearchCost = 1_000_000L;
+
         /// <summary>
-        /// Coût en points de recherche d'une route du Vide supplémentaire : 1 000 000 × 4^n,
-        /// n étant le nombre de routes du Vide déjà construites par la civilisation.
+        /// Coût en points de recherche d'une route du Vide supplémentaire : 1 000 000 × m^n,
+        /// n étant le nombre de routes du Vide déjà construites par la civilisation et m le
+        /// multiplicateur exponentiel (4 par défaut, abaissé jusqu'à 3 par l'Observatoire — voir
+        /// <see cref="Observatory.GetVoidRouteCostMultiplierForLevel"/>).
         /// </summary>
-        public static long GetVoidRouteResearchCost(int alreadyBuilt)
+        public static long GetVoidRouteResearchCost(int alreadyBuilt, double multiplier = Observatory.BaseVoidRouteCostMultiplier)
         {
-            long cost = 1_000_000L;
-            for (int i = 0; i < alreadyBuilt; i++)
-                cost *= 4;
-            return cost;
+            if (alreadyBuilt <= 0) return VoidRouteBaseResearchCost;
+            double cost = VoidRouteBaseResearchCost * Math.Pow(multiplier, alreadyBuilt);
+            return cost >= long.MaxValue ? long.MaxValue : (long)cost;
         }
 
         /// <summary>
@@ -791,14 +796,28 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Coût de la prochaine route du Vide pour cette civilisation. Avec Cartographie du Vide
         /// (VOID_ROUTE_COST_REDUCTION), les routes déjà bâties ne comptent que pour moitié
-        /// (arrondi en faveur du joueur) dans l'exposant de <see cref="GetVoidRouteResearchCost"/>.
+        /// (arrondi en faveur du joueur) dans l'exposant de <see cref="GetVoidRouteResearchCost"/> ;
+        /// l'Observatoire, lui, abaisse le multiplicateur lui-même (voir
+        /// <see cref="GetVoidRouteCostMultiplier"/>).
         /// </summary>
         private long GetVoidRouteResearchCostFor(Civilization civ)
         {
             int alreadyBuilt = civ.Roads.Count(r => IsEdgeBetweenVoidHexes(r.Position));
             if (civ.ModifierAggregator.HasModifier(Modifier.ECategory.VOID_ROUTE_COST_REDUCTION))
                 alreadyBuilt /= 2;
-            return GetVoidRouteResearchCost(alreadyBuilt);
+            return GetVoidRouteResearchCost(alreadyBuilt, GetVoidRouteCostMultiplier());
+        }
+
+        /// <summary>
+        /// Multiplicateur exponentiel courant du coût des routes du Vide : ×4 sans Observatoire,
+        /// abaissé d'un pas par niveau jusqu'à ×3 une fois l'Observatoire complet. L'Observatoire est
+        /// unique sur la carte (monument du joueur) : le multiplicateur vaut donc pour toutes les
+        /// civilisations, comme les bonus de portée du Grand Phare.
+        /// </summary>
+        public double GetVoidRouteCostMultiplier()
+        {
+            var observatory = _state?.Features.OfType<Observatory>().FirstOrDefault();
+            return observatory?.VoidRouteCostMultiplier ?? Observatory.BaseVoidRouteCostMultiplier;
         }
 
         public static ResourceSet GetMaritimeRoadCost() => new ResourceSet

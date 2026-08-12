@@ -42,6 +42,7 @@ namespace SettlersOfIdlestan.Controller
         public MilitaryController MilitaryController { get; private set; }
         public WonderController WonderController { get; private set; }
         public GreatLighthouseController GreatLighthouseController { get; private set; }
+        public ObservatoryController ObservatoryController { get; private set; }
         public DeepestMineController DeepestMineController { get; private set; }
         public SurfaceBreachController SurfaceBreachController { get; private set; }
         public CorruptionSpireController CorruptionSpireController { get; private set; }
@@ -97,6 +98,7 @@ namespace SettlersOfIdlestan.Controller
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
             GreatLighthouseController = new GreatLighthouseController();
+            ObservatoryController = new ObservatoryController();
             DeepestMineController = new DeepestMineController();
             SurfaceBreachController = new SurfaceBreachController();
             CorruptionSpireController = new CorruptionSpireController();
@@ -361,6 +363,7 @@ namespace SettlersOfIdlestan.Controller
                 PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock, CurrentMainState?.PrestigeState);
                 WonderController.Initialize(WorldState, Clock, HarvestController);
                 GreatLighthouseController.Initialize(WorldState, Clock, HarvestController);
+                ObservatoryController.Initialize(WorldState, Clock, HarvestController);
                 DeepestMineController.Initialize(WorldState, Clock, HarvestController);
                 SurfaceBreachController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionSpireController.Initialize(WorldState, Clock, HarvestController);

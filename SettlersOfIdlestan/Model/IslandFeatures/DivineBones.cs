@@ -56,15 +56,6 @@ public class DivineBones : Monument
     /// </summary>
     public int EssenceAlreadyCollected { get; set; } = 0;
 
-    /// <summary>Points de recherche déjà investis vers la Purification (pool séparé de InvestedResources, qui ne couvre que les Resource).</summary>
-    public long InvestedResearch { get; set; } = 0;
-
-    /// <summary>True si le joueur a activé le prélèvement progressif de points de recherche.</summary>
-    public bool ResearchInvestmentEnabled { get; set; } = false;
-
-    /// <summary>Tick du dernier cycle d'investissement en recherche (indépendant de LastInvestmentTick, dédié au Cristal).</summary>
-    public long LastResearchInvestmentTick { get; set; } = 0;
-
     public const long BaseCrystalCost = 500;
     public const long BaseResearchCost = 500_000;
 
@@ -86,8 +77,12 @@ public class DivineBones : Monument
         return (long)Math.Min(multiplier, 1e15);
     }
 
+    /// <summary>La Purification consomme des points de recherche tant qu'elle n'est pas terminée.</summary>
+    [JsonIgnore]
+    public override bool UsesResearchInvestment => !Purified;
+
     /// <summary>Coût en points de recherche, après DivineBonesCostReduction de la civilisation (hex de prestige Ossuaire).</summary>
-    public long GetRequiredResearch(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) =>
+    public override long GetRequiredResearch(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) =>
         ApplyCostReduction(BaseResearchCost * GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected), playerCiv);
 
     /// <summary>Coût en Cristal, après DivineBonesCostReduction de la civilisation (hex de prestige Ossuaire).</summary>

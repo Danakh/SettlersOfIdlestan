@@ -65,6 +65,37 @@ namespace SettlersOfIdlestan.Controller.Expand
         }
 
         /// <summary>
+        /// Prélève jusqu'à 1% du pool de points de recherche courant vers
+        /// <see cref="Monument.InvestedResearch"/>, au plus une fois par <see cref="IntervalTicks"/>
+        /// ticks — même rythme que <see cref="ProcessTick"/>, mais contre
+        /// TechnologyTree.ResearchPoints plutôt que l'inventaire de ressources. Retourne true quand
+        /// le coût en recherche de l'objectif courant est entièrement couvert.
+        /// </summary>
+        public static bool ProcessResearchTick(Monument monument, long required, Civilization playerCiv, long now)
+        {
+            if (monument.InvestedResearch >= required) return true;
+            if (!monument.ResearchInvestmentEnabled) return false;
+            if (now - monument.LastResearchInvestmentTick < IntervalTicks) return false;
+            if (!HasAdjacentCity(monument.Position, playerCiv)) return false;
+            monument.LastResearchInvestmentTick = now;
+
+            var tree = playerCiv.TechnologyTree;
+            long pool = tree.ResearchPoints;
+            if (pool < 1) return false;
+
+            long remaining = required - monument.InvestedResearch;
+            long amount = Math.Min(remaining, Math.Max(1L, pool / 100));
+            amount = Math.Min(amount, pool);
+
+            tree.ResearchPoints -= amount;
+            monument.InvestedResearch += amount;
+            if (monument.InvestedResearch >= required)
+                monument.ResearchInvestmentEnabled = false;
+
+            return monument.InvestedResearch >= required;
+        }
+
+        /// <summary>
         /// True si au moins une ville du joueur touche l'hex donné — condition requise pour
         /// investir dans un Monument (Merveille, Mine Profonde, Spire de Corruption, Faille…).
         /// </summary>

@@ -78,7 +78,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 var crystalCost = bones.GetInvestmentCost(playerCiv);
                 bool crystalDone = MonumentInvestment.ProcessTick(bones, crystalCost, playerCiv, now);
-                bool researchDone = ProcessResearchInvestment(bones, playerCiv, now);
+                bool researchDone = MonumentInvestment.ProcessResearchTick(bones, bones.GetRequiredResearch(playerCiv), playerCiv, now);
 
                 if (!crystalDone || !researchDone) continue;
 
@@ -105,34 +105,5 @@ namespace SettlersOfIdlestan.Controller.Island
             }
         }
 
-        /// <summary>
-        /// Prélève jusqu'à 1% du pool de points de recherche courant vers InvestedResearch, au plus
-        /// une fois par <see cref="InvestmentIntervalTicks"/> ticks — même rythme que MonumentInvestment.ProcessTick,
-        /// mais contre TechnologyTree.ResearchPoints plutôt que l'inventaire de ressources.
-        /// </summary>
-        private static bool ProcessResearchInvestment(DivineBones bones, Civilization playerCiv, long now)
-        {
-            long required = bones.GetRequiredResearch(playerCiv);
-            if (bones.InvestedResearch >= required) return true;
-            if (!bones.ResearchInvestmentEnabled) return false;
-            if (now - bones.LastResearchInvestmentTick < InvestmentIntervalTicks) return false;
-            if (!MonumentInvestment.HasAdjacentCity(bones.Position, playerCiv)) return false;
-            bones.LastResearchInvestmentTick = now;
-
-            var tree = playerCiv.TechnologyTree;
-            long pool = tree.ResearchPoints;
-            if (pool < 1) return false;
-
-            long remaining = required - bones.InvestedResearch;
-            long amount = Math.Min(remaining, Math.Max(1L, pool / 100));
-            amount = Math.Min(amount, pool);
-
-            tree.ResearchPoints -= amount;
-            bones.InvestedResearch += amount;
-            if (bones.InvestedResearch >= required)
-                bones.ResearchInvestmentEnabled = false;
-
-            return bones.InvestedResearch >= required;
-        }
     }
 }

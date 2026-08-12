@@ -229,6 +229,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             MONSTER_ATTACK_IMMUNITY,
             /// <summary>Abaisse de Value tous les seuils de niveau qui gardent la construction d'un bâtiment unique : niveau de la ville (AvailableAtLevel) et niveau exigé des autres bâtiments (« Port Impérial : Comptoir 4 »). Base = 0 ; 1 = -1 niveau partout. Jamais sous 1 pour un bâtiment exigé, jamais sous 0 pour la ville. SubCategory unused. Voir BuildingController.BuildReducedPrerequisiteContext (Grand Terrier gobelin).</summary>
             UNIQUE_BUILDING_PREREQUISITE_REDUCTION,
+            /// <summary>Flags que la construction de l'Observatoire (Monument, uniquement sur une Montagne de la surface) est déverrouillée pour la civilisation. Chaque niveau de l'Observatoire abaisse le multiplicateur du coût en points de recherche des routes du Vide (voir Observatory et RoadController.GetVoidRouteResearchCost). SubCategory unused.</summary>
+            UNLOCK_OBSERVATORY,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

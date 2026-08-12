@@ -204,6 +204,14 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Success,
             _localization.Get("event_great_lighthouse_levelup_title"),
             _localization.GetFormated("event_great_lighthouse_levelup_body", entry.Message ?? "?")),
+        GameEventType.ObservatoryPlaced => (
+            EventLogTone.Discovery,
+            _localization.Get("event_observatory_placed_title"),
+            _localization.Get("event_observatory_placed_body")),
+        GameEventType.ObservatoryLevelUp => (
+            EventLogTone.Success,
+            _localization.Get("event_observatory_levelup_title"),
+            _localization.GetFormated("event_observatory_levelup_body", entry.Message ?? "?")),
         GameEventType.RatsDiscovered => (
             EventLogTone.Danger,
             _localization.Get("event_rats_title"),
