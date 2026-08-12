@@ -152,7 +152,14 @@ public sealed class AscensionRenderer : IDisposable
 
         // Essence divine (gagnée en purifiant les Os Divins des Abysses, voir DivineBonesController),
         // convertie en points divins via une Ascension (voir DrawAscendSection ci-dessous).
-        string essenceText = _localization.GetFormated("ascension_divine_essence_label", godState.DivineEssence);
+        // Une Nécropole bâtie sur l'île courante majore la conversion : le libellé affiche alors le
+        // gain réel (voir AscensionController.GetGodPointsGain), qui est ce que le bouton créditera.
+        double necropolisBonus = ascension.GetNecropolisAscensionBonus();
+        string essenceText = necropolisBonus > 0
+            ? _localization.GetFormated("ascension_divine_essence_necropolis_label",
+                godState.DivineEssence, ascension.GetGodPointsGain(godState),
+                ascension.GetNecropolisLevel(), (int)Math.Round(necropolisBonus * 100))
+            : _localization.GetFormated("ascension_divine_essence_label", godState.DivineEssence);
         SkiaTextUtils.DrawText(canvas, essenceText, x + contentWidth, y + 2, SKTextAlign.Right, _nameFont, _accentPaint);
         string pointsText = _localization.GetFormated("ascension_divine_points_label", godState.GodPoints);
         SkiaTextUtils.DrawText(canvas, pointsText, x + contentWidth, y + 22, SKTextAlign.Right, _nameFont, _accentPaint);

@@ -212,6 +212,14 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Success,
             _localization.Get("event_observatory_levelup_title"),
             _localization.GetFormated("event_observatory_levelup_body", entry.Message ?? "?")),
+        GameEventType.NecropolisPlaced => (
+            EventLogTone.Discovery,
+            _localization.Get("event_necropolis_placed_title"),
+            _localization.Get("event_necropolis_placed_body")),
+        GameEventType.NecropolisLevelUp => (
+            EventLogTone.Success,
+            _localization.Get("event_necropolis_levelup_title"),
+            _localization.GetFormated("event_necropolis_levelup_body", entry.Message ?? "?")),
         GameEventType.RatsDiscovered => (
             EventLogTone.Danger,
             _localization.Get("event_rats_title"),

@@ -138,7 +138,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
 
         bool wonderMaxed = (monument is Wonder { IsMaxLevel: true })
                         || (monument is GreatLighthouse { IsMaxLevel: true })
-                        || (monument is Observatory { IsMaxLevel: true });
+                        || (monument is Observatory { IsMaxLevel: true })
+                        || (monument is Necropolis { IsMaxLevel: true });
         bool bonesPurified = monument is DivineBones { Purified: true };
         bool showResearchRow = monument.UsesResearchInvestment;
         var cost = monument.GetInvestmentCost(playerCiv);
@@ -507,6 +508,18 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                         FormatMultiplier(Observatory.GetVoidRouteCostMultiplierForLevel(observatory.Level + 1))), false));
                 break;
             }
+            case Necropolis necropolis:
+            {
+                // Le bonus porte sur la conversion essence -> points divins de la prochaine Ascension
+                // (voir AscensionController.GetGodPointsGain) : on l'exprime en pourcentage cumulé.
+                lines.Add((_localization.GetFormated("monument_bonus_necropolis_current",
+                    necropolis.Level, FormatPercent(Necropolis.GetAscensionGainBonusForLevel(necropolis.Level))), necropolis.Level > 0));
+                if (!necropolis.IsMaxLevel)
+                    lines.Add((_localization.GetFormated("monument_bonus_necropolis_next",
+                        necropolis.Level + 1,
+                        FormatPercent(Necropolis.GetAscensionGainBonusForLevel(necropolis.Level + 1))), false));
+                break;
+            }
             case DeepestMine mine:
                 lines.Add(mine.Dug
                     ? (_localization.Get("monument_bonus_deepest_mine_current"), true)
@@ -539,6 +552,10 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     /// </summary>
     private static string FormatMultiplier(double multiplier)
         => multiplier == Math.Floor(multiplier) ? multiplier.ToString("0") : multiplier.ToString("0.00");
+
+    /// <summary>Fraction affichée en pourcentage entier : 0.15 → "15".</summary>
+    private static string FormatPercent(double fraction)
+        => Math.Round(fraction * 100).ToString("0");
 
     /// <summary>
     /// Ligne de bonus commune à la Spire de Corruption et à la Faille des Abysses : le bonus de
@@ -573,7 +590,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
 
         bool wonderMaxed = (monument is Wonder { IsMaxLevel: true })
                         || (monument is GreatLighthouse { IsMaxLevel: true })
-                        || (monument is Observatory { IsMaxLevel: true });
+                        || (monument is Observatory { IsMaxLevel: true })
+                        || (monument is Necropolis { IsMaxLevel: true });
         bool bonesPurified = monument is DivineBones { Purified: true };
         bool showResearchRow = monument.UsesResearchInvestment;
         bool showCorruptedPrestige = monument is CorruptionSpire { Built: true };

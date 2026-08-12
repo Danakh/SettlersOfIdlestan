@@ -808,6 +808,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE => $"{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_temple_dominion_protection")}",
         Modifier.ECategory.VOID_ROUTE_COST_REDUCTION         => _localization.Get("prestige_tooltip_void_route_cost_reduction"),
         Modifier.ECategory.UNLOCK_OBSERVATORY                => _localization.Get("prestige_tooltip_unlocks_observatory"),
+        Modifier.ECategory.UNLOCK_NECROPOLIS                 => _localization.Get("prestige_tooltip_unlocks_necropolis"),
         Modifier.ECategory.TEMPLE_DEFENSE_BONUS              => _localization.Get("prestige_tooltip_temple_defense_bonus"),
         Modifier.ECategory.CITY_MIN_DISTANCE                 => $"{_localization.Get("prestige_tooltip_city_min_distance")}: {(int)mod.Value}",
         Modifier.ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN   => $"{_localization.Get("prestige_tooltip_city_placement_terrain")} {_localization.Get($"hex_tooltip_terrain_{mod.SubCategory.ToLower()}")}",

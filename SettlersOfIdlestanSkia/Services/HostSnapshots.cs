@@ -710,6 +710,7 @@ public sealed record CivPanelSnapshot(
     public const string KeyWonder          = "wonder";
     public const string KeyGreatLighthouse = "greatLighthouse";
     public const string KeyObservatory     = "observatory";
+    public const string KeyNecropolis      = "necropolis";
     public const string KeyDeepestMine     = "deepestMine";
     public const string KeySpire           = "spire";
     public const string KeyRaid            = "raid";

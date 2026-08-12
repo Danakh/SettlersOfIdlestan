@@ -66,6 +66,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private SKRect _wonderButtonRect   = SKRect.Empty;
     private SKRect _greatLighthouseButtonRect = SKRect.Empty;
     private SKRect _observatoryButtonRect = SKRect.Empty;
+    private SKRect _necropolisButtonRect = SKRect.Empty;
     private SKRect _deepestMineButtonRect = SKRect.Empty;
     private SKRect _raidButtonRect     = SKRect.Empty;
     private SKRect _warHeraldButtonRect = SKRect.Empty;
@@ -77,7 +78,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly List<(SKRect rect, string pinKey, string tooltipKey)> _pinnedItemRects = new();
     private int _hoveredPinnedIndex = -1;
 
-    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredWarHerald, _hoveredLocateHero, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredPresenceOfGod, _hoveredGreatLighthouse, _hoveredObservatory;
+    private bool _hoveredTrade, _hoveredPrestige, _hoveredWonder, _hoveredDeepestMine, _hoveredRaid, _hoveredWarHerald, _hoveredLocateHero, _hoveredSpire, _hoveredRelocation, _hoveredWalkOfGod, _hoveredPresenceOfGod, _hoveredGreatLighthouse, _hoveredObservatory, _hoveredNecropolis;
     private bool _disposed;
     private SKPaint? _btnRaidActivePaint;
     private SKPaint? _btnRaidActiveHoverPaint;
@@ -167,6 +168,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private bool ObservatoryVisible => CanPlaceObservatory();
     private bool ObservatoryEnabled => ObservatoryVisible && CurrentLayer == IslandMap.SurfaceLayer;
 
+    // La Nécropole se bâtit sur des Os Divins, qui n'existent que sur les îles de l'Abysse.
+    private bool NecropolisVisible => CanPlaceNecropolis();
+    private bool NecropolisEnabled => NecropolisVisible && CurrentLayer == LayerState.AbyssZ;
+
     private bool DeepestMineVisible => CanPlaceDeepestMine();
     private bool DeepestMineEnabled => DeepestMineVisible && CurrentLayer == IslandMap.SurfaceLayer;
 
@@ -236,6 +241,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool wonderVisible          = WonderVisible;
         bool greatLighthouseVisible = GreatLighthouseVisible;
         bool observatoryVisible     = ObservatoryVisible;
+        bool necropolisVisible      = NecropolisVisible;
         bool deepestMineVisible     = DeepestMineVisible;
         bool spireVisible           = SpireVisible;
         // Capturées une fois pour la frame : le dessin du bouton et son infobulle doivent
@@ -243,6 +249,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool wonderEnabled          = wonderVisible          && CurrentLayer == IslandMap.SurfaceLayer;
         bool greatLighthouseEnabled = greatLighthouseVisible && CurrentLayer == IslandMap.SurfaceLayer;
         bool observatoryEnabled     = observatoryVisible     && CurrentLayer == IslandMap.SurfaceLayer;
+        bool necropolisEnabled      = necropolisVisible      && CurrentLayer == LayerState.AbyssZ;
         bool deepestMineEnabled     = deepestMineVisible     && CurrentLayer == IslandMap.SurfaceLayer;
         bool spireEnabled           = spireVisible           && CurrentLayer == LayerState.UnderworldZ;
         bool raidVisible   = IsRaidVisible();
@@ -268,15 +275,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var worldState = _gameControllerService.CurrentWorldState;
         var pinned = _gameControllerService.CurrentGameState?.Settings.PinnedCivPanelKeys ?? (IReadOnlySet<string>)new HashSet<string>();
 
-        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || greatLighthouseVisible || observatoryVisible || deepestMineVisible || spireVisible || raidVisible || warHeraldVisible || locateHeroVisible || relocationVisible || walkOfGodVisible || presenceOfGodVisible;
+        bool showActions  = tradeVisible || prestigeVisible || wonderVisible || greatLighthouseVisible || observatoryVisible || necropolisVisible || deepestMineVisible || spireVisible || raidVisible || warHeraldVisible || locateHeroVisible || relocationVisible || walkOfGodVisible || presenceOfGodVisible;
         bool showControls = pinned.Any(k => IsKeyShowable(k, civ, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters, hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts));
 
         // Single source of truth for the action-button count — reused for both the
         // panel height measurement and the button-grid layout so they can't drift apart.
         // Trade / Raid / War Herald / Locate Hero are drawn as small icon buttons on the title row, not in this grid.
-        int actionCount = (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (greatLighthouseVisible ? 1 : 0) + (observatoryVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0) + (presenceOfGodVisible ? 1 : 0);
+        int actionCount = (prestigeVisible ? 1 : 0) + (wonderVisible ? 1 : 0) + (greatLighthouseVisible ? 1 : 0) + (observatoryVisible ? 1 : 0) + (necropolisVisible ? 1 : 0) + (deepestMineVisible ? 1 : 0) + (spireVisible ? 1 : 0) + (relocationVisible ? 1 : 0) + (walkOfGodVisible ? 1 : 0) + (presenceOfGodVisible ? 1 : 0);
 
-        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _greatLighthouseButtonRect = _observatoryButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _warHeraldButtonRect = _locateHeroButtonRect = _relocationButtonRect = _walkOfGodButtonRect = _presenceOfGodButtonRect = SKRect.Empty;
+        _tradeButtonRect = _prestigeButtonRect = _wonderButtonRect = _greatLighthouseButtonRect = _observatoryButtonRect = _necropolisButtonRect = _deepestMineButtonRect = _spireButtonRect = _raidButtonRect = _warHeraldButtonRect = _locateHeroButtonRect = _relocationButtonRect = _walkOfGodButtonRect = _presenceOfGodButtonRect = SKRect.Empty;
         _pinnedItemRects.Clear();
 
         if (!showActions && !showControls)
@@ -444,6 +451,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 DrawWrappedButtonText(canvas, _observatoryButtonRect, _localization.Get("observatory_action_short"), _btnSmFont!, observatoryEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
             }
 
+            if (necropolisVisible)
+            {
+                _necropolisButtonRect = BtnRect(btnIdx++, allowFullWidth: false);
+                canvas.DrawRoundRect(_necropolisButtonRect, 6 * s, 6 * s, necropolisEnabled ? (_hoveredNecropolis ? _btnHoverPaint : _btnPaint) : _btnDisabledPaint);
+                DrawWrappedButtonText(canvas, _necropolisButtonRect, _localization.Get("necropolis_action_short"), _btnSmFont!, necropolisEnabled ? TextPaint! : _btnDisabledTxtPaint!, s);
+            }
+
             if (deepestMineVisible)
             {
                 _deepestMineButtonRect = BtnRect(btnIdx++, allowFullWidth: false);
@@ -600,6 +614,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_observatory"), new SKPoint(_observatoryButtonRect.Right, TipY(_observatoryButtonRect.Top)));
         else if (_hoveredObservatory && !observatoryEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_observatory_surface_only"), new SKPoint(_observatoryButtonRect.Right, TipY(_observatoryButtonRect.Top)));
+        else if (_hoveredNecropolis && necropolisEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_necropolis"), new SKPoint(_necropolisButtonRect.Right, TipY(_necropolisButtonRect.Top)));
+        else if (_hoveredNecropolis && !necropolisEnabled)
+            _tooltipRenderer.SetTooltip(_localization.Get("tooltip_necropolis_abyss_only"), new SKPoint(_necropolisButtonRect.Right, TipY(_necropolisButtonRect.Top)));
         else if (_hoveredDeepestMine && !deepestMineEnabled)
             _tooltipRenderer.SetTooltip(_localization.Get("tooltip_deepest_mine_surface_only"), new SKPoint(_deepestMineButtonRect.Right, TipY(_deepestMineButtonRect.Top)));
         else if (_hoveredDeepestMine)
@@ -692,6 +710,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _hoveredWonder      = !_wonderButtonRect.IsEmpty      && _wonderButtonRect.Contains(pos.X, py);
         _hoveredGreatLighthouse = !_greatLighthouseButtonRect.IsEmpty && _greatLighthouseButtonRect.Contains(pos.X, py);
         _hoveredObservatory = !_observatoryButtonRect.IsEmpty && _observatoryButtonRect.Contains(pos.X, py);
+        _hoveredNecropolis  = !_necropolisButtonRect.IsEmpty  && _necropolisButtonRect.Contains(pos.X, py);
         _hoveredDeepestMine = !_deepestMineButtonRect.IsEmpty && _deepestMineButtonRect.Contains(pos.X, py);
         _hoveredSpire       = !_spireButtonRect.IsEmpty       && _spireButtonRect.Contains(pos.X, py);
         _hoveredRelocation  = !_relocationButtonRect.IsEmpty  && _relocationButtonRect.Contains(pos.X, py);
@@ -732,6 +751,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         if (!_wonderButtonRect.IsEmpty          && _wonderButtonRect.Contains(pos.X, py))          { DoWonder();          return true; }
         if (!_greatLighthouseButtonRect.IsEmpty && _greatLighthouseButtonRect.Contains(pos.X, py)) { DoGreatLighthouse(); return true; }
         if (!_observatoryButtonRect.IsEmpty      && _observatoryButtonRect.Contains(pos.X, py))      { DoObservatory();     return true; }
+        if (!_necropolisButtonRect.IsEmpty       && _necropolisButtonRect.Contains(pos.X, py))       { DoNecropolis();      return true; }
         if (!_deepestMineButtonRect.IsEmpty     && _deepestMineButtonRect.Contains(pos.X, py))     { DoDeepestMine();     return true; }
         if (!_spireButtonRect.IsEmpty           && _spireButtonRect.Contains(pos.X, py))           { DoSpire();           return true; }
         if (!_raidButtonRect.IsEmpty            && _raidButtonRect.Contains(pos.X, pos.Y))         { DoRaid();            return true; }
@@ -800,6 +820,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var observatoryController = _gameControllerService.MainGameController.ObservatoryController;
         _targetSelectionService.EnterHexSelection("observatory_select_hex", observatoryController.GetPlaceableHexes(),
             hex => observatoryController.PlaceObservatory(hex), TargetSelectionTheme.Friendly);
+    }
+
+    private void DoNecropolis()
+    {
+        if (!NecropolisEnabled || _targetSelectionService == null) return;
+        _closeAll();
+        var necropolisController = _gameControllerService.MainGameController.NecropolisController;
+        _targetSelectionService.EnterHexSelection("necropolis_select_hex", necropolisController.GetPlaceableHexes(),
+            hex => necropolisController.PlaceNecropolis(hex), TargetSelectionTheme.Friendly);
     }
 
     private void DoDeepestMine()
@@ -1181,6 +1210,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         catch { return false; }
     }
 
+    private bool CanPlaceNecropolis()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.NecropolisController.CanPlaceNecropolis(civ); }
+        catch { return false; }
+    }
+
     private bool CanPlaceDeepestMine()
     {
         var civ = _gameControllerService.PlayerCivilization;
@@ -1402,6 +1439,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             actions.Add(SimpleAction(CivPanelSnapshot.KeyObservatory, "observatory_action_short",
                 ObservatoryEnabled, "tooltip_observatory", "tooltip_observatory_surface_only"));
 
+        if (NecropolisVisible)
+            actions.Add(SimpleAction(CivPanelSnapshot.KeyNecropolis, "necropolis_action_short",
+                NecropolisEnabled, "tooltip_necropolis", "tooltip_necropolis_abyss_only"));
+
         if (DeepestMineVisible)
             actions.Add(SimpleAction(CivPanelSnapshot.KeyDeepestMine, "deepest_mine_action_short",
                 DeepestMineEnabled, "tooltip_deepest_mine", "tooltip_deepest_mine_surface_only"));
@@ -1501,6 +1542,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case CivPanelSnapshot.KeyWonder:          DoWonder();          break;
             case CivPanelSnapshot.KeyGreatLighthouse: DoGreatLighthouse(); break;
             case CivPanelSnapshot.KeyObservatory:     DoObservatory();     break;
+            case CivPanelSnapshot.KeyNecropolis:      DoNecropolis();      break;
             case CivPanelSnapshot.KeyDeepestMine:     DoDeepestMine();     break;
             case CivPanelSnapshot.KeySpire:           DoSpire();           break;
             case CivPanelSnapshot.KeyRaid:            DoRaid();            break;

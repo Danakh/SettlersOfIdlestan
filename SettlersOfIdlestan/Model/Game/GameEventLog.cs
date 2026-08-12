@@ -21,6 +21,8 @@ public enum GameEventType
     GreatLighthouseLevelUp,
     ObservatoryPlaced,
     ObservatoryLevelUp,
+    NecropolisPlaced,
+    NecropolisLevelUp,
     RuntimeError,
     DragonDiscovered,
     DragonDefeated,

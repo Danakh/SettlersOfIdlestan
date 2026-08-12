@@ -246,8 +246,30 @@ public class AscensionController : IModifierProvider
     public bool CanAscend(GodState godState) => godState.DivineEssence >= MinDivineEssenceForAscension;
 
     /// <summary>
-    /// Convertit toute l'essence divine accumulée en points divins (1 pour 1, cross-prestige) —
-    /// remettant DivineEssence à zéro, ce qui réinitialise le coût de Purification des Os Divins
+    /// Niveau de la Nécropole bâtie sur l'île courante (0 s'il n'y en a pas) — chaque niveau majore
+    /// de 15% les points divins de l'Ascension (voir <see cref="GetGodPointsGain"/>).
+    /// </summary>
+    public int GetNecropolisLevel() => _state?.Features.OfType<Necropolis>().FirstOrDefault()?.Level ?? 0;
+
+    /// <summary>
+    /// Bonus de points divins accordé par la Nécropole de l'île courante (0.15 par niveau, 0 sans
+    /// Nécropole) — voir <see cref="GetGodPointsGain"/>.
+    /// </summary>
+    public double GetNecropolisAscensionBonus() => Necropolis.GetAscensionGainBonusForLevel(GetNecropolisLevel());
+
+    /// <summary>
+    /// Points divins qu'une Ascension immédiate rapporterait : 1 par essence divine détenue, majorés
+    /// de 15% par niveau de la Nécropole bâtie sur l'île courante (arrondi à l'entier inférieur, voir
+    /// <see cref="Necropolis"/>). Utilisé par <see cref="PerformAscension"/> et par l'écran Ascension,
+    /// qui doivent afficher et créditer exactement le même nombre.
+    /// </summary>
+    public int GetGodPointsGain(GodState godState)
+        => (int)Math.Floor(godState.DivineEssence * Necropolis.GetAscensionGainMultiplierForLevel(GetNecropolisLevel()));
+
+    /// <summary>
+    /// Convertit toute l'essence divine accumulée en points divins (1 pour 1, majoré par la Nécropole
+    /// de l'île courante, voir <see cref="GetGodPointsGain"/>) — puis remet DivineEssence à zéro, ce
+    /// qui réinitialise le coût de Purification des Os Divins
     /// (voir DivineBones.EssenceAlreadyCollected) — puis efface la progression de la partie en
     /// cours : le PrestigeState (recherches, points de prestige, niveau de corruption,
     /// historique...) est entièrement remplacé par un nouveau, câblé sur une toute nouvelle
@@ -271,9 +293,11 @@ public class AscensionController : IModifierProvider
         if (!GetSelectableRaces().Contains(chosenRace))
             throw new InvalidOperationException($"Race {chosenRace} is not selectable.");
 
-        int essenceGained = godState.DivineEssence;
-        godState.GodPoints += essenceGained;
-        godState.TotalGodPointsEarned += essenceGained;
+        // La Nécropole de l'île courante majore la conversion (+15% par niveau) : elle doit donc être
+        // lue avant que l'île ne soit remplacée plus bas.
+        int godPointsGained = GetGodPointsGain(godState);
+        godState.GodPoints += godPointsGained;
+        godState.TotalGodPointsEarned += godPointsGained;
         godState.DivineEssence = 0;
         godState.AscensionState.AscensionsPerformed++;
 

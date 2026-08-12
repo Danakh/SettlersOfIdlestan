@@ -169,6 +169,9 @@ public enum TechnologyId
     // Un tier au-dessus de ReliquaireSacre, prérequis ReliquaireSacre + AcierAbyssal : conserve une
     // seconde essence divine lors du prestige (voir ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE).
     ReliquaireRenforce,
+    // Suite du Reliquaire Sacré : débloque la Nécropole, monument bâti sur des Os Divins non purifiés
+    // (qu'il consomme) dont chaque niveau augmente de 15% les points divins gagnés à l'Ascension.
+    NecropoleDivine,
     // Branche de la Théocratie (tiers 14-15) — recherches du Dominion, visibles uniquement une fois
     // le pouvoir divin Foi débloqué (RequiresDominionUnlock, voir ResearchController).
     DogmeDeLEmprise,

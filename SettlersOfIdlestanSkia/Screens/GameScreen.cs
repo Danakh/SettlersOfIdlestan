@@ -1120,6 +1120,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_observatory_levelup_title"),
                 _localizationService.GetFormated("event_observatory_levelup_body", entry.Message ?? "?"),
                 NotificationIcon.Achievement),
+            GameEventType.NecropolisLevelUp => (
+                _localizationService.Get("event_necropolis_levelup_title"),
+                _localizationService.GetFormated("event_necropolis_levelup_body", entry.Message ?? "?"),
+                NotificationIcon.Achievement),
             GameEventType.CivilizationDiscovered => (
                 _localizationService.Get("event_civilization_discovered_title"),
                 _localizationService.Get("event_civilization_discovered_body"),

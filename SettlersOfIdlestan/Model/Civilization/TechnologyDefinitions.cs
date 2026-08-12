@@ -754,6 +754,16 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE, EType.ADDITIVE, 1) },
             tier: 11, line: 3),
 
+        // Suite du Reliquaire Sacré : débloque la Nécropole, bâtie sur des Os Divins non purifiés
+        // qu'elle consomme (l'essence divine qu'ils auraient donnée est sacrifiée). Chaque niveau
+        // augmente de 15% les points divins gagnés à l'Ascension (voir Necropolis).
+        new(TechnologyId.NecropoleDivine,
+            "tech_necropole_divine_name", "tech_necropole_divine_desc",
+            cost: 418750000,
+            prerequisites: new[] { TechnologyId.ReliquaireSacre },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_NECROPOLIS, EType.ADDITIVE, 1) },
+            tier: 11, line: 5),
+
         // Les routes du Vide déjà bâties ne comptent que pour moitié dans le coût exponentiel de la
         // suivante : 1M × 4^n devient 1M × 4^(n/2) (voir RoadController.GetVoidRouteResearchCost).
         // Baissée de 2 tiers (coût / 16).
