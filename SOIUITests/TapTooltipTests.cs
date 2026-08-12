@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -80,6 +81,11 @@ public class TapTooltipTests
         var pill = view.GetVisualDescendants().OfType<ResourcePill>().First();
         var center = pill.TranslatePoint(new Point(pill.Bounds.Width / 2, pill.Bounds.Height / 2), view);
         Assert.NotNull(center);
+
+        // Le test de collision interroge la scene du compositeur, pas l'arbre visuel : tant
+        // qu'aucune image n'a ete rendue, il ne trouve rien et renvoie null. RunJobs ne suffit
+        // pas — la minuterie de rendu bat sur l'horloge reelle, d'ou un resultat aleatoire.
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
         var hit = view.InputHitTest(center.Value) as Visual;
 
