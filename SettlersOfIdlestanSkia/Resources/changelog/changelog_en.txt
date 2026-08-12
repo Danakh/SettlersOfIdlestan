@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.15
+• Void Bridge: new research (follow-up to Void Magic) unlocking a spell that raises the three roads around a void-bordered vertex at once, paid in crystals instead of research points — its cost doubles with every cast
 
 ---
 

@@ -152,6 +152,9 @@ public enum TechnologyId
     // Capstones des branches existantes (tiers 12-13)
     AcierAbyssal,
     MagieDuVide,
+    // Suite de la Magie du Vide : débloque le sort Pont du Vide, qui bâtit d'un coup les trois routes
+    // autour d'un vertex bordé de Vide contre des cristaux, sans coût en points de recherche.
+    PontDuVide,
     CoeurDeLaTerre,
     // Baissée de 2 tiers (coût / 16) puis d'un tier supplémentaire (coût / 4), tier 9, pour la rendre
     // accessible plus tôt.

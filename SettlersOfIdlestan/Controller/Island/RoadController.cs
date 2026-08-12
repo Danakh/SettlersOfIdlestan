@@ -410,6 +410,73 @@ namespace SettlersOfIdlestan.Controller.Island
             return road;
         }
 
+        /// <summary>
+        /// Vrai si le vertex est bordé par au moins deux hexagones de Vide — cible du sort Pont du Vide
+        /// (<see cref="BuildVoidBridge"/>). Les trois hexagones doivent exister sur la carte du layer.
+        /// </summary>
+        public bool IsVoidBridgeVertex(Vertex vertex, IslandMap map)
+        {
+            int voidCount = 0;
+            foreach (var hex in vertex.GetHexes())
+            {
+                var tile = map.GetTile(hex);
+                if (tile == null) return false;
+                if (tile.TerrainType == TerrainType.Void) voidCount++;
+            }
+            return voidCount >= 2;
+        }
+
+        /// <summary>
+        /// Sort Pont du Vide : bâtit d'un coup, et gratuitement, les trois routes autour d'un vertex bordé
+        /// de Vide — ni ressources, ni points de recherche (le coût est payé en cristaux par le sort), ni
+        /// contrainte de raccordement au réseau. Les arêtes déjà occupées par une route de la civilisation
+        /// ou protégées par une route ennemie proche de sa ville sont simplement ignorées ; les autres
+        /// routes ennemies sont conquises comme lors d'une construction normale.
+        /// Retourne le nombre de routes réellement posées (0 si le vertex n'offrait plus rien à bâtir).
+        /// </summary>
+        public int BuildVoidBridge(int civilizationIndex, Vertex vertex)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var civ = _state.GetCivilization(civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            var map = _state.GetMapForZ(vertex.Z);
+            if (map == null) return 0;
+
+            var enemyProtectedEdges = new HashSet<Edge>(
+                _state.Civilizations
+                    .Where(c => c.Index != civilizationIndex)
+                    .SelectMany(c => c.Roads)
+                    .Where(r => r.Position.Z == vertex.Z && r.DistanceToNearestCity <= 2)
+                    .Select(r => r.Position));
+
+            var built = new List<Edge>();
+            foreach (var edge in GetEdgesAtVertex(vertex))
+            {
+                if (!map.HasTile(edge.Hex1) || !map.HasTile(edge.Hex2)) continue;
+                if (civ.Roads.Any(r => r.Position.Equals(edge))) continue;
+                if (enemyProtectedEdges.Contains(edge)) continue;
+
+                TryRemoveEnemyRoadAt(edge, civilizationIndex);
+                civ.AddRoad(new Road(edge) { CivilizationIndex = civilizationIndex });
+                built.Add(edge);
+            }
+
+            if (built.Count == 0) return 0;
+
+            ComputeRoadDistancesForCivilization(civ, vertex.Z);
+            InvalidateBuildableRoadsCacheForLayer(vertex.Z);
+            _state.Visibility.RecalculateFor(civilizationIndex);
+
+            // Même événement qu'une route bâtie à la main : c'est lui qui déclenche l'extension
+            // automatique de la carte de l'Abysse (voir MainGameController.OnRoadBuiltExtendMap).
+            foreach (var edge in built)
+                OnRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civilizationIndex, edge));
+
+            return built.Count;
+        }
+
         private void TryRemoveEnemyRoadAt(Edge edge, int buildingCivIndex)
         {
             if (_state == null) return;
@@ -691,7 +758,8 @@ namespace SettlersOfIdlestan.Controller.Island
             return hex1IsDeepWater || hex2IsDeepWater;
         }
 
-        private static Edge[] GetEdgesAtVertex(Vertex vertex)
+        /// <summary>Les trois arêtes qui se rejoignent sur ce vertex.</summary>
+        public static Edge[] GetEdgesAtVertex(Vertex vertex)
         {
             var hexes = vertex.GetHexes();
             return new[]

@@ -14,12 +14,15 @@ public enum SpellId
     SummonTroops,
     /// <summary>Édification Arcanique — fait apparaître une ville entièrement développée sur un vertex constructible ciblé.</summary>
     ArcaneEdification,
+    /// <summary>Pont du Vide — bâtit gratuitement les trois routes autour d'un vertex bordé de Vide.</summary>
+    VoidBridge,
 }
 
 /// <summary>
 /// Cible requise pour lancer un sort. <see cref="None"/> : effet immédiat sans ciblage.
 /// <see cref="AllyCity"/> : le joueur doit désigner une de ses propres villes.
 /// <see cref="BuildableVertex"/> : le joueur doit désigner un vertex où il peut fonder une ville.
+/// <see cref="VoidVertex"/> : le joueur doit désigner un vertex bordé par au moins deux hexagones de Vide.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<SpellTargetKind>))]
 public enum SpellTargetKind
@@ -27,6 +30,7 @@ public enum SpellTargetKind
     None,
     AllyCity,
     BuildableVertex,
+    VoidVertex,
 }
 
 /// <summary>
@@ -43,8 +47,14 @@ public class SpellDefinition
     public int TroopReward { get; }
     public SpellTargetKind TargetKind { get; }
 
+    /// <summary>
+    /// Quand true, le coût en cristaux double à chaque lancement réussi du run
+    /// (voir <c>MagicState.SpellCastCounts</c> et <c>MagicController.GetSpellCost</c>).
+    /// </summary>
+    public bool CostDoublesPerCast { get; }
+
     public SpellDefinition(SpellId id, int crystalCost, int goldReward = 0, int troopReward = 0,
-        SpellTargetKind targetKind = SpellTargetKind.None)
+        SpellTargetKind targetKind = SpellTargetKind.None, bool costDoublesPerCast = false)
     {
         Id = id;
         NameKey = $"spell_{id.ToString().ToLower()}_name";
@@ -53,5 +63,6 @@ public class SpellDefinition
         GoldReward = goldReward;
         TroopReward = troopReward;
         TargetKind = targetKind;
+        CostDoublesPerCast = costDoublesPerCast;
     }
 }

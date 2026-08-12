@@ -43,6 +43,7 @@ namespace SettlersOfIdlestan.Controller.Magic
         private CityBuilderController? _cityBuilder;
         private BuildingController? _buildingController;
         private HarvestController? _harvestController;
+        private RoadController? _roadController;
 
         /// <summary>Déclenché à chaque lancement/arrêt/changement de puissance d'un rituel.</summary>
         public event EventHandler? OnRitualsChanged;
@@ -51,7 +52,7 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null,
             CityBuilderController? cityBuilder = null, BuildingController? buildingController = null,
-            HarvestController? harvestController = null)
+            HarvestController? harvestController = null, RoadController? roadController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -62,6 +63,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             _cityBuilder = cityBuilder;
             _buildingController = buildingController;
             _harvestController = harvestController;
+            _roadController = roadController;
             _lastPassiveTick = 0;
             _lastTempleDamageTick = 0;
 
@@ -293,13 +295,39 @@ namespace SettlersOfIdlestan.Controller.Magic
         public IReadOnlyList<SpellDefinition> GetKnownSpells()
             => SpellDefinitions.All.Where(s => IsSpellKnown(s.Id)).ToList();
 
-        /// <summary>Coût en cristaux d'un sort, réduit par SPELL_COST_REDUCTION (SubCategory = SpellId name).</summary>
+        /// <summary>Nombre de lancements réussis de ce sort depuis le début du run.</summary>
+        public int GetSpellCastCount(SpellId id)
+            => _state != null && _state.Magic.SpellCastCounts.TryGetValue(id, out var count) ? count : 0;
+
+        /// <summary>
+        /// Coût en cristaux d'un sort, réduit par SPELL_COST_REDUCTION (SubCategory = SpellId name).
+        /// Pour un sort à coût croissant (<see cref="SpellDefinition.CostDoublesPerCast"/>), le coût de
+        /// base double d'abord à chaque lancement déjà effectué dans le run. Le calcul passe par un long
+        /// et sature à <see cref="int.MaxValue"/> : au-delà d'une vingtaine de lancements le coût dépasse
+        /// la capacité d'un int, et un débordement rendrait le sort gratuit.
+        /// </summary>
         public int GetSpellCost(SpellDefinition def)
         {
+            long baseCost = def.CrystalCost;
+            if (def.CostDoublesPerCast)
+            {
+                int casts = GetSpellCastCount(def.Id);
+                for (int i = 0; i < casts && baseCost < int.MaxValue; i++)
+                    baseCost *= 2;
+            }
+
             double reduction = GetPlayerCiv()?.ModifierAggregator
                 .ApplyModifiers(ECategory.SPELL_COST_REDUCTION, def.Id.ToString(), 0.0) ?? 0.0;
             reduction = Math.Clamp(reduction, 0.0, 0.9);
-            return (int)Math.Ceiling(def.CrystalCost * (1.0 - reduction));
+            double cost = Math.Ceiling(baseCost * (1.0 - reduction));
+            return cost >= int.MaxValue ? int.MaxValue : (int)cost;
+        }
+
+        /// <summary>Enregistre un lancement réussi — c'est ce compteur qui fait doubler le coût des sorts concernés.</summary>
+        private void RegisterSpellCast(SpellId id)
+        {
+            if (_state == null) return;
+            _state.Magic.SpellCastCounts[id] = GetSpellCastCount(id) + 1;
         }
 
         public bool CanCastSpell(SpellId id)
@@ -310,6 +338,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (!IsMagicUnlocked() || !IsSpellKnown(id)) return false;
             if (def.TargetKind == SpellTargetKind.AllyCity && GetAllyCityTargets().Count == 0) return false;
             if (def.TargetKind == SpellTargetKind.BuildableVertex && GetBuildableCityTargets().Count == 0) return false;
+            if (def.TargetKind == SpellTargetKind.VoidVertex && GetVoidBridgeTargets().Count == 0) return false;
             return civ.GetResourceQuantity(Resource.Crystal) >= GetSpellCost(def);
         }
 
@@ -324,6 +353,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (civ == null || def == null) return null;
             if (def.TargetKind == SpellTargetKind.AllyCity && GetAllyCityTargets().Count == 0) return "spell_blocked_no_ally_city";
             if (def.TargetKind == SpellTargetKind.BuildableVertex && GetBuildableCityTargets().Count == 0) return "spell_blocked_no_buildable_vertex";
+            if (def.TargetKind == SpellTargetKind.VoidVertex && GetVoidBridgeTargets().Count == 0) return "spell_blocked_no_void_vertex";
             if (civ.GetResourceQuantity(Resource.Crystal) < GetSpellCost(def)) return "spell_blocked_crystals";
             return null;
         }
@@ -338,6 +368,7 @@ namespace SettlersOfIdlestan.Controller.Magic
 
             civ.RemoveResource(Resource.Crystal, GetSpellCost(def));
             civ.AddResource(Resource.Gold, def.GoldReward);
+            RegisterSpellCast(id);
             return true;
         }
 
@@ -363,6 +394,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             civ.RemoveResource(Resource.Crystal, GetSpellCost(def));
             int effectiveMaxSoldiers = city.MaxSoldiers + civ.CityMaxSoldiersBonus;
             city.Soldiers = Math.Min(effectiveMaxSoldiers, city.Soldiers + def.TroopReward);
+            RegisterSpellCast(id);
             return true;
         }
 
@@ -422,6 +454,69 @@ namespace SettlersOfIdlestan.Controller.Magic
             city.Soldiers = city.MaxSoldiers;
 
             BuildingController.RecalculateStorageCapacity(civ);
+            RegisterSpellCast(id);
+            return true;
+        }
+
+        // ── Pont du Vide ─────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Vertex ciblables par le Pont du Vide sur le calque actuellement affiché : bordés par au moins
+        /// deux hexagones de Vide, entièrement visibles pour le joueur (les trois hexagones sont révélés),
+        /// et dont au moins une des trois arêtes n'est pas déjà occupée par une route de la civilisation —
+        /// sinon le sort n'aurait plus rien à bâtir. La visibilité suffit à borner la portée : les routes
+        /// révèlent les trois hexagones de chacune de leurs extrémités, donc chaque lancement rend
+        /// ciblables les vertex atteints, de proche en proche.
+        /// </summary>
+        public List<Vertex> GetVoidBridgeTargets()
+        {
+            var result = new List<Vertex>();
+            var civ = GetPlayerCiv();
+            if (civ == null || _state == null || _roadController == null) return result;
+
+            int currentLayer = _state.CurrentViewedLayer;
+            if (!_state.Visibility.GetForZ(currentLayer).TryGetValue(civ.Index, out var visibleMap)) return result;
+
+            var ownRoads = new HashSet<Edge>();
+            foreach (var road in civ.Roads)
+                if (road.Position.Z == currentLayer) ownRoads.Add(road.Position);
+
+            var seen = new HashSet<Vertex>();
+            foreach (var tile in visibleMap.Tiles.Values)
+            {
+                if (tile.TerrainType != TerrainType.Void) continue;
+
+                foreach (SecondaryHexDirection direction in Enum.GetValues<SecondaryHexDirection>())
+                {
+                    var vertex = tile.Coord.Vertex(direction);
+                    if (!seen.Add(vertex)) continue;
+                    if (!_roadController.IsVoidBridgeVertex(vertex, visibleMap)) continue;
+                    if (RoadController.GetEdgesAtVertex(vertex).All(ownRoads.Contains)) continue;
+                    result.Add(vertex);
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Lance le Pont du Vide sur un vertex bordé de Vide : bâtit gratuitement les trois routes qui s'y
+        /// rejoignent (voir <see cref="RoadController.BuildVoidBridge"/>) et consomme les cristaux. Le coût
+        /// double au lancement suivant.
+        /// </summary>
+        public bool CastSpellOnVoidVertex(SpellId id, Vertex vertex)
+        {
+            var def = SpellDefinitions.Get(id);
+            if (def == null || def.TargetKind != SpellTargetKind.VoidVertex) return false;
+            if (!CanCastSpell(id)) return false;
+            if (_roadController == null) return false;
+            if (!GetVoidBridgeTargets().Any(v => v.Equals(vertex))) return false;
+            var civ = GetPlayerCiv()!;
+
+            int cost = GetSpellCost(def);
+            if (_roadController.BuildVoidBridge(civ.Index, vertex) == 0) return false;
+
+            civ.RemoveResource(Resource.Crystal, cost);
+            RegisterSpellCast(id);
             return true;
         }
 

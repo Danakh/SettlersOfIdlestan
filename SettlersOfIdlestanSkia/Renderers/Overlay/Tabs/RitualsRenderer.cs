@@ -388,6 +388,7 @@ public sealed class RitualsRenderer : IDisposable
         {
             SpellTargetKind.AllyCity => _localization.GetFormated("spell_cast_cost_troops", spellCost, def.TroopReward),
             SpellTargetKind.BuildableVertex => _localization.GetFormated("spell_cast_cost_city", spellCost),
+            SpellTargetKind.VoidVertex => _localization.GetFormated("spell_cast_cost_void_bridge", spellCost),
             _ => _localization.GetFormated("spell_cast_cost", spellCost, def.GoldReward),
         };
 
@@ -577,6 +578,7 @@ public sealed class RitualsRenderer : IDisposable
                 {
                     SpellTargetKind.AllyCity => _localization.GetFormated("spell_cast_cost_troops", spellCost, def.TroopReward),
                     SpellTargetKind.BuildableVertex => _localization.GetFormated("spell_cast_cost_city", spellCost),
+                    SpellTargetKind.VoidVertex => _localization.GetFormated("spell_cast_cost_void_bridge", spellCost),
                     _ => _localization.GetFormated("spell_cast_cost", spellCost, def.GoldReward),
                 },
                 WarningText: blockedReasonKey != null ? _localization.Get(blockedReasonKey) : null,
@@ -640,6 +642,13 @@ public sealed class RitualsRenderer : IDisposable
             var targets = magic.GetBuildableCityTargets();
             _targetSelectionService.EnterVertexSelection("spell_select_buildable_vertex", targets,
                 target => magic.CastSpellOnVertex(id, target), TargetSelectionTheme.Friendly);
+        }
+        else if (def.TargetKind == SpellTargetKind.VoidVertex)
+        {
+            if (_targetSelectionService == null) return;
+            var targets = magic.GetVoidBridgeTargets();
+            _targetSelectionService.EnterVertexSelection("spell_select_void_vertex", targets,
+                target => magic.CastSpellOnVoidVertex(id, target), TargetSelectionTheme.Friendly);
         }
         else
         {

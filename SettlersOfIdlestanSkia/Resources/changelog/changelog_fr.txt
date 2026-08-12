@@ -4,6 +4,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.15
+• Pont du Vide : nouvelle recherche (suite de Magie du Vide) débloquant un sort qui bâtit d'un coup les trois routes autour d'un vertex bordé de Vide, contre des cristaux plutôt que des points de recherche — son coût double à chaque lancement
 
 ---
 
