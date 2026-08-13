@@ -304,11 +304,11 @@ public sealed class GameScreen : IDisposable
 
         var settingsMenu = new SettingsMenu(
             _gameControllerService.MainGameController,
-            _inputService, _localizationService,
+            _localizationService,
             settingsPopupRenderer,
             _fileSystemService, _gameControllerService.CityBuildingService!,
             allowDebugMode, debugPanelRenderer,
-            StartNewGameIntro, _uiLayoutService,
+            StartNewGameIntro,
             onReturnToMenu: () => ReturnToTitleRequested?.Invoke(),
             // Recommencer l'île depuis le menu passe par une confirmation : le joueur perd sa
             // partie sans rien gagner. La modale de fin de partie, elle, redémarre directement —
@@ -318,7 +318,7 @@ public sealed class GameScreen : IDisposable
             // fichier) : il faut donc reprendre le verrou de l'hôte avant de toucher au modèle.
             onLoadGame: json => RunSynchronized(() => HandleLoadGame(json)));
 
-        _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
+        _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer();
         _playerResourcesOverlayRenderer.ConnectLowStock(null, _gameControllerService.PlayerCivilization!);
 
         var tradeRenderer           = new TradePopupRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);

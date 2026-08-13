@@ -122,7 +122,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _canvasSize = canvasSize;
         _uiLayout.UpdateCanvasSize(canvasSize);
 
-        _playerResourcesOverlayRenderer.Initialize(canvasSize);
         _selectedCityPanelRenderer.Initialize(canvasSize);
         _selectedMonumentPanelRenderer.Initialize(canvasSize);
         _tradeRenderer.Initialize(canvasSize);
@@ -148,7 +147,6 @@ public sealed class OverlayRenderer : IGameRenderer
             _uiLayout.SetMenuPosition(mgs.Settings.ForceMenuPosition);
 
         _tabBar.Update(context);
-        _playerResourcesOverlayRenderer.ResourceStartX = _tabBar.ResourceStartX;
 
         int activeTab      = _tabBar.ActiveTab;
         bool panelsEnabled = IsMapViewTab(activeTab)
@@ -605,10 +603,8 @@ public sealed class OverlayRenderer : IGameRenderer
         _inputService.KeyPressed      -= HandleKeyInput;
         _inputService.KeyReleased     -= HandleKeyRelease;
 
-        _playerResourcesOverlayRenderer.Dispose();
         _selectedCityPanelRenderer.Dispose();
         _selectedMonumentPanelRenderer.Dispose();
-        _settingsMenu.Dispose();
         _tradeRenderer.Dispose();
         _prestigeRenderer.Dispose();
         _prestigeMapRenderer.Dispose();

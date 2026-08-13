@@ -56,8 +56,6 @@ public sealed class TabBarRenderer : IDisposable
     private bool _underworldGlowing;
     private SKSize _canvasSize;
 
-    /// X offset from which the resource bar content should start (after the tabs).
-    public float ResourceStartX { get; private set; }
 
     /// True when the tab bar has at least two tabs and is being drawn.
     public bool IsVisible { get; private set; }
@@ -82,7 +80,6 @@ public sealed class TabBarRenderer : IDisposable
     }
 
     /// Update visibility/rect state.
-    /// Sets <see cref="ResourceStartX"/> so callers can position the resource bar.
     public void Update(GameRenderContext context)
     {
         bool showPrestigeTabs = HasPrestigePoints(context);
@@ -131,10 +128,6 @@ public sealed class TabBarRenderer : IDisposable
             UpdatePrestigeNotification();
             UpdateResearchNotification();
         }
-        else
-        {
-            ResourceStartX = UILayoutService.BarPadding * uiScale;
-        }
     }
 
     /// Largeur qu'occuperaient les tabs si affichés en ligne (indépendant du mode bas/inline choisi ensuite).
@@ -155,7 +148,6 @@ public sealed class TabBarRenderer : IDisposable
                 float x = i * tabW;
                 _activeTabs[i] = (_activeTabs[i].tabId, new SKRect(x, tabY, x + tabW, tabY + mobileTabH));
             }
-            ResourceStartX = UILayoutService.BarPadding * uiScale;
         }
         else
         {
@@ -168,7 +160,6 @@ public sealed class TabBarRenderer : IDisposable
                 _activeTabs[i] = (_activeTabs[i].tabId, new SKRect(tabX, tabY, tabX + scaledTabW, tabY + scaledTabH));
                 tabX += scaledTabW + TabSpacing * uiScale;
             }
-            ResourceStartX = tabX + TabMarginLeft * uiScale;
         }
     }
 
