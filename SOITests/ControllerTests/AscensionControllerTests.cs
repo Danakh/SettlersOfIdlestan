@@ -723,6 +723,22 @@ public class AscensionControllerTests
         Assert.Equal(5, state.GetFeaturesAt(west).OfType<Dominion>().Single().Level);
     }
 
+    [Fact]
+    public void GetModifiers_ArmOfGod_GrantsSoldierAttackDamageBonus()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.SOLDIER_ATTACK_DAMAGE);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+
+        var modifier = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.SOLDIER_ATTACK_DAMAGE));
+        Assert.Equal(Modifier.EType.ADDITIVE, modifier.Type);
+        Assert.Equal(1, modifier.Value);
+    }
+
     // ── Poing de Dieu ────────────────────────────────────────────────────────
 
     private static void UnlockFistOfGod(AscensionController ascension)

@@ -396,7 +396,7 @@ public class AscensionController : IModifierProvider
             yield return new Modifier(Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER, Modifier.EType.ADDITIVE, 10.0);
 
         if (IsPowerUnlocked(AscensionPowerId.ArmOfGod))
-            yield return new Modifier(Modifier.ECategory.ATTACK_SPEED, Modifier.EType.ADDITIVE, 1.0);
+            yield return new Modifier(Modifier.ECategory.SOLDIER_ATTACK_DAMAGE, Modifier.EType.ADDITIVE, 1);
 
         // Bonus/malus de la race jouée pendant ce cycle (voir RaceDefinitions).
         foreach (var modifier in RaceDefinitions.Get(SelectedRace).Modifiers)

@@ -233,6 +233,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_OBSERVATORY,
             /// <summary>Flags que la construction de la Nécropole (Monument, uniquement sur un hex portant des Os Divins non purifiés, qu'elle consomme) est déverrouillée pour la civilisation. Chaque niveau de la Nécropole augmente de 15% les points divins gagnés à l'Ascension (voir Necropolis et AscensionController.GetGodPointsGain). SubCategory unused.</summary>
             UNLOCK_NECROPOLIS,
+            /// <summary>Dégâts infligés par une attaque de soldat, contre les monstres comme contre les villes ennemies. Base = 1 ; +1 = 2 dégâts par attaque. S'ajoute au dégât supplémentaire des Armes en Acier (voir MonsterCombatEngine et CityAttackEngine). SubCategory unused.</summary>
+            SOLDIER_ATTACK_DAMAGE,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

@@ -32,6 +32,13 @@ internal class MonsterCombatEngine
         return Math.Max(1L, (long)(MilitaryController.CombatIntervalTicks / speed));
     }
 
+    /// <summary>
+    /// Dégâts d'une attaque de soldat avant réduction d'armure : 1 de base, majoré par
+    /// SOLDIER_ATTACK_DAMAGE (Bras de Dieu), plus 1 si une Arme en Acier est consommée.
+    /// </summary>
+    private static int SoldierDamage(Civilization civ)
+        => civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_ATTACK_DAMAGE, "", 1);
+
     internal void ResolveMonsterCombat(long currentTick,
         Action<SoldierAttackEventArgs> onSoldierAttackedMonster,
         Action<ConsumableConsumedEventArgs> onConsumableConsumed)
@@ -85,6 +92,8 @@ internal class MonsterCombatEngine
             if (currentTick - monster.LastAttackedByMilitaryTick < combatInterval) continue;
 
             bool steelWeaponsUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
+            // Comme l'intervalle de combat : agrégé une fois par civilisation, pas par emplacement.
+            int soldierDamage = SoldierDamage(civ);
 
             var vertices = civ.MilitaryVertices;
             for (int i = 0; i < vertices.Count; i++)
@@ -108,7 +117,7 @@ internal class MonsterCombatEngine
                 // Armures d'Acier : le soldat peut survivre à l'assaut en consommant 1 Acier
                 if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!, onConsumed) == 0)
                     vertex.Soldiers--;
-                int rawDamage = hasSteelWeapon ? 2 : 1;
+                int rawDamage = soldierDamage + (hasSteelWeapon ? 1 : 0);
                 monster.Hp -= MonsterFeature.ApplyArmorReduction(rawDamage, monster.Armor, _prng!);
                 if (monster.Hp <= 0) monster.KilledByCivilizationIndex = civ.Index;
                 vertex.LastAttackTick = currentTick;
@@ -200,7 +209,7 @@ internal class MonsterCombatEngine
 
                 if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!, onConsumed) == 0)
                     vertex.Soldiers--;
-                int rawDamage = hasSteelWeapon ? 2 : 1;
+                int rawDamage = SoldierDamage(civ) + (hasSteelWeapon ? 1 : 0);
                 monster.Hp -= MonsterFeature.ApplyArmorReduction(rawDamage, monster.Armor, _prng!);
                 vertex.LastAttackTick = currentTick;
                 onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position));
