@@ -19,7 +19,7 @@ public static class AscensionPowerDefinitions
             "ascension_power_handofgod_name", "ascension_power_handofgod_desc", column: 0, godPointCost: 3),
 
         new AscensionPowerDefinition(AscensionPowerId.DivineInventory,
-            "ascension_power_divineinventory_name", "ascension_power_divineinventory_desc", column: 0, godPointCost: 6),
+            "ascension_power_divineinventory_name", "ascension_power_divineinventory_desc", column: 0, godPointCost: 5),
 
         new AscensionPowerDefinition(AscensionPowerId.EyeOfGod,
             "ascension_power_eyeofgod_name", "ascension_power_eyeofgod_desc", column: 1, godPointCost: 3),
@@ -28,10 +28,13 @@ public static class AscensionPowerDefinitions
             "ascension_power_walkofgod_name", "ascension_power_walkofgod_desc", column: 2, godPointCost: 3),
 
         new AscensionPowerDefinition(AscensionPowerId.PresenceOfGod,
-            "ascension_power_presenceofgod_name", "ascension_power_presenceofgod_desc", column: 2, godPointCost: 6),
+            "ascension_power_presenceofgod_name", "ascension_power_presenceofgod_desc", column: 2, godPointCost: 5),
 
         new AscensionPowerDefinition(AscensionPowerId.ArmOfGod,
             "ascension_power_armofgod_name", "ascension_power_armofgod_desc", column: 3, godPointCost: 3),
+
+        new AscensionPowerDefinition(AscensionPowerId.FistOfGod,
+            "ascension_power_fistofgod_name", "ascension_power_fistofgod_desc", column: 3, godPointCost: 5),
     };
 
     public static AscensionPowerDefinition? Get(AscensionPowerId id)

@@ -30,6 +30,13 @@ public class PrestigeState
     /// </summary>
     public int PresenceOfGodUsesSinceLastPrestige { get; set; }
 
+    /// <summary>
+    /// Nombre d'utilisations de Poing de Dieu depuis le dernier prestige. Même modèle de coût
+    /// croissant que <see cref="WalkOfGodUsesSinceLastPrestige"/> (voir
+    /// AscensionController.GetFistOfGodCost) ; remis à zéro par PrestigeController.PerformPrestige.
+    /// </summary>
+    public int FistOfGodUsesSinceLastPrestige { get; set; }
+
     public List<Vertex> PurchasedVertices { get; set; } = new();
 
     public List<PrestigeRunStats> RunHistory { get; set; } = new();

@@ -8,6 +8,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Races;
 using SOITests.TestUtilities;
@@ -306,7 +307,7 @@ public class AscensionControllerTests
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100);
 
-        // DivineInventory (colonne 0, coût 6) nécessite HandOfGod (colonne 0, coût 3) déjà débloqué,
+        // DivineInventory (colonne 0, coût 5) nécessite HandOfGod (colonne 0, coût 3) déjà débloqué,
         // même avec largement assez de points divins.
         Assert.False(ascension.CanPurchasePower(AscensionPowerId.DivineInventory));
 
@@ -315,7 +316,7 @@ public class AscensionControllerTests
 
         Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineInventory));
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.Equal(100 - 1 - 3 - 6, godState.GodPoints);
+        Assert.Equal(100 - 1 - 3 - 5, godState.GodPoints);
     }
 
     /// <summary>Pose un Dominion sur un hex de l'île de test — Marche de Dieu ne cible que les hexs sous Dominion de niveau 2+.</summary>
@@ -641,26 +642,27 @@ public class AscensionControllerTests
         // Voisin vide (3 points) : Dominion niveau 3.
         Assert.Equal(3, state.GetFeaturesAt(west).OfType<Dominion>().Single().Level);
 
-        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+        // Première manifestation depuis le dernier prestige : gratuite.
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(1, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
     }
 
     [Fact]
-    public void GetPresenceOfGodCost_EscalatesByOneOnEachUse()
+    public void GetPresenceOfGodCost_FirstUseIsFreeThenEscalatesByOne()
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockPresenceOfGod(ascension);
         var hex = ascension.GetPresenceOfGodTargetHexes()[0];
+
+        Assert.Equal(0, ascension.GetPresenceOfGodCost());
+        Assert.True(ascension.ApplyPresenceOfGod(hex));
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
 
         Assert.Equal(1, ascension.GetPresenceOfGodCost());
         Assert.True(ascension.ApplyPresenceOfGod(hex));
         Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
 
         Assert.Equal(2, ascension.GetPresenceOfGodCost());
-        Assert.True(ascension.ApplyPresenceOfGod(hex));
-        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
-
-        Assert.Equal(3, ascension.GetPresenceOfGodCost());
     }
 
     [Fact]
@@ -668,12 +670,15 @@ public class AscensionControllerTests
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
         UnlockPresenceOfGod(ascension);
+        // La première manifestation étant gratuite, il faut en avoir déjà consommé une pour que
+        // l'absence de points de prestige bloque le pouvoir.
+        godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige = 1;
         var hex = ascension.GetPresenceOfGodTargetHexes()[0];
 
         Assert.False(ascension.ApplyPresenceOfGod(hex));
 
         Assert.Equal(0, godState.PrestigeState!.PrestigePoints);
-        Assert.Equal(0, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
+        Assert.Equal(1, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
         Assert.Empty(state.Features.OfType<Dominion>());
     }
 
@@ -685,7 +690,7 @@ public class AscensionControllerTests
 
         godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige = 4;
 
-        Assert.Equal(5, ascension.GetPresenceOfGodCost());
+        Assert.Equal(4, ascension.GetPresenceOfGodCost());
     }
 
     [Fact]
@@ -716,5 +721,203 @@ public class AscensionControllerTests
 
         // L'eau est un hex valide : le Dominion y naît comme sur la terre (prélude à Marche de Dieu).
         Assert.Equal(5, state.GetFeaturesAt(west).OfType<Dominion>().Single().Level);
+    }
+
+    // ── Poing de Dieu ────────────────────────────────────────────────────────
+
+    private static void UnlockFistOfGod(AscensionController ascension)
+    {
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
+    }
+
+    private static readonly HexCoord Center = new(0, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+
+    /// <summary>Ville ennemie posée sur un vertex adjacent au hex central, avec son Hôtel de ville.</summary>
+    private static City AddEnemyCityAdjacentToCenter(WorldState state, int townHallLevel = 2, int soldiers = 0, int defense = 0)
+    {
+        var enemyCiv = new Civilization { Index = 1 };
+        var vertex = Vertex.Create(
+            Center,
+            new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer),
+            new HexCoord(1, -1, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer));
+        var city = new City(vertex) { CivilizationIndex = enemyCiv.Index, Soldiers = soldiers, CurrentDefense = defense };
+        city.AddBuilding(new TownHall { Level = townHallLevel });
+        enemyCiv.AddCity(city);
+        state.Civilizations.Add(enemyCiv);
+        return city;
+    }
+
+    [Fact]
+    public void FistOfGod_RequiresArmOfGodFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.FistOfGod));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.FistOfGod));
+    }
+
+    [Fact]
+    public void GetFistOfGodCost_FirstUseIsFreeThenEscalatesByOne()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        Assert.Equal(0, ascension.GetFistOfGodCost());
+        Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+
+        Assert.Equal(1, ascension.GetFistOfGodCost());
+        Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+
+        Assert.Equal(2, ascension.GetFistOfGodCost());
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_DamagesMonsterOnTargetedHex()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        // Rats niveau 30 : 5 + 5 × 29 = 150 PV, sans armure.
+        var rats = new Rats(Center, level: 30);
+        state.AddFeature(rats);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(150 - AscensionController.FistOfGodDamage, rats.Hp);
+        Assert.Contains(rats, state.Features);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_KillsAndRemovesMonsterItBringsToZero()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        var rats = new Rats(Center);
+        state.AddFeature(rats);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.DoesNotContain(rats, state.Features);
+        Assert.Equal(state.PlayerCivilization.Index, rats.KilledByCivilizationIndex);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_SparesFriendlyMonsters()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        // L'Aventurier (AttacksOtherMonsters) est un allié : jamais ciblé, ici comme ailleurs.
+        var adventurer = new Adventurer(Center);
+        state.AddFeature(adventurer);
+        int hpBefore = adventurer.Hp;
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(hpBefore, adventurer.Hp);
+        Assert.Contains(adventurer, state.Features);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_CascadesDamageOnAdjacentEnemyCity()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        // 100 dégâts : 60 soldats, puis 38 de défense, puis les 2 restants sur l'Hôtel de ville.
+        var enemyCity = AddEnemyCityAdjacentToCenter(state, townHallLevel: 4, soldiers: 60, defense: 38);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(0, enemyCity.Soldiers);
+        Assert.Equal(0, enemyCity.CurrentDefense);
+        Assert.Equal(2, enemyCity.Buildings.OfType<TownHall>().Single().Level);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_LeavesEnemyCityStandingWhenDamageIsAbsorbed()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        var enemyCity = AddEnemyCityAdjacentToCenter(state, townHallLevel: 3, soldiers: 200, defense: 50);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(100, enemyCity.Soldiers);
+        Assert.Equal(50, enemyCity.CurrentDefense);
+        Assert.Equal(3, enemyCity.Buildings.OfType<TownHall>().Single().Level);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_DestroysEnemyCityThatLosesItsTownHall()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        var cityBuilder = new CityBuilderController();
+        cityBuilder.Initialize(state, clock: null, new GamePRNG(1));
+        ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), godState, cityBuilder);
+        UnlockFistOfGod(ascension);
+
+        var enemyCity = AddEnemyCityAdjacentToCenter(state, townHallLevel: 2);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.DoesNotContain(enemyCity, state.Civilizations[1].Cities);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_NeverDamagesPlayerCities()
+    {
+        var (state, city, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        city.AddBuilding(new TownHall { Level = 3 });
+        city.Soldiers = 5;
+        city.CurrentDefense = 7;
+
+        // La ville du joueur est elle aussi adjacente au hex central.
+        Assert.True(city.Position.IsAdjacentTo(Center));
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(5, city.Soldiers);
+        Assert.Equal(7, city.CurrentDefense);
+        Assert.Equal(3, city.Buildings.OfType<TownHall>().Single().Level);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_InsufficientPrestigePoints_FailsAndLeavesStateUntouched()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        UnlockFistOfGod(ascension);
+        // Premier coup gratuit : il faut en avoir déjà porté un pour que le manque de points bloque.
+        godState.PrestigeState!.FistOfGodUsesSinceLastPrestige = 1;
+
+        var rats = new Rats(Center);
+        state.AddFeature(rats);
+
+        Assert.False(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(rats.MaxHp, rats.Hp);
+        Assert.Equal(1, godState.PrestigeState!.FistOfGodUsesSinceLastPrestige);
+    }
+
+    [Fact]
+    public void GetFistOfGodTargetHexes_CoversTheWholeViewedLayer()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        var targets = ascension.GetFistOfGodTargetHexes();
+
+        Assert.Equal(state.GetMapForZ(state.CurrentViewedLayer)!.Tiles.Count, targets.Count);
+        Assert.Contains(Center, targets);
     }
 }

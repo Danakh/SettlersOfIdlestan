@@ -108,6 +108,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                                       && Ascension.GetPresenceOfGodTargetHexes().Count > 0
                                       && Ascension.CanUsePresenceOfGod();
 
+    // Poing de Dieu frappe sur n'importe quel calque (voir GetFistOfGodTargetHexes) : pas de garde
+    // de surface, contrairement aux deux pouvoirs ci-dessus.
+    private bool FistOfGodVisible => Ascension.IsPowerUnlocked(AscensionPowerId.FistOfGod);
+    private bool FistOfGodEnabled => FistOfGodVisible
+                                  && Ascension.GetFistOfGodTargetHexes().Count > 0
+                                  && Ascension.CanUseFistOfGod();
+
     // ── Actions ───────────────────────────────────────────────────────────────
     //
     // Chaque action porte sa propre garde de disponibilité plutôt que de la laisser à l'appelant :
@@ -284,6 +291,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var ascension = Ascension;
         _targetSelectionService.EnterHexSelection("presenceofgod_select_hex", ascension.GetPresenceOfGodTargetHexes(),
             hex => ascension.ApplyPresenceOfGod(hex), TargetSelectionTheme.Friendly);
+    }
+
+    private void DoFistOfGod()
+    {
+        if (!FistOfGodEnabled || _targetSelectionService == null) return;
+        _closeAll();
+        var ascension = Ascension;
+        _targetSelectionService.EnterHexSelection("fistofgod_select_hex", ascension.GetFistOfGodTargetHexes(),
+            hex => ascension.ApplyFistOfGod(hex), TargetSelectionTheme.Hostile);
     }
 
     private void HandlePinnedToggle(string key, Civilization? civ, SettlersOfIdlestan.Model.IslandMap.WorldState? worldState)
@@ -799,6 +815,23 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 PresenceOfGodEnabled, false, null, null, tooltip));
         }
 
+        if (FistOfGodVisible)
+        {
+            int cost = Ascension.GetFistOfGodCost();
+            var tooltip = new List<string>
+            {
+                _localization.GetFormated("tooltip_fistofgod", AscensionController.FistOfGodDamage),
+                _localization.GetFormated("tooltip_fistofgod_cost", cost),
+            };
+            if (!Ascension.CanUseFistOfGod())
+                tooltip.Add(_localization.Get("tooltip_fistofgod_insufficient_prestige"));
+
+            actions.Add(new CivActionSnapshot(
+                CivPanelSnapshot.KeyFistOfGod,
+                $"{_localization.Get("fistofgod_action_short")} ({cost})",
+                FistOfGodEnabled, false, null, null, tooltip));
+        }
+
         // ── Bascules épinglées ──
 
         bool hasBarracks      = HasBuilt<Barracks>(civ);
@@ -859,6 +892,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case CivPanelSnapshot.KeyRelocation:      DoRelocation();      break;
             case CivPanelSnapshot.KeyWalkOfGod:       DoWalkOfGod();       break;
             case CivPanelSnapshot.KeyPresenceOfGod:   DoPresenceOfGod();   break;
+            case CivPanelSnapshot.KeyFistOfGod:       DoFistOfGod();       break;
         }
     }
 

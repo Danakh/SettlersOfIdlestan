@@ -53,6 +53,14 @@ public class RaceSystemTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
     }
 
+    /// <summary>Seconde rangée complète (un pouvoir par colonne qui en possède un) : races avancées.</summary>
+    private static void UnlockSecondRow(AscensionController ascension)
+    {
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
+    }
+
     [Fact]
     public void IsRaceSelectionUnlocked_RequiresAllFourFirstRowPowers()
     {
@@ -82,6 +90,9 @@ public class RaceSystemTests
         Assert.False(ascension.AreAdvancedRacesUnlocked);
 
         Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
+        Assert.False(ascension.AreAdvancedRacesUnlocked);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
         Assert.True(ascension.AreAdvancedRacesUnlocked);
     }
 
@@ -118,8 +129,7 @@ public class RaceSystemTests
     {
         var ascension = CreateAscension(out _);
         UnlockFirstRow(ascension);
-        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
+        UnlockSecondRow(ascension);
 
         var races = ascension.GetSelectableRaces();
 
@@ -538,8 +548,7 @@ public class RaceSystemTests
         godState.GodPoints = 100;
         godState.DivineEssence = 4;
         UnlockFirstRow(controller.AscensionController);
-        Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.PresenceOfGod));
+        UnlockSecondRow(controller.AscensionController);
 
         controller.PerformAscension(RaceId.Garuda);
 
@@ -597,8 +606,7 @@ public class RaceSystemTests
         godState.GodPoints = 100;
         godState.DivineEssence = 4;
         UnlockFirstRow(controller.AscensionController);
-        Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.PresenceOfGod));
+        UnlockSecondRow(controller.AscensionController);
 
         controller.PerformAscension(RaceId.Mermaid);
 

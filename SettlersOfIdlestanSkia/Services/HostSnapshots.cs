@@ -719,6 +719,7 @@ public sealed record CivPanelSnapshot(
     public const string KeyRelocation      = "relocation";
     public const string KeyWalkOfGod       = "walkOfGod";
     public const string KeyPresenceOfGod   = "presenceOfGod";
+    public const string KeyFistOfGod       = "fistOfGod";
 }
 
 /// <summary>

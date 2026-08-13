@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.15
+• Fist of God: new divine power (follow-up to Arm of God) bringing 100 damage down on a hex — to the monster standing there and to each adjacent enemy city. The first strike after each prestige is free
 • Void Bridge: new research (follow-up to Void Magic) unlocking a spell that raises the three roads around a void-bordered vertex at once, paid in crystals instead of research points — its cost doubles with every cast
 • Star Charts: new research (follow-up to Void Magic) unlocking the Observatory, a monument built on a surface Mountain. Each level lowers the research-point cost multiplier of Void routes, from × 4 down to × 3 once the Observatory is complete
 • Divine Necropolis: new research (follow-up to Sacred Reliquary) unlocking the Necropolis, a monument built on unpurified Divine Bones that it consumes — each level raises the Divine Points earned on Ascension by 15%

@@ -5,11 +5,13 @@ using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Races;
 
@@ -552,10 +554,13 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Coût en points de prestige de la prochaine utilisation de Présence de Dieu : même modèle que
-    /// Marche de Dieu (1 à la première utilisation depuis le dernier prestige, 2 à la deuxième, etc.
-    /// — voir PrestigeState.PresenceOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
+    /// Marche de Dieu, première manifestation gratuite depuis le dernier prestige, puis 1, 2, etc.
+    /// — voir PrestigeState.PresenceOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige. La
+    /// gratuité du premier usage a la même raison d'être que pour Marche de Dieu : la cagnotte de
+    /// prestige vaut zéro sur la première île d'un cycle d'Ascension, où repousser la Corruption
+    /// initiale est justement le plus utile.
     /// </summary>
-    public int GetPresenceOfGodCost() => (_godState?.PrestigeState?.PresenceOfGodUsesSinceLastPrestige ?? 0) + 1;
+    public int GetPresenceOfGodCost() => _godState?.PrestigeState?.PresenceOfGodUsesSinceLastPrestige ?? 0;
 
     /// <summary>Vrai si Présence de Dieu est débloquée et que le joueur a assez de points de prestige pour son prochain coût.</summary>
     public bool CanUsePresenceOfGod()
@@ -610,6 +615,137 @@ public class AscensionController : IModifierProvider
             dominion.Level += points;
         else
             _state.AddFeature(new Dominion(hex, level: points));
+    }
+
+    /// <summary>Dégâts infligés par Poing de Dieu au monstre visé et à chaque ville ennemie adjacente.</summary>
+    public const int FistOfGodDamage = 100;
+
+    /// <summary>
+    /// Hexs ciblables par Poing de Dieu : tous les hexs du calque actuellement affiché. Contrairement
+    /// à Marche de Dieu et Présence de Dieu, le pouvoir n'est pas limité à la surface — les monstres
+    /// des profondeurs sont précisément ceux contre lesquels il vaut le plus.
+    /// </summary>
+    public IReadOnlyList<HexCoord> GetFistOfGodTargetHexes()
+    {
+        if (_state == null) return Array.Empty<HexCoord>();
+
+        var map = _state.GetMapForZ(_state.CurrentViewedLayer);
+        if (map == null) return Array.Empty<HexCoord>();
+
+        return map.Tiles.Values
+            .Select(t => t.Coord)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Coût en points de prestige de la prochaine utilisation de Poing de Dieu : même modèle que
+    /// Marche de Dieu (premier coup gratuit depuis le dernier prestige, puis 1, 2, 3... — voir
+    /// PrestigeState.FistOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
+    /// </summary>
+    public int GetFistOfGodCost() => _godState?.PrestigeState?.FistOfGodUsesSinceLastPrestige ?? 0;
+
+    /// <summary>Vrai si Poing de Dieu est débloqué et que le joueur a assez de points de prestige pour son prochain coût.</summary>
+    public bool CanUseFistOfGod()
+    {
+        var prestigeState = _godState?.PrestigeState;
+        return prestigeState != null && IsPowerUnlocked(AscensionPowerId.FistOfGod) && prestigeState.PrestigePoints >= GetFistOfGodCost();
+    }
+
+    /// <summary>
+    /// Abat le poing divin sur un hex : <see cref="FistOfGodDamage"/> dégâts au monstre qui s'y
+    /// trouve (réduits par son armure, comme toute autre source de dégâts) et autant à chaque ville
+    /// <b>ennemie</b> adjacente — les villes du joueur ne sont jamais touchées, le pouvoir est une
+    /// arme, pas un châtiment. Les monstres « amis » (MonsterFeature.AttacksOtherMonsters, ex.
+    /// l'Aventurier) sont épargnés, comme partout ailleurs.
+    ///
+    /// <para>Les dégâts sur une ville cascadent comme une attaque de monstre (voir
+    /// MonsterController.ApplyMonsterAttack) : soldats, puis défense, puis niveaux d'Hôtel de ville ;
+    /// une ville qui perd son Hôtel de ville est détruite.</para>
+    /// </summary>
+    public bool ApplyFistOfGod(HexCoord hex)
+    {
+        if (_state == null || _prng == null || !CanUseFistOfGod()) return false;
+
+        if (_state.GetMapFor(hex)?.GetTile(hex) == null) return false;
+
+        StrikeMonsterAt(hex);
+        StrikeCitiesAdjacentTo(hex);
+
+        var prestigeState = _godState!.PrestigeState!;
+        prestigeState.PrestigePoints -= GetFistOfGodCost();
+        prestigeState.FistOfGodUsesSinceLastPrestige++;
+
+        return true;
+    }
+
+    private void StrikeMonsterAt(HexCoord hex)
+    {
+        var monster = _state!.GetFeaturesAt(hex).OfType<MonsterFeature>().FirstOrDefault(m => !m.AttacksOtherMonsters);
+        if (monster == null) return;
+
+        monster.Hp -= MonsterFeature.ApplyArmorReduction(FistOfGodDamage, monster.Armor, _prng!);
+        if (monster.Hp > 0) return;
+
+        monster.KilledByCivilizationIndex = _state.PlayerCivilization.Index;
+        _state.RemoveFeature(monster);
+        _state.EventLog.Add(monster.RemovedEventType);
+    }
+
+    private void StrikeCitiesAdjacentTo(HexCoord hex)
+    {
+        int playerIndex = _state!.PlayerCivilization.Index;
+
+        // Liste matérialisée avant de frapper : une ville détruite est retirée de la civilisation
+        // pendant l'itération.
+        var targets = new List<City>();
+        foreach (var civ in _state.Civilizations)
+        {
+            if (civ.Index == playerIndex) continue;
+            foreach (var city in civ.Cities)
+                if (city.Position.IsAdjacentTo(hex))
+                    targets.Add(city);
+        }
+
+        foreach (var city in targets)
+            StrikeCity(city, FistOfGodDamage);
+    }
+
+    /// <summary>
+    /// Cascade de dégâts sur une ville : soldats, défense, niveaux d'Hôtel de ville, puis destruction
+    /// si l'Hôtel de ville a disparu. Même ordre que MonsterController.ApplyMonsterAttack, sans les
+    /// Armures d'Acier : rien ne pare le poing de Dieu.
+    /// </summary>
+    private void StrikeCity(City city, int damage)
+    {
+        var civ = _state!.GetCivilization(city.CivilizationIndex);
+        if (civ == null) return;
+
+        int soldierDmg = Math.Min(damage, city.Soldiers);
+        city.Soldiers -= soldierDmg;
+        damage -= soldierDmg;
+
+        int defenseDmg = Math.Min(damage, city.CurrentDefense);
+        city.CurrentDefense -= defenseDmg;
+        damage -= defenseDmg;
+
+        if (damage > 0)
+        {
+            var townHall = city.Buildings.OfType<TownHall>().FirstOrDefault();
+            if (townHall != null)
+            {
+                townHall.Level -= Math.Min(damage, townHall.Level);
+                if (townHall.Level <= 0)
+                {
+                    city.RemoveBuilding(townHall);
+                    city.InvalidateLevelCache();
+                }
+                BuildingController.RecalculateStorageCapacity(civ);
+                civ.TrimResourcesToMax();
+            }
+        }
+
+        if (!city.Buildings.OfType<TownHall>().Any())
+            _cityBuilderController?.DestroyCity(city, CityDestructionCause.Combat);
     }
 
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
