@@ -274,7 +274,6 @@ public sealed class GameScreen : IDisposable
 
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(
             _gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager);
-        selectedCityPanelRenderer.LayoutService = _uiLayoutService;
 
         _monumentService = new MonumentService();
         _constructionInteractionService.AttachMonumentService(_monumentService);
@@ -326,7 +325,6 @@ public sealed class GameScreen : IDisposable
         var prestigeRenderer        = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige, tooltipRenderer);
         var prestigeMapRenderer     = new PrestigeMapRenderer(_gameControllerService, _localizationService, tooltipRenderer, _uiLayoutService);
         var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService, _uiLayoutService);
-        var timeControlRenderer     = new TimeControlRenderer(_gameControllerService, _inputService, _localizationService);
         var researchRenderer        = new ResearchRenderer(_gameControllerService, _localizationService, _inputService, _uiLayoutService);
         var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService, _uiLayoutService);
         var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService, _uiLayoutService);
@@ -347,13 +345,10 @@ public sealed class GameScreen : IDisposable
             _playerResourcesOverlayRenderer, settingsMenu, settingsPopupRenderer,
             selectedCityPanelRenderer, selectedMonumentPanelRenderer,
             tradeRenderer, prestigeRenderer, prestigeMapRenderer, prestigeHistoryRenderer,
-            timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
+            researchRenderer, eventLogRenderer, automationRenderer,
             ritualsRenderer, ascensionRenderer, tooltipRenderer, _cameraService, _resourceManager,
             _uiLayoutService, allowDebugMode, historyTabRenderer);
         _overlayRenderer.ConnectTargetSelectionService(_targetSelectionService);
-        _overlayRenderer.ConnectZoomCallbacks(
-            () => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep),
-            () => _cameraService.SetZoom(_cameraService.ZoomLevel / ZoomStep));
         _renderService.RegisterRenderer(_overlayRenderer);
 
         _constructionInteractionService.ShouldSuppressHover = pos =>

@@ -26,7 +26,6 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly PrestigeRenderer _prestigeRenderer;
     private readonly PrestigeMapRenderer _prestigeMapRenderer;
     private readonly PrestigeHistoryRenderer _prestigeHistoryRenderer;
-    private readonly TimeControlRenderer _timeControlRenderer;
     private readonly ResearchRenderer _researchRenderer;
     private readonly EventLogRenderer _eventLogRenderer;
     private readonly AutomationRenderer _automationRenderer;
@@ -37,7 +36,6 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly PlayerCivilizationPanelRenderer _playerCivPanel;
     private readonly SettlersOfIdlestanSkia.Renderers.Debug.HistoryTabRenderer? _historyRenderer;
     private readonly TabBarRenderer _tabBar;
-    private readonly ZoomControlRenderer _zoomControl;
 
     private readonly UILayoutService _uiLayout;
     private SKSize _canvasSize;
@@ -61,7 +59,6 @@ public sealed class OverlayRenderer : IGameRenderer
         PrestigeRenderer prestigeRenderer,
         PrestigeMapRenderer prestigeMapRenderer,
         PrestigeHistoryRenderer prestigeHistoryRenderer,
-        TimeControlRenderer timeControlRenderer,
         ResearchRenderer researchRenderer,
         EventLogRenderer eventLogRenderer,
         AutomationRenderer automationRenderer,
@@ -88,7 +85,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeRenderer               = prestigeRenderer;
         _prestigeMapRenderer            = prestigeMapRenderer;
         _prestigeHistoryRenderer        = prestigeHistoryRenderer;
-        _timeControlRenderer            = timeControlRenderer;
         _researchRenderer               = researchRenderer;
         _eventLogRenderer               = eventLogRenderer;
         _automationRenderer             = automationRenderer;
@@ -99,7 +95,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _historyRenderer                = historyRenderer;
 
         _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout, allowDebugMode);
-        _zoomControl     = new ZoomControlRenderer(inputService, uiLayout);
 
         _playerCivPanel = new PlayerCivilizationPanelRenderer(
             gameControllerService,
@@ -112,7 +107,6 @@ public sealed class OverlayRenderer : IGameRenderer
             resourceManager,
             centerCameraOnMapPosition: CenterCameraOnMapPosition);
         _playerCivPanel.OnExpanded = () => { if (_uiLayout.TabsAtBottom) DeselectCityAndMonument(); };
-        _playerCivPanel.LayoutService = uiLayout;
 
         _inputService.PointerPressed  += HandlePointerPressed;
         _inputService.PointerMoved    += HandlePointerMoved;
@@ -144,10 +138,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _historyRenderer?.Initialize(canvasSize);
         _playerCivPanel.Initialize(canvasSize);
         _tabBar.Initialize(canvasSize);
-        _zoomControl.Initialize(canvasSize, _uiLayout.UiScale);
-
-        float scale = _uiLayout.UiScale;
-        _timeControlRenderer.Initialize(canvasSize, _uiLayout.GearX - 8f * scale, rowTop: 0f, scale);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -549,12 +539,6 @@ public sealed class OverlayRenderer : IGameRenderer
         if (suppressNextPress) _suppressNextPress = true;
     }
 
-    public void ConnectZoomCallbacks(Action zoomIn, Action zoomOut)
-    {
-        _zoomControl.OnZoomIn  = zoomIn;
-        _zoomControl.OnZoomOut = zoomOut;
-    }
-
     public void SwitchToIslandTab() => _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
 
     private void HandlePointerReleased(object? sender, PointerEventArgs e)
@@ -629,7 +613,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeRenderer.Dispose();
         _prestigeMapRenderer.Dispose();
         _prestigeHistoryRenderer.Dispose();
-        _timeControlRenderer.Dispose();
         _researchRenderer.Dispose();
         _eventLogRenderer.Dispose();
         _automationRenderer.Dispose();
@@ -638,7 +621,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _historyRenderer?.Dispose();
         _playerCivPanel.Dispose();
         _tabBar.Dispose();
-        _zoomControl.Dispose();
 
         _disposed = true;
     }

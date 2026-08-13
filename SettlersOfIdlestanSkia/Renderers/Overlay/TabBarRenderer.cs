@@ -39,15 +39,6 @@ public sealed class TabBarRenderer : IDisposable
     private readonly UILayoutService _uiLayout;
     private readonly bool _allowDebugMode;
 
-    private readonly SKPaint _buttonTextPaint      = new() { Color = SKColors.White, IsAntialias = true };
-    private readonly SKPaint _disabledTextPaint    = new() { Color = new SKColor(180, 180, 185), IsAntialias = true };
-    private readonly SKPaint _activeTabPaint       = new() { Color = new SKColor(60, 100, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _inactiveTabPaint     = new() { Color = new SKColor(35, 35, 45), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _blinkTabPaint        = new() { Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _activeTabBorderPaint = new() { Color = SKColors.Gold, StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private SKFont _tabFont = new() { Size = 12, Typeface = SkiaFonts.Bold };
-    private float _tabFontScale = 1f;
-
     private readonly List<(int tabId, SKRect rect)> _activeTabs = new();
     private int _activeTab = TabIsland;
     private bool _hasResearchTab;
@@ -73,8 +64,6 @@ public sealed class TabBarRenderer : IDisposable
 
     public int ActiveTab => _activeTab;
 
-    public IReadOnlyList<(int tabId, SKRect rect)> ActiveTabs => _activeTabs;
-
     public TabBarRenderer(
         LocalizationService localization,
         GameControllerService gameControllerService,
@@ -90,23 +79,12 @@ public sealed class TabBarRenderer : IDisposable
     public void Initialize(SKSize canvasSize)
     {
         _canvasSize = canvasSize;
-        UpdateTabFontScale(_uiLayout.UiScale);
     }
 
-    private void UpdateTabFontScale(float scale)
-    {
-        if (Math.Abs(scale - _tabFontScale) < 0.001f) return;
-        _tabFontScale = scale;
-        _tabFont.Dispose();
-        _tabFont = new SKFont { Size = 12 * scale, Typeface = SkiaFonts.Bold };
-    }
-
-    /// Update visibility/rect state. Must be called before <see cref="Render"/> each frame.
-    /// Sets <see cref="ResourceStartX"/> so callers can position the resource bar before drawing tabs on top.
+    /// Update visibility/rect state.
+    /// Sets <see cref="ResourceStartX"/> so callers can position the resource bar.
     public void Update(GameRenderContext context)
     {
-        UpdateTabFontScale(_uiLayout.UiScale);
-
         bool showPrestigeTabs = HasPrestigePoints(context);
         _hasResearchTab   = IsResearchUnlocked();
         _hasAutomationTab = HasAnyAutomation();
@@ -165,13 +143,6 @@ public sealed class TabBarRenderer : IDisposable
         + _activeTabs.Count * TabWidth * uiScale
         + Math.Max(0, _activeTabs.Count - 1) * TabSpacing * uiScale;
 
-    /// Draw the tab buttons. Call after the resource bar has been rendered so tabs appear on top.
-    public void Render(SKCanvas canvas)
-    {
-        if (!IsVisible) return;
-        DrawTabButtons(canvas);
-    }
-
     private void ComputeTabRects(bool tabsAtBottom, float uiScale)
     {
         if (tabsAtBottom)
@@ -220,20 +191,6 @@ public sealed class TabBarRenderer : IDisposable
         }
     }
 
-    private void DrawTabButtons(SKCanvas canvas)
-    {
-        float blinkT = (float)(Math.Sin(Environment.TickCount64 / 500.0) * 0.5 + 0.5);
-
-        foreach (var (tabId, rect) in _activeTabs)
-        {
-            bool blink = (_prestigeGlowing   && tabId == TabPrestige)
-                      || (_researchGlowing    && tabId == TabResearch)
-                      || (_hasNewEvent        && tabId == TabEvents)
-                      || (_underworldGlowing  && tabId == TabUnderworld);
-            DrawTab(canvas, rect, GetTabLabel(tabId), _activeTab == tabId, blink ? blinkT : -1f);
-        }
-    }
-
     private string GetTabLabel(int tabId) => tabId switch
     {
         TabIsland     => _localization.Get("tab_island"),
@@ -249,69 +206,6 @@ public sealed class TabBarRenderer : IDisposable
         TabAbyss      => _localization.Get("tab_abyss"),
         _             => "?"
     };
-
-    private void DrawTab(SKCanvas canvas, SKRect rect, string label, bool isActive, float blinkT = -1f)
-    {
-        SKPaint bgPaint;
-        if (isActive)
-        {
-            bgPaint = _activeTabPaint;
-        }
-        else if (blinkT >= 0f)
-        {
-            const byte r0 = 35, g0 = 35, b0 = 45;
-            const byte r1 = 160, g1 = 100, b1 = 10;
-            _blinkTabPaint.Color = new SKColor(
-                (byte)(r0 + (r1 - r0) * blinkT),
-                (byte)(g0 + (g1 - g0) * blinkT),
-                (byte)(b0 + (b1 - b0) * blinkT));
-            bgPaint = _blinkTabPaint;
-        }
-        else
-        {
-            bgPaint = _inactiveTabPaint;
-        }
-
-        float cr = 5 * _uiLayout.UiScale;
-        canvas.DrawRoundRect(rect, cr, cr, bgPaint);
-        if (isActive)
-            canvas.DrawRoundRect(rect, cr, cr, _activeTabBorderPaint);
-        var textPaint = isActive ? _buttonTextPaint : _disabledTextPaint;
-        string[] lines = label.Split('\n');
-        if (lines.Length == 1)
-        {
-            SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5 * _uiLayout.UiScale, SKTextAlign.Center, _tabFont, textPaint);
-        }
-        else
-        {
-            float lineSpacing = _tabFont.Spacing * 0.85f;
-            float firstBaselineY = rect.MidY + 5 * _uiLayout.UiScale - lineSpacing * (lines.Length - 1) / 2f;
-            for (int i = 0; i < lines.Length; i++)
-                SkiaTextUtils.DrawText(canvas, lines[i], rect.MidX, firstBaselineY + i * lineSpacing, SKTextAlign.Center, _tabFont, textPaint);
-        }
-    }
-
-    /// True if the point is over one of the tab buttons.
-    public bool ContainsPoint(SKPoint point)
-    {
-        foreach (var (_, rect) in _activeTabs)
-            if (rect.Contains(point.X, point.Y)) return true;
-        return false;
-    }
-
-    /// Returns true if the click was on a tab (and consumed).
-    public bool HandlePointerPressed(SKPoint point)
-    {
-        foreach (var (tabId, rect) in _activeTabs)
-        {
-            if (rect.Contains(point.X, point.Y))
-            {
-                _activeTab = tabId;
-                return true;
-            }
-        }
-        return false;
-    }
 
     /// Returns true if the key was a tab shortcut (and consumed).
     public bool HandleKeyInput(string key)
@@ -479,12 +373,5 @@ public sealed class TabBarRenderer : IDisposable
 
     public void Dispose()
     {
-        _buttonTextPaint.Dispose();
-        _disabledTextPaint.Dispose();
-        _activeTabPaint.Dispose();
-        _inactiveTabPaint.Dispose();
-        _blinkTabPaint.Dispose();
-        _activeTabBorderPaint.Dispose();
-        _tabFont.Dispose();
     }
 }
