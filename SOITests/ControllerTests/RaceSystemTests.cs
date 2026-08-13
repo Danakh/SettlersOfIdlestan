@@ -57,6 +57,7 @@ public class RaceSystemTests
     private static void UnlockSecondRow(AscensionController ascension)
     {
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
     }
@@ -87,6 +88,9 @@ public class RaceSystemTests
         Assert.False(ascension.AreAdvancedRacesUnlocked);
 
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.False(ascension.AreAdvancedRacesUnlocked);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.False(ascension.AreAdvancedRacesUnlocked);
 
         Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));

@@ -787,6 +787,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_RANGED_MONSTER_ATTACK     => _localization.Get("prestige_tooltip_unlocks_ranged_monster_attack"),
         Modifier.ECategory.ATTACK_SPEED                     => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_attack_speed")}",
         Modifier.ECategory.SOLDIER_ATTACK_DAMAGE            => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_soldier_attack_damage")}",
+        Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_repeatable_research_scaling")}",
         Modifier.ECategory.WONDER_COST_REDUCTION            => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_wonder_cost_reduction")}",
         Modifier.ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_investment_speed_high_stock")}",
         Modifier.ECategory.UNLOCK_RELOCATION                 => _localization.Get("prestige_tooltip_unlocks_relocation"),

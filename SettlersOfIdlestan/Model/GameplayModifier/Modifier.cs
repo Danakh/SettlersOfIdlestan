@@ -235,6 +235,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_NECROPOLIS,
             /// <summary>Dégâts infligés par une attaque de soldat, contre les monstres comme contre les villes ennemies. Base = 1 ; +1 = 2 dégâts par attaque. S'ajoute au dégât supplémentaire des Armes en Acier (voir MonsterCombatEngine et CityAttackEngine). SubCategory unused.</summary>
             SOLDIER_ATTACK_DAMAGE,
+            /// <summary>Fraction de réduction de la croissance du coût des recherches répétables. Base = 0.0 (coût ×2 par relance) ; 0.5 = croissance réduite de moitié, soit ×1,5 par relance (voir ResearchController.GetRepeatCostFactor). SubCategory unused.</summary>
+            REPEATABLE_RESEARCH_SCALING_REDUCTION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

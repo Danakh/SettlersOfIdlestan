@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.15
+• Memory of God: new divine power (follow-up to Eye of God) that reduces the cost growth of repeatable research by 50% and shields them from Ascension — every new cycle starts back at the highest rank ever reached
 • Fist of God: new divine power (follow-up to Arm of God) bringing 100 damage down on a hex — to the monster standing there and to each adjacent enemy city. The first strike after each prestige is free
 • Void Bridge: new research (follow-up to Void Magic) unlocking a spell that raises the three roads around a void-bordered vertex at once, paid in crystals instead of research points — its cost doubles with every cast
 • Star Charts: new research (follow-up to Void Magic) unlocking the Observatory, a monument built on a surface Mountain. Each level lowers the research-point cost multiplier of Void routes, from × 4 down to × 3 once the Observatory is complete

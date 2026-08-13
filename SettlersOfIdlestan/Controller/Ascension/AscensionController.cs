@@ -20,7 +20,8 @@ namespace SettlersOfIdlestan.Controller.Ascension;
 /// <summary>
 /// Gère les pouvoirs divins (GodState.AscensionState) : Foi est le pouvoir fondateur (toujours
 /// disponible), qui déverrouille les 4 colonnes indépendantes (Main/Oeil/Marche/Bras de Dieu) ;
-/// effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu, Foi) et l'action ciblée Marche de Dieu.
+/// effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu, Mémoire de Dieu, Foi) et l'action ciblée
+/// Marche de Dieu.
 /// Gère aussi l'Ascension elle-même (voir <see cref="PerformAscension"/>) : convertit l'essence
 /// divine accumulée (DivineBonesController) en points divins et repart de zéro (île + prestige).
 /// </summary>
@@ -151,8 +152,67 @@ public class AscensionController : IModifierProvider
         var def = AscensionPowerDefinitions.Get(id)!;
         _godState!.GodPoints -= def.GodPointCost;
         _ascensionState!.UnlockedPowers.Add(id);
+
+        // Mémoire de Dieu rend immédiatement au joueur ce que les Ascensions passées lui avaient
+        // repris : ses recherches répétables remontent au meilleur palier jamais atteint.
+        if (id == AscensionPowerId.MemoryOfGod)
+            RestoreRepeatableResearchToBest();
+
         OnModifiersChanged?.Invoke();
         return true;
+    }
+
+    /// <summary>
+    /// Enregistre dans AscensionState.BestRepeatCounts le meilleur palier atteint par chaque
+    /// recherche répétable de <paramref name="tree"/>. Appelé à chaque Ascension, avant que le
+    /// PrestigeState (et donc l'arbre de recherche) ne soit remplacé — y compris quand Mémoire de
+    /// Dieu n'est pas encore acquise, sans quoi le pouvoir ne saurait rien des cycles précédents.
+    /// </summary>
+    private static void RecordBestRepeatCounts(AscensionState ascensionState, TechnologyTree tree)
+    {
+        foreach (var (techId, count) in tree.RepeatCounts)
+        {
+            if (TechnologyDefinitions.Get(techId)?.Repeatable != true) continue;
+            if (!ascensionState.BestRepeatCounts.TryGetValue(techId, out int best) || count > best)
+                ascensionState.BestRepeatCounts[techId] = count;
+        }
+    }
+
+    /// <summary>
+    /// Ramène chaque recherche répétable de l'arbre courant au meilleur palier jamais atteint
+    /// (AscensionState.BestRepeatCounts) : la recherche est marquée complétée et ses modificateurs
+    /// sont recumulés d'autant. Appelé à l'achat de Mémoire de Dieu, puis au début de chaque cycle
+    /// d'Ascension tant que le pouvoir est acquis (voir <see cref="PerformAscension"/>) — c'est ce
+    /// qui fait que les recherches répétables ne sont plus remises à zéro par l'Ascension.
+    ///
+    /// <para>Une recherche ainsi restaurée compte comme complétée sans que ses prérequis le soient :
+    /// les recherches qui en dépendent redeviennent donc accessibles dès le début du cycle, leur
+    /// coût en points de recherche restant le seul verrou.</para>
+    /// </summary>
+    private void RestoreRepeatableResearchToBest()
+    {
+        if (_ascensionState == null || _godState?.PrestigeState == null) return;
+        RestoreRepeatableResearchToBest(_ascensionState, _godState.PrestigeState.TechnologyTree);
+    }
+
+    private static void RestoreRepeatableResearchToBest(AscensionState ascensionState, TechnologyTree tree)
+    {
+        bool changed = false;
+        foreach (var (techId, best) in ascensionState.BestRepeatCounts)
+        {
+            if (best <= 0 || TechnologyDefinitions.Get(techId)?.Repeatable != true) continue;
+
+            int current = tree.RepeatCounts.TryGetValue(techId, out var c) ? c : 0;
+            if (current >= best) continue;
+
+            tree.RepeatCounts[techId] = best;
+            if (!tree.CompletedTechnologies.Contains(techId))
+                tree.CompletedTechnologies.Add(techId);
+            changed = true;
+        }
+
+        if (changed)
+            tree.RebuildModifiers();
     }
 
     /// <summary>Race jouée pendant le cycle d'Ascension en cours (Humains par défaut).</summary>
@@ -310,6 +370,11 @@ public class AscensionController : IModifierProvider
 
         RecordAscensionCycleStats(mainGameState, godState);
 
+        // Meilleurs paliers de recherches répétables du cycle qui s'achève : à relever avant que le
+        // PrestigeState ne soit remplacé, c'est la mémoire sur laquelle s'appuie Mémoire de Dieu.
+        if (godState.PrestigeState != null)
+            RecordBestRepeatCounts(godState.AscensionState, godState.PrestigeState.TechnologyTree);
+
         var generator = new IslandMapGenerator(mainGameState.WorldPRNG);
         var worldState = generator.GenerateWorldState(
             firstIslandParameters,
@@ -320,6 +385,11 @@ public class AscensionController : IModifierProvider
 
         godState.PrestigeState = new PrestigeState(worldState);
         GrantFreePrestigeVertices(godState.PrestigeState, chosenRace);
+
+        // Mémoire de Dieu : les recherches répétables ne sont pas remises à zéro par l'Ascension —
+        // le nouvel arbre repart directement au meilleur palier jamais atteint.
+        if (IsPowerUnlocked(AscensionPowerId.MemoryOfGod))
+            RestoreRepeatableResearchToBest(godState.AscensionState, godState.PrestigeState.TechnologyTree);
 
         godState.AscensionState.CycleStartTick = mainGameState.Clock.CurrentTick;
         godState.AscensionState.CycleStartResearchCompleted = mainGameState.GameRecord.TotalResearchCompleted;
@@ -397,6 +467,9 @@ public class AscensionController : IModifierProvider
 
         if (IsPowerUnlocked(AscensionPowerId.ArmOfGod))
             yield return new Modifier(Modifier.ECategory.SOLDIER_ATTACK_DAMAGE, Modifier.EType.ADDITIVE, 1);
+
+        if (IsPowerUnlocked(AscensionPowerId.MemoryOfGod))
+            yield return new Modifier(Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION, Modifier.EType.ADDITIVE, 0.5);
 
         // Bonus/malus de la race jouée pendant ce cycle (voir RaceDefinitions).
         foreach (var modifier in RaceDefinitions.Get(SelectedRace).Modifiers)

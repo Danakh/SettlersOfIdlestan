@@ -58,13 +58,14 @@ namespace SettlersOfIdlestan.Controller.Expand
                     var tech = TechnologyDefinitions.Get(id);
                     if (tech == null) continue;
                     // Une recherche répétable a pu être complétée plusieurs fois : chaque complétion
-                    // contribue son coût de base pour CE palier (double à chaque relance, voir GetEffectiveCost),
-                    // pas un simple multiple linéaire (voir l'incrément équivalent dans AdvanceActiveResearch).
+                    // contribue son coût de base pour CE palier (croissant à chaque relance, voir
+                    // GetRepeatCostFactor), pas un simple multiple linéaire (voir l'incrément
+                    // équivalent dans AdvanceActiveResearch).
                     if (tech.Repeatable)
                     {
                         int repeats = prestigeState.TechnologyTree.RepeatCounts.TryGetValue(id, out var c) ? c : 1;
                         for (int i = 0; i < repeats; i++)
-                            _totalBaseResearchCostCompleted += (long)(tech.Cost * Math.Pow(2, i));
+                            _totalBaseResearchCostCompleted += (long)(tech.Cost * GetRepeatCostFactor(i));
                     }
                     else
                     {
@@ -169,13 +170,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             {
                 // Compte le coût de BASE (non réduit) de la recherche terminée, pas la progression en cours
                 // ni le coût réellement payé (voir commentaire sur _totalBaseResearchCostCompleted). Pour une
-                // recherche répétable, ce coût de base double à chaque relance (voir GetEffectiveCost) : il
+                // recherche répétable, ce coût de base croît à chaque relance (voir GetRepeatCostFactor) : il
                 // faut donc le coût du palier qui vient d'être complété, pas le coût de base du palier 1.
                 long baseCostCompleted = tech.Cost;
                 if (tech.Repeatable)
                 {
                     int repeatCount = tree.RepeatCounts.TryGetValue(techId, out var rc) ? rc : 0;
-                    baseCostCompleted = (long)(tech.Cost * Math.Pow(2, repeatCount));
+                    baseCostCompleted = (long)(tech.Cost * GetRepeatCostFactor(repeatCount));
                 }
                 _totalBaseResearchCostCompleted += baseCostCompleted;
                 tree.CompleteResearch(techId);
@@ -485,11 +486,27 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (tech.Repeatable && Tree != null)
             {
                 int count = Tree.RepeatCounts.TryGetValue(tech.Id, out var c) ? c : 0;
-                baseCost *= Math.Pow(2, count);
+                baseCost *= GetRepeatCostFactor(count);
             }
 
             double effective = baseCost * (1.0 - reduction);
             return effective >= long.MaxValue ? long.MaxValue : Math.Max(1L, (long)effective);
+        }
+
+        /// <summary>
+        /// Multiplicateur appliqué au coût de base d'une recherche répétable déjà complétée
+        /// <paramref name="repeats"/> fois. Sans bonus, chaque relance double le coût (facteur 2^n) ;
+        /// REPEATABLE_RESEARCH_SCALING_REDUCTION rabote cette croissance — le pouvoir divin Mémoire
+        /// de Dieu la réduit de moitié, soit ×1,5 par relance au lieu de ×2.
+        ///
+        /// <para>Le facteur courant sert aussi au cumul des coûts de base déjà payés
+        /// (_totalBaseResearchCostCompleted) : celui-ci est recalculé à chaque Initialize, donc
+        /// toujours cohérent avec le facteur en vigueur au chargement.</para>
+        /// </summary>
+        private double GetRepeatCostFactor(int repeats)
+        {
+            double reduction = Math.Clamp(_state?.PlayerCivilization.RepeatableResearchScalingReduction ?? 0.0, 0.0, 1.0);
+            return Math.Pow(1.0 + (1.0 - reduction), repeats);
         }
 
         private static bool ArePrerequisitesMet(TechnologyTree tree, Technology tech)

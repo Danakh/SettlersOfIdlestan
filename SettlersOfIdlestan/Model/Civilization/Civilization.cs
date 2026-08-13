@@ -481,6 +481,13 @@ public class Civilization
     public double ResearchCancelRefundBonus => ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_CANCEL_REFUND_BONUS, "", 0.0);
 
     /// <summary>
+    /// Fraction de réduction de la croissance du coût des recherches répétables (0.0 = coût ×2 par
+    /// relance, 0.5 = ×1,5). Voir ResearchController.GetRepeatCostFactor.
+    /// </summary>
+    [JsonIgnore]
+    public double RepeatableResearchScalingReduction => ModifierAggregator.ApplyModifiers(ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION, "", 0.0);
+
+    /// <summary>
     /// Wonder level-up cost reduction fraction (0.0 = no reduction, 0.1 = 10% cheaper). Applies only to the Wonder.
     /// </summary>
     [JsonIgnore]

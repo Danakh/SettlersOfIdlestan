@@ -18,5 +18,6 @@ public enum AscensionPowerId
     ArmOfGod,
     DivineInventory,
     PresenceOfGod,
-    FistOfGod
+    FistOfGod,
+    MemoryOfGod
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Races;
 
 namespace SettlersOfIdlestan.Model.Ascension;
@@ -44,6 +45,16 @@ public class AscensionState
     /// AscensionController.PermanentUniqueBuildingChoices), quelle que soit la race jouée ensuite.
     /// </summary>
     public HashSet<RaceId> AscendedRaces { get; set; } = new();
+
+    /// <summary>
+    /// Meilleur nombre de complétions jamais atteint par chaque recherche répétable, tous cycles
+    /// d'Ascension confondus. Alimenté à chaque Ascension depuis le TechnologyTree du cycle qui se
+    /// termine (voir AscensionController.RecordBestRepeatCounts) — donc renseigné même pour les
+    /// cycles joués avant l'achat de Mémoire de Dieu. C'est le palier auquel ce pouvoir ramène les
+    /// recherches répétables, à son achat comme au début de chaque cycle suivant (voir
+    /// AscensionController.RestoreRepeatableResearchToBest).
+    /// </summary>
+    public Dictionary<TechnologyId, int> BestRepeatCounts { get; set; } = new();
 
     /// <summary>Tick (GameClock) auquel le cycle d'Ascension en cours a débuté — sert à calculer le temps de jeu du cycle.</summary>
     public long CycleStartTick { get; set; }

@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Ascension;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Ascension;
@@ -935,5 +936,132 @@ public class AscensionControllerTests
 
         Assert.Equal(state.GetMapForZ(state.CurrentViewedLayer)!.Tiles.Count, targets.Count);
         Assert.Contains(Center, targets);
+    }
+
+    // ── Mémoire de Dieu ──────────────────────────────────────────────────────
+
+    private static void UnlockMemoryOfGod(AscensionController ascension)
+    {
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+    }
+
+    [Fact]
+    public void MemoryOfGod_RequiresEyeOfGodFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.MemoryOfGod));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.MemoryOfGod));
+    }
+
+    [Fact]
+    public void GetModifiers_MemoryOfGod_HalvesRepeatableResearchScaling()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+
+        Assert.DoesNotContain(ascension.GetModifiers(),
+            m => m.Category == Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+
+        var modifier = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION));
+        Assert.Equal(Modifier.EType.ADDITIVE, modifier.Type);
+        Assert.Equal(0.5, modifier.Value);
+    }
+
+    /// <summary>
+    /// L'achat du pouvoir rend immédiatement les paliers perdus : les recherches répétables remontent
+    /// au meilleur rang jamais atteint, modificateurs cumulés compris.
+    /// </summary>
+    [Fact]
+    public void PurchaseMemoryOfGod_RestoresRepeatableResearchToItsBestRankEverReached()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        godState.AscensionState.BestRepeatCounts[TechnologyId.MasterHarvest] = 3;
+
+        UnlockMemoryOfGod(ascension);
+
+        var tree = godState.PrestigeState!.TechnologyTree;
+        Assert.Equal(3, tree.RepeatCounts[TechnologyId.MasterHarvest]);
+        Assert.Contains(TechnologyId.MasterHarvest, tree.CompletedTechnologies);
+        // MasterHarvest : +5% HARVEST_SPEED par complétion, donc 3 rangs = +15%.
+        Assert.Equal(0.15, tree.ApplyModifiers(Modifier.ECategory.HARVEST_SPEED, "", 0.0), 3);
+    }
+
+    /// <summary>Un palier déjà atteint dans le cycle en cours ne doit jamais être rabaissé par la restauration.</summary>
+    [Fact]
+    public void PurchaseMemoryOfGod_NeverLowersARankAlreadyHigherThanTheRecord()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        godState.AscensionState.BestRepeatCounts[TechnologyId.MasterHarvest] = 1;
+        var tree = godState.PrestigeState!.TechnologyTree;
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+
+        UnlockMemoryOfGod(ascension);
+
+        Assert.Equal(3, tree.RepeatCounts[TechnologyId.MasterHarvest]);
+    }
+
+    /// <summary>
+    /// Le relevé du meilleur palier a lieu à chaque Ascension, pouvoir acquis ou non — sans quoi
+    /// Mémoire de Dieu, achetée plus tard, ne saurait rien des cycles déjà joués.
+    /// </summary>
+    [Fact]
+    public void PerformAscension_WithoutMemoryOfGod_ResetsRepeatableResearchButRecordsItsBestRank()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        var tree = controller.CurrentMainState!.PrestigeState!.TechnologyTree;
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+
+        controller.PerformAscension();
+
+        var newTree = controller.CurrentMainState.PrestigeState!.TechnologyTree;
+        Assert.DoesNotContain(TechnologyId.MasterHarvest, newTree.CompletedTechnologies);
+        Assert.Equal(2, godState.AscensionState.BestRepeatCounts[TechnologyId.MasterHarvest]);
+    }
+
+    [Fact]
+    public void PerformAscension_WithMemoryOfGod_KeepsRepeatableResearchAtItsBestRank()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        var ascension = controller.AscensionController;
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+
+        var tree = controller.CurrentMainState!.PrestigeState!.TechnologyTree;
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+
+        controller.PerformAscension();
+
+        var newTree = controller.CurrentMainState.PrestigeState!.TechnologyTree;
+        Assert.NotSame(tree, newTree);
+        Assert.Equal(2, newTree.RepeatCounts[TechnologyId.MasterHarvest]);
+        Assert.Contains(TechnologyId.MasterHarvest, newTree.CompletedTechnologies);
+        Assert.Equal(0.10, newTree.ApplyModifiers(Modifier.ECategory.HARVEST_SPEED, "", 0.0), 3);
+        Assert.Equal(2, godState.AscensionState.BestRepeatCounts[TechnologyId.MasterHarvest]);
+    }
+
+    /// <summary>Partie complète prête à ascensionner (essence divine et points divins fournis).</summary>
+    private static MainGameController CreateAscendableGame(out GodState godState)
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = AscensionController.MinDivineEssenceForAscension;
+        return controller;
     }
 }

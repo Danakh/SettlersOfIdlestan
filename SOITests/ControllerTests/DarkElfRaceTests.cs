@@ -45,6 +45,7 @@ public class DarkElfRaceTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
 
