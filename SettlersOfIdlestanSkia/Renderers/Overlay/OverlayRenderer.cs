@@ -549,7 +549,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerReleased(e.Position, isClick);
-        if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerReleased(e.Position);
+        if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerReleased(e.Position, isClick);
     }
 
     private void HandleZoomChanged(object? sender, ZoomEventArgs e)
@@ -558,16 +558,18 @@ public sealed class OverlayRenderer : IGameRenderer
 
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandleZoom(e);
-        if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandleScroll(e.ZoomDelta);
+        if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandleZoom(e);
     }
 
-    /// L'onglet Ascension est une liste défilante et non une carte : le pincement ne lui est pas
-    /// transmis, seul le zoom molette y sert de défilement.
+    /// Les deux onglets concernés sont des cartes hexagonales : chacune décide elle-même si le
+    /// geste la vise (l'Ascension ignore ce qui tombe sur ses barres de boutons).
     private void HandlePinchChanged(object? sender, PinchEventArgs e)
     {
         if (!_isVisible) return;
 
-        if (_tabBar.ActiveTab == TabBarRenderer.TabPrestige) _prestigeMapRenderer.HandlePinch(e);
+        int activeTab = _tabBar.ActiveTab;
+        if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePinch(e);
+        if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePinch(e);
     }
 
     private void HandleKeyInput(object? sender, KeyEventArgs e)

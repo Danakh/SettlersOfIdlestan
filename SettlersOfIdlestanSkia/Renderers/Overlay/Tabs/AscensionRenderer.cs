@@ -18,28 +18,45 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 /// Écran Ascension : un bouton d'Ascension (voir <see cref="AscensionController.PerformAscension"/>)
 /// convertit l'essence divine accumulée en points divins et efface la progression de la partie en
 /// cours. Tant qu'aucune Ascension n'a jamais été effectuée (GodState.TotalGodPointsEarned == 0),
-/// les pouvoirs restent invisibles. Une fois débloqués : Foi est un grand bouton occupant toute la
-/// largeur en bas de l'écran ; les 4 pouvoirs existants (Main/Oeil/Marche/Bras de Dieu) forment
-/// chacun leur propre colonne au-dessus de Foi (largeur cumulée des colonnes + espaces = largeur de
-/// Foi). Débloquer Foi déverrouille les 4 colonnes ; au sein d'une colonne, chaque pouvoir nécessite
-/// celui juste en dessous.
+/// les pouvoirs restent invisibles. Une fois débloqués, ils forment une petite carte hexagonale :
+/// Foi occupe l'hexagone central, et chaque colonne de <see cref="AscensionPowerDefinitions"/>
+/// devient une ligne d'hexagones partant du centre dans sa propre direction. Débloquer Foi
+/// déverrouille les 4 branches ; au sein d'une branche, chaque pouvoir nécessite le précédent.
+/// La carte est zoomable et déplaçable, mais reste confinée sous la barre d'onglets internes
+/// (Pouvoirs / Bâtiments uniques permanents), qui garde donc ses clics quel que soit le zoom.
 /// </summary>
 public sealed class AscensionRenderer : IDisposable
 {
     private const float Padding          = 20f;
     private const int   Columns          = 4;
-    private const float ColumnGap        = 14f;
-    private const float CardSpacing      = 14f;
-    private const float ColumnCardHeight = 150f;
-    private const float FaithHeight      = 110f;
-    private const float ButtonHeight     = 26f;
-    private const float ColumnButtonWidth = 100f;
     private const float AscendButtonWidth  = 220f;
     private const float AscendButtonHeight = 34f;
     private const float InnerTabHeight     = 28f;
     private const float InnerTabWidth      = 160f;
     private const int   BuildingCardColumns = 4;
     private const float BuildingCardHeight  = 120f;
+
+    // Carte des pouvoirs : hexagones pointe en haut, légèrement espacés pour que les branches
+    // restent lisibles (les hexagones voisins ne se touchent pas tout à fait).
+    private const float HexRadius     = 70f;
+    private const float HexSpacing    = 1.12f;
+    private const float MinZoom       = 0.4f;
+    private const float MaxZoom       = 2.5f;
+    private const float ZoomStep      = 1.12f;
+    private const float PanThresholdSq = 16f;
+    private const float PanClampMargin = 80f;
+
+    private static readonly float Sqrt3     = MathF.Sqrt(3f);
+    private static readonly float Sqrt3Half = MathF.Sqrt(3f) / 2f;
+
+    /// <summary>Direction hexagonale (axial q, r) de la branche de chaque colonne : Nord-Ouest,
+    /// Nord-Est, Sud-Est, Sud-Ouest. Est et Ouest restent libres pour d'éventuelles colonnes
+    /// supplémentaires.</summary>
+    private static readonly (int Q, int R)[] BranchDirections = { (0, -1), (1, -1), (0, 1), (-1, 1) };
+
+    /// <summary>Demi-étendue de la carte complète en coordonnées locales, marge d'un hexagone
+    /// comprise — sert à empêcher de la faire disparaître de l'écran en la déplaçant.</summary>
+    private static readonly (float X, float Y) MapExtent = ComputeMapExtent();
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -50,7 +67,6 @@ public sealed class AscensionRenderer : IDisposable
     private bool _disposed;
     private SKPoint _hoverPosition;
 
-    private readonly List<(AscensionPowerId id, SKRect buttonRect)> _purchaseButtonRects = new();
     private SKRect _hoveredLockedRect = SKRect.Empty;
     private string? _hoveredLockedTooltip;
 
@@ -59,17 +75,23 @@ public sealed class AscensionRenderer : IDisposable
     private SKRect _ascendConfirmRect = SKRect.Empty;
     private SKRect _ascendCancelRect  = SKRect.Empty;
 
-    // Ascenseur pour la zone des colonnes de pouvoirs (entre les onglets internes et Foi), utilisé
-    // seulement si le nombre de pouvoirs révélés (voir ArePrerequisitesMet) dépasse l'espace
-    // disponible — Foi elle-même reste toujours ancrée en bas, hors de cette zone défilante.
-    private float _powersScrollOffsetPx = 0f;
-    private float _powersContentH       = 0f;
-    private float _powersViewportH      = 0f;
-    private bool  _isDraggingPowersScrollbar = false;
-    private float _powersScrollDragStartY      = 0f;
-    private float _powersScrollDragStartOffset = 0f;
-    private SKRect _powersScrollTrackRect = SKRect.Empty;
-    private SKRect _powersScrollThumbRect = SKRect.Empty;
+    // Vue de la carte des pouvoirs. Les hexagones sont dessinés en coordonnées locales dans un
+    // canvas translaté/mis à l'échelle ; _mapViewportRect délimite la zone où la carte reçoit les
+    // clics, le zoom et le déplacement — tout ce qui est au-dessus (barre d'onglets internes,
+    // bouton d'Ascension) reste hors de portée du geste.
+    private SKRect _mapViewportRect = SKRect.Empty;
+    private SKPoint _mapCenter;
+    private float _zoom = 1f;
+    private bool _mapCentered;
+    private float _lastMapTop;
+    private bool _pointerDown;
+    private bool _isPanning;
+    private SKPoint _pressPosition;
+    private SKPoint _lastPanMovePosition;
+    private readonly List<(AscensionPowerDefinition def, SKPoint localCenter)> _powerHexes = new();
+    /// <summary>Extrémité de chaque branche visible : la ligne qui la relie au centre passe par
+    /// tous ses hexagones, puisqu'ils sont alignés.</summary>
+    private readonly List<SKPoint> _branchEnds = new();
 
     // Choix de race à l'Ascension (voir AscensionController.IsRaceSelectionUnlocked) : l'étape de
     // confirmation devient un panneau modal listant les races sélectionnables.
@@ -91,7 +113,6 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _connectorPaint    = new() { Color = new SKColor(90, 90, 110), StrokeWidth = 2f, IsAntialias = true };
     private readonly SKPaint _unlockPaint       = new() { Color = new SKColor(150, 110, 30), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _unlockHoverPaint  = new() { Color = new SKColor(185, 140, 45), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _unlockedPaint     = new() { Color = new SKColor(90, 80, 40), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _disabledPaint     = new() { Color = new SKColor(55, 55, 62), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _buttonBorderPaint = new() { Color = new SKColor(120, 120, 140), StrokeWidth = 1.2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _buttonTextPaint   = new() { Color = SKColors.White, IsAntialias = true };
@@ -105,8 +126,6 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _warningTextPaint  = new() { Color = new SKColor(220, 70, 70), IsAntialias = true };
     private readonly SKPaint _overlayDimPaint   = new() { Color = new SKColor(0, 0, 0, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _overlayPanelPaint = new() { Color = new SKColor(24, 24, 32, 250), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _scrollTrackPaint  = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _scrollThumbPaint  = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private readonly SKFont _headerFont   = new() { Size = 17, Typeface = SkiaFonts.Bold };
     private readonly SKFont _nameFont     = new() { Size = 14, Typeface = SkiaFonts.Bold };
@@ -122,21 +141,29 @@ public sealed class AscensionRenderer : IDisposable
         _uiLayout = uiLayout;
     }
 
-    public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
+    public void Initialize(SKSize canvasSize)
+    {
+        _canvasSize = canvasSize;
+        // La carte est recentrée au premier rendu, une fois la hauteur de l'en-tête connue.
+        _zoom = 1f;
+        _mapCentered = false;
+        _pointerDown = false;
+        _isPanning = false;
+    }
 
     public void RenderAscensionPage(SKCanvas canvas, GameRenderContext context)
     {
         if (_disposed) return;
         if (context.GameState is not MainGameState mgs) return;
 
-        _purchaseButtonRects.Clear();
+        _powerHexes.Clear();
+        _branchEnds.Clear();
         _permanentBuildingRects.Clear();
         _raceCardRects.Clear();
         _raceOverlayVisible = false;
         _hoveredLockedRect = SKRect.Empty;
         _hoveredLockedTooltip = null;
-        _powersScrollTrackRect = SKRect.Empty;
-        _powersScrollThumbRect = SKRect.Empty;
+        _mapViewportRect = SKRect.Empty;
 
         float topBar = _uiLayout.SecondRowBottom;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
@@ -201,64 +228,51 @@ public sealed class AscensionRenderer : IDisposable
             return;
         }
 
-        // Foi : grand bouton occupant toute la largeur, ancré en bas de l'écran (jamais concerné
-        // par l'ascenseur des colonnes ci-dessous).
-        float faithBottom = _canvasSize.Height - Padding;
-        float faithTop = faithBottom - FaithHeight;
-        var faithRect = new SKRect(x, faithTop, x + contentWidth, faithBottom);
-        var faithDef = AscensionPowerDefinitions.Get(AscensionPowerId.Faith)!;
-        DrawFaithButton(canvas, faithRect, faithDef, ascension);
-
-        // Les 4 colonnes existantes montent au-dessus de Foi, mais seuls les pouvoirs dont le
-        // prérequis est déjà rempli (Foi acquise, puis pouvoir précédent de la colonne) sont
-        // affichés — un pouvoir plus loin dans sa colonne reste invisible tant qu'il n'est pas
-        // atteignable, plutôt que grisé indéfiniment.
-        float columnWidth = (contentWidth - ColumnGap * (Columns - 1)) / Columns;
-        float columnsTop = tabY + InnerTabHeight + Padding;
-        float columnsBottom = faithTop;
-
-        var visibleByColumn = new List<AscensionPowerDefinition>[Columns];
-        float maxColumnContentH = 0f;
-        for (int col = 0; col < Columns; col++)
+        // Carte des pouvoirs : Foi au centre, chaque colonne partant du centre en ligne dans sa
+        // propre direction. Seuls les pouvoirs dont le prérequis est déjà rempli (Foi acquise, puis
+        // pouvoir précédent de la branche) sont placés — un pouvoir plus loin dans sa branche reste
+        // invisible tant qu'il n'est pas atteignable, plutôt que grisé indéfiniment.
+        float mapTop = tabY + InnerTabHeight + Padding;
+        _mapViewportRect = new SKRect(0, mapTop, _canvasSize.Width, _canvasSize.Height);
+        if (!_mapCentered || Math.Abs(mapTop - _lastMapTop) > 0.5f)
         {
-            var visible = AscensionPowerDefinitions.GetColumn(col).Where(d => ascension.ArePrerequisitesMet(d.Id)).ToList();
-            visibleByColumn[col] = visible;
-            maxColumnContentH = Math.Max(maxColumnContentH, visible.Count * (ColumnCardHeight + CardSpacing));
+            _mapCenter = new SKPoint(_mapViewportRect.MidX, _mapViewportRect.MidY);
+            _lastMapTop = mapTop;
+            _mapCentered = true;
+            ClampMapCenter();
         }
 
-        _powersContentH = maxColumnContentH;
-        _powersViewportH = Math.Max(0f, columnsBottom - columnsTop);
-        float maxScroll = Math.Max(0f, _powersContentH - _powersViewportH);
-        _powersScrollOffsetPx = Math.Clamp(_powersScrollOffsetPx, 0f, maxScroll);
-        bool needsScroll = _powersContentH > _powersViewportH + 1f;
-
-        canvas.Save();
-        canvas.ClipRect(new SKRect(x, columnsTop, x + contentWidth, columnsBottom));
-
+        _powerHexes.Add((AscensionPowerDefinitions.Get(AscensionPowerId.Faith)!, LocalPos(AscensionPowerDefinition.FoundationColumn, 0)));
         for (int col = 0; col < Columns; col++)
         {
-            float colX = x + col * (columnWidth + ColumnGap);
-            float lineX = colX + columnWidth / 2f;
-            // Décalé vers le bas de l'offset de défilement : à 0, la pile touche Foi comme avant ;
-            // au maximum, son sommet remonte jusqu'au haut de la zone visible.
-            float cardBottom = columnsBottom + _powersScrollOffsetPx;
-
-            foreach (var def in visibleByColumn[col])
+            var branch = AscensionPowerDefinitions.GetColumn(col);
+            int shown = 0;
+            while (shown < branch.Count && ascension.ArePrerequisitesMet(branch[shown].Id))
             {
-                float gapTop = cardBottom - CardSpacing;
-                canvas.DrawLine(lineX, gapTop, lineX, cardBottom, _connectorPaint);
-
-                float cardTop = gapTop - ColumnCardHeight;
-                DrawColumnPowerCard(canvas, colX, cardTop, columnWidth, def, ascension);
-
-                cardBottom = cardTop;
+                _powerHexes.Add((branch[shown], LocalPos(col, shown)));
+                shown++;
             }
+            if (shown > 0) _branchEnds.Add(LocalPos(col, shown - 1));
+        }
+
+        SKPoint? hoverLocal = !_isPanning && _mapViewportRect.Contains(_hoverPosition.X, _hoverPosition.Y)
+            ? ToLocal(_hoverPosition)
+            : null;
+
+        canvas.Save();
+        canvas.ClipRect(_mapViewportRect);
+        canvas.Translate(_mapCenter.X, _mapCenter.Y);
+        canvas.Scale(_zoom);
+
+        DrawBranchConnectors(canvas);
+        foreach (var (def, localCenter) in _powerHexes)
+        {
+            bool hovered = hoverLocal != null && IsPointInHex(hoverLocal.Value, localCenter, HexRadius);
+            DrawPowerHex(canvas, localCenter, def, ascension, hovered);
+            if (hovered) SetPowerTooltip(def, localCenter, ascension);
         }
 
         canvas.Restore();
-
-        if (needsScroll)
-            DrawPowersScrollbar(canvas, x, contentWidth, columnsTop, _powersViewportH);
 
         DrawRaceSelectionOverlayIfNeeded(canvas, ascension);
 
@@ -516,95 +530,67 @@ public sealed class AscensionRenderer : IDisposable
         }
     }
 
-    private void DrawFaithButton(SKCanvas canvas, SKRect rect, AscensionPowerDefinition def, SettlersOfIdlestan.Controller.Ascension.AscensionController ascension)
+    /// <summary>Trait reliant le centre à l'extrémité de chaque branche, dessiné sous les
+    /// hexagones : c'est ce qui donne à une colonne son allure de ligne partant de Foi.</summary>
+    private void DrawBranchConnectors(SKCanvas canvas)
+    {
+        var center = LocalPos(AscensionPowerDefinition.FoundationColumn, 0);
+        foreach (var end in _branchEnds)
+            canvas.DrawLine(center, end, _connectorPaint);
+    }
+
+    /// <summary>Un pouvoir = un hexagone cliquable : nom au centre, coût ou état en dessous, le
+    /// détail restant dans l'infobulle (voir <see cref="SetPowerTooltip"/>).</summary>
+    private void DrawPowerHex(SKCanvas canvas, SKPoint center, AscensionPowerDefinition def, AscensionController ascension, bool hovered)
     {
         bool unlocked    = ascension.IsPowerUnlocked(def.Id);
         bool canPurchase = !unlocked && ascension.CanPurchasePower(def.Id);
-        bool hovered     = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
+        bool locked      = !unlocked && !canPurchase;
 
-        var bg = unlocked ? _cardActivePaint : (canPurchase ? (hovered ? _unlockHoverPaint : _unlockPaint) : _disabledPaint);
-        canvas.DrawRoundRect(rect, 10, 10, bg);
-        canvas.DrawRoundRect(rect, 10, 10, unlocked ? _cardActiveBorder : _buttonBorderPaint);
+        using var path = CreateHexPath(center, HexRadius);
+        var bg = unlocked
+            ? _cardActivePaint
+            : canPurchase ? (hovered ? _unlockHoverPaint : _unlockPaint)
+            : (hovered ? _cardPaint : _cardLockedPaint);
+        canvas.DrawPath(path, bg);
+        canvas.DrawPath(path, unlocked ? _cardActiveBorder : _cardBorderPaint);
 
-        SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), rect.MidX, rect.Top + 28f, SKTextAlign.Center, _faithFont, _namePaint);
+        var font = def.Column == AscensionPowerDefinition.FoundationColumn ? _faithFont : _nameFont;
+        var nameLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.NameKey), HexRadius * 1.3f, font);
 
-        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.DescKey), rect.Width - 60f, _descFont);
-        DrawCenteredTextLayout(canvas, descLayout, rect.MidX, rect.Top + 48f, _descFont, _descPaint);
+        float nameH   = nameLayout.Lines.Count * font.Spacing;
+        float statusH = _buttonFont.Spacing;
+        float top     = center.Y - (nameH + statusH) / 2f;
+        DrawCenteredTextLayout(canvas, nameLayout, center.X, top + font.Size, font, locked ? _mutedPaint : _namePaint);
 
-        if (!unlocked)
-        {
-            string costText = _localization.GetFormated("ascension_power_cost_label", def.GodPointCost);
-            SkiaTextUtils.DrawText(canvas, costText, rect.MidX, rect.Bottom - 26f, SKTextAlign.Center, _descFont, _accentPaint);
-        }
-
-        string statusLabel = unlocked
+        // Survolé et achetable : l'hexagone annonce l'action plutôt que son prix, seul rappel
+        // nécessaire maintenant qu'il n'y a plus de bouton dédié — un clic dessus l'achète.
+        string status = unlocked
             ? _localization.Get("ascension_power_unlocked_label")
-            : _localization.Get("ascension_power_unlock_button");
-        SkiaTextUtils.DrawText(canvas, statusLabel, rect.MidX, rect.Bottom - 12f, SKTextAlign.Center, _buttonFont, unlocked || canPurchase ? _buttonTextPaint : _mutedPaint);
-
-        if (canPurchase)
-            _purchaseButtonRects.Add((def.Id, rect));
-        else if (!unlocked && hovered)
-        {
-            _hoveredLockedRect = rect;
-            _hoveredLockedTooltip = GetPowerLockedTooltip(ascension, def);
-        }
+            : canPurchase && hovered
+                ? _localization.Get("ascension_power_unlock_button")
+                : _localization.GetFormated("ascension_power_cost_short", def.GodPointCost);
+        SkiaTextUtils.DrawText(canvas, status, center.X, top + nameH + statusH, SKTextAlign.Center, _buttonFont,
+            unlocked ? _buttonTextPaint : (canPurchase ? _accentPaint : _mutedPaint));
     }
 
-    private void DrawColumnPowerCard(SKCanvas canvas, float x, float y, float width, AscensionPowerDefinition def, SettlersOfIdlestan.Controller.Ascension.AscensionController ascension)
+    private void SetPowerTooltip(AscensionPowerDefinition def, SKPoint localCenter, AscensionController ascension)
     {
-        bool unlocked     = ascension.IsPowerUnlocked(def.Id);
-        bool canPurchase  = !unlocked && ascension.CanPurchasePower(def.Id);
-        bool locked       = !unlocked && !canPurchase;
+        bool unlocked    = ascension.IsPowerUnlocked(def.Id);
+        bool canPurchase = !unlocked && ascension.CanPurchasePower(def.Id);
 
-        var cardRect = new SKRect(x, y, x + width, y + ColumnCardHeight);
-        canvas.DrawRoundRect(cardRect, 8, 8, unlocked ? _cardActivePaint : (locked ? _cardLockedPaint : _cardPaint));
-        canvas.DrawRoundRect(cardRect, 8, 8, unlocked ? _cardActiveBorder : _cardBorderPaint);
+        string state = unlocked
+            ? _localization.Get("ascension_power_unlocked_label")
+            : canPurchase
+                ? _localization.GetFormated("ascension_power_cost_label", def.GodPointCost)
+                : GetPowerLockedTooltip(ascension, def);
 
-        float centerX = x + width / 2f;
-
-        var namePaint = locked ? _mutedPaint : _namePaint;
-        SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), centerX, y + 22f, SKTextAlign.Center, _nameFont, namePaint);
-
-        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.DescKey), width - 16f, _descFont);
-        DrawCenteredTextLayout(canvas, descLayout, centerX, y + 40f, _descFont, locked ? _mutedPaint : _descPaint);
-
-        if (!unlocked)
-        {
-            string costText = _localization.GetFormated("ascension_power_cost_label", def.GodPointCost);
-            SkiaTextUtils.DrawText(canvas, costText, centerX, y + ColumnCardHeight - ButtonHeight - 16f, SKTextAlign.Center, _descFont, locked ? _mutedPaint : _accentPaint);
-        }
-
-        float buttonWidth = Math.Min(width - 16f, ColumnButtonWidth);
-        float buttonX = centerX - buttonWidth / 2f;
-        float buttonY = y + ColumnCardHeight - ButtonHeight - 10f;
-        var buttonRect = new SKRect(buttonX, buttonY, buttonX + buttonWidth, buttonY + ButtonHeight);
-        bool hovered = buttonRect.Contains(_hoverPosition.X, _hoverPosition.Y);
-
-        if (unlocked)
-        {
-            canvas.DrawRoundRect(buttonRect, 5, 5, _unlockedPaint);
-            canvas.DrawRoundRect(buttonRect, 5, 5, _buttonBorderPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_power_unlocked_label"), buttonRect.MidX, buttonRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
-        }
-        else
-        {
-            var bg = canPurchase ? (hovered ? _unlockHoverPaint : _unlockPaint) : _disabledPaint;
-            canvas.DrawRoundRect(buttonRect, 5, 5, bg);
-            canvas.DrawRoundRect(buttonRect, 5, 5, _buttonBorderPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_power_unlock_button"), buttonRect.MidX, buttonRect.MidY + 4f, SKTextAlign.Center, _buttonFont, canPurchase ? _buttonTextPaint : _mutedPaint);
-
-            if (canPurchase)
-                _purchaseButtonRects.Add((def.Id, buttonRect));
-            else if (hovered)
-            {
-                _hoveredLockedRect = buttonRect;
-                _hoveredLockedTooltip = GetPowerLockedTooltip(ascension, def);
-            }
-        }
+        var lines = new[] { _localization.Get(def.NameKey), "", _localization.Get(def.DescKey), "", state };
+        var screenCenter = ToScreen(localCenter);
+        _tooltipRenderer.SetTooltipLines(lines, new SKPoint(screenCenter.X + HexRadius * _zoom, screenCenter.Y));
     }
 
-    private string GetPowerLockedTooltip(SettlersOfIdlestan.Controller.Ascension.AscensionController ascension, AscensionPowerDefinition def)
+    private string GetPowerLockedTooltip(AscensionController ascension, AscensionPowerDefinition def)
     {
         if (!ascension.ArePrerequisitesMet(def.Id))
             return _localization.Get("ascension_power_locked_tooltip");
@@ -625,59 +611,166 @@ public sealed class AscensionRenderer : IDisposable
     public void HandlePointerMoved(SKPoint position)
     {
         _hoverPosition = position;
-        if (_isDraggingPowersScrollbar)
+        if (!_pointerDown) return;
+
+        float dx = position.X - _pressPosition.X;
+        float dy = position.Y - _pressPosition.Y;
+        if (!_isPanning && dx * dx + dy * dy > PanThresholdSq)
+            _isPanning = true;
+
+        if (!_isPanning) return;
+
+        _mapCenter = new SKPoint(
+            _mapCenter.X + position.X - _lastPanMovePosition.X,
+            _mapCenter.Y + position.Y - _lastPanMovePosition.Y);
+        ClampMapCenter();
+        _lastPanMovePosition = position;
+    }
+
+    /// <param name="isClick">
+    /// <c>false</c> pour un relâchement synthétique (début de pincement) : le déplacement en cours
+    /// est soldé, mais le geste ne vaut pas clic — il n'achète donc aucun pouvoir.
+    /// </param>
+    public void HandlePointerReleased(SKPoint position, bool isClick = true)
+    {
+        bool wasPanning = _isPanning;
+        bool pressedOnMap = _pointerDown;
+        _pointerDown = false;
+        _isPanning = false;
+
+        // Un achat demande un appui *et* un relâchement sur la carte, sans glissement entre les
+        // deux : un relâchement isolé (appui parti d'un bouton, geste de pincement) ne compte pas.
+        if (wasPanning || !isClick || !pressedOnMap) return;
+        if (!IsMapInteractive(position)) return;
+
+        var local = ToLocal(position);
+        var ascension = _gameControllerService.MainGameController.AscensionController;
+        foreach (var (def, localCenter) in _powerHexes)
         {
-            float dy         = position.Y - _powersScrollDragStartY;
-            float thumbRange = _powersScrollTrackRect.Height - _powersScrollThumbRect.Height;
-            float maxScroll  = Math.Max(0, _powersContentH - _powersViewportH);
-            float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
-            _powersScrollOffsetPx = Math.Clamp(_powersScrollDragStartOffset + dy * scrollPerPx, 0, maxScroll);
+            if (!IsPointInHex(local, localCenter, HexRadius)) continue;
+            if (ascension.CanPurchasePower(def.Id)) ascension.PurchasePower(def.Id);
+            return;
         }
     }
 
-    public void HandlePointerReleased(SKPoint position) => _isDraggingPowersScrollbar = false;
-
-    public void HandleScroll(float delta)
+    public void HandleZoom(ZoomEventArgs e)
     {
-        const float step = 60f;
-        float dir = delta > 0 ? -1f : 1f;
-        float maxScroll = Math.Max(0, _powersContentH - _powersViewportH);
-        _powersScrollOffsetPx = Math.Clamp(_powersScrollOffsetPx + dir * step, 0, maxScroll);
+        if (!IsMapInteractive(e.Center)) return;
+        ApplyZoom(e.ZoomDelta > 0 ? ZoomStep : 1f / ZoomStep, e.Center);
     }
 
-    private void DrawPowersScrollbar(SKCanvas canvas, float contentX, float contentWidth, float trackTop, float trackH)
+    /// <summary>Pincement à deux doigts : même zoom que la molette, au rapport continu du geste,
+    /// et le déplacement du centre du geste fait glisser la carte.</summary>
+    public void HandlePinch(PinchEventArgs e)
     {
-        const float scrollW = 6f;
-        float trackX = contentX + contentWidth - scrollW;
+        if (e.ScaleRatio <= 0f || !IsMapInteractive(e.Center)) return;
 
-        _powersScrollTrackRect = new SKRect(trackX, trackTop, trackX + scrollW, trackTop + trackH);
-        canvas.DrawRoundRect(_powersScrollTrackRect, 3, 3, _scrollTrackPaint);
+        _mapCenter = new SKPoint(_mapCenter.X + e.PanDelta.X, _mapCenter.Y + e.PanDelta.Y);
+        ApplyZoom(e.ScaleRatio, e.Center);
+    }
 
-        float thumbRatio = _powersViewportH / _powersContentH;
-        float thumbH     = Math.Max(24f, thumbRatio * trackH);
-        float maxScroll  = Math.Max(1f, _powersContentH - _powersViewportH);
-        float thumbTop   = trackTop + (_powersScrollOffsetPx / maxScroll) * (trackH - thumbH);
-        _powersScrollThumbRect = new SKRect(trackX, thumbTop, trackX + scrollW, thumbTop + thumbH);
-        canvas.DrawRoundRect(_powersScrollThumbRect, 3, 3, _scrollThumbPaint);
+    /// <summary>La carte n'a la main que sous la barre d'onglets internes, l'onglet Pouvoirs
+    /// affiché et aucun panneau modal ouvert : le zoom et le déplacement ne peuvent donc jamais
+    /// emporter les boutons d'Ascension ni celui des bâtiments uniques permanents.</summary>
+    private bool IsMapInteractive(SKPoint position) =>
+        !_showPermanentBuildingTab
+        && !_raceOverlayVisible
+        && !_confirmingAscension
+        && !_mapViewportRect.IsEmpty
+        && _mapViewportRect.Contains(position.X, position.Y);
+
+    /// <summary>Zoom autour d'un point d'écran qui reste fixe.</summary>
+    private void ApplyZoom(float scaleRatio, SKPoint center)
+    {
+        float newZoom = Math.Clamp(_zoom * scaleRatio, MinZoom, MaxZoom);
+        float ratio = newZoom / _zoom;
+        _mapCenter = new SKPoint(
+            center.X - (center.X - _mapCenter.X) * ratio,
+            center.Y - (center.Y - _mapCenter.Y) * ratio);
+        _zoom = newZoom;
+        ClampMapCenter();
+    }
+
+    /// <summary>Garde toujours une part de la carte dans la fenêtre de vue.</summary>
+    private void ClampMapCenter()
+    {
+        if (_mapViewportRect.IsEmpty) return;
+
+        float extW = MapExtent.X * _zoom;
+        float extH = MapExtent.Y * _zoom;
+        float cx = _mapCenter.X;
+        float cy = _mapCenter.Y;
+
+        if (cx + extW < _mapViewportRect.Left + PanClampMargin) cx = _mapViewportRect.Left + PanClampMargin - extW;
+        else if (cx - extW > _mapViewportRect.Right - PanClampMargin) cx = _mapViewportRect.Right - PanClampMargin + extW;
+
+        if (cy + extH < _mapViewportRect.Top + PanClampMargin) cy = _mapViewportRect.Top + PanClampMargin - extH;
+        else if (cy - extH > _mapViewportRect.Bottom - PanClampMargin) cy = _mapViewportRect.Bottom - PanClampMargin + extH;
+
+        _mapCenter = new SKPoint(cx, cy);
+    }
+
+    // ─── Géométrie de la carte ────────────────────────────────────────────────
+
+    private SKPoint ToScreen(SKPoint local) =>
+        new(_mapCenter.X + local.X * _zoom, _mapCenter.Y + local.Y * _zoom);
+
+    private SKPoint ToLocal(SKPoint screen) =>
+        new((screen.X - _mapCenter.X) / _zoom, (screen.Y - _mapCenter.Y) / _zoom);
+
+    /// <summary>Position locale du pouvoir d'index <paramref name="indexInColumn"/> dans sa
+    /// colonne — Foi (colonne fondatrice) est à l'origine.</summary>
+    private static SKPoint LocalPos(int column, int indexInColumn)
+    {
+        if (column == AscensionPowerDefinition.FoundationColumn) return new SKPoint(0f, 0f);
+        var dir = BranchDirections[column % BranchDirections.Length];
+        int distance = indexInColumn + 1;
+        return LocalHexPos(dir.Q * distance, dir.R * distance);
+    }
+
+    private static SKPoint LocalHexPos(int q, int r) => new(
+        HexRadius * HexSpacing * (Sqrt3 * q + Sqrt3Half * r),
+        HexRadius * HexSpacing * 1.5f * r);
+
+    private static (float X, float Y) ComputeMapExtent()
+    {
+        float maxX = 0f, maxY = 0f;
+        for (int col = 0; col < Columns; col++)
+        {
+            var branch = AscensionPowerDefinitions.GetColumn(col);
+            for (int i = 0; i < branch.Count; i++)
+            {
+                var p = LocalPos(col, i);
+                maxX = Math.Max(maxX, Math.Abs(p.X));
+                maxY = Math.Max(maxY, Math.Abs(p.Y));
+            }
+        }
+        return (maxX + HexRadius, maxY + HexRadius);
+    }
+
+    private static SKPath CreateHexPath(SKPoint center, float radius)
+    {
+        var path = new SKPath();
+        for (int i = 0; i < 6; i++)
+        {
+            float angle = -MathF.PI / 2f + MathF.PI / 3f * i;
+            var pt = new SKPoint(center.X + radius * MathF.Cos(angle), center.Y + radius * MathF.Sin(angle));
+            if (i == 0) path.MoveTo(pt); else path.LineTo(pt);
+        }
+        path.Close();
+        return path;
+    }
+
+    /// <summary>Hexagone pointe en haut : bords verticaux à ±r√3/2, pointes à ±r.</summary>
+    private static bool IsPointInHex(SKPoint point, SKPoint center, float radius)
+    {
+        float dx = Math.Abs(point.X - center.X);
+        float dy = Math.Abs(point.Y - center.Y);
+        return dx <= radius * Sqrt3Half && dy <= radius - dx / Sqrt3;
     }
 
     public bool HandlePointerPressed(SKPoint position)
     {
-        if (!_powersScrollThumbRect.IsEmpty && _powersScrollThumbRect.Contains(position.X, position.Y))
-        {
-            _isDraggingPowersScrollbar   = true;
-            _powersScrollDragStartY      = position.Y;
-            _powersScrollDragStartOffset = _powersScrollOffsetPx;
-            return true;
-        }
-        if (!_powersScrollTrackRect.IsEmpty && _powersScrollTrackRect.Contains(position.X, position.Y))
-        {
-            float relY      = position.Y - _powersScrollTrackRect.Top;
-            float maxScroll = Math.Max(0, _powersContentH - _powersViewportH);
-            _powersScrollOffsetPx = Math.Clamp(relY / _powersScrollTrackRect.Height * maxScroll, 0, maxScroll);
-            return true;
-        }
-
         if (_confirmingAscension)
         {
             if (_ascendCancelRect.Contains(position.X, position.Y))
@@ -750,13 +843,16 @@ public sealed class AscensionRenderer : IDisposable
             }
         }
 
-        foreach (var (id, rect) in _purchaseButtonRects)
+        // Dans la carte : l'appui n'arme qu'un éventuel déplacement. L'achat, lui, se fait au
+        // relâchement (voir HandlePointerReleased), pour ne pas déclencher un pouvoir sur un
+        // glissement qui a simplement commencé au-dessus d'un hexagone.
+        if (IsMapInteractive(position))
         {
-            if (rect.Contains(position.X, position.Y))
-            {
-                ascension.PurchasePower(id);
-                return true;
-            }
+            _pointerDown = true;
+            _isPanning = false;
+            _pressPosition = position;
+            _lastPanMovePosition = position;
+            return true;
         }
         return false;
     }
@@ -773,7 +869,6 @@ public sealed class AscensionRenderer : IDisposable
         _connectorPaint.Dispose();
         _unlockPaint.Dispose();
         _unlockHoverPaint.Dispose();
-        _unlockedPaint.Dispose();
         _disabledPaint.Dispose();
         _confirmPaint.Dispose();
         _confirmHoverPaint.Dispose();
@@ -781,8 +876,6 @@ public sealed class AscensionRenderer : IDisposable
         _warningTextPaint.Dispose();
         _overlayDimPaint.Dispose();
         _overlayPanelPaint.Dispose();
-        _scrollTrackPaint.Dispose();
-        _scrollThumbPaint.Dispose();
         _buttonBorderPaint.Dispose();
         _buttonTextPaint.Dispose();
         _namePaint.Dispose();

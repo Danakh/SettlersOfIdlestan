@@ -1331,6 +1331,7 @@
   "ascension_power_unlocked_label": "Unlocked",
   "ascension_power_locked_tooltip": "Unlock the power just below it in the column first",
   "ascension_power_cost_label": "Cost: {0} Divine Points",
+  "ascension_power_cost_short": "{0} DP",
   "ascension_power_insufficient_points_tooltip": "Not enough Divine Points ({0} required)",
   "ascension_tab_powers": "Powers",
   "ascension_tab_permanent_building": "Permanent building",
