@@ -19,6 +19,9 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// Les essences divines sont normalement perdues au prestige (sauf un nombre limité conservé par
 /// ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE — voir Reliquaire Sacré/Renforcé et
 /// PrestigeController.PerformPrestige).
+/// Tant qu'ils ne sont pas purifiés, les Os Divins sont aussi des générateurs de Corruption : ils
+/// font monter d'un point par intervalle la Corruption de leur propre hex, jusqu'à
+/// <see cref="GetCorruptionCap"/> (voir CorruptionController.ProcessDivineBonesCorruptionGrowth).
 /// </summary>
 public class DivineBones : Monument
 {
@@ -35,7 +38,7 @@ public class DivineBones : Monument
     {
         if (Purified)
             return new(EssenceGranted ? "hex_tooltip_divine_bones_purified" : "hex_tooltip_divine_bones_purified_no_essence");
-        return new("hex_tooltip_divine_bones", new object[] { GetEssenceCap() });
+        return new("hex_tooltip_divine_bones", new object[] { GetEssenceCap(), GetCorruptionCap() });
     }
 
     /// <summary>Niveau de corruption de l'île au moment de la génération de cette feature (fige le coût de Purification).</summary>
@@ -69,6 +72,17 @@ public class DivineBones : Monument
     /// niveau de corruption (voir PrestigeState.CurrentCorruptionLevel).
     /// </summary>
     public int GetEssenceCap() => Math.Max(0, CorruptionLevel - EssenceCapCorruptionLevelOffset);
+
+    /// <summary>Multiplicateur appliqué au niveau de corruption de l'île pour obtenir le plafond de génération.</summary>
+    public const int CorruptionCapMultiplier = 2;
+
+    /// <summary>
+    /// Niveau de Corruption au-delà duquel les Os Divins non purifiés cessent d'alimenter leur hex :
+    /// deux fois le niveau de corruption de l'île à leur génération (voir <see cref="CorruptionLevel"/>).
+    /// Ce n'est qu'un plafond de génération : une Corruption déjà plus élevée (débordement d'un voisin,
+    /// tirage initial de AutoExtendController.PlaceAbyssCorruption) n'est jamais réduite par ce plafond.
+    /// </summary>
+    public int GetCorruptionCap() => Math.Max(1, CorruptionCapMultiplier * CorruptionLevel);
 
     /// <summary>(niveau de corruption + 2) ^ N, N = nombre d'essences divines détenues depuis la dernière Ascension.</summary>
     public static long GetCostMultiplier(int corruptionLevel, int essenceAlreadyCollected)

@@ -151,6 +151,8 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                 int essence = godState?.DivineEssence ?? 0;
                 int cap = bones.GetEssenceCap();
                 lines.Add((_localization.GetFormated("divine_bones_essence_status", essence, cap), essence < cap));
+                // Les Os non purifiés corrompent leur propre hex (voir CorruptionController.ProcessDivineBonesCorruptionGrowth).
+                lines.Add((_localization.GetFormated("monument_bonus_divine_bones_corruption", bones.GetCorruptionCap()), true));
                 break;
             }
         }

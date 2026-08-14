@@ -35,6 +35,11 @@ namespace SettlersOfIdlestan.Controller.Island;
 ///    (Spire, rayon améliorable indéfiniment par investissement — voir CorruptionSpireController). La
 ///    Spire n'agit qu'une fois <see cref="IslandFeatures.CorruptionSpire.Built"/> : pendant sa
 ///    construction, aucune décroissance n'est appliquée sur son hex.
+/// 4. <see cref="ProcessDivineBonesCorruptionGrowth"/> — miroir du process précédent : chaque Os Divin
+///    non purifié ajoute un point de Corruption sur son propre hex (en la semant à niveau 1 si l'hex est
+///    sain), tant que le niveau y reste sous <see cref="IslandFeatures.DivineBones.GetCorruptionCap"/>
+///    (2× le niveau de corruption de l'île). Purifier les Os les retire de la carte (voir
+///    DivineBonesController) et tarit donc la source ; la Corruption déjà semée, elle, reste à nettoyer.
 /// </summary>
 public class CorruptionController
 {
@@ -55,6 +60,7 @@ public class CorruptionController
 
     private long _lastSpreadTick;
     private long _lastMonumentDecayTick;
+    private long _lastDivineBonesGrowthTick;
 
     public void Initialize(WorldState state, GameClock? clock, GamePRNG prng, PrestigeState? prestigeState = null)
     {
@@ -67,6 +73,7 @@ public class CorruptionController
         _prestigeState = prestigeState;
         _lastSpreadTick = 0;
         _lastMonumentDecayTick = 0;
+        _lastDivineBonesGrowthTick = 0;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -82,6 +89,9 @@ public class CorruptionController
 
         try { ProcessMonumentCorruptionDecay(e.CurrentTick); }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessMonumentCorruptionDecay)}: {ex}"); }
+
+        try { ProcessDivineBonesCorruptionGrowth(e.CurrentTick); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessDivineBonesCorruptionGrowth)}: {ex}"); }
     }
 
     /// <summary>Cooldown par Temple (comme AlchimistHut.LastCrystalProductionTick) — chaque Temple agit toutes les 10 s depuis sa dernière action.</summary>
@@ -341,6 +351,39 @@ public class CorruptionController
             var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
             if (corruption != null)
                 ReduceLevel(corruption);
+        }
+    }
+
+    /// <summary>
+    /// Miroir de <see cref="ProcessMonumentCorruptionDecay"/> : chaque Os Divin encore à purifier
+    /// ajoute, de façon garantie et à chaque intervalle, un point de Corruption sur son propre hex —
+    /// en la semant à niveau 1 si l'hex est sain (une Spire voisine peut l'avoir nettoyé). Le plafond
+    /// <see cref="DivineBones.GetCorruptionCap"/> (2× le niveau de corruption de l'île à la génération
+    /// des Os) borne uniquement cette génération : une Corruption déjà au-dessus n'est jamais réduite
+    /// ici, elle cesse simplement de monter de ce fait.
+    /// Passe volontairement après la décroissance des monuments : sous une Spire ou une Faille, les
+    /// deux effets s'annulent exactement, la Corruption de l'hex reste figée tant que les Os ne sont pas
+    /// purifiés. Une Purification retire les Os de la carte (voir DivineBonesController.ProcessInvestment) :
+    /// la source se tarit alors d'elle-même, sans laisser de générateur résiduel.
+    /// <see cref="IncreaseLevel"/> tient à jour <see cref="Corruption.PeakLevel"/>, donc la Corruption
+    /// engendrée ici compte normalement dans le record de nettoyage une fois la zone dissipée.
+    /// </summary>
+    private void ProcessDivineBonesCorruptionGrowth(long currentTick)
+    {
+        if (_state == null) return;
+        if (currentTick - _lastDivineBonesGrowthTick < ProductionIntervalTicks) return;
+        _lastDivineBonesGrowthTick = currentTick;
+
+        // Snapshot : semer une Corruption ajoute une feature à _state.Features pendant l'itération.
+        foreach (var bones in _state.Features.OfType<DivineBones>().ToList())
+        {
+            if (bones.Purified) continue;
+
+            var corruption = _state.GetFeaturesAt(bones.Position).OfType<Corruption>().FirstOrDefault();
+            if (corruption == null)
+                _state.AddFeature(new Corruption(bones.Position, level: 1));
+            else if (corruption.Level < bones.GetCorruptionCap())
+                IncreaseLevel(corruption);
         }
     }
 

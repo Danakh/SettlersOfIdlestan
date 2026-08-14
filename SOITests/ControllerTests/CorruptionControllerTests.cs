@@ -785,4 +785,119 @@ public class CorruptionControllerTests
         gateController.Initialize(state, clock);
         Assert.True(gateController.IsAbyssGateEligible());
     }
+
+    // ── Os Divins : générateurs de Corruption tant qu'ils ne sont pas purifiés ─────────────
+    // La carte à un seul hex isole ce mécanisme du débordement (aucun voisin candidat).
+
+    [Fact]
+    public void DivineBones_RaiseCorruptionOnTheirOwnHex_EachInterval()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 1));
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 3)); // plafond 6
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        Assert.Equal(2, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        var corruption = state.GetFeaturesAt(landHex).OfType<Corruption>().Single();
+        Assert.Equal(3, corruption.Level);
+        Assert.Equal(3, corruption.PeakLevel); // le pic engendré compte pour le record de nettoyage
+    }
+
+    [Fact]
+    public void DivineBones_SeedCorruption_WhenTheirHexIsClean()
+    {
+        // Hex sain (une Spire voisine a pu le nettoyer) : les Os y resèment une poche de niveau 1.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 2));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(1, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void DivineBones_StopRaisingCorruption_AtTwiceTheIslandCorruptionLevel()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        var bones = new DivineBones(landHex, corruptionLevel: 2); // plafond 4
+        state.AddFeature(new Corruption(landHex, level: 1));
+        state.AddFeature(bones);
+
+        Assert.Equal(4, bones.GetCorruptionCap());
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 10; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(4, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void DivineBones_DoNotReduceCorruptionAlreadyAboveTheirCap()
+    {
+        // Le plafond ne borne que la génération : une Corruption plus élevée (tirage initial de
+        // l'Abysse, débordement d'un voisin) est laissée telle quelle, jamais rabaissée.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 9));
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 2)); // plafond 4
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 3; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(9, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void DivineBones_Purified_GenerateNoCorruption()
+    {
+        // En jeu, des Os purifiés sont retirés de la carte (DivineBonesController.ProcessInvestment) ;
+        // l'état transitoire ne doit de toute façon plus rien engendrer.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 3) { Purified = true });
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
+    }
+
+    [Fact]
+    public void DivineBones_UnderBuiltSpire_CancelOutItsDecay()
+    {
+        // Décroissance garantie de la Spire (-1) puis génération des Os (+1) dans le même intervalle :
+        // la Corruption reste figée tant que les Os ne sont pas purifiés.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 3));
+        state.AddFeature(new CorruptionSpire(landHex) { Built = true });
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 3)); // plafond 6
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 5; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(3, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
 }
