@@ -21,7 +21,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 /// les pouvoirs restent invisibles. Une fois débloqués, ils forment une petite carte hexagonale :
 /// Foi occupe l'hexagone central, et chaque colonne de <see cref="AscensionPowerDefinitions"/>
 /// devient une ligne d'hexagones partant du centre dans sa propre direction. Débloquer Foi
-/// déverrouille les 4 branches ; au sein d'une branche, chaque pouvoir nécessite le précédent.
+/// déverrouille toutes les branches ; au sein d'une branche, chaque pouvoir nécessite le précédent.
 /// La carte est zoomable et déplaçable, mais reste confinée sous la barre d'onglets internes
 /// (Pouvoirs / Bâtiments uniques permanents), qui garde donc ses clics quel que soit le zoom.
 /// </summary>
@@ -426,11 +426,15 @@ public sealed class AscensionRenderer : IDisposable
 
             bool selected = chosen.Contains(type);
             bool full = !selected && chosen.Count >= slots;
-            DrawPermanentBuildingCard(canvas, cardX, cardY, cardWidth, type, selected, full);
+            // Aucun emplacement du tout : c'est la colonne Héritage qui manque, pas une Ascension.
+            string fullTooltipKey = slots <= 0
+                ? "ascension_permanent_building_locked_tooltip"
+                : "ascension_permanent_building_no_slots_tooltip";
+            DrawPermanentBuildingCard(canvas, cardX, cardY, cardWidth, type, selected, full, fullTooltipKey);
         }
     }
 
-    private void DrawPermanentBuildingCard(SKCanvas canvas, float x, float y, float width, BuildingType type, bool selected, bool full)
+    private void DrawPermanentBuildingCard(SKCanvas canvas, float x, float y, float width, BuildingType type, bool selected, bool full, string fullTooltipKey)
     {
         var rect = new SKRect(x, y, x + width, y + BuildingCardHeight);
         bool hovered = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
@@ -455,7 +459,7 @@ public sealed class AscensionRenderer : IDisposable
         else if (full && hovered)
         {
             _hoveredLockedRect = rect;
-            _hoveredLockedTooltip = _localization.Get("ascension_permanent_building_no_slots_tooltip");
+            _hoveredLockedTooltip = _localization.Get(fullTooltipKey);
         }
 
         if (selected || !full)

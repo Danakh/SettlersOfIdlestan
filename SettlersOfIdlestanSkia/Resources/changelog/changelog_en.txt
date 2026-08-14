@@ -4,6 +4,8 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.15
+• Divine Legacy: new divine power, first of a sixth column, which unlocks permanent unique buildings — every Ascension performed opens one slot, retroactively for those already completed
+• Eternal Legacy: new divine power (follow-up to Divine Legacy) opening a second permanent unique building slot per Ascension performed
 • Prestigious Ascension: new divine power, first of a fifth column, which makes every Ascension grant 1 prestige point per divine essence earned since the beginning of the game — the grant is also paid out when the power is purchased
 • Greater Purification: new divine power (follow-up to Prestigious Ascension) through which the Necropolis purifies the Divine Bones it is built on instead of destroying them — their divine essence is harvested for free on construction
 • Memory of God: new divine power (follow-up to Eye of God) that reduces the cost growth of repeatable research by 50% and shields them from Ascension — every new cycle starts back at the highest rank ever reached

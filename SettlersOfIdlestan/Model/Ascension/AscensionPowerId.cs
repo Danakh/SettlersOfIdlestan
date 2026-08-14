@@ -21,5 +21,7 @@ public enum AscensionPowerId
     FistOfGod,
     MemoryOfGod,
     PrestigiousAscension,
-    GreaterPurification
+    GreaterPurification,
+    DivineLegacy,
+    EternalLegacy
 }

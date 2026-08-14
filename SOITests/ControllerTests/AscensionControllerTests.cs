@@ -22,14 +22,20 @@ namespace SOITests.ControllerTests;
 /// Tests des pouvoirs divins et du bâtiment unique permanent d'Ascension (voir AscensionController.
 /// CanPurchasePower/PurchasePower, PermanentUniqueBuildingChoices/SelectPermanentUniqueBuilding/
 /// ApplyPermanentUniqueBuildingToCivilization) : coût en points divins, emplacements de bâtiment
-/// permanent (1 par Ascension effectuée), application à la civilisation sans occuper d'emplacement
+/// permanent (1 par Ascension effectuée et par pouvoir de la colonne Héritage, rétroactivement,
+/// aucun sans ces pouvoirs), application à la civilisation sans occuper d'emplacement
 /// en ville, blocage de la construction manuelle, survie à la perte de toutes les villes, et cumul
 /// avec un bâtiment unique physiquement construit.
 /// </summary>
 public class AscensionControllerTests
 {
+    /// <param name="legacyRanks">
+    /// Nombre de pouvoirs de la colonne Héritage déjà acquis (0 à 2) : ce sont eux qui ouvrent les
+    /// emplacements de bâtiment unique permanent, à raison d'un par Ascension effectuée chacun. La
+    /// valeur par défaut 1 donne donc « 1 emplacement par Ascension ».
+    /// </param>
     private static (WorldState state, City city, Civilization civ, AscensionController ascension, GodState godState) CreateTestSetup(
-        int godPoints = 100, int ascensionsPerformed = 1, int? prestigePoints = null)
+        int godPoints = 100, int ascensionsPerformed = 1, int? prestigePoints = null, int legacyRanks = 1)
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];
@@ -37,6 +43,8 @@ public class AscensionControllerTests
 
         var godState = new GodState { GodPoints = godPoints };
         godState.AscensionState.AscensionsPerformed = ascensionsPerformed;
+        if (legacyRanks >= 1) godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.DivineLegacy);
+        if (legacyRanks >= 2) godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.EternalLegacy);
         if (prestigePoints.HasValue)
             godState.PrestigeState = new PrestigeState(state) { PrestigePoints = prestigePoints.Value };
 
@@ -89,6 +97,64 @@ public class AscensionControllerTests
 
         Assert.Equal(3, ascension.PermanentUniqueBuildingSlots);
         Assert.Equal(3, godState.AscensionState.AscensionsPerformed);
+    }
+
+    [Fact]
+    public void PermanentUniqueBuildingSlots_WithoutLegacyPowers_IsZeroWhateverTheAscensionCount()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 5, legacyRanks: 0);
+
+        Assert.Equal(0, ascension.PermanentUniqueBuildingSlots);
+    }
+
+    [Fact]
+    public void PermanentUniqueBuildingSlots_EternalLegacy_DoublesSlotsPerAscension()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 3, legacyRanks: 2);
+
+        Assert.Equal(6, ascension.PermanentUniqueBuildingSlots);
+    }
+
+    [Fact]
+    public void PurchasePower_DivineLegacy_OpensSlotsRetroactivelyForPastAscensions()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 2, legacyRanks: 0);
+        Assert.Equal(0, ascension.PermanentUniqueBuildingSlots);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
+
+        Assert.Equal(2, ascension.PermanentUniqueBuildingSlots);
+        Assert.True(ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom));
+        Assert.True(ascension.SelectPermanentUniqueBuilding(BuildingType.Academy));
+    }
+
+    [Fact]
+    public void PurchasePower_EternalLegacy_RequiresDivineLegacyFirst()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(legacyRanks: 0);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.False(ascension.ArePrerequisitesMet(AscensionPowerId.EternalLegacy));
+        Assert.False(ascension.PurchasePower(AscensionPowerId.EternalLegacy));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EternalLegacy));
+    }
+
+    [Fact]
+    public void ApplyPermanentUniqueBuildingToCivilization_MoreChoicesThanSlots_TrimsExcessAndGrantsOnlyWhatIsUnlocked()
+    {
+        // Sauvegarde antérieure à la colonne Héritage : des bâtiments choisis quand les emplacements
+        // étaient gratuits, mais plus aucun pouvoir pour les autoriser.
+        var (_, _, civ, ascension, godState) = CreateTestSetup(ascensionsPerformed: 2, legacyRanks: 0);
+        godState.AscensionState.PermanentUniqueBuildings.Add(BuildingType.WarRoom);
+        godState.AscensionState.PermanentUniqueBuildings.Add(BuildingType.Academy);
+
+        ascension.ApplyPermanentUniqueBuildingToCivilization();
+
+        Assert.Empty(ascension.PermanentUniqueBuildings);
+        Assert.Empty(civ.UniqueBuildings);
     }
 
     [Fact]

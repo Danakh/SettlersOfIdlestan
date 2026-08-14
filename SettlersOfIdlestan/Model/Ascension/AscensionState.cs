@@ -23,12 +23,14 @@ public class AscensionState
     /// <summary>
     /// Nombre total d'Ascensions effectuées (cross-prestige, ne diminue jamais). Pilote le nombre
     /// d'emplacements de bâtiments uniques permanents (voir AscensionController.
-    /// PermanentUniqueBuildingSlots) : 1 emplacement supplémentaire gratuit par Ascension.
+    /// PermanentUniqueBuildingSlots) : 1 emplacement par Ascension une fois Héritage Divin acquis,
+    /// 2 avec Héritage Éternel — aucun sans ces pouvoirs.
     /// </summary>
     public int AscensionsPerformed { get; set; }
 
     /// <summary>
-    /// Bâtiments uniques permanents choisis (jusqu'à <see cref="AscensionsPerformed"/> emplacements)
+    /// Bâtiments uniques permanents choisis (jusqu'au nombre d'emplacements ouvert par la colonne
+    /// Héritage, voir AscensionController.PermanentUniqueBuildingSlots)
     /// — voir AscensionController.PermanentUniqueBuildingChoices. Appliqués à chaque début d'île
     /// (AscensionController.ApplyPermanentUniqueBuildingToCivilization), sans jamais occuper
     /// d'emplacement dans une ville.

@@ -44,6 +44,12 @@ public static class AscensionPowerDefinitions
 
         new AscensionPowerDefinition(AscensionPowerId.GreaterPurification,
             "ascension_power_greaterpurification_name", "ascension_power_greaterpurification_desc", column: 4, godPointCost: 5),
+
+        new AscensionPowerDefinition(AscensionPowerId.DivineLegacy,
+            "ascension_power_divinelegacy_name", "ascension_power_divinelegacy_desc", column: 5, godPointCost: 3),
+
+        new AscensionPowerDefinition(AscensionPowerId.EternalLegacy,
+            "ascension_power_eternallegacy_name", "ascension_power_eternallegacy_desc", column: 5, godPointCost: 5),
     };
 
     /// <summary>Nombre de colonnes (hors Foi) : les colonnes vont de 0 à ColumnCount - 1.</summary>

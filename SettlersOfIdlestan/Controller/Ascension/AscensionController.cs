@@ -20,7 +20,7 @@ namespace SettlersOfIdlestan.Controller.Ascension;
 /// <summary>
 /// Gère les pouvoirs divins (GodState.AscensionState) : Foi est le pouvoir fondateur (toujours
 /// disponible), qui déverrouille les colonnes indépendantes (Main/Oeil/Marche/Bras de Dieu,
-/// Ascension Prestigieuse) ; effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu, Mémoire de
+/// Ascension Prestigieuse, Héritage) ; effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu, Mémoire de
 /// Dieu, Foi) et l'action ciblée Marche de Dieu.
 /// Gère aussi l'Ascension elle-même (voir <see cref="PerformAscension"/>) : convertit l'essence
 /// divine accumulée (DivineBonesController) en points divins et repart de zéro (île + prestige).
@@ -302,10 +302,22 @@ public class AscensionController : IModifierProvider
         (IReadOnlyCollection<BuildingType>?)_ascensionState?.PermanentUniqueBuildings ?? Array.Empty<BuildingType>();
 
     /// <summary>
-    /// Nombre d'emplacements de bâtiments uniques permanents disponibles : 1 par Ascension déjà
-    /// effectuée (voir AscensionState.AscensionsPerformed) — 0 tant qu'aucune Ascension n'a eu lieu.
+    /// Nombre d'emplacements de bâtiments uniques permanents accordés par chaque Ascension déjà
+    /// effectuée : 0 sans pouvoir divin, 1 avec Héritage Divin, 2 avec Héritage Éternel. C'est la
+    /// colonne Héritage qui ouvre entièrement le système — aucun emplacement n'est gratuit.
     /// </summary>
-    public int PermanentUniqueBuildingSlots => _ascensionState?.AscensionsPerformed ?? 0;
+    private int PermanentUniqueBuildingSlotsPerAscension =>
+        (IsPowerUnlocked(AscensionPowerId.DivineLegacy) ? 1 : 0)
+        + (IsPowerUnlocked(AscensionPowerId.EternalLegacy) ? 1 : 0);
+
+    /// <summary>
+    /// Nombre d'emplacements de bâtiments uniques permanents disponibles :
+    /// <see cref="PermanentUniqueBuildingSlotsPerAscension"/> par Ascension déjà effectuée (voir
+    /// AscensionState.AscensionsPerformed). Les deux pouvoirs de la colonne Héritage sont donc
+    /// rétroactifs : ils comptent les Ascensions déjà accomplies, pas seulement les suivantes.
+    /// </summary>
+    public int PermanentUniqueBuildingSlots =>
+        (_ascensionState?.AscensionsPerformed ?? 0) * PermanentUniqueBuildingSlotsPerAscension;
 
     /// <summary>
     /// Choisit un bâtiment unique permanent supplémentaire accordé par l'Ascension, tant qu'un
@@ -336,7 +348,25 @@ public class AscensionController : IModifierProvider
     public void ApplyPermanentUniqueBuildingToCivilization()
     {
         if (_state == null) return;
+        EnforcePermanentUniqueBuildingSlots();
         _state.PlayerCivilization.SetAscensionGrantedUniqueBuildings(PermanentUniqueBuildings);
+    }
+
+    /// <summary>
+    /// Ramène le nombre de bâtiments choisis au nombre d'emplacements réellement disponibles. Sans
+    /// cela, une sauvegarde antérieure à la colonne Héritage — où chaque Ascension donnait un
+    /// emplacement gratuitement — continuerait d'accorder ses bâtiments alors que le pouvoir qui les
+    /// autorise n'a pas été acheté. Les choix retirés ne coûtent rien à refaire : la sélection est
+    /// gratuite et réversible (voir <see cref="DeselectPermanentUniqueBuilding"/>).
+    /// </summary>
+    private void EnforcePermanentUniqueBuildingSlots()
+    {
+        var chosen = _ascensionState?.PermanentUniqueBuildings;
+        if (chosen == null) return;
+
+        int slots = PermanentUniqueBuildingSlots;
+        while (chosen.Count > slots)
+            chosen.Remove(chosen.Last());
     }
 
     public bool CanAscend(GodState godState) => godState.DivineEssence >= MinDivineEssenceForAscension;
