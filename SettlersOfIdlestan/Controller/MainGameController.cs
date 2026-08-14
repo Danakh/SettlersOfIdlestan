@@ -366,7 +366,7 @@ namespace SettlersOfIdlestan.Controller
                 WonderController.Initialize(WorldState, Clock, HarvestController);
                 GreatLighthouseController.Initialize(WorldState, Clock, HarvestController);
                 ObservatoryController.Initialize(WorldState, Clock, HarvestController);
-                NecropolisController.Initialize(WorldState, Clock, HarvestController);
+                NecropolisController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
                 DeepestMineController.Initialize(WorldState, Clock, HarvestController);
                 SurfaceBreachController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionSpireController.Initialize(WorldState, Clock, HarvestController);

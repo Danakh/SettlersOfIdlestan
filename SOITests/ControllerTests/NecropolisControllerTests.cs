@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Controller.Ascension;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -40,7 +41,11 @@ namespace SOITests.ControllerTests
                 new(ECategory.UNLOCK_DIVINE_BONES, EType.ADDITIVE, 1),
             }));
 
-        private static (WorldState state, GameClock clock, NecropolisController controller) CreateSetup()
+        /// <param name="godState">
+        /// Fourni uniquement par les tests de Purification Supérieure : c'est ce qui permet à la
+        /// construction de récolter l'essence divine des Os Divins (voir NecropolisController).
+        /// </param>
+        private static (WorldState state, GameClock clock, NecropolisController controller) CreateSetup(GodState? godState = null)
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
@@ -50,9 +55,18 @@ namespace SOITests.ControllerTests
             clock.Start();
 
             var controller = new NecropolisController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, harvestController: null, godState);
 
             return (state, clock, controller);
+        }
+
+        /// <summary>GodState de test, Purification Supérieure débloquée ou non.</summary>
+        private static GodState CreateGodState(bool greaterPurification, int divineEssence = 0)
+        {
+            var godState = new GodState { DivineEssence = divineEssence };
+            if (greaterPurification)
+                godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.GreaterPurification);
+            return godState;
         }
 
         private static DivineBones AddBones(WorldState state, HexCoord hex)
@@ -156,6 +170,54 @@ namespace SOITests.ControllerTests
 
             Assert.Empty(state.Features.OfType<Necropolis>());
             Assert.Contains(state.Features.OfType<DivineBones>(), b => b.Position.Equals(CityHex));
+        }
+
+        // ── Purification Supérieure ──────────────────────────────────────────
+
+        /// <summary>Les Os Divins de test portent un niveau de corruption 5, soit un plafond de 2 essences.</summary>
+        [Fact]
+        public void PlaceNecropolis_WithGreaterPurification_HarvestsDivineEssence()
+        {
+            var godState = CreateGodState(greaterPurification: true);
+            var (state, _, controller) = CreateSetup(godState);
+            AddBones(state, CityHex);
+
+            Assert.NotNull(controller.PlaceNecropolis(CityHex));
+
+            Assert.Equal(1, godState.DivineEssence);
+            Assert.Equal(1, godState.TotalDivineEssenceEarned);
+            Assert.Empty(state.Features.OfType<DivineBones>());
+            Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.DivineBonesPurified);
+        }
+
+        /// <summary>Plafond d'essences atteint : la Nécropole se bâtit quand même, sans rien octroyer.</summary>
+        [Fact]
+        public void PlaceNecropolis_WithGreaterPurificationAtEssenceCap_GrantsNothing()
+        {
+            var godState = CreateGodState(greaterPurification: true, divineEssence: 2);
+            var (state, _, controller) = CreateSetup(godState);
+            AddBones(state, CityHex);
+
+            Assert.NotNull(controller.PlaceNecropolis(CityHex));
+
+            Assert.Equal(2, godState.DivineEssence);
+            Assert.Equal(0, godState.TotalDivineEssenceEarned);
+            Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.DivineBonesPurifiedNoEssence);
+        }
+
+        [Fact]
+        public void PlaceNecropolis_WithoutGreaterPurification_DestroysBonesWithoutEssence()
+        {
+            var godState = CreateGodState(greaterPurification: false);
+            var (state, _, controller) = CreateSetup(godState);
+            AddBones(state, CityHex);
+
+            Assert.NotNull(controller.PlaceNecropolis(CityHex));
+
+            Assert.Equal(0, godState.DivineEssence);
+            Assert.Equal(0, godState.TotalDivineEssenceEarned);
+            Assert.Empty(state.Features.OfType<DivineBones>());
+            Assert.DoesNotContain(state.EventLog.Entries, e => e.Type == GameEventType.DivineBonesPurified);
         }
 
         // ── Investissement ───────────────────────────────────────────────────

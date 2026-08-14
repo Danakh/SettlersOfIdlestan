@@ -19,9 +19,9 @@ namespace SettlersOfIdlestan.Controller.Ascension;
 
 /// <summary>
 /// Gère les pouvoirs divins (GodState.AscensionState) : Foi est le pouvoir fondateur (toujours
-/// disponible), qui déverrouille les 4 colonnes indépendantes (Main/Oeil/Marche/Bras de Dieu) ;
-/// effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu, Mémoire de Dieu, Foi) et l'action ciblée
-/// Marche de Dieu.
+/// disponible), qui déverrouille les colonnes indépendantes (Main/Oeil/Marche/Bras de Dieu,
+/// Ascension Prestigieuse) ; effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu, Mémoire de
+/// Dieu, Foi) et l'action ciblée Marche de Dieu.
 /// Gère aussi l'Ascension elle-même (voir <see cref="PerformAscension"/>) : convertit l'essence
 /// divine accumulée (DivineBonesController) en points divins et repart de zéro (île + prestige).
 /// </summary>
@@ -158,8 +158,33 @@ public class AscensionController : IModifierProvider
         if (id == AscensionPowerId.MemoryOfGod)
             RestoreRepeatableResearchToBest();
 
+        // Ascension Prestigieuse est achetée juste après une Ascension, cycle où elle n'aurait
+        // sinon rien donné : elle verse sa dotation tout de suite plutôt que de la faire attendre
+        // jusqu'à l'Ascension suivante.
+        if (id == AscensionPowerId.PrestigiousAscension)
+            GrantPrestigiousAscensionPoints(_godState!);
+
         OnModifiersChanged?.Invoke();
         return true;
+    }
+
+    /// <summary>
+    /// Points de prestige versés par Ascension Prestigieuse : 1 par essence divine gagnée depuis le
+    /// tout début de la partie (GodState.TotalDivineEssenceEarned, jamais remis à zéro). Versés au
+    /// PrestigeState courant — celui du nouveau cycle quand l'appel vient de
+    /// <see cref="PerformAscension(MainGameState, IslandParameters, RaceId)"/>. Ils comptent comme
+    /// n'importe quel gain de prestige, y compris pour le palier d'île (PrestigeState.Tier).
+    /// </summary>
+    private static void GrantPrestigiousAscensionPoints(GodState godState)
+    {
+        var prestigeState = godState.PrestigeState;
+        if (prestigeState == null) return;
+
+        int points = godState.TotalDivineEssenceEarned;
+        if (points <= 0) return;
+
+        prestigeState.PrestigePoints += points;
+        prestigeState.TotalPrestigePointsEarned += points;
     }
 
     /// <summary>
@@ -223,11 +248,20 @@ public class AscensionController : IModifierProvider
         (IReadOnlyCollection<RaceId>?)_ascensionState?.AscendedRaces ?? Array.Empty<RaceId>();
 
     /// <summary>
+    /// Colonnes de pouvoirs divins qui conditionnent le déblocage des races : les 4 premières
+    /// (Main/Oeil/Marche/Bras de Dieu). Volontairement figé plutôt qu'aligné sur
+    /// AscensionPowerDefinitions.ColumnCount : une colonne ajoutée après coup reverrouillerait le
+    /// choix de race des joueurs qui l'ont déjà acquis.
+    /// </summary>
+    private const int RaceUnlockColumnCount = 4;
+
+    /// <summary>
     /// Vrai si le choix de race est débloqué : toute la première rangée de pouvoirs divins achetée,
-    /// c'est-à-dire le premier pouvoir de chacune des 4 colonnes (Main/Oeil/Marche/Bras de Dieu).
+    /// c'est-à-dire le premier pouvoir de chacune des <see cref="RaceUnlockColumnCount"/> colonnes
+    /// d'origine (Main/Oeil/Marche/Bras de Dieu).
     /// </summary>
     public bool IsRaceSelectionUnlocked =>
-        Enumerable.Range(0, 4).All(col =>
+        Enumerable.Range(0, RaceUnlockColumnCount).All(col =>
         {
             var column = AscensionPowerDefinitions.GetColumn(col);
             return column.Count > 0 && IsPowerUnlocked(column[0].Id);
@@ -235,11 +269,11 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Vrai si les races avancées (Géants, Garudas, Sirènes, Elfes noirs) sont débloquées : toute la
-    /// seconde rangée de pouvoirs divins achetée (le deuxième pouvoir de chaque colonne qui en possède un).
+    /// seconde rangée de pouvoirs divins achetée (le deuxième pouvoir de chacune de ces colonnes).
     /// </summary>
     public bool AreAdvancedRacesUnlocked =>
         IsRaceSelectionUnlocked &&
-        Enumerable.Range(0, 4).All(col =>
+        Enumerable.Range(0, RaceUnlockColumnCount).All(col =>
         {
             var column = AscensionPowerDefinitions.GetColumn(col);
             return column.Count < 2 || IsPowerUnlocked(column[1].Id);
@@ -385,6 +419,11 @@ public class AscensionController : IModifierProvider
 
         godState.PrestigeState = new PrestigeState(worldState);
         GrantFreePrestigeVertices(godState.PrestigeState, chosenRace);
+
+        // Ascension Prestigieuse : le nouveau cycle ne repart plus la bourse vide, mais avec 1 point
+        // de prestige par essence divine jamais gagnée.
+        if (IsPowerUnlocked(AscensionPowerId.PrestigiousAscension))
+            GrantPrestigiousAscensionPoints(godState);
 
         // Mémoire de Dieu : les recherches répétables ne sont pas remises à zéro par l'Ascension —
         // le nouvel arbre repart directement au meilleur palier jamais atteint.

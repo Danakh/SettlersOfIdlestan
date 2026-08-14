@@ -1054,6 +1054,53 @@ public class AscensionControllerTests
         Assert.Equal(2, godState.AscensionState.BestRepeatCounts[TechnologyId.MasterHarvest]);
     }
 
+    // ── Ascension Prestigieuse ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Le pouvoir est acheté juste après une Ascension : sa dotation est versée sur-le-champ, sinon
+    /// il ne servirait à rien avant la suivante.
+    /// </summary>
+    [Fact]
+    public void PurchasePrestigiousAscension_GrantsOnePrestigePointPerDivineEssenceEverEarned()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 5);
+        godState.TotalDivineEssenceEarned = 7;
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
+
+        Assert.Equal(12, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(7, godState.PrestigeState.TotalPrestigePointsEarned);
+    }
+
+    [Fact]
+    public void PerformAscension_WithPrestigiousAscension_StartsTheNewCycleWithPrestigePoints()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        godState.TotalDivineEssenceEarned = 9;
+        var ascension = controller.AscensionController;
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
+
+        controller.PerformAscension();
+
+        // Le PrestigeState du cycle qui commence est neuf : ces 9 points ne peuvent venir que de la
+        // dotation, pas de celle déjà versée au cycle précédent à l'achat.
+        Assert.Equal(9, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
+        Assert.Equal(9, controller.CurrentMainState.PrestigeState.TotalPrestigePointsEarned);
+    }
+
+    [Fact]
+    public void PerformAscension_WithoutPrestigiousAscension_StartsTheNewCycleAtZero()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        godState.TotalDivineEssenceEarned = 9;
+
+        controller.PerformAscension();
+
+        Assert.Equal(0, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
+    }
+
     /// <summary>Partie complète prête à ascensionner (essence divine et points divins fournis).</summary>
     private static MainGameController CreateAscendableGame(out GodState godState)
     {

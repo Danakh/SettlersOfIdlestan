@@ -16,6 +16,10 @@ public class AscensionState
 
     public bool IsEyeOfGodActive => UnlockedPowers.Contains(AscensionPowerId.EyeOfGod);
 
+    /// <summary>Purification Supérieure : la Nécropole récolte les Os Divins sur lesquels elle est
+    /// bâtie au lieu de les détruire (voir NecropolisController.PlaceNecropolis).</summary>
+    public bool IsGreaterPurificationActive => UnlockedPowers.Contains(AscensionPowerId.GreaterPurification);
+
     /// <summary>
     /// Nombre total d'Ascensions effectuées (cross-prestige, ne diminue jamais). Pilote le nombre
     /// d'emplacements de bâtiments uniques permanents (voir AscensionController.

@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,8 @@ namespace SettlersOfIdlestan.Controller.Island
     /// <summary>
     /// Monument débloqué par la recherche Nécropole Divine : bâti sur un hex portant des Os Divins
     /// non purifiés, qu'il consomme au placement (l'essence divine qu'ils auraient octroyée est
-    /// sacrifiée, voir <see cref="PlaceNecropolis"/>). Il monte ensuite de niveau par investissement
+    /// sacrifiée — sauf sous le pouvoir divin Purification Supérieure, qui la récolte au passage,
+    /// voir <see cref="PlaceNecropolis"/>). Il monte ensuite de niveau par investissement
     /// progressif de ressources (Pierre/Brique/Cristal/Mithril, voir <see cref="Necropolis"/>), et
     /// chaque niveau augmente de 15% les points divins gagnés à l'Ascension (voir
     /// AscensionController.GetGodPointsGain).
@@ -24,6 +26,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private WorldState? _state;
         private GameClock? _clock;
         private HarvestController? _harvestController;
+        private GodState? _godState;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -32,7 +35,13 @@ namespace SettlersOfIdlestan.Controller.Island
 
         internal NecropolisController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
+        /// <param name="godState">
+        /// Optionnel : requis uniquement pour que Purification Supérieure puisse récolter l'essence
+        /// divine des Os Divins bâtis (voir <see cref="PlaceNecropolis"/>). Omis, la construction
+        /// les détruit comme avant.
+        /// </param>
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null,
+            GodState? godState = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -40,6 +49,7 @@ namespace SettlersOfIdlestan.Controller.Island
             _state = state;
             _clock = clock;
             _harvestController = harvestController;
+            _godState = godState;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -112,8 +122,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Bâtit la Nécropole sur l'hex donné, qui doit porter des Os Divins non purifiés : ceux-ci
-        /// sont détruits (l'essence divine qu'ils auraient octroyée est définitivement perdue).
-        /// Retourne null si l'hex ne porte pas d'Os Divins purifiables.
+        /// sont détruits (l'essence divine qu'ils auraient octroyée est définitivement perdue), sauf
+        /// sous Purification Supérieure qui la récolte au passage (voir
+        /// <see cref="HarvestBonesUnderNecropolis"/>). Retourne null si l'hex ne porte pas d'Os
+        /// Divins purifiables.
         /// </summary>
         public Necropolis? PlaceNecropolis(HexCoord position)
         {
@@ -124,6 +136,9 @@ namespace SettlersOfIdlestan.Controller.Island
                 .FirstOrDefault(b => !b.Purified && b.Position.Equals(position));
             if (bones == null) return null;
 
+            if (_godState?.AscensionState.IsGreaterPurificationActive == true)
+                HarvestBonesUnderNecropolis(bones);
+
             _state.RemoveFeature(bones);
 
             var necropolis = new Necropolis(position);
@@ -133,6 +148,26 @@ namespace SettlersOfIdlestan.Controller.Island
                 MonumentInvestment.TryAutoStartInvestment(necropolis, necropolis.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
             OnNecropolisPlaced?.Invoke(this, EventArgs.Empty);
             return necropolis;
+        }
+
+        /// <summary>
+        /// Purification Supérieure : la première pierre de la Nécropole purifie les Os Divins au lieu
+        /// de les sceller. Ils rapportent leur essence divine sans rien coûter (ni cristaux ni points
+        /// de recherche), dans les mêmes conditions qu'une Purification ordinaire — le plafond
+        /// d'essences de la feature (DivineBones.GetEssenceCap) s'applique, et au-delà la
+        /// construction a bien lieu mais n'accorde rien (voir DivineBonesController.ProcessInvestment).
+        /// </summary>
+        private void HarvestBonesUnderNecropolis(DivineBones bones)
+        {
+            bones.Purified = true;
+            bones.EssenceGranted = _godState!.DivineEssence < bones.GetEssenceCap();
+            if (bones.EssenceGranted)
+            {
+                _godState.DivineEssence++;
+                _godState.TotalDivineEssenceEarned++;
+            }
+
+            _state!.EventLog.Add(bones.EssenceGranted ? GameEventType.DivineBonesPurified : GameEventType.DivineBonesPurifiedNoEssence, toast: true);
         }
     }
 }

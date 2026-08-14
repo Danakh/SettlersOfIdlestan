@@ -87,6 +87,11 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private bool NecropolisVisible => CanPlaceNecropolis();
     private bool NecropolisEnabled => NecropolisVisible && CurrentLayer == LayerState.AbyssZ;
 
+    /// <summary>Purification Supérieure : la Nécropole récolte les Os Divins au lieu de les
+    /// détruire — l'invite de sélection et l'infobulle doivent le dire (voir NecropolisController).</summary>
+    private bool NecropolisHarvestsBones =>
+        _gameControllerService.CurrentGameState?.GodState.AscensionState.IsGreaterPurificationActive ?? false;
+
     private bool DeepestMineVisible => CanPlaceDeepestMine();
     private bool DeepestMineEnabled => DeepestMineVisible && CurrentLayer == IslandMap.SurfaceLayer;
 
@@ -167,7 +172,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         if (!NecropolisEnabled || _targetSelectionService == null) return;
         _closeAll();
         var necropolisController = _gameControllerService.MainGameController.NecropolisController;
-        _targetSelectionService.EnterHexSelection("necropolis_select_hex", necropolisController.GetPlaceableHexes(),
+        _targetSelectionService.EnterHexSelection(
+            NecropolisHarvestsBones ? "necropolis_select_hex_harvest" : "necropolis_select_hex",
+            necropolisController.GetPlaceableHexes(),
             hex => necropolisController.PlaceNecropolis(hex), TargetSelectionTheme.Friendly);
     }
 
@@ -765,7 +772,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
         if (NecropolisVisible)
             actions.Add(SimpleAction(CivPanelSnapshot.KeyNecropolis, "necropolis_action_short",
-                NecropolisEnabled, "tooltip_necropolis", "tooltip_necropolis_abyss_only"));
+                NecropolisEnabled,
+                NecropolisHarvestsBones ? "tooltip_necropolis_harvest" : "tooltip_necropolis",
+                "tooltip_necropolis_abyss_only"));
 
         if (DeepestMineVisible)
             actions.Add(SimpleAction(CivPanelSnapshot.KeyDeepestMine, "deepest_mine_action_short",

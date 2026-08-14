@@ -5,7 +5,7 @@ namespace SettlersOfIdlestan.Model.Ascension;
 
 /// <summary>
 /// Liste ordonnée des pouvoirs divins. Foi (colonne -1) est le pouvoir fondateur, toujours
-/// disponible ; chaque colonne 0-3 ne peut être débloquée qu'une fois Foi acquise, puis ses
+/// disponible ; chaque colonne ne peut être débloquée qu'une fois Foi acquise, puis ses
 /// pouvoirs se débloquent dans l'ordre de la liste au sein de cette colonne.
 /// </summary>
 public static class AscensionPowerDefinitions
@@ -38,7 +38,16 @@ public static class AscensionPowerDefinitions
 
         new AscensionPowerDefinition(AscensionPowerId.FistOfGod,
             "ascension_power_fistofgod_name", "ascension_power_fistofgod_desc", column: 3, godPointCost: 5),
+
+        new AscensionPowerDefinition(AscensionPowerId.PrestigiousAscension,
+            "ascension_power_prestigiousascension_name", "ascension_power_prestigiousascension_desc", column: 4, godPointCost: 3),
+
+        new AscensionPowerDefinition(AscensionPowerId.GreaterPurification,
+            "ascension_power_greaterpurification_name", "ascension_power_greaterpurification_desc", column: 4, godPointCost: 5),
     };
+
+    /// <summary>Nombre de colonnes (hors Foi) : les colonnes vont de 0 à ColumnCount - 1.</summary>
+    public static int ColumnCount { get; } = All.Max(d => d.Column) + 1;
 
     public static AscensionPowerDefinition? Get(AscensionPowerId id)
     {
@@ -47,7 +56,7 @@ public static class AscensionPowerDefinitions
         return null;
     }
 
-    /// <summary>Pouvoirs de la colonne donnée (0-3), dans leur ordre de déblocage au sein de la colonne.</summary>
+    /// <summary>Pouvoirs de la colonne donnée, dans leur ordre de déblocage au sein de la colonne.</summary>
     public static List<AscensionPowerDefinition> GetColumn(int column) =>
         All.Where(d => d.Column == column).ToList();
 }

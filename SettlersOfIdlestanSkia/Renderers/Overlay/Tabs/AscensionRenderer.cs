@@ -28,7 +28,6 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 public sealed class AscensionRenderer : IDisposable
 {
     private const float Padding          = 20f;
-    private const int   Columns          = 4;
     private const float AscendButtonWidth  = 220f;
     private const float AscendButtonHeight = 34f;
     private const float InnerTabHeight     = 28f;
@@ -50,9 +49,9 @@ public sealed class AscensionRenderer : IDisposable
     private static readonly float Sqrt3Half = MathF.Sqrt(3f) / 2f;
 
     /// <summary>Direction hexagonale (axial q, r) de la branche de chaque colonne : Nord-Ouest,
-    /// Nord-Est, Sud-Est, Sud-Ouest. Est et Ouest restent libres pour d'éventuelles colonnes
-    /// supplémentaires.</summary>
-    private static readonly (int Q, int R)[] BranchDirections = { (0, -1), (1, -1), (0, 1), (-1, 1) };
+    /// Nord-Est, Sud-Est, Sud-Ouest, Est, Ouest — les six directions d'un hexagone, soit autant de
+    /// colonnes possibles avant que la carte ne doive changer de forme.</summary>
+    private static readonly (int Q, int R)[] BranchDirections = { (0, -1), (1, -1), (0, 1), (-1, 1), (1, 0), (-1, 0) };
 
     /// <summary>Demi-étendue de la carte complète en coordonnées locales, marge d'un hexagone
     /// comprise — sert à empêcher de la faire disparaître de l'écran en la déplaçant.</summary>
@@ -243,7 +242,7 @@ public sealed class AscensionRenderer : IDisposable
         }
 
         _powerHexes.Add((AscensionPowerDefinitions.Get(AscensionPowerId.Faith)!, LocalPos(AscensionPowerDefinition.FoundationColumn, 0)));
-        for (int col = 0; col < Columns; col++)
+        for (int col = 0; col < AscensionPowerDefinitions.ColumnCount; col++)
         {
             var branch = AscensionPowerDefinitions.GetColumn(col);
             int shown = 0;
@@ -735,7 +734,7 @@ public sealed class AscensionRenderer : IDisposable
     private static (float X, float Y) ComputeMapExtent()
     {
         float maxX = 0f, maxY = 0f;
-        for (int col = 0; col < Columns; col++)
+        for (int col = 0; col < AscensionPowerDefinitions.ColumnCount; col++)
         {
             var branch = AscensionPowerDefinitions.GetColumn(col);
             for (int i = 0; i < branch.Count; i++)
