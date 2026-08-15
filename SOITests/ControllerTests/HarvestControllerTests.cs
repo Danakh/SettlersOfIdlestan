@@ -66,6 +66,53 @@ namespace SOITests.ControllerTests
             Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
         }
 
+        /// <summary>
+        /// HARVEST_PRODUCTION_BONUS n'est pas plafonné à un doublement : comme pour la Forge, la
+        /// partie entière du bonus est acquise et seul le reste est tiré au sort. À 200% (ex. Corne
+        /// d'Abondance cumulée à un autre bonus de rendement), chaque récolte rapporte donc 3 unités
+        /// sans aucun aléa.
+        /// </summary>
+        [Fact]
+        public void AutomaticHarvest_WithProductionBonusAbove100Percent_YieldsMoreThanDouble()
+        {
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+
+            var tiles = new[]
+            {
+                new HexTile(a, TerrainType.Forest),
+                new HexTile(b, TerrainType.Plain),
+                new HexTile(c, TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var civs = new List<Civilization> { civ };
+            var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
+
+            var vertex = Vertex.Create(a, b, c);
+            IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
+            generator.PopulatePlayerCivilization(map, civ, vertex);
+            civ.Cities[0].AddBuilding(new Sawmill());
+
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.HARVEST_PRODUCTION_BONUS, EType.ADDITIVE, 200),
+            }));
+
+            var clock = new GameClock();
+            clock.Start();
+            var harvestController = new HarvestController(state, clock);
+            harvestController.Initialize(state, clock, prng: new GamePRNG(1));
+
+            clock.SimulateAdvance(10);
+            Assert.Equal(3, civ.GetResourceQuantity(Resource.Wood));
+
+            clock.SimulateAdvance(500);
+            Assert.Equal(6, civ.GetResourceQuantity(Resource.Wood));
+        }
+
         [Fact]
         public void AutomaticHarvest_WithDominionOnHex_HarvestsFaster()
         {

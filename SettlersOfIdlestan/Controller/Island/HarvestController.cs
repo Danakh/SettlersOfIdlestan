@@ -245,9 +245,14 @@ namespace SettlersOfIdlestan.Controller.Island
                     int forgeBonus = 0;
                     if (forge != null && forge.Level > 0)
                         forgeBonus = forgeChance / 100 + (_prng!.Next(100) < forgeChance % 100 ? 1 : 0);
+                    // Même barème que la Forge ci-dessus : au-delà de 100%, la partie entière est
+                    // garantie et seul le reste est tiré au sort (150% = +1 unité sûre, puis 50% de
+                    // chance d'une seconde). Le bonus n'est donc pas plafonné à un simple doublement.
                     int harvestProductionChance = GetHarvestProductionBonus(civ, building.Type, generation);
-                    bool harvestDoubled = harvestProductionChance > 0 && _prng!.Next(100) < harvestProductionChance;
-                    int multiplier = (1 + forgeBonus) * (harvestDoubled ? 2 : 1);
+                    int harvestBonus = 0;
+                    if (harvestProductionChance > 0)
+                        harvestBonus = harvestProductionChance / 100 + (_prng!.Next(100) < harvestProductionChance % 100 ? 1 : 0);
+                    int multiplier = (1 + forgeBonus) * (1 + harvestBonus);
                     for (int i = 1; i < multiplier; i++)
                     {
                         TryAutoTradeOnOverflow(civ, city, resource);

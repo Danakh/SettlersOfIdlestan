@@ -4,6 +4,8 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.15
+• Corne d'Abondance : nouveau pouvoir divin (suite d'Inventaire Divin) qui ajoute +100% de rendement à toute récolte automatique — cumulable avec les autres bonus de rendement — et verse chaque seconde 20 unités de chaque ressource de base
+• Courroux de Dieu : nouveau pouvoir divin (suite de Poing de Dieu) qui ajoute +100% de vitesse d'attaque à vos soldats, contre les monstres comme contre les villes ennemies
 • Héritage Divin : nouveau pouvoir divin, premier d'une sixième colonne, qui débloque les bâtiments uniques permanents — chaque Ascension effectuée ouvre un emplacement, rétroactivement pour celles déjà accomplies
 • Héritage Éternel : nouveau pouvoir divin (suite d'Héritage Divin) qui ouvre un second emplacement de bâtiment unique permanent par Ascension effectuée
 • Ascension Prestigieuse : nouveau pouvoir divin, premier d'une cinquième colonne, qui fait verser à chaque Ascension 1 point de prestige par essence divine gagnée depuis le début de la partie — dotation également versée à l'achat du pouvoir

@@ -22,7 +22,9 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             STORAGE_CAPACITY_BASIC,
             STORAGE_CAPACITY_ADVANCED,
             TRADE_GOLD_PACKAGES,
-            /// <summary>Chance (in %) to double automatic harvest yield. SubCategory = BuildingType name (empty = applies to all).</summary>
+            /// <summary>Bonus (en %) de rendement d'une récolte automatique, tiré au sort comme celui de la Forge :
+            /// au-delà de 100%, la partie entière est acquise et seul le reste est aléatoire (150% = +1 unité
+            /// garantie, puis 50% de chance d'une seconde). SubCategory = BuildingType name (vide = tous).</summary>
             HARVEST_PRODUCTION_BONUS,
             /// <summary>Flat bonus (in %) added to the Forge's double-harvest chance.</summary>
             FORGE_DOUBLE_HARVEST_BONUS,

@@ -31,6 +31,12 @@ public class AscensionController : IModifierProvider
     public const int MinDivineEssenceForAscension = 4;
 
     /// <summary>
+    /// Manne versée par Corne d'Abondance, pour chaque ressource de base et par cycle de génération
+    /// passive (HarvestController.PassiveResourceGenerationIntervalTicks, soit 1 s).
+    /// </summary>
+    public const int HornOfPlentyPassiveGenerationPerCycle = 20;
+
+    /// <summary>
     /// Bâtiments uniques toujours choisissables comme bâtiment permanent d'Ascension (voir
     /// <see cref="SelectPermanentUniqueBuilding"/>) : uniquement des IUniqueBuilding dont l'intégralité
     /// de l'effet est capturé par GetUniqueBuildingModifiers (pas d'automatisation liée à une
@@ -539,6 +545,22 @@ public class AscensionController : IModifierProvider
 
         if (IsPowerUnlocked(AscensionPowerId.MemoryOfGod))
             yield return new Modifier(Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION, Modifier.EType.ADDITIVE, 0.5);
+
+        if (IsPowerUnlocked(AscensionPowerId.HornOfPlenty))
+        {
+            // +100% de rendement sans SubCategory : toute récolte automatique, quel que soit le
+            // bâtiment, produit au moins double. Le bonus s'additionne à ceux des recherches et des
+            // bâtiments et peut dépasser 100% — au-delà, la partie entière est garantie et seul le
+            // reste est tiré au sort (voir HarvestController.PerformAutomaticProductionHarvests).
+            yield return new Modifier(Modifier.ECategory.HARVEST_PRODUCTION_BONUS, Modifier.EType.ADDITIVE, 100);
+
+            foreach (var resource in ResourceUtils.BasicResources)
+                yield return new Modifier(Modifier.ECategory.PASSIVE_RESOURCE_GENERATION, resource.ToString(),
+                    Modifier.EType.ADDITIVE, HornOfPlentyPassiveGenerationPerCycle);
+        }
+
+        if (IsPowerUnlocked(AscensionPowerId.WrathOfGod))
+            yield return new Modifier(Modifier.ECategory.ATTACK_SPEED, Modifier.EType.ADDITIVE, 1.0);
 
         // Bonus/malus de la race jouée pendant ce cycle (voir RaceDefinitions).
         foreach (var modifier in RaceDefinitions.Get(SelectedRace).Modifiers)

@@ -23,5 +23,7 @@ public enum AscensionPowerId
     PrestigiousAscension,
     GreaterPurification,
     DivineLegacy,
-    EternalLegacy
+    EternalLegacy,
+    HornOfPlenty,
+    WrathOfGod
 }

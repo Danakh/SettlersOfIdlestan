@@ -21,6 +21,9 @@ public static class AscensionPowerDefinitions
         new AscensionPowerDefinition(AscensionPowerId.DivineInventory,
             "ascension_power_divineinventory_name", "ascension_power_divineinventory_desc", column: 0, godPointCost: 5),
 
+        new AscensionPowerDefinition(AscensionPowerId.HornOfPlenty,
+            "ascension_power_hornofplenty_name", "ascension_power_hornofplenty_desc", column: 0, godPointCost: 7),
+
         new AscensionPowerDefinition(AscensionPowerId.EyeOfGod,
             "ascension_power_eyeofgod_name", "ascension_power_eyeofgod_desc", column: 1, godPointCost: 3),
 
@@ -38,6 +41,9 @@ public static class AscensionPowerDefinitions
 
         new AscensionPowerDefinition(AscensionPowerId.FistOfGod,
             "ascension_power_fistofgod_name", "ascension_power_fistofgod_desc", column: 3, godPointCost: 5),
+
+        new AscensionPowerDefinition(AscensionPowerId.WrathOfGod,
+            "ascension_power_wrathofgod_name", "ascension_power_wrathofgod_desc", column: 3, godPointCost: 7),
 
         new AscensionPowerDefinition(AscensionPowerId.PrestigiousAscension,
             "ascension_power_prestigiousascension_name", "ascension_power_prestigiousascension_desc", column: 4, godPointCost: 3),

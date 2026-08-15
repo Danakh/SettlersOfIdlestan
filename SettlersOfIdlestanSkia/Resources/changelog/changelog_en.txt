@@ -4,6 +4,8 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.15
+• Horn of Plenty: new divine power (follow-up to Divine Inventory) granting +100% yield to every automatic harvest — stacking with the other yield bonuses — and 20 units of each basic resource every second
+• Wrath of God: new divine power (follow-up to Fist of God) granting +100% attack speed to your soldiers, against monsters as well as enemy cities
 • Divine Legacy: new divine power, first of a sixth column, which unlocks permanent unique buildings — every Ascension performed opens one slot, retroactively for those already completed
 • Eternal Legacy: new divine power (follow-up to Divine Legacy) opening a second permanent unique building slot per Ascension performed
 • Prestigious Ascension: new divine power, first of a fifth column, which makes every Ascension grant 1 prestige point per divine essence earned since the beginning of the game — the grant is also paid out when the power is purchased

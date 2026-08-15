@@ -806,6 +806,78 @@ public class AscensionControllerTests
         Assert.Equal(1, modifier.Value);
     }
 
+    [Fact]
+    public void GetModifiers_WrathOfGod_GrantsAttackSpeedBonus()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.ATTACK_SPEED);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.WrathOfGod));
+
+        var modifier = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.ATTACK_SPEED));
+        Assert.Equal(Modifier.EType.ADDITIVE, modifier.Type);
+        Assert.Equal(1.0, modifier.Value);
+    }
+
+    [Fact]
+    public void WrathOfGod_RequiresFistOfGodFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.WrathOfGod));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.WrathOfGod));
+    }
+
+    [Fact]
+    public void GetModifiers_HornOfPlenty_DoublesEveryAutomaticHarvestAndGrantsBasicResources()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.HARVEST_PRODUCTION_BONUS);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.HornOfPlenty));
+
+        // Sans SubCategory : le doublement vaut pour tous les bâtiments récolteurs.
+        var doubling = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.HARVEST_PRODUCTION_BONUS));
+        Assert.Equal("", doubling.SubCategory);
+        Assert.Equal(Modifier.EType.ADDITIVE, doubling.Type);
+        Assert.Equal(100, doubling.Value);
+
+        var passive = ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.PASSIVE_RESOURCE_GENERATION)
+            .ToList();
+        Assert.Equal(ResourceUtils.BasicResources.Count, passive.Count);
+        foreach (var resource in ResourceUtils.BasicResources)
+            Assert.Contains(passive, m => m.SubCategory == resource.ToString()
+                && m.Value == AscensionController.HornOfPlentyPassiveGenerationPerCycle);
+    }
+
+    [Fact]
+    public void HornOfPlenty_RequiresDivineInventoryFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.HornOfPlenty));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.HornOfPlenty));
+    }
+
     // ── Poing de Dieu ────────────────────────────────────────────────────────
 
     private static void UnlockFistOfGod(AscensionController ascension)
