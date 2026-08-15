@@ -385,6 +385,67 @@ namespace SOITests.ControllerTests
             Assert.Equal(4, controller.CalculatePrestigePoints());
         }
 
+        // ── Garde-fou : montée de corruption avant la première Ascension ────
+
+        /// <summary>État minimal du garde-fou : une Spire bâtie (prestige corrompu disponible) et un niveau de corruption donné.</summary>
+        private static PrestigeController CreateCorruptedPrestigeController(WorldState state, int corruptionLevel)
+        {
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.CorruptionSpire(
+                state.Civilizations[0].Cities[0].Position.GetHexes().First()) { Built = true });
+            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { CurrentCorruptionLevel = corruptionLevel };
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, prestigeState: prestigeState);
+            return controller;
+        }
+
+        private static SettlersOfIdlestan.Model.Prestige.GodState CreateGodState(int ascensionsPerformed)
+        {
+            var godState = new SettlersOfIdlestan.Model.Prestige.GodState();
+            godState.AscensionState.AscensionsPerformed = ascensionsPerformed;
+            return godState;
+        }
+
+        [Fact]
+        public void CorruptedPrestigeWarning_AtLevelFourWithoutAscension()
+        {
+            // Niveau 4 → 5 : au-delà du seuil, et aucune Ascension faite.
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var controller = CreateCorruptedPrestigeController(state, corruptionLevel: 4);
+
+            Assert.True(controller.CorruptedPrestigeNeedsAscensionWarning(CreateGodState(0)));
+        }
+
+        [Fact]
+        public void CorruptedPrestigeWarning_NotBelowThreshold()
+        {
+            // Niveau 3 → 4 : le seuil n'est pas dépassé, pas de confirmation.
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var controller = CreateCorruptedPrestigeController(state, corruptionLevel: 3);
+
+            Assert.False(controller.CorruptedPrestigeNeedsAscensionWarning(CreateGodState(0)));
+        }
+
+        [Fact]
+        public void CorruptedPrestigeWarning_NotAfterFirstAscension()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var controller = CreateCorruptedPrestigeController(state, corruptionLevel: 6);
+
+            Assert.False(controller.CorruptedPrestigeNeedsAscensionWarning(CreateGodState(1)));
+        }
+
+        [Fact]
+        public void CorruptedPrestigeWarning_NotWithoutCorruptionSpire()
+        {
+            // Sans Spire bâtie, le prestige corrompu n'est pas proposé : rien à confirmer.
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { CurrentCorruptionLevel = 5 };
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, prestigeState: prestigeState);
+
+            Assert.False(controller.CorruptedPrestigeNeedsAscensionWarning(CreateGodState(0)));
+        }
+
         // ── Civilizations destroyed prestige bonus ──────────────────────────
 
         [Fact]

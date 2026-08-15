@@ -416,8 +416,8 @@ public sealed class GameScreen : IDisposable
         if (_gameOverPopup?.IsOpen    == true) return _gameOverPopup.GetSnapshot();
         if (_demoEndPopup?.IsOpen     == true) return _demoEndPopup.GetSnapshot();
 
-        // Puis les modales portées par l'overlay (confirmation de perte d'essences) : même
-        // forme, même vue, donc même chaîne.
+        // Puis les modales portées par l'overlay (confirmations du popup de prestige : montée de
+        // corruption, perte d'essences) : même forme, même vue, donc même chaîne.
         return _overlayRenderer?.GetOverlayModalSnapshot() ?? ModalPopupSnapshot.None;
     }
 
@@ -432,7 +432,8 @@ public sealed class GameScreen : IDisposable
             case ModalPopupSnapshot.IdGameOver:    _gameOverPopup?.InvokeButton(buttonKey);    break;
             case ModalPopupSnapshot.IdDemoEnd:     _demoEndPopup?.InvokeButton(buttonKey);     break;
             case ModalPopupSnapshot.IdPrestigeEssenceLoss:
-                _overlayRenderer?.InvokeOverlayModalButtonFromHost(buttonKey);
+            case ModalPopupSnapshot.IdPrestigeCorruptionWarning:
+                _overlayRenderer?.InvokeOverlayModalButtonFromHost(popupId, buttonKey);
                 break;
         }
     }

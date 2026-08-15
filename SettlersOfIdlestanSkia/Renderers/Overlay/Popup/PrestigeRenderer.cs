@@ -16,6 +16,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
     private readonly LocalizationService   _localization;
     private readonly Action<bool>          _prestigeRequested;
     private readonly PrestigeEssenceLossPopupRenderer _essenceLossPopup;
+    private readonly PrestigeCorruptionWarningPopupRenderer _corruptionWarningPopup;
 
     private bool ShowTierPicker
         => _gameControllerService.MainGameController.PrestigeController.CanChooseNextIslandTier();
@@ -31,24 +32,43 @@ public sealed class PrestigeRenderer : PopupRendererBase
         _prestigeRequested     = prestigeRequested;
         _essenceLossPopup      = new PrestigeEssenceLossPopupRenderer(localization,
             onConfirm: corrupted => _prestigeRequested(corrupted));
+        // Le garde-fou de corruption passe avant la perte d'essences : une fois confirme, le
+        // prestige corrompu reprend le chemin normal, confirmation d'essences comprise.
+        _corruptionWarningPopup = new PrestigeCorruptionWarningPopupRenderer(localization,
+            onConfirm: () => ConfirmEssenceLossOrPrestige(corrupted: true));
     }
 
     public override void Initialize(SKSize canvasSize)
     {
         base.Initialize(canvasSize);
         _essenceLossPopup.Initialize(canvasSize);
+        _corruptionWarningPopup.Initialize(canvasSize);
     }
 
     public override void Close()
     {
         base.Close();
         _essenceLossPopup.Close();
+        _corruptionWarningPopup.Close();
     }
 
-    /// <summary>Instantane de la confirmation de perte d'essences, s'il est ouvert.</summary>
-    public ModalPopupSnapshot GetEssenceLossSnapshot() => _essenceLossPopup.GetSnapshot();
+    /// <summary>
+    /// Instantane de la confirmation portee par ce popup qui est ouverte, s'il y en a une. Les deux
+    /// s'enchainent (corruption puis essences) et ne sont donc jamais ouvertes en meme temps, mais
+    /// l'ordre de priorite reste celui de l'enchainement.
+    /// </summary>
+    public ModalPopupSnapshot GetOverlayModalSnapshot()
+        => _corruptionWarningPopup.IsOpen ? _corruptionWarningPopup.GetSnapshot() : _essenceLossPopup.GetSnapshot();
 
-    public void InvokeEssenceLossButtonFromHost(string key) => _essenceLossPopup.InvokeButton(key);
+    /// <summary>Declenche un bouton de l'une de ces confirmations, depuis la vue de l'hote.</summary>
+    public void InvokeOverlayModalButtonFromHost(string popupId, string key)
+    {
+        switch (popupId)
+        {
+            case ModalPopupSnapshot.IdPrestigeEssenceLoss:       _essenceLossPopup.InvokeButton(key);       break;
+            case ModalPopupSnapshot.IdPrestigeCorruptionWarning: _corruptionWarningPopup.InvokeButton(key); break;
+        }
+    }
 
     /// <summary>
     /// Instantane du popup pour une vue portee par l'hote. Reprend les memes appels au
@@ -259,9 +279,25 @@ public sealed class PrestigeRenderer : PopupRendererBase
         controller.SetNextIslandTierChoice(controller.GetNextIslandTierChoice() + (increase ? 1 : -1));
     }
 
+    // Deux confirmations possibles, dans cet ordre : d'abord la montee de corruption avant la
+    // premiere Ascension (choix irreversible pour tout le cycle), puis la perte d'essences divines.
+    private void TryPrestige(bool corrupted)
+    {
+        var controller = _gameControllerService.MainGameController.PrestigeController;
+        var godState = _gameControllerService.MainGameController.CurrentMainState?.GodState;
+
+        if (corrupted && godState != null && controller.CorruptedPrestigeNeedsAscensionWarning(godState))
+        {
+            _corruptionWarningPopup.Open(controller.GetCorruptionLevel() + 1);
+            return;
+        }
+
+        ConfirmEssenceLossOrPrestige(corrupted);
+    }
+
     // Ouvre une confirmation si le prestige entraînerait la perte d'essences divines
     // (au-delà de ce que le Reliquaire Sacré/Renforcé permet de conserver), sinon prestige immédiat.
-    private void TryPrestige(bool corrupted)
+    private void ConfirmEssenceLossOrPrestige(bool corrupted)
     {
         var godState = _gameControllerService.MainGameController.CurrentMainState?.GodState;
         int essenceLoss = godState != null
@@ -288,6 +324,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
     {
         if (Disposed) return;
         _essenceLossPopup.Dispose();
+        _corruptionWarningPopup.Dispose();
         base.Dispose();
     }
 }

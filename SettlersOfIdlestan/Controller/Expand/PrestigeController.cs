@@ -175,6 +175,26 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public int GetCorruptionLevel() => _prestigeState?.CurrentCorruptionLevel ?? 1;
 
+        /// <summary>
+        /// Niveau de corruption au-delà duquel un prestige corrompu demande confirmation tant qu'aucune
+        /// Ascension n'a été faite : au-delà de 3, la Corruption déborde en surface (voir
+        /// PrestigeState.SurfaceCorruptionLevel) et les monstres montent d'un cran par niveau (voir
+        /// MonsterLeveling), alors que les pouvoirs divins qui aident à tenir restent hors de portée.
+        /// </summary>
+        public const int CorruptionWarningLevelWithoutAscension = 4;
+
+        /// <summary>
+        /// Vrai si un prestige corrompu porterait la corruption au-delà de
+        /// <see cref="CorruptionWarningLevelWithoutAscension"/> alors qu'aucune Ascension n'a jamais été
+        /// faite. L'UI ouvre alors une confirmation (voir PrestigeRenderer.TryPrestige) : le niveau de
+        /// corruption ne redescend jamais hors Ascension, un joueur qui monte trop haut trop tôt se
+        /// retrouve sur des îles qu'il ne peut plus tenir.
+        /// </summary>
+        public bool CorruptedPrestigeNeedsAscensionWarning(GodState godState)
+            => HasCorruptionSpireBuilt()
+               && GetCorruptionLevel() >= CorruptionWarningLevelWithoutAscension
+               && godState.AscensionState.AscensionsPerformed == 0;
+
         public int GetTier() => _prestigeState?.Tier ?? 1;
 
         /// <summary>+20% de gain de prestige par palier de progression (Tier) au-delà du premier.</summary>

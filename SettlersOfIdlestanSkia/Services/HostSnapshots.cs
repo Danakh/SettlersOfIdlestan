@@ -653,6 +653,10 @@ public sealed record ModalPopupSnapshot(
     /// et non par GameScreen, mais de meme forme : elle emprunte cette vue.
     public const string IdPrestigeEssenceLoss = "prestigeEssenceLoss";
 
+    /// Confirmation d'un prestige corrompu qui monterait la corruption trop haut avant la premiere
+    /// Ascension. Portee par le popup Prestige, comme la precedente.
+    public const string IdPrestigeCorruptionWarning = "prestigeCorruptionWarning";
+
     /// Cle conventionnelle de la croix de fermeture, commune a toutes les modales.
     public const string KeyClose = "__close__";
 }
