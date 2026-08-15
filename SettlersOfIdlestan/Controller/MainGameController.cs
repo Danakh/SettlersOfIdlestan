@@ -294,12 +294,35 @@ namespace SettlersOfIdlestan.Controller
             CurrentMainState = mainGame;
             Clock = mainGame.Clock;
             Clock.ResumeAfterOffline(DateTimeOffset.UtcNow);
+            ClampDemoIslandPlaytime(mainGame);
             if (Clock.WasPausedAtSave)
                 Clock.Pause();
             else
                 Clock.Start();
 
             InitializeControllersForCurrentIsland();
+        }
+
+        /// <summary>Ticks correspondant aux 8 h de <see cref="ClampDemoIslandPlaytime"/> (1 tick = 0.01 s).</summary>
+        private const long DemoMaxIslandTicks = 8L * 60 * 60 * 100;
+
+        /// <summary>
+        /// Ramène à 8 h le temps passé sur l'île courante d'une sauvegarde issue de la version démo
+        /// (<see cref="MainGameState.IsDemoSave"/>), en repoussant le StartTick de l'île. Ce temps
+        /// alimente le multiplicateur de la Merveille (PrestigeController.GetWonderBonusDetails) :
+        /// sans ce plafond, une démo laissée tourner des jours rapporterait un prestige sans commune
+        /// mesure avec ce que la version démo est censée montrer.
+        /// </summary>
+        private static void ClampDemoIslandPlaytime(MainGameState mainGame)
+        {
+            if (!mainGame.IsDemoSave) return;
+
+            var island = mainGame.CurrentWorldState;
+            if (island == null || island.StartTick <= 0) return;
+
+            long elapsed = mainGame.Clock.CurrentTick - island.StartTick;
+            if (elapsed > DemoMaxIslandTicks)
+                island.StartTick = mainGame.Clock.CurrentTick - DemoMaxIslandTicks;
         }
 
         private void InitializeControllersForCurrentIsland()

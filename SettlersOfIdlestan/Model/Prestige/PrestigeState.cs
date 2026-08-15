@@ -17,6 +17,24 @@ public class PrestigeState
     public int TotalPrestigePointsEarned { get; set; }
 
     /// <summary>
+    /// Plafond de <see cref="TotalPrestigePointsEarned"/> en version démo : une fois atteint, les
+    /// prestiges suivants ne rapportent plus rien.
+    /// </summary>
+    public const int DemoMaxTotalPrestigePointsEarned = 1000;
+
+    /// <summary>
+    /// Ramène un gain de points à ce qu'il reste sous <see cref="DemoMaxTotalPrestigePointsEarned"/>
+    /// quand <paramref name="demoMode"/> est actif ; renvoie <paramref name="points"/> inchangé sinon.
+    /// Le plafond s'applique au versement (PrestigeController.PerformPrestige) et non au calcul des
+    /// points : une fois le plafond atteint, la démo doit rester capable de déclencher ses prestiges
+    /// — sinon PrestigeController.HasEnoughPrestigePoints la bloquerait avant sa troisième île.
+    /// </summary>
+    public int ClampDemoPrestigeGain(int points, bool demoMode)
+        => demoMode
+            ? Math.Clamp(points, 0, Math.Max(0, DemoMaxTotalPrestigePointsEarned - TotalPrestigePointsEarned))
+            : points;
+
+    /// <summary>
     /// Nombre d'utilisations de Marche de Dieu depuis le dernier prestige. Pilote le coût croissant
     /// en points de prestige (la première utilisation est gratuite, la deuxième coûte 1, etc. — voir
     /// AscensionController.GetWalkOfGodCost) ; remis à zéro par PrestigeController.PerformPrestige.

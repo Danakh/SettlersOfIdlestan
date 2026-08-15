@@ -285,8 +285,8 @@ public sealed record PrestigeActionSnapshot(
 /// merveilles ne sont pas debloquees.</param>
 /// <param name="TierPickerLabel">Choix du palier de la prochaine ile (Grand Phare niveau 3) ;
 /// null si le choix n'est pas debloque.</param>
-/// <param name="ImperialPortWarning">Rappel affiche quand les points suffisent mais qu'il manque
-/// le Port Imperial ; null sinon.</param>
+/// <param name="Warning">Rappel affiche sous les actions : Port Imperial manquant, plafond de
+/// prestige de la version demo atteint ; null si rien a signaler.</param>
 public sealed record PrestigePopupSnapshot(
     bool IsOpen,
     string Title,
@@ -301,7 +301,7 @@ public sealed record PrestigePopupSnapshot(
     bool CanIncreaseTier,
     IReadOnlyList<string> TierPickerTooltip,
     IReadOnlyList<PrestigeActionSnapshot> Actions,
-    string? ImperialPortWarning)
+    string? Warning)
 {
     public static readonly PrestigePopupSnapshot Closed =
         new(false, "", [], null, false, [], "", "", null, false, false, [], [], null);

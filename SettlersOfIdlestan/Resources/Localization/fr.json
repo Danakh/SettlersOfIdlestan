@@ -259,6 +259,7 @@
   "tab_buildings_classic": "Bâtiments",
   "tab_buildings_unique": "Uniques",
   "prestige_requires_imperial_port": "⚠ Construisez d'abord le Port Impérial",
+  "prestige_demo_cap_reached": "⚠ Version démo : plafond de 1000 points de prestige atteint, les prestiges suivants ne rapportent plus de points",
   "tooltip_imperial_port_prerequisites": "Nécessite un Hôtel de ville niv. 4 + Port de pêche niv. 4",
   "building_glassworks_name": "Verrerie",
   "building_glassworks_desc": "Récolte automatiquement du verre sur les déserts.",

@@ -1,5 +1,6 @@
 ﻿using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
@@ -215,6 +216,17 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
         bool hasEnoughPoints = controller.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints;
 
+        // Le plafond de prestige de la demo passe devant : une fois atteint, le prestige reste
+        // possible mais ne rapporte plus rien, ce qui ne se devine pas depuis le total affiche.
+        var mainState = _gameControllerService.MainGameController.CurrentMainState;
+        bool demoCapReached = mainState?.Settings.DemoMode == true
+            && (mainState.PrestigeState?.TotalPrestigePointsEarned ?? 0) >= PrestigeState.DemoMaxTotalPrestigePointsEarned;
+
+        string? warning =
+            demoCapReached ? _localization.Get("prestige_demo_cap_reached")
+            : hasEnoughPoints && !controller.HasImperialPort() ? _localization.Get("prestige_requires_imperial_port")
+            : null;
+
         return new PrestigePopupSnapshot(
             IsOpen: true,
             Title: _localization.Get("prestige_title"),
@@ -229,9 +241,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
             CanIncreaseTier: canIncreaseTier,
             TierPickerTooltip: tierPickerTooltip,
             Actions: actions,
-            ImperialPortWarning: hasEnoughPoints && !controller.HasImperialPort()
-                ? _localization.Get("prestige_requires_imperial_port")
-                : null);
+            Warning: warning);
     }
 
     /// <summary>

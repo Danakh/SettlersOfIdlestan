@@ -88,8 +88,8 @@ public sealed class PrestigePopupView : UserControl
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 10, 0, 0),
-            [!TextBlock.TextProperty] = new Binding(nameof(PrestigePopupViewModel.ImperialPortWarning)),
-            [!IsVisibleProperty] = new Binding(nameof(PrestigePopupViewModel.HasImperialPortWarning)),
+            [!TextBlock.TextProperty] = new Binding(nameof(PrestigePopupViewModel.Warning)),
+            [!IsVisibleProperty] = new Binding(nameof(PrestigePopupViewModel.HasWarning)),
         });
 
         var close = new Button

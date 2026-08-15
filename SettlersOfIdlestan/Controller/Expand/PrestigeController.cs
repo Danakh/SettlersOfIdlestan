@@ -335,6 +335,12 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             var points = CalculatePrestigePoints();
 
+            // Démo : le prestige accumulé est plafonné (PrestigeState.DemoMaxTotalPrestigePointsEarned).
+            // Plafonné ici plutôt que dans CalculatePrestigePoints pour que le prestige reste
+            // déclenchable une fois le plafond atteint ; les stats de la partie enregistrées plus bas
+            // reprennent donc bien ce qui a été effectivement versé.
+            points = mainGameState.PrestigeState.ClampDemoPrestigeGain(points, mainGameState.Settings.DemoMode);
+
             if (corrupted && HasCorruptionSpireBuilt())
                 mainGameState.PrestigeState.CurrentCorruptionLevel++;
 
