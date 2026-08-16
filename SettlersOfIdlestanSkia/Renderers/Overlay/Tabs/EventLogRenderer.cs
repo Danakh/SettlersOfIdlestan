@@ -340,6 +340,30 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Success,
             _localization.Get("event_abyss_gate_built_title"),
             _localization.Get("event_abyss_gate_built_body")),
+        GameEventType.TentacleDiscovered => (
+            EventLogTone.Discovery,
+            _localization.Get("event_tentacle_discovered_title"),
+            _localization.Get("event_tentacle_discovered_body")),
+        GameEventType.TentacleDefeated => (
+            EventLogTone.Success,
+            _localization.Get("event_tentacle_defeated_title"),
+            _localization.Get("event_tentacle_defeated_body")),
+        GameEventType.DemonGodDiscovered => (
+            EventLogTone.Discovery,
+            _localization.Get("event_demon_god_discovered_title"),
+            _localization.Get("event_demon_god_discovered_body")),
+        GameEventType.DemonGodDefeated => (
+            EventLogTone.Success,
+            _localization.Get("event_demon_god_defeated_title"),
+            _localization.Get("event_demon_god_defeated_body")),
+        GameEventType.PandemoniumGatePlaced => (
+            EventLogTone.Reward,
+            _localization.Get("event_pandemonium_gate_placed_title"),
+            _localization.Get("event_pandemonium_gate_placed_body")),
+        GameEventType.PandemoniumGateBuilt => (
+            EventLogTone.Success,
+            _localization.Get("event_pandemonium_gate_built_title"),
+            _localization.Get("event_pandemonium_gate_built_body")),
         GameEventType.DivineBonesPurified => (
             EventLogTone.Reward,
             _localization.Get("event_divine_bones_purified_title"),

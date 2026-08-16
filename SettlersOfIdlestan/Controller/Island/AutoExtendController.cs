@@ -78,6 +78,12 @@ public class AutoExtendController
     private const int MajorDemonBaseChancePercent = 5;
     private const int MajorDemonChancePerLevelPercent = 2;
 
+    /// <summary>
+    /// Niveau de corruption global (<see cref="PrestigeState.CurrentCorruptionLevel"/>) à partir
+    /// duquel une Tentacule peut pousser sur une île de l'Abysse — voir <see cref="PlaceTentacle"/>.
+    /// </summary>
+    internal const int TentacleMinCorruptionLevel = 6;
+
     internal AutoExtendController() { }
 
     internal void Initialize(WorldState state, GamePRNG prng, GameClock? clock = null, PrestigeState? prestigeState = null)
@@ -132,6 +138,7 @@ public class AutoExtendController
 
             SpawnAbyssIslandCivilization(layerState, newTiles, z);
             PlaceDivineBones(newTiles);
+            PlaceTentacle(newTiles);
             PlaceAbyssCorruption(newTiles);
         }
     }
@@ -152,6 +159,32 @@ public class AutoExtendController
         var hex = landTiles[_prng.Next(landTiles.Count)].Coord;
         int corruptionLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
         _state.AddFeature(new Model.IslandFeatures.DivineBones(hex, corruptionLevel));
+    }
+
+    /// <summary>
+    /// Fait pousser au plus une Tentacule sur une île de l'Abysse nouvellement générée, avec
+    /// (niveau de corruption global - <see cref="TentacleMinCorruptionLevel"/> + 1)% de chance —
+    /// donc rien en dessous du niveau <see cref="TentacleMinCorruptionLevel"/>, puis 1% de plus par
+    /// niveau supplémentaire. Ne concerne jamais l'île d'arrivée du joueur : elle est posée par
+    /// AbyssGateController.TryInitializeAbyss, qui ne passe pas par ce chemin.
+    /// Appelé avant <see cref="PlaceAbyssCorruption"/> (comme <see cref="PlaceDivineBones"/>) car il
+    /// exige un hex encore libre, alors que la Corruption occupe ensuite chaque hex de terre.
+    /// </summary>
+    private void PlaceTentacle(List<HexTile> newTiles)
+    {
+        if (_state == null || _prng == null) return;
+
+        int corruptionLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
+        int chancePercent = corruptionLevel - TentacleMinCorruptionLevel + 1;
+        if (chancePercent <= 0) return;
+        if (_prng.Next(100) >= chancePercent) return;
+
+        var landTiles = newTiles.Where(t => t.TerrainType != TerrainType.Void && !_state.HasFeaturesAt(t.Coord)).ToList();
+        if (landTiles.Count == 0) return;
+
+        var hex = landTiles[_prng.Next(landTiles.Count)].Coord;
+        int level = Model.Monsters.MonsterLeveling.UndergroundLevel(_prestigeState?.Tier ?? 1, corruptionLevel);
+        _state.AddFeature(new Model.Monsters.Tentacle(hex, level));
     }
 
     // Étendue aléatoire au-dessus du niveau de corruption max de l'Inframonde pour l'Abysse

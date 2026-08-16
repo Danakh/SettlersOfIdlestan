@@ -361,6 +361,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyRestrictSoldierProductionAbyss:
                 ToggleRestrictSoldierProductionByLayer(settings, LayerState.AbyssZ);
                 break;
+            case AutomationRenderer.PinKeyRestrictSoldierProductionPandemonium:
+                ToggleRestrictSoldierProductionByLayer(settings, LayerState.PandemoniumZ);
+                break;
         }
     }
 
@@ -442,6 +445,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 IsRestrictSoldierProductionByLayer(settings, LayerState.UnderworldZ),
             AutomationRenderer.PinKeyRestrictSoldierProductionAbyss =>
                 IsRestrictSoldierProductionByLayer(settings, LayerState.AbyssZ),
+            AutomationRenderer.PinKeyRestrictSoldierProductionPandemonium =>
+                IsRestrictSoldierProductionByLayer(settings, LayerState.PandemoniumZ),
             _ => false,
         };
 
@@ -484,6 +489,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             [AutomationRenderer.PinKeyRestrictSoldierProduction]           = "automation_restrict_soldier_production",
             [AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld] = "automation_restrict_soldier_production_underworld",
             [AutomationRenderer.PinKeyRestrictSoldierProductionAbyss]      = "automation_restrict_soldier_production_abyss",
+            [AutomationRenderer.PinKeyRestrictSoldierProductionPandemonium] = "automation_restrict_soldier_production_pandemonium",
         };
 
     /// <summary>

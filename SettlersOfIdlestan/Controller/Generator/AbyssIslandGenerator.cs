@@ -15,7 +15,8 @@ public static class AbyssIslandGenerator
     public const int MinIslandHexCount = 3;
     public const int MaxIslandHexCount = 5;
 
-    private static readonly TerrainType[] TerrainPool =
+    /// <summary>Terrains des îles de l'Abysse — également repris par <see cref="PandemoniumGenerator"/>.</summary>
+    internal static readonly TerrainType[] TerrainPool =
     {
         TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain, TerrainType.Plain,
     };

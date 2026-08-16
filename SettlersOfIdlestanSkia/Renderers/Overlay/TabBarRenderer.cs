@@ -27,6 +27,7 @@ public sealed class TabBarRenderer : IDisposable
     public const int TabHistory    = 8;
     public const int TabUnderworld = 9;
     public const int TabAbyss      = 10;
+    public const int TabPandemonium = 11;
 
     private const float TabWidth      = 62;
     private const float TabHeight     = 28;
@@ -47,6 +48,7 @@ public sealed class TabBarRenderer : IDisposable
     private bool _hasAscensionTab;
     private bool _hasUnderworldTab;
     private bool _hasAbyssTab;
+    private bool _hasPandemoniumTab;
     private bool _hasNewEvent;
     private int? _seenEventCount;
     private bool _prestigeGlowing;
@@ -90,6 +92,7 @@ public sealed class TabBarRenderer : IDisposable
         _hasUnderworldTab = IsLayerAccessible(LayerState.UnderworldZ);
         _underworldGlowing = _hasUnderworldTab && !(_gameControllerService.CurrentWorldState?.HasVisitedUnderworld ?? true);
         _hasAbyssTab      = IsLayerAccessible(LayerState.AbyssZ);
+        _hasPandemoniumTab = IsLayerAccessible(LayerState.PandemoniumZ);
         bool showEventsTab = showPrestigeTabs || HasEventLogEntries();
 
         if (!_hasResearchTab   && _activeTab == TabResearch)   _activeTab = TabIsland;
@@ -101,11 +104,13 @@ public sealed class TabBarRenderer : IDisposable
         if (!_allowDebugMode   && _activeTab == TabHistory)    _activeTab = TabIsland;
         if (!_hasUnderworldTab && _activeTab == TabUnderworld) _activeTab = TabIsland;
         if (!_hasAbyssTab      && _activeTab == TabAbyss)      _activeTab = TabIsland;
+        if (!_hasPandemoniumTab && _activeTab == TabPandemonium) _activeTab = TabIsland;
 
         _activeTabs.Clear();
         _activeTabs.Add((TabIsland, default));
         if (_hasUnderworldTab) _activeTabs.Add((TabUnderworld, default));
         if (_hasAbyssTab)      _activeTabs.Add((TabAbyss, default));
+        if (_hasPandemoniumTab) _activeTabs.Add((TabPandemonium, default));
         if (_hasResearchTab)   _activeTabs.Add((TabResearch, default));
         if (_hasRitualsTab)    _activeTabs.Add((TabRituals, default));
         if (showPrestigeTabs)  _activeTabs.Add((TabPrestige, default));
@@ -195,6 +200,7 @@ public sealed class TabBarRenderer : IDisposable
         TabHistory    => _localization.Get("tab_history"),
         TabUnderworld => _localization.Get("tab_underworld"),
         TabAbyss      => _localization.Get("tab_abyss"),
+        TabPandemonium => _localization.Get("tab_pandemonium"),
         _             => "?"
     };
 

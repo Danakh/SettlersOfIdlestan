@@ -68,6 +68,13 @@ public enum GameEventType
 
     /// <summary>Spire de Corruption démolie volontairement par le joueur pour en replacer une ailleurs.</summary>
     CorruptionSpireDestroyed,
+
+    TentacleDiscovered,
+    TentacleDefeated,
+    DemonGodDiscovered,
+    DemonGodDefeated,
+    PandemoniumGatePlaced,
+    PandemoniumGateBuilt,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

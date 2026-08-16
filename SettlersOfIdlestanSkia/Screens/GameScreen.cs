@@ -1176,6 +1176,22 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_abyss_gate_built_title"),
                 _localizationService.Get("event_abyss_gate_built_body"),
                 NotificationIcon.Achievement),
+            GameEventType.TentacleDiscovered => (
+                _localizationService.Get("event_tentacle_discovered_title"),
+                _localizationService.Get("event_tentacle_discovered_body"),
+                NotificationIcon.StoreFail),
+            GameEventType.DemonGodDiscovered => (
+                _localizationService.Get("event_demon_god_discovered_title"),
+                _localizationService.Get("event_demon_god_discovered_body"),
+                NotificationIcon.StoreFail),
+            GameEventType.PandemoniumGatePlaced => (
+                _localizationService.Get("event_pandemonium_gate_placed_title"),
+                _localizationService.Get("event_pandemonium_gate_placed_body"),
+                NotificationIcon.Achievement),
+            GameEventType.PandemoniumGateBuilt => (
+                _localizationService.Get("event_pandemonium_gate_built_title"),
+                _localizationService.Get("event_pandemonium_gate_built_body"),
+                NotificationIcon.Achievement),
             _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
         };
         _notificationToastRenderer.ShowNotification(title, message, icon);

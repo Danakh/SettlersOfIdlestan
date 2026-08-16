@@ -442,11 +442,12 @@ public sealed class OverlayRenderer : IGameRenderer
 
     public bool IsIslandTabActive => IsMapViewTab(_tabBar.ActiveTab);
 
-    /// True for the tabs that show the hex map (Island / Underworld / Abyss) rather than a full-screen panel.
+    /// True for the tabs that show the hex map (Island / Underworld / Abyss / Pandemonium) rather than a full-screen panel.
     private static bool IsMapViewTab(int tabId) =>
-        tabId is TabBarRenderer.TabIsland or TabBarRenderer.TabUnderworld or TabBarRenderer.TabAbyss;
+        tabId is TabBarRenderer.TabIsland or TabBarRenderer.TabUnderworld or TabBarRenderer.TabAbyss
+              or TabBarRenderer.TabPandemonium;
 
-    /// Switches <see cref="WorldState.CurrentViewedLayer"/> to match a click on Island/Underworld/Abyss.
+    /// Switches <see cref="WorldState.CurrentViewedLayer"/> to match a click on Island/Underworld/Abyss/Pandemonium.
     private void ApplyLayerForActiveTab()
     {
         var worldState = _gameControllerService.CurrentWorldState;
@@ -457,6 +458,7 @@ public sealed class OverlayRenderer : IGameRenderer
             TabBarRenderer.TabIsland     => IslandMap.SurfaceLayer,
             TabBarRenderer.TabUnderworld => LayerState.UnderworldZ,
             TabBarRenderer.TabAbyss      => LayerState.AbyssZ,
+            TabBarRenderer.TabPandemonium => LayerState.PandemoniumZ,
             _ => null,
         };
         if (targetLayer == null || worldState.CurrentViewedLayer == targetLayer.Value) return;
@@ -474,6 +476,7 @@ public sealed class OverlayRenderer : IGameRenderer
             IslandMap.SurfaceLayer => TabBarRenderer.TabIsland,
             LayerState.UnderworldZ => TabBarRenderer.TabUnderworld,
             LayerState.AbyssZ      => TabBarRenderer.TabAbyss,
+            LayerState.PandemoniumZ => TabBarRenderer.TabPandemonium,
             _ => null,
         };
         if (tab != null) _tabBar.SetActiveTab(tab.Value);

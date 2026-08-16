@@ -49,6 +49,7 @@ namespace SettlersOfIdlestan.Controller
         public CorruptionSpireController CorruptionSpireController { get; private set; }
         public CorruptionController CorruptionController { get; private set; }
         public AbyssGateController AbyssGateController { get; private set; }
+        public PandemoniumGateController PandemoniumGateController { get; private set; }
         public DivineBonesController DivineBonesController { get; private set; }
         public Magic.MagicController MagicController { get; private set; }
         public AscensionController AscensionController { get; private set; }
@@ -106,6 +107,7 @@ namespace SettlersOfIdlestan.Controller
             CorruptionSpireController = new CorruptionSpireController();
             CorruptionController = new CorruptionController();
             AbyssGateController = new AbyssGateController();
+            PandemoniumGateController = new PandemoniumGateController();
             DivineBonesController = new DivineBonesController();
             MagicController = new Magic.MagicController();
             AscensionController = new AscensionController();
@@ -395,6 +397,7 @@ namespace SettlersOfIdlestan.Controller
                 CorruptionSpireController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 AbyssGateController.Initialize(WorldState, Clock, HarvestController);
+                PandemoniumGateController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState, CurrentMainState!.PRNG);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController, RoadController);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings);

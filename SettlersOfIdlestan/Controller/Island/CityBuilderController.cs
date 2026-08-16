@@ -787,7 +787,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
             int surfaceCities = civ.Cities.Count(c => c.Position.Z == IslandMap.SurfaceLayer);
             int underworldCities = civ.Cities.Count(c => c.Position.Z == LayerState.UnderworldZ);
-            int abyssCities = civ.Cities.Count(c => c.Position.Z == LayerState.AbyssZ);
+            // Le Pandémonium partage le barème de l'Abysse (couche profonde, mêmes ressources) : ses
+            // villes comptent donc avec celles de l'Abysse plutôt que dans un troisième palier.
+            int abyssCities = civ.Cities.Count(c => c.Position.Z == LayerState.AbyssZ || c.Position.Z == LayerState.PandemoniumZ);
 
             // La ville de départ (toujours en surface) ne compte pas comme "ville supplémentaire".
             int surchargeableSurfaceCities = Math.Max(0, surfaceCities - 1);
@@ -806,7 +808,7 @@ namespace SettlersOfIdlestan.Controller.Island
             double effectiveAbyssOverCost = Math.Pow(surchargeFactor * abyssCities, 2);
 
             double multiplier;
-            if (targetVertex.Z == LayerState.AbyssZ)
+            if (targetVertex.Z == LayerState.AbyssZ || targetVertex.Z == LayerState.PandemoniumZ)
             {
                 cost[Resource.Gold] = 10;
                 cost[Resource.Crystal] = 5;

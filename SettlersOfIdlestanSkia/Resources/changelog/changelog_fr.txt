@@ -4,6 +4,8 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.15
+• Tentacules : à partir du niveau de corruption 6, chaque nouvelle île des Abysses peut voir surgir une tentacule — aussi coriace qu'un démon majeur, mais enracinée sur son hex
+• Pandémonium : abattre une tentacule ouvre un Portail du Pandémonium (même prix que la Faille des Abysses). Une fois bâti, il donne accès à une île unique cernée de Vide, gardée par un dieu démon en son centre et huit tentacules — le joueur y débarque au bord
 • Corne d'Abondance : nouveau pouvoir divin (suite d'Inventaire Divin) qui ajoute +100% de rendement à toute récolte automatique — cumulable avec les autres bonus de rendement — et verse chaque seconde 20 unités de chaque ressource de base
 • Courroux de Dieu : nouveau pouvoir divin (suite de Poing de Dieu) qui ajoute +100% de vitesse d'attaque à vos soldats, contre les monstres comme contre les villes ennemies
 • Héritage Divin : nouveau pouvoir divin, premier d'une sixième colonne, qui débloque les bâtiments uniques permanents — chaque Ascension effectuée ouvre un emplacement, rétroactivement pour celles déjà accomplies

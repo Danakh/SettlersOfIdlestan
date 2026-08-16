@@ -57,6 +57,7 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyRestrictSoldierProduction           = "RestrictSoldierProduction";
     internal const string PinKeyRestrictSoldierProductionUnderworld = "RestrictSoldierProductionUnderworld";
     internal const string PinKeyRestrictSoldierProductionAbyss      = "RestrictSoldierProductionAbyss";
+    internal const string PinKeyRestrictSoldierProductionPandemonium = "RestrictSoldierProductionPandemonium";
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -814,6 +815,7 @@ public sealed class AutomationRenderer : IDisposable
     {
         LayerState.UnderworldZ => "automation_restrict_soldier_production_underworld",
         LayerState.AbyssZ      => "automation_restrict_soldier_production_abyss",
+        LayerState.PandemoniumZ => "automation_restrict_soldier_production_pandemonium",
         _                      => "automation_restrict_soldier_production",
     };
 
@@ -822,6 +824,7 @@ public sealed class AutomationRenderer : IDisposable
     {
         LayerState.UnderworldZ => PinKeyRestrictSoldierProductionUnderworld,
         LayerState.AbyssZ      => PinKeyRestrictSoldierProductionAbyss,
+        LayerState.PandemoniumZ => PinKeyRestrictSoldierProductionPandemonium,
         _                      => PinKeyRestrictSoldierProduction,
     };
 
