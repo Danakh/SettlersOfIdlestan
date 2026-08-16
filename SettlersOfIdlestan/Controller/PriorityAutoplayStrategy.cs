@@ -37,6 +37,20 @@ namespace SettlersOfIdlestan.Controller
     /// level. A building that is unavailable to a city (terrain/prerequisites not met) or already at its
     /// max level is treated as already satisfied for that city, since the autoplayer cannot do anything
     /// more about it.
+    ///
+    /// <para>« Niveau max » se lit obligatoirement <b>par ville</b>
+    /// (<see cref="BuildingController.GetMaxLevel(Building, Civilization, City)"/>) et non civ-wide :
+    /// INLAND_CITY_LEVEL_CAP plafonne la Mairie des villes sirènes qui ne touchent pas l'Eau, et c'est
+    /// bien la version par ville que <c>BuildBuilding</c> applique. Lire le plafond civ-wide ici faisait
+    /// croire à l'objectif qu'il restait un niveau à prendre, là où la construction le refusait : ni
+    /// terminé ni capable d'avancer, il gelait pour toujours tout ce qui le suit dans la liste (voir
+    /// <see cref="PriorityAutoplayStrategy.TryStepOnce"/>, qui s'arrête au premier objectif incomplet).
+    /// Mesuré : les Sirènes restaient à 4 villes et 6 points de prestige indéfiniment, bloquées sur le
+    /// « Mairie → 3 » d'<see cref="CivilizationAutoplayerPriorities.Unified"/> dès que la 4ᵉ ville
+    /// ouvrait cette étape, sans jamais atteindre le Port Impérial — 0/4 îles au race gauntlet, 4/4
+    /// une fois le plafond lu par ville. Même famille de blocage que celle décrite sur
+    /// <see cref="CityCountObjective.IsComplete"/>, pour un plafond de bâtiment au lieu d'une cible
+    /// d'expansion.</para>
     /// </summary>
     public class BuildingLevelObjective : IAutoplayObjective
     {
@@ -108,7 +122,7 @@ namespace SettlersOfIdlestan.Controller
         {
             var building = _buildingController.GetBuildingOrBuildable(city, bt);
             if (building == null) return true;
-            var maxLevel = _buildingController.GetMaxLevel(building, _autoplayer.Civilization);
+            var maxLevel = _buildingController.GetMaxLevel(building, _autoplayer.Civilization, city);
             return building.Level >= Math.Min(_targetLevel, maxLevel);
         }
     }

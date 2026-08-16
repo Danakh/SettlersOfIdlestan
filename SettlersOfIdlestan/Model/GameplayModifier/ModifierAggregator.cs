@@ -137,4 +137,17 @@ public class ModifierAggregator
                 result.Add(modifier);
         return result;
     }
+
+    /// <summary>
+    /// Variante sans allocation de <see cref="GetActiveModifiers"/> : rend la liste cachée telle
+    /// quelle, à charge de l'appelant de sauter les modifiers inactifs. Le type de retour est le
+    /// <see cref="List{T}"/> concret pour la raison décrite sur <see cref="GetCached"/> (via
+    /// l'interface, le <c>foreach</c> boxerait l'énumérateur), et une catégorie absente rend une
+    /// liste vide plutôt que null — un appelant peut donc tester <c>Count == 0</c> pour se retirer
+    /// avant tout autre travail. À préférer sur les chemins répétés : GetActiveModifiers alloue une
+    /// List par appel, ce que <see cref="Island.BuildingController.GetMaxLevel(Buildings.Building,
+    /// Civilization.Civilization, Civilization.City)"/> payait par ville et par tick une fois
+    /// l'autoplay branché dessus (BuildingLevelObjective.IsDone).
+    /// </summary>
+    public List<Modifier> GetActiveModifiersUnfiltered(ECategory category) => GetCached(category);
 }

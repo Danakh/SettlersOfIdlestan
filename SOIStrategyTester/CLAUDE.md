@@ -179,7 +179,36 @@ gauntlet-specific behaviours:
   coastal city this race can build on this map) from *points short* (pacing).
 
 Output: `<--gauntlet-output>/race-<Race>.csv` (one endless-mode CSV per race), plus `summary.csv`
-(one row per race per island) and `summary.json`.
+(one row per race per island) and `summary.json`. The default `race-gauntlet/` directory is
+gitignored — these are run artifacts, so the reference verdict lives here instead:
+
+**Last run — seed 1, 4 islands, 8/9 races clear** (points/cities/hours per island):
+
+| Race | Tier | | Sim h | Island 1 | Island 2 | Island 3 | Island 4 |
+|---|---|---|---|---|---|---|---|
+| Human | Base | PASS | 14.40 | 47p/12c/0.49h | 198p/12c/3.20h | 70p/20c/2.71h | 44p/13c/8.00h |
+| Elf | Base | PASS | 20.21 | 35p/8c/7.09h | 99p/9c/3.00h | 20p/9c/2.12h | 42p/12c/8.00h |
+| Dwarf | Base | PASS | 20.54 | 30p/7c/8.00h | 158p/12c/2.44h | 40p/12c/2.10h | 43p/13c/8.00h |
+| Goblin | Base | PASS | 16.21 | 61p/12c/6.93h | 122p/12c/2.35h | 110p/43c/3.56h | 62p/23c/3.37h |
+| Orc | Base | PASS | 14.09 | 47p/12c/0.49h | 158p/12c/2.97h | 67p/20c/2.62h | 43p/13c/8.00h |
+| Giant | Advanced | PASS | 23.73 | 22p/5c/8.00h | 92p/6c/5.00h | 47p/14c/2.73h | 40p/12c/8.00h |
+| Garuda | Advanced | PASS | 11.65 | 47p/12c/0.47h | 118p/12c/1.35h | 73p/22c/1.83h | 42p/12c/8.00h |
+| Mermaid | Advanced | PASS | 18.51 | 34p/12c/8.00h | 191p/12c/4.16h | 62p/22c/2.87h | 60p/22c/3.48h |
+| DarkElf | Advanced | **FAIL** | 20.86 | — | | | |
+
+Giants (5–6 cities on the first two islands) and Elves/Dwarves (terrain adjacency) are *weak*, not
+blocked — that is the distinction this table exists to make.
+
+**DarkElf is the one open blocker**, and it is an autoplay gap, not a race problem. It never leaves
+its starting city — `#19 CityCount(→ 12, 1 now)`, 1 city, 0 buildable vertices, 3 buildable roads —
+with **Food production at +0** and a city holding `Seaport1, Market1, TownHall1, Sawmill1,
+Brickworks1, Quarry1`: no food building at all. The cause is that `CivilizationAutoplayerPriorities`
+only ever lists `Mill` as a food building (in `Step1Buildings` and `ProductionBuildings`), and `Mill`
+requires `Plain` — a terrain the Underworld pool does not contain. `MushroomFarm`, the underground
+food building the free `MushroomCultureVertex` exists to enable, appears in **no** priority list (only
+in `BuildingController`'s HarvestersGuild automation targets). With no food, no new city can ever be
+founded. Fixing this means teaching the priority lists a layer-appropriate food building, not
+rebalancing the race.
 
 All strategies in one run start from an **identical** fresh copy of the starting state (a new
 `MainGameController` is built per strategy), so ticks-to-objective are directly comparable.

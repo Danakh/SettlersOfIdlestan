@@ -737,7 +737,15 @@ namespace SettlersOfIdlestan.Controller.Island
         /// (civ-wide, caché) pour tout bâtiment autre que l'Hôtel de Ville. Pour l'Hôtel de Ville,
         /// applique en plus INLAND_CITY_LEVEL_CAP (Sirènes) : plafonne le résultat si la ville ne
         /// touche pas directement le terrain requis — mécanique par ville, donc non cachée au niveau
-        /// civ (un seul lookup de terrain, chemin non chaud : amélioration/affichage de Mairie).
+        /// civ.
+        ///
+        /// <para>Écrit pour être appelable par ville et par tick : c'est la surcharge dont dépend
+        /// BuildingLevelObjective.IsDone, sans quoi l'autoplay se croit capable de monter une Mairie
+        /// que BuildBuilding refusera (voir la garde sur GetMaxLevel(…, city) plus haut) et bloque sa
+        /// liste de priorités pour toujours. Les trois retours anticipés couvrent tout le monde sauf
+        /// une Mairie de surface chez une race à plafond ; le dernier ne coûte qu'un lookup de
+        /// dictionnaire, la liste étant rendue sans allocation ni filtrage (d'où le test sur
+        /// <see cref="Modifier.IsActive"/> ici) et vide pour les huit races qui n'en ont pas.</para>
         /// </summary>
         public int GetMaxLevel(Building building, Civilization civ, City city)
         {
@@ -745,13 +753,20 @@ namespace SettlersOfIdlestan.Controller.Island
             if (building.Type != BuildingType.TownHall) return result;
             if (city.Position.Z != IslandMap.SurfaceLayer) return result;
 
+            var caps = civ.ModifierAggregator.GetActiveModifiersUnfiltered(ECategory.INLAND_CITY_LEVEL_CAP);
+            if (caps.Count == 0) return result;
+
             var map = _state?.GetMapFor(city.Position);
             if (map == null) return result;
 
-            foreach (var modifier in civ.ModifierAggregator.GetActiveModifiers(ECategory.INLAND_CITY_LEVEL_CAP))
+            for (int i = 0; i < caps.Count; i++)
+            {
+                var modifier = caps[i];
+                if (!modifier.IsActive) continue;
                 if (Enum.TryParse<TerrainType>(modifier.SubCategory, out var terrain) &&
                     !map.VertexHasTerrainType(city.Position, terrain))
                     result = Math.Min(result, (int)modifier.Value);
+            }
 
             return result;
         }
