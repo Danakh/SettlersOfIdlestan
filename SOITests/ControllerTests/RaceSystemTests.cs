@@ -156,7 +156,7 @@ public class RaceSystemTests
     }
 
     [Fact]
-    public void GetModifiers_Garuda_EmitsFlightMinDistanceAndAttackRange()
+    public void GetModifiers_Garuda_EmitsFlightAndAttackRangeWithoutMinDistanceOverride()
     {
         var ascension = CreateAscension(out var godState);
         godState.AscensionState.SelectedRace = RaceId.Garuda;
@@ -164,12 +164,56 @@ public class RaceSystemTests
         var modifiers = ascension.GetModifiers().ToList();
 
         Assert.Contains(modifiers, m => m.Category == ECategory.CITY_PLACEMENT_FLYING && m.Type == EType.ADDITIVE && (int)m.Value == 3);
-        Assert.Contains(modifiers, m => m.Category == ECategory.CITY_MIN_DISTANCE && m.Type == EType.REPLACER && (int)m.Value == 2);
         Assert.Contains(modifiers, m => m.Category == ECategory.CITY_ATTACK_RANGE && (int)m.Value == 1);
         Assert.Contains(modifiers, m => m.Category == ECategory.CITY_DEFENSE && (int)m.Value == -3);
-        // Constructions légères : même malus standard que les Gobelins.
-        Assert.Contains(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL && m.SubCategory == nameof(BuildingType.Sawmill) && (int)m.Value == -1);
+        // Le Vol ne dispense plus du rapprochement standard : distance minimale de droit commun (3).
+        Assert.DoesNotContain(modifiers, m => m.Category == ECategory.CITY_MIN_DISTANCE);
         Assert.Contains(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL && m.SubCategory == nameof(BuildingType.ThroneOfWinds) && (int)m.Value == 1);
+    }
+
+    /// <summary>
+    /// Le malus de niveau max garuda ne touche que la production, la recherche et la magie. Le
+    /// Comptoir en est exclu par construction : le Port Impérial exige un Comptoir niveau 4, qui est
+    /// aussi son plafond par défaut, donc un -1 dessus rendrait le prestige inatteignable.
+    /// </summary>
+    [Fact]
+    public void GetModifiers_Garuda_LowersProductionResearchAndMagicButNotSeaportOrWarehouse()
+    {
+        var ascension = CreateAscension(out var godState);
+        godState.AscensionState.SelectedRace = RaceId.Garuda;
+
+        var modifiers = ascension.GetModifiers().ToList();
+
+        foreach (var lowered in new[]
+                 {
+                     BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Mill, BuildingType.Quarry,
+                     BuildingType.Mine, BuildingType.Forge, BuildingType.Smelter,
+                     BuildingType.Library, BuildingType.Laboratory,
+                     BuildingType.MageTower, BuildingType.AlchimistHut,
+                 })
+            Assert.Contains(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL
+                                            && m.SubCategory == lowered.ToString() && (int)m.Value == -1);
+
+        foreach (var spared in new[]
+                 {
+                     BuildingType.Seaport, BuildingType.Warehouse, BuildingType.Market, BuildingType.Temple,
+                     BuildingType.TownHall, BuildingType.Palisade, BuildingType.Barracks,
+                     // Verrerie : plafond par défaut 0 et déblocage +1 seulement — un -1 la bloquerait.
+                     BuildingType.GlassWorks,
+                 })
+            Assert.DoesNotContain(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL
+                                                  && m.SubCategory == spared.ToString() && (int)m.Value < 0);
+    }
+
+    [Fact]
+    public void ThroneOfWinds_ExtendsAttackRangeInsteadOfDefense()
+    {
+        var throne = new ThroneOfWinds { Level = 1 };
+
+        var modifiers = throne.GetUniqueBuildingModifiers().ToList();
+
+        Assert.Contains(modifiers, m => m.Category == ECategory.CITY_ATTACK_RANGE && (int)m.Value == 1);
+        Assert.DoesNotContain(modifiers, m => m.Category == ECategory.CITY_DEFENSE);
     }
 
     [Fact]
@@ -478,7 +522,12 @@ public class RaceSystemTests
             Vertex.Create(h5, h6, h7));
     }
 
-    private static void AddGarudaPlacementModifiers(Civilization civ)
+    /// <summary>
+    /// Vol garuda + distance minimale ramenée à 2. Le rapprochement n'est <b>pas</b> un modificateur
+    /// garuda (la race est à la distance standard 3) : c'est le ruban de test qui est trop court pour
+    /// que 3 laisse le moindre candidat. Seul le Vol est ici la mécanique sous test.
+    /// </summary>
+    private static void AddFlightModifiers(Civilization civ)
         => AddRaceModifiers(civ,
             new Modifier(ECategory.CITY_PLACEMENT_FLYING, EType.ADDITIVE, 3),
             new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2));
@@ -492,7 +541,7 @@ public class RaceSystemTests
         // Sans Vol : aucune route, aucun candidat.
         Assert.Empty(Controller(state).GetBuildableVertices(0));
 
-        AddGarudaPlacementModifiers(civ);
+        AddFlightModifiers(civ);
         var vertices = Controller(state).GetBuildableVertices(0);
         Assert.Contains(vertices, v => v.Equals(v2));
         Assert.Contains(vertices, v => v.Equals(v3));
@@ -503,7 +552,7 @@ public class RaceSystemTests
     {
         var (state, civ, v1, vMiddle, _, _, v4) = RoadlessRibbonIsland();
         civ.AddCity(new City(v1) { CivilizationIndex = 0 });
-        AddGarudaPlacementModifiers(civ);
+        AddFlightModifiers(civ);
 
         var vertices = Controller(state).GetBuildableVertices(0);
 
@@ -518,7 +567,7 @@ public class RaceSystemTests
     {
         var (state, civ, v1, _, v2, v3, _) = RoadlessRibbonIsland(waterStrait: true);
         civ.AddCity(new City(v1) { CivilizationIndex = 0 });
-        AddGarudaPlacementModifiers(civ);
+        AddFlightModifiers(civ);
 
         var vertices = Controller(state).GetBuildableVertices(0);
 
@@ -538,7 +587,7 @@ public class RaceSystemTests
         var hu2 = new HexCoord(1, 0, LayerState.UnderworldZ);
         var hu3 = new HexCoord(0, 1, LayerState.UnderworldZ);
         civ.AddCity(new City(Vertex.Create(hu1, hu2, hu3)) { CivilizationIndex = 0 });
-        AddGarudaPlacementModifiers(civ);
+        AddFlightModifiers(civ);
 
         Assert.Empty(Controller(state).GetBuildableVertices(0));
     }
