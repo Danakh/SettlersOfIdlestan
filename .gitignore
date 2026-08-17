@@ -499,4 +499,5 @@ export
 
 # Sorties locales de SOIStrategyTester (gauntlet par race)
 /SOIStrategyTester/race-gauntlet/
+/SOIStrategyTester/race-gauntlet-endgame/
 /SettlersOfIdlestanAvalonia.Desktop/Properties/launchSettings.json

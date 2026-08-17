@@ -76,6 +76,7 @@ public static class Program
                 MaxIslandHours = options.MaxIslandHours ?? DefaultGauntletIslandHours,
                 AbandonIslandAfterHours = options.AbandonIslandHours,
                 CheckpointHours = options.CheckpointHours,
+                MinFinalIslandPrestigePoints = options.FinalIslandPoints,
             });
             return allPassed ? 0 : 1;
         }
@@ -208,6 +209,11 @@ public static class Program
               --abandon-island-hours <n> Simulated hours on one island without ever reaching
                                          Prestige-available before the race is declared blocked
                                          (default: 24).
+              --final-island-points <n> Also require the LAST island to be worth n prestige points for
+                                         the race to pass, and raise that island's own prestige target
+                                         to n so it isn't cut short below it (default: 0, verdict on
+                                         the island count alone). The end-game round is
+                                         `--islands 5 --final-island-points 100`.
             """);
     }
 }
@@ -245,6 +251,9 @@ internal class CliOptions
     public int Islands { get; set; } = 4;
     public string GauntletOutputDirectory { get; set; } = "race-gauntlet";
     public double AbandonIslandHours { get; set; } = 24.0;
+
+    /// <summary>0 = verdict sur le seul nombre d'îles (voir RaceGauntletOptions.MinFinalIslandPrestigePoints).</summary>
+    public int FinalIslandPoints { get; set; }
 
     private const string DefaultGauntletStrategiesPath = "Data/Strategies/race-gauntlet.json";
 
@@ -326,6 +335,9 @@ internal class CliOptions
                     break;
                 case "--abandon-island-hours":
                     options.AbandonIslandHours = double.Parse(RequireValue(args, ref i), CultureInfo.InvariantCulture);
+                    break;
+                case "--final-island-points":
+                    options.FinalIslandPoints = int.Parse(RequireValue(args, ref i));
                     break;
                 default:
                     throw new ArgumentException($"Unknown argument: {args[i]}");

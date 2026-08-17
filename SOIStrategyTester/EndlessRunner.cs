@@ -48,6 +48,22 @@ public class EndlessRunOptions
     /// a prestige with whatever points are available rather than hang forever. Only relevant for the
     /// fixed (no-time-cap) targets, where a genuinely unreachable target would otherwise loop forever.</summary>
     public int MaxPassesPerCycle { get; set; } = 500;
+
+    /// <summary>
+    /// Plancher appliqué au objectif de points du <b>dernier</b> cycle (celui qui atteint
+    /// <see cref="MaxCycles"/>) : son objectif devient le maximum de ce plancher et de celui qu'il
+    /// aurait eu autrement. 0 désactive.
+    ///
+    /// <para>Sert aux appelants qui jugent une manche sur les points de la dernière île plutôt que
+    /// sur le simple fait d'avoir prestigé — voir <see cref="RaceGauntletOptions.MinFinalIslandPrestigePoints"/>.
+    /// Sans ce plancher, le critère serait truqué : l'objectif d'une île passée les cibles fixes vaut
+    /// le double des points réels de la précédente (~80-120 en pratique), donc l'île prestigerait dès
+    /// ce palier et la mesure ne dirait pas si la race pouvait aller plus loin, seulement qu'on ne le
+    /// lui a pas demandé. Ce n'est pas une garantie d'atteindre le plancher pour autant : le plafond
+    /// de temps par île et la soupape de stagnation continuent de terminer l'île en dessous, ce qui
+    /// est précisément le résultat négatif qu'on cherche à observer.</para>
+    /// </summary>
+    public int LastCyclePointsFloor { get; set; }
 }
 
 /// <summary>
@@ -69,6 +85,15 @@ public class EndlessRunResult
 
     /// <summary>One entry per completed island, in order — PrestigeState.RunHistory's own stats.</summary>
     public List<PrestigeRunStats> IslandStats { get; } = new();
+
+    /// <summary>
+    /// Ce qui a déclenché le dernier prestige, tel qu'affiché en console : cible atteinte, plafond de
+    /// temps, ou abandon sur stagnation. Null si aucune île n'a été terminée. Les trois ne se lisent
+    /// pas pareil quand on juge une île sur ses points — « plafond de 8 h avec 57 pts » dit que le
+    /// budget de temps est la contrainte, « 57 pts n'ont pas bougé en 8 passes » dit que l'île avait
+    /// fini de produire bien avant et que lui donner plus de temps n'y changerait rien.
+    /// </summary>
+    public string? LastPrestigeReason { get; set; }
 }
 
 /// <summary>
@@ -137,11 +162,21 @@ public static class EndlessRunner
             int pointsTarget = pastFixedTargets
                 ? Math.Max(1, lastAchievedPoints * 2)
                 : endlessOptions.PrestigePointTargets[cycleIdx0];
+
+            // Dernière île jugée sur ses points : ne pas la laisser prestiger sous le plancher demandé
+            // simplement parce que sa cible calculée était plus basse (voir LastCyclePointsFloor).
+            bool flooredLastCycle = cycle == endlessOptions.MaxCycles
+                && endlessOptions.LastCyclePointsFloor > pointsTarget;
+            if (flooredLastCycle) pointsTarget = endlessOptions.LastCyclePointsFloor;
+
             long islandStartTick = mainState.CurrentWorldState?.StartTick ?? clock.CurrentTick;
 
+            string targetOrigin = flooredLastCycle ? " (plancher dernière île)"
+                : pastFixedTargets ? " (2x previous)"
+                : "";
             Console.WriteLine(hasTimeCap
-                ? $"== Cycle {cycle}: target {pointsTarget} prestige points{(pastFixedTargets ? " (2x previous)" : "")}, or {endlessOptions.MaxIslandHoursAfterFixedTargets}h simulated — whichever comes first =="
-                : $"== Cycle {cycle}: target {pointsTarget} prestige points ==");
+                ? $"== Cycle {cycle}: target {pointsTarget} prestige points{targetOrigin}, or {endlessOptions.MaxIslandHoursAfterFixedTargets}h simulated — whichever comes first =="
+                : $"== Cycle {cycle}: target {pointsTarget} prestige points{targetOrigin} ==");
 
             bool prestigedThisCycle = false;
             int pointsAtLastPassBoundary = -1;
@@ -209,6 +244,7 @@ public static class EndlessRunner
                             if (mainState.GameRecord.TotalPrestigesPerformed > prestigesBefore)
                             {
                                 prestigeCount++;
+                                result.LastPrestigeReason = reason;
                                 Console.WriteLine($"[trigger] {reason}");
                                 var stats = LogPrestige(csv, cycle, phaseIndex, phase.Kind, iterationsUsed, prestigeCount, pointsTarget, clock, mainState);
                                 lastAchievedPoints = stats?.PrestigePoints ?? 0;

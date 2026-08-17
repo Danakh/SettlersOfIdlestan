@@ -148,6 +148,28 @@ dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --races Hum
 
 Or double-click `RaceGauntlet.bat`. Exit code is 0 only if every race passed.
 
+**End-game round — `--islands 5 --final-island-points 100`.** Past four islands, "did it prestige"
+stops discriminating: every race that isn't outright blocked clears them. The question on island 5 —
+the first one a civilization enters with a real prestige-vertex inheritance behind it — is whether it
+still *produces* at an end-game rate. `--final-island-points <n>` adds that second condition to the
+verdict: clear all N islands **and** be worth n prestige points on island N. It also raises that
+island's own points target to n (`EndlessRunOptions.LastCyclePointsFloor`) — without which the island
+would prestige at its computed target (2× the previous island's actual, ~80–120 in practice) and the
+criterion would be measuring that target rather than the race.
+
+```bash
+dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --seed 1 \
+  --islands 5 --final-island-points 100 --gauntlet-output race-gauntlet-endgame
+```
+
+Or double-click `RaceGauntletEndGame.bat`. A failure here reads in three distinct ways, and the
+summary keeps them apart:
+- **never got there** — the race couldn't even reach island N (a blockage, like the 4-island run's).
+- **hit the `--max-island-hours` cap** with too few points — still working when the clock ran out;
+  more time would help.
+- **"N pts hasn't moved in 8 passes"** — the stagnation valve. The island stopped producing well
+  before the time cap, so more time would change nothing; the strategy has run out of things to do.
+
 **Each race starts where a player would actually first pick it** —
 `GameStateFactory.NewGameForRace` unlocks the divine powers its tier requires (first row of the
 ascension grid for a Base race, first two rows for an Advanced one, derived from
@@ -198,6 +220,32 @@ gitignored — these are run artifacts, so the reference verdict lives here inst
 
 Giants (5–6 cities on the first two islands) and Elves/Dwarves (terrain adjacency) are *weak*, not
 blocked — that is the distinction this table exists to make.
+
+**End-game round — seed 1, `--islands 5 --final-island-points 100`: 0/9.** Nobody reaches 100 points
+on island 5; the best is the Goblin at 82. Island 5 points, and how the island ended:
+
+| Race | Island 5 | Ended on |
+|---|---|---|
+| Goblin | 82 | stagnation @ 3.23h |
+| Garuda | 62 | stagnation @ 1.92h |
+| Mermaid | 60 | stagnation @ 4.06h |
+| Human / Orc | 57 | stagnation @ 2.90h / 2.45h |
+| Giant | 41 | 8h time cap |
+| Dwarf | 40 | 8h time cap |
+| Elf | — | never prestiged on island 5 (see below) |
+| DarkElf | — | never left island 1 |
+
+Six of the seven that got there **plateaued** — points flat for 8 passes, island over between 1.9h and
+4.1h, far short of the 8h budget. That is a strategy ceiling, not a time budget one: raising
+`--max-island-hours` would not move those numbers. Only Giants and Dwarves were still working when the
+clock stopped them. Note also that islands 3–5 all land in the 40–82 range while island 2 reaches
+120–198 for most races — island 2 is the only one where the Wonder gets built (`wonder lvl 1` in the
+CSVs), and `PrestigeController.CalculatePrestigePoints` makes it a multiplier. Getting island 5 to 100
+is very likely a Wonder-access problem before it is anything else.
+
+**Elf is a second blocker, visible only at 5 islands**: it clears 4 then never prestiges on island 5,
+abandoned after 24h with `11/20 points; 4 cities, 0 buildable vertices, 15 buildable roads` — walled
+in by Forest adjacency on that map while the road network still had somewhere to go.
 
 **DarkElf is the one open blocker**, and it is an autoplay gap, not a race problem. It never leaves
 its starting city — `#19 CityCount(→ 12, 1 now)`, 1 city, 0 buildable vertices, 3 buildable roads —
