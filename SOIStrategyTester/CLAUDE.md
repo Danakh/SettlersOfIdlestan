@@ -236,12 +236,40 @@ on island 5; the best is the Goblin at 82. Island 5 points, and how the island e
 | DarkElf | — | never left island 1 |
 
 Six of the seven that got there **plateaued** — points flat for 8 passes, island over between 1.9h and
-4.1h, far short of the 8h budget. That is a strategy ceiling, not a time budget one: raising
-`--max-island-hours` would not move those numbers. Only Giants and Dwarves were still working when the
-clock stopped them. Note also that islands 3–5 all land in the 40–82 range while island 2 reaches
-120–198 for most races — island 2 is the only one where the Wonder gets built (`wonder lvl 1` in the
-CSVs), and `PrestigeController.CalculatePrestigePoints` makes it a multiplier. Getting island 5 to 100
-is very likely a Wonder-access problem before it is anything else.
+4.1h, far short of the 8h budget. That is a strategy ceiling, not a time budget one. Measured: rerunning
+Human and Goblin with `--max-island-hours 24 --abandon-island-hours 48` produced *identical* points
+(Human island 4: 44 pts at 24.00h instead of 44 pts at 8.00h; Goblin bit-identical throughout, every one
+of its islands having ended on stagnation rather than on the cap). More time buys nothing.
+
+### Why islands 3+ never build the Wonder
+
+Islands 3–5 land in the 40–82 point range while island 2 reaches 120–198. Island 2 is the last one where
+the Wonder gets built, and `PrestigeController.CalculatePrestigePoints` makes it a *multiplier*
+(`level × (1 + hours on this island)`) — by far the strongest lever there is. The `WondersUnlocked`,
+`WonderPlaced` and `NpcCivsAlive` CSV columns exist to pin down which of the three steps fails, and the
+answer is unambiguous:
+
+| Island | WondersUnlocked | WonderPlaced | NPC civs alive at prestige | Points |
+|---|---|---|---|---|
+| 1 | True | True | 0 | 30–61 |
+| 2 | True | True | 0 | 122–198 |
+| 3 | True | **False** | **1** | 40–110 |
+| 4 | True | **False** | **2** | 43–62 |
+| 5 | True | **False** | **10** | 40–82 |
+
+**It is not a research problem.** `Architecture` (tier 0, cost 100, no prerequisites) grants
+`UNLOCK_WONDERS` and the technology tree persists across prestiges, so `WondersUnlocked` is True on every
+island from island 1 onward. The Wonder is simply never *placed*.
+
+The gate is `CivilizationAutoplayerPriorities.Unified`'s
+`new WonderInvestmentObjective(auto, () => aggressive && allNpcsEliminated())`. In `--race-gauntlet`
+(`UnifiedAggressive`) the Wonder objective stays a no-op until **every** NPC civilization is wiped out.
+Islands 1–2 have none, so it opens immediately; islands 3, 4 and 5 ship 1, 2 and 10 NPC civilizations and
+the run plateaus with them still standing, so the strongest points multiplier in the game is never even
+placed. `WonderPlaced` tracks `NpcCivsAlive == 0` exactly, across every race.
+
+That is self-reinforcing: no Wonder → few points → a weaker start on the next island → even less able to
+clear a larger NPC count. It is why island 5 stalls at 40–82 rather than 100.
 
 **Elf is a second blocker, visible only at 5 islands**: it clears 4 then never prestiges on island 5,
 abandoned after 24h with `11/20 points; 4 cities, 0 buildable vertices, 15 buildable roads` — walled
