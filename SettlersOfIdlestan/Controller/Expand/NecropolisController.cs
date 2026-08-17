@@ -100,7 +100,8 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Hexes portant des Os Divins non purifiés et touchant une ville du joueur — cette dernière
         /// condition est celle de l'investissement lui-même (voir MonumentInvestment.HasAdjacentCity) :
-        /// une Nécropole bâtie hors de portée d'une ville ne pourrait jamais monter de niveau.
+        /// une Nécropole bâtie hors de portée d'une ville ne pourrait jamais monter de niveau. Triés
+        /// du moins au plus coûteux à sacrifier (voir <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
         /// </summary>
         public List<HexCoord> GetPlaceableHexes()
         {
@@ -117,7 +118,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 result.Add(bones.Position);
             }
 
-            return result;
+            return MonumentInvestment.OrderByLeastSacrifice(result, playerCiv, _state);
         }
 
         /// <summary>

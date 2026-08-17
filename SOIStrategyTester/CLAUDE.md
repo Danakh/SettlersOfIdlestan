@@ -204,25 +204,33 @@ Output: `<--gauntlet-output>/race-<Race>.csv` (one endless-mode CSV per race), p
 (one row per race per island) and `summary.json`. The default `race-gauntlet/` directory is
 gitignored — these are run artifacts, so the reference verdict lives here instead:
 
-**Last run — seed 1, 4 islands, 8/9 races clear** (points/cities/hours per island):
+**Last run — seed 1, 4 islands, 9/9 races clear** (points/cities/hours per island):
 
-| Race | Tier | | Sim h | Island 1 | Island 2 | Island 3 | Island 4 |
-|---|---|---|---|---|---|---|---|
-| Human | Base | PASS | 14.40 | 47p/12c/0.49h | 198p/12c/3.20h | 70p/20c/2.71h | 44p/13c/8.00h |
-| Elf | Base | PASS | 20.21 | 35p/8c/7.09h | 99p/9c/3.00h | 20p/9c/2.12h | 42p/12c/8.00h |
-| Dwarf | Base | PASS | 20.54 | 30p/7c/8.00h | 158p/12c/2.44h | 40p/12c/2.10h | 43p/13c/8.00h |
-| Goblin | Base | PASS | 16.21 | 61p/12c/6.93h | 122p/12c/2.35h | 110p/43c/3.56h | 62p/23c/3.37h |
-| Orc | Base | PASS | 14.09 | 47p/12c/0.49h | 158p/12c/2.97h | 67p/20c/2.62h | 43p/13c/8.00h |
-| Giant | Advanced | PASS | 23.73 | 22p/5c/8.00h | 92p/6c/5.00h | 47p/14c/2.73h | 40p/12c/8.00h |
-| Garuda | Advanced | PASS | 11.65 | 47p/12c/0.47h | 118p/12c/1.35h | 73p/22c/1.83h | 42p/12c/8.00h |
-| Mermaid | Advanced | PASS | 18.51 | 34p/12c/8.00h | 191p/12c/4.16h | 62p/22c/2.87h | 60p/22c/3.48h |
-| DarkElf | Advanced | **FAIL** | 20.86 | — | | | |
+| Race | Tier | | Sim h | Island 1 | Island 2 | Island 3 | Island 4 | Total pts |
+|---|---|---|---|---|---|---|---|---|
+| Human | Base | PASS | 16.82 | 47p/12c/0.49h | 198p/12c/3.19h | 579p/12c/5.13h | 765p/12c/8.00h | 1589 |
+| Elf | Base | PASS | 26.18 | 35p/8c/7.18h | 99p/9c/3.00h | 331p/8c/8.00h | 765p/12c/8.00h | 1230 |
+| Dwarf | Base | PASS | 26.42 | 30p/7c/8.00h | 158p/12c/2.42h | 393p/9c/8.00h | 765p/12c/8.00h | 1346 |
+| Goblin | Base | PASS | 24.00 | 61p/12c/6.73h | 122p/12c/2.28h | 550p/12c/7.00h | 599p/12c/8.00h | 1332 |
+| Orc | Base | PASS | 18.02 | 47p/12c/0.49h | 158p/12c/2.97h | 662p/12c/6.56h | 765p/12c/8.00h | 1632 |
+| Giant | Advanced | PASS | 23.89 | 22p/5c/8.00h | 92p/6c/5.00h | 79p/4c/8.00h | 39p/4c/2.89h | 232 |
+| Garuda | Advanced | PASS | 14.82 | 47p/12c/0.47h | 118p/12c/1.35h | 579p/12c/5.00h | 351p/11c/8.00h | 1095 |
+| Mermaid | Advanced | PASS | 26.13 | 34p/12c/8.00h | 191p/12c/4.13h | 545p/12c/6.00h | 34p/12c/8.00h | 804 |
+| DarkElf | Advanced | PASS | 24.34 | 47p/12c/3.56h | 284p/12c/5.42h | 745p/12c/7.35h | 765p/12c/8.00h | 1841 |
 
-Giants (5–6 cities on the first two islands) and Elves/Dwarves (terrain adjacency) are *weak*, not
-blocked — that is the distinction this table exists to make.
+Giants (4–6 cities throughout, Wonder stuck at level 1–2) and Mermaid (Wonder level 0 on island 4)
+are *weak*, not blocked — that is the distinction this table exists to make.
+
+This run is the first fully green one, and it also carries the DarkElf fixes (see that section). Two
+races drifted against the Wonder-gate reference further down, both on island 4 only: **Giant 206 → 39**
+(it gave up on the stagnation valve at 2.89h with 4 cities) and **Garuda 382 → 351**. Everything else
+is unchanged to the point. Whichever monument hex `OrderByLeastSacrifice` now prefers is the most
+likely cause for a race that only ever has four cities' worth of hexes to choose from; it has not been
+chased down, and a single seed does not make it a regression.
 
 **End-game round — seed 1, `--islands 5 --final-island-points 100`: 0/9.** Nobody reaches 100 points
-on island 5; the best is the Goblin at 82. Island 5 points, and how the island ended:
+on island 5; the best is the Goblin at 82. Measured *before* the Wonder gate was opened (see below,
+which took this round to 7/9) and before the DarkElf fixes. Island 5 points, and how the island ended:
 
 | Race | Island 5 | Ended on |
 |---|---|---|
@@ -327,8 +335,9 @@ Reference run, seed 1, 4 islands — points per island, before → after:
 | Mermaid | 34 | 191 | 62 → **545** | 60 → **34** ⚠ | 347 → **804** |
 
 Islands 1–2 are unchanged (they already placed their Wonder). **End-game round: 0/9 → 7/9** races reach
-100 points on island 5, with 103–807 points instead of 40–82. The two that still fail are Giant (80/100,
-4–7 cities only, Wonder stuck at level 1) and DarkElf (never leaves island 1).
+100 points on island 5, with 103–807 points instead of 40–82. The two that still failed then were Giant
+(80/100, 4–7 cities only, Wonder stuck at level 1) and DarkElf (never left island 1 — since fixed, see
+its own section below; the end-game round has not been re-measured with those fixes in).
 
 **Known cost, deliberately accepted.** The objective never yields once active, so the unlimited expansion
 below it stops (12 cities on island 4, against 13–23 without the pivot). Mermaid loses 26 points on
@@ -348,16 +357,62 @@ not waste, it *is* the valuable action.
 abandoned after 24h with `11/20 points; 4 cities, 0 buildable vertices, 15 buildable roads` — walled
 in by Forest adjacency on that map while the road network still had somewhere to go.
 
-**DarkElf is the one open blocker**, and it is an autoplay gap, not a race problem. It never leaves
-its starting city — `#19 CityCount(→ 12, 1 now)`, 1 city, 0 buildable vertices, 3 buildable roads —
-with **Food production at +0** and a city holding `Seaport1, Market1, TownHall1, Sawmill1,
-Brickworks1, Quarry1`: no food building at all. The cause is that `CivilizationAutoplayerPriorities`
-only ever lists `Mill` as a food building (in `Step1Buildings` and `ProductionBuildings`), and `Mill`
-requires `Plain` — a terrain the Underworld pool does not contain. `MushroomFarm`, the underground
-food building the free `MushroomCultureVertex` exists to enable, appears in **no** priority list (only
-in `BuildingController`'s HarvestersGuild automation targets). With no food, no new city can ever be
-founded. Fixing this means teaching the priority lists a layer-appropriate food building, not
-rebalancing the race.
+### DarkElf: was the one open blocker — fixed, four causes deep
+
+The Dark Elves are the only race that starts in the Underworld, and they used to never leave their
+starting city: `#19 CityCount(→ 12, 1 now)`, 1 city, **0 roads laid in 20 simulated hours**,
+0 buildable vertices. Four distinct causes stacked, each hidden behind the previous one. They are
+worth keeping written down, because three of the four are general bugs that merely happened to be
+fatal for this race.
+
+**1. The Surface Breach sterilised the only Mountain of the starting triangle.** `StrategyRunner`
+calls `TrySurfaceBreachInvestmentOnce()` every iteration as a background system, and on the very
+first one it placed the Breach on `GetPlaceableHexes()[0]` — the only Underworld Mountain adjacent to
+the starting city, the one `RaceDefinitions.UnderworldStartTerrains` guarantees. `SurfaceBreach`
+derives from `Monument`, so `BlocksHarvest => true`: the Quarry was built, on a real Mountain, and
+produced **zero Stone forever**. Fixed by `SurfaceBreachController.MinCitiesToPlace = 4` — a
+civilization must have four cities before opening the shaft, by which time other Mountains have been
+revealed.
+
+**2. Underworld roads cost Stone and Ore, which nothing was producing.**
+`RoadController.ApplyUnderworldRoadCostAdjustments` adds Ore 5 + Stone 9 on top of the Wood/Brick
+base. Stone was dead (cause 1) and Ore has no source without a Mine, which needs TownHall 3 — and in
+`CivilizationAutoplayerPriorities.Unified` the whole Step 2 block is gated behind `hasStep2Cities`
+(**4 cities**). Four cities to produce Ore, and Ore to lay the first road toward the second city.
+
+**3. The grind never saw what was missing.** `TryBuildRoadOnce` called
+`TryGrindOnce(GetRoadCost(distance))` — the *base* cost, without the Underworld surcharge. The
+auto-trade therefore compared a need for Wood 2 / Brick 2 against a stockpile capped at 275,
+concluded nothing was missing, and never bought the Ore and Stone that were actually blocking. Same
+bug family as the city surcharge documented in `TryBuildOutpostOnce`. Fixed by
+`RoadController.GetRoadCostFor(civ, edge)`, which returns what `BuildRoad` actually charges;
+`GetPlayerRoadCost` is now just its player-facing special case.
+
+**4. The Underworld overran the starting area.** With roads finally being laid, the run reached four
+cities and then died differently: every one of the twelve hexes of its four cities was occupied by
+Trolls and Ogres — up to five on a single hex — all blocking harvest, production flat at +0. The Pact
+of the Depths (`MONSTER_ATTACK_IMMUNITY`) does not help: it stops monsters from *taking* cities, not
+from sitting on the terrain, and the autoplay has no soldiers to evict them (Barracks → Ore → Mine,
+whose Mountain is itself occupied). One island further, aggressive Underworld NPC civilizations wiped
+the civilization out entirely (0 cities, 2 NPC civs alive with 6 and 12 cities). Fixed by
+`AutoExtendController.UnderworldSafeRadiusBonusByIsland = { 8, 6, 4, 2 }` — hexes *added* to
+`MinHexDistanceFromArrival` on the first four islands, a guaranteed empty ring that tightens island
+after island. It covers all three Underworld spawn paths (per-hex monsters, border monsters, and
+aggressive civilizations — a ring that keeps monsters out but lets a three-city hostile civilization
+settle inside it would guarantee nothing). Treasure keeps its exact odds: the ring only closes the
+monster windows, and the treasure window is shifted down rather than narrowed.
+
+A **radius rather than a reduced probability** is the deliberate choice: population density stays the
+game's own everywhere it matters, and what the player is given is a starting area they *know* is
+safe, not an expectation of quiet that one bad roll can deny on the first hex revealed.
+
+Also fixed along the way, and general: `MonumentInvestment.OrderByLeastSacrifice` now orders every
+monument's `GetPlaceableHexes()` from cheapest to costliest to sacrifice — fewest cities actually
+harvesting the hex first, then the most abundant of the resources lost. Both callers benefit: the
+autoplay takes `hexes[0]`, and the player sees candidates best-first.
+
+Result, `--race-gauntlet --races DarkElf --islands 4 --seed 1`: **FAIL 0/4 → PASS 4/4**, with
+47 / 284 / 745 / 765 points per island.
 
 All strategies in one run start from an **identical** fresh copy of the starting state (a new
 `MainGameController` is built per strategy), so ticks-to-objective are directly comparable.

@@ -98,7 +98,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Hexes côtiers (terre adjacente à de l'eau) adjacents aux villes du joueur, sans ville
-        /// ennemie adjacente.
+        /// ennemie adjacente — du moins au plus coûteux à sacrifier (voir
+        /// <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
         /// </summary>
         public List<HexCoord> GetPlaceableHexes()
         {
@@ -135,7 +136,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 result.Add(hex);
             }
 
-            return result;
+            return MonumentInvestment.OrderByLeastSacrifice(result, playerCiv, _state);
         }
 
         public GreatLighthouse? PlaceGreatLighthouse(HexCoord position)

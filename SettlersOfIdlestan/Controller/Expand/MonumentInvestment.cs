@@ -103,6 +103,64 @@ namespace SettlersOfIdlestan.Controller.Expand
             => playerCiv.Cities.Any(city => city.Position.GetHexes().Any(h => h.Equals(position)));
 
         /// <summary>
+        /// Ordonne des hexagones candidats à l'accueil d'un Monument, du moins au plus coûteux à
+        /// sacrifier. Un Monument stérilise définitivement la récolte de son hexagone
+        /// (<see cref="Monument.BlocksHarvest"/>), pour <em>toutes</em> les villes qui le touchent :
+        /// le poser au hasard peut couper la seule source d'une ressource, ce qui bloque tout ce qui
+        /// en dépend (les routes de l'Inframonde coûtent de la Pierre et du Minerai — un Elfe noir
+        /// dont la Percée avait mangé l'unique Montagne du triangle de départ n'a jamais pu poser une
+        /// seule route).
+        ///
+        /// <para>Critères, dans cet ordre : (1) le nombre de villes qui récoltent réellement cet
+        /// hexagone — 0 est gratuit, 1 ne pénalise qu'une ville ; (2) l'abondance de la ressource la
+        /// plus rare qu'on y perd, décroissante — à sacrifice égal on préfère perdre ce dont on a
+        /// déjà le plus. Départage final par coordonnée, pour que l'ordre reste déterministe.</para>
+        ///
+        /// <para>L'ordre profite aux deux appelants : l'autoplay prend le premier hexagone de la
+        /// liste, et le joueur voit ses candidats du meilleur au pire.</para>
+        /// </summary>
+        public static List<HexCoord> OrderByLeastSacrifice(IEnumerable<HexCoord> hexes, Civilization playerCiv, WorldState state)
+        {
+            var scored = new List<(HexCoord Hex, int Cities, int ScarcestStock)>();
+            foreach (var hex in hexes)
+            {
+                var terrain = state.GetMapFor(hex)?.GetTile(hex)?.TerrainType;
+                int cities = 0;
+                int scarcest = int.MaxValue;
+
+                if (terrain.HasValue)
+                {
+                    foreach (var city in playerCiv.Cities)
+                    {
+                        if (!city.Position.IsAdjacentTo(hex)) continue;
+
+                        bool harvestsHere = false;
+                        var buildings = city.Buildings;
+                        for (int b = 0; b < buildings.Count; b++)
+                        {
+                            var resource = buildings[b].AutomaticHarvestCapability(terrain.Value, playerCiv)
+                                           ?? buildings[b].ManualHarvestCapability(terrain.Value);
+                            if (resource == null) continue;
+                            harvestsHere = true;
+                            scarcest = Math.Min(scarcest, playerCiv.GetResourceQuantity(resource.Value));
+                        }
+
+                        if (harvestsHere) cities++;
+                    }
+                }
+
+                scored.Add((hex, cities, scarcest));
+            }
+
+            return scored
+                .OrderBy(s => s.Cities)
+                .ThenByDescending(s => s.ScarcestStock)
+                .ThenBy(s => s.Hex.Q).ThenBy(s => s.Hex.R).ThenBy(s => s.Hex.Z)
+                .Select(s => s.Hex)
+                .ToList();
+        }
+
+        /// <summary>
         /// Détaille, pour chaque ressource actuellement investie dans un Monument (toutes couches
         /// confondues), le taux de perte par seconde projeté au prochain cycle — pour affichage en
         /// tooltip de la barre de ressources (voir <see cref="GetConsumptionRatesBySource"/> pour les

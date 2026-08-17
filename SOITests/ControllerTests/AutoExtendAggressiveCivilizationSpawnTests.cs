@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
 using Xunit;
 
 namespace SOITests.ControllerTests
@@ -24,6 +25,22 @@ namespace SOITests.ControllerTests
     /// </summary>
     public class AutoExtendAggressiveCivilizationSpawnTests
     {
+        /// <summary>
+        /// PrestigeState d'une île située au-delà de l'anneau sûr des premières îles
+        /// (AutoExtendController.UnderworldSafeRadiusBonusByIsland : +8 / +6 / +4 / +2 hexagones de
+        /// distance minimale au point d'arrivée sur les quatre premières). Sans lui, ces tests
+        /// mesureraient cet anneau : à portée des trente routes explorées ici, aucune civilisation ne
+        /// peut apparaître sur une première île. Le numéro d'île se lit sur le nombre de prestiges
+        /// déjà enregistrés.
+        /// </summary>
+        private static PrestigeState LateIslandPrestigeState()
+        {
+            var prestigeState = new PrestigeState();
+            for (int i = 0; i < 4; i++)
+                prestigeState.RunHistory.Add(new PrestigeRunStats());
+            return prestigeState;
+        }
+
         private static (WorldState state, Civilization civ, LayerState layer, AutoExtendController controller) CreateUnderworldSetup(GamePRNG prng)
         {
             var surfaceMap = new IslandMap(new[] { new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain) });
@@ -35,7 +52,7 @@ namespace SOITests.ControllerTests
             state.Visibility.RecalculateFor(civ.Index);
 
             var controller = new AutoExtendController();
-            controller.Initialize(state, prng);
+            controller.Initialize(state, prng, prestigeState: LateIslandPrestigeState());
 
             return (state, civ, underworldLayer, controller);
         }
@@ -114,7 +131,7 @@ namespace SOITests.ControllerTests
                 state.Visibility.RecalculateFor(civ.Index);
 
                 var controller = new AutoExtendController();
-                controller.Initialize(state, prng);
+                controller.Initialize(state, prng, prestigeState: LateIslandPrestigeState());
 
                 // Révèle le Void autour de l'avant-poste de l'Abysse en construisant des routes :
                 // chaque hex de Void révélé génère systématiquement une île + sa civ (voir

@@ -64,6 +64,26 @@ public class AutoExtendController
     private const int OgreSpawnChancePercent = 3;
     private const int BaseTreasureChancePercent = 2;
 
+    /// <summary>
+    /// Hexagones de distance <b>ajoutés</b> à <see cref="MinHexDistanceFromArrival"/> autour du point
+    /// d'arrivée de l'Inframonde, sur la 1re, 2e, 3e et 4e île d'une partie : un anneau garanti sans
+    /// aucune apparition, qui se resserre d'île en île puis disparaît à partir de la 5e.
+    ///
+    /// <para>Un monstre stérilise l'hexagone qu'il occupe, et une île souterraine se joue d'abord sur
+    /// une poignée d'hexagones : sans soldats — donc sans Minerai, donc sans Mine — rien ne l'en
+    /// déloge. Mesuré au race gauntlet : les Elfes noirs, qui démarrent sous terre, voyaient les douze
+    /// hexagones de leurs quatre premières villes occupés par des Trolls et des Ogres (jusqu'à cinq
+    /// sur un même hex), production tombée à zéro, île perdue. Leur immunité aux attaques de ces deux
+    /// monstres (Pacte des Profondeurs) n'y change rien : elle empêche la prise des villes, pas
+    /// l'occupation du terrain.</para>
+    ///
+    /// <para>Un rayon plutôt qu'une probabilité réduite : la densité de peuplement reste celle du jeu
+    /// partout où elle compte, et ce qui est offert au joueur est une zone de départ dont il sait
+    /// qu'elle est sûre, pas une espérance de calme qu'un mauvais tirage peut démentir dès le premier
+    /// hexagone révélé.</para>
+    /// </summary>
+    private static readonly int[] UnderworldSafeRadiusBonusByIsland = { 8, 6, 4, 2 };
+
     // Monstre de bordure : tente une apparition à intervalle régulier sur les cartes auto-étendues,
     // en bordure de la zone déjà explorée (pas seulement lors de la génération de nouveaux hexes).
     // L'intervalle décroît avec le niveau de corruption global (BorderMonsterCheckBaseIntervalTicks /
@@ -244,7 +264,13 @@ public class AutoExtendController
 
             if (_prng.Next(100) >= BorderMonsterSpawnChancePercent) continue;
 
-            var borderHexes = GetBorderHexes(layerState);
+            // Anneau sûr des premières îles (Inframonde uniquement — l'Abysse ne se visite pas avant
+            // d'avoir une civilisation debout, voir UnderworldSafeRadiusBonusByIsland).
+            int minSpawnDistance = layerState.Map.Z == LayerState.UnderworldZ
+                ? UnderworldMinSpawnDistance()
+                : MinHexDistanceFromArrival;
+
+            var borderHexes = GetBorderHexes(layerState, minSpawnDistance);
             if (borderHexes.Count == 0) continue;
 
             var hex = borderHexes[_prng.Next(borderHexes.Count)];
@@ -254,12 +280,14 @@ public class AutoExtendController
 
     /// <summary>
     /// Hexes occupés en bordure de la zone explorée : au moins un voisin hors carte, sans eau ni
-    /// feature bloquante. La Corruption est ignorée ici (contrairement à une feature quelconque) car
-    /// elle est systématiquement posée sur chaque hex de terre de l'Abysse (voir
-    /// <see cref="PlaceAbyssCorruption"/>) : l'exclure comme les autres features rendrait tout hex de
-    /// l'Abysse inéligible en permanence.
+    /// feature bloquante, et à au moins <paramref name="minDistanceFromArrival"/> hexagones du point
+    /// d'arrivée (l'anneau sûr des premières îles de l'Inframonde l'élargit — voir
+    /// <see cref="UnderworldSafeRadiusBonusByIsland"/>). La Corruption est ignorée ici (contrairement
+    /// à une feature quelconque) car elle est systématiquement posée sur chaque hex de terre de
+    /// l'Abysse (voir <see cref="PlaceAbyssCorruption"/>) : l'exclure comme les autres features
+    /// rendrait tout hex de l'Abysse inéligible en permanence.
     /// </summary>
-    private List<HexCoord> GetBorderHexes(LayerState layerState)
+    private List<HexCoord> GetBorderHexes(LayerState layerState, int minDistanceFromArrival)
     {
         var map = layerState.Map;
         var arrivalHexes = layerState.ArrivalVertex!.GetHexes();
@@ -269,7 +297,7 @@ public class AutoExtendController
         {
             if (tile.TerrainType == TerrainType.Water) continue;
             if (_state!.GetFeaturesAt(hex).Any(f => f is not Model.IslandFeatures.Corruption)) continue;
-            if (MinDistanceToAny(hex, arrivalHexes) < MinHexDistanceFromArrival) continue;
+            if (MinDistanceToAny(hex, arrivalHexes) < minDistanceFromArrival) continue;
             if (!hex.Neighbors().Any(n => !map.HasTile(n))) continue;
 
             result.Add(hex);
@@ -380,6 +408,23 @@ public class AutoExtendController
     private const int CorruptionChancePerDistancePercent = 5;
     private const int CorruptionChancePerLevelPercent = 10;
 
+    /// <summary>
+    /// Distance minimale au point d'arrivée exigée d'une apparition dans l'Inframonde :
+    /// <see cref="MinHexDistanceFromArrival"/> augmenté du bonus d'île de
+    /// <see cref="UnderworldSafeRadiusBonusByIsland"/>. Le numéro d'île se lit sur le nombre de
+    /// prestiges déjà effectués ; <c>RunHistory</c> n'en garde que les cinq derniers (voir
+    /// PrestigeController.PerformPrestige), ce qui est sans conséquence ici puisque le bonus est nul
+    /// dès la 5e île.
+    /// </summary>
+    private int UnderworldMinSpawnDistance()
+    {
+        int island = (_prestigeState?.RunHistory.Count ?? 0) + 1;
+        int bonus = island <= UnderworldSafeRadiusBonusByIsland.Length
+            ? UnderworldSafeRadiusBonusByIsland[island - 1]
+            : 0;
+        return MinHexDistanceFromArrival + bonus;
+    }
+
     private void TrySpawnUnderworldDenizen(HexCoord newHex, LayerState layerState, int z)
     {
         if (_state == null || z != LayerState.UnderworldZ) return;
@@ -401,8 +446,12 @@ public class AutoExtendController
         if (!isWater && !_state.HasFeaturesAt(newHex))
         {
             int roll = _prng!.Next(100);
-            int trollThreshold = TrollSpawnChancePercent;
-            int ogreThreshold = trollThreshold + OgreSpawnChancePercent;
+            // L'anneau sûr des premières îles ne ferme que les fenêtres des monstres, jamais celle du
+            // trésor : celle-ci garde exactement la même largeur, seulement décalée vers le bas — une
+            // zone de départ tranquille reste une zone qu'il vaut la peine d'explorer.
+            bool monstersAllowed = minDist >= UnderworldMinSpawnDistance();
+            int trollThreshold = monstersAllowed ? TrollSpawnChancePercent : 0;
+            int ogreThreshold = trollThreshold + (monstersAllowed ? OgreSpawnChancePercent : 0);
             int treasureChance = BaseTreasureChancePercent + _state.PlayerCivilization.ModifierAggregator
                 .ApplyModifiers(Modifier.ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT, "", 0);
             int treasureThreshold = ogreThreshold + treasureChance;
@@ -465,7 +514,9 @@ public class AutoExtendController
         // Cap de civilisations, propre à cette couche (voir CountCivilizationsOnLayer)
         if (CountCivilizationsOnLayer(z) >= MaxTotalCivilizations) return;
 
-        // Distance minimale depuis le vertex d'arrivée
+        // Distance minimale depuis le vertex d'arrivée — l'anneau sûr des premières îles de
+        // l'Inframonde vaut ici aussi : une zone de départ garantie sans monstre qui laisserait
+        // s'installer une civilisation hostile de trois villes ne garantirait rien du tout.
         var arrivalHexes = layerState.ArrivalVertex!.GetHexes();
         int minDist = int.MaxValue;
         foreach (var h in arrivalHexes)
@@ -474,7 +525,7 @@ public class AutoExtendController
             int d = newHex.DistanceTo(h);
             if (d < minDist) minDist = d;
         }
-        if (minDist < MinHexDistanceFromArrival) return;
+        if (minDist < (z == LayerState.UnderworldZ ? UnderworldMinSpawnDistance() : MinHexDistanceFromArrival)) return;
 
         // Au moins un vertex du nouvel hexagone n'était pas visible avant
         bool hasNewVertex = false;

@@ -840,15 +840,29 @@ namespace SettlersOfIdlestan.Controller.Island
             };
         }
 
-        public ResourceSet GetPlayerRoadCost(Edge edge)
+        /// <summary>
+        /// Coût réellement débité par <see cref="BuildRoad"/> à cette civilisation pour cette arête :
+        /// route maritime/du Vide, ou coût de base majoré des surcoûts de l'Inframonde
+        /// (<see cref="ApplyUnderworldRoadCostAdjustments"/>). C'est cette méthode, et jamais
+        /// <see cref="GetRoadCost(int, Civilization?)"/> seule, que doit interroger tout appelant qui
+        /// veut savoir ce qu'il lui manque — sur une arête de l'Inframonde, le coût de base ne
+        /// mentionne ni le Minerai ni la Pierre, si bien qu'un stock de Bois/Brique au plafond
+        /// paraît suffire (voir <see cref="CivilizationAutoplayer.TryBuildRoadOnce"/>, dont le troc
+        /// automatique ne cherchait alors jamais à acheter ce qui bloquait vraiment).
+        /// </summary>
+        public ResourceSet GetRoadCostFor(Civilization civ, Edge edge)
         {
             if (IsEdgeBetweenVoidHexes(edge) || !IsEdgeOnLand(edge))
                 return GetMaritimeRoadCost();
-            var civ = _state!.PlayerCivilization;
             var distance = GetDistanceForEdge(edge, civ);
+            // Arête déconnectée du réseau : jamais constructible, donc ce coût n'est qu'indicatif —
+            // mais distance² déborderait sur int.MaxValue.
+            if (distance == int.MaxValue) distance = 1;
             var cost = GetRoadCost(distance, civ);
             return ApplyUnderworldRoadCostAdjustments(cost, edge, civ);
         }
+
+        public ResourceSet GetPlayerRoadCost(Edge edge) => GetRoadCostFor(_state!.PlayerCivilization, edge);
 
         /// <summary>
         /// Applique au coût de base d'une route terrestre les majorations propres à l'Inframonde :

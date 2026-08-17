@@ -94,7 +94,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Hexes de Montagne en surface, adjacents à une ville du joueur, sans ville ennemie
-        /// adjacente et sans autre feature — mêmes règles que la Mine Profonde.
+        /// adjacente et sans autre feature — mêmes règles que la Mine Profonde, ordre du moins au
+        /// plus coûteux à sacrifier compris (voir <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
         /// </summary>
         public List<HexCoord> GetPlaceableHexes()
         {
@@ -129,7 +130,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 result.Add(hex);
             }
 
-            return result;
+            return MonumentInvestment.OrderByLeastSacrifice(result, playerCiv, _state);
         }
 
         public Observatory? PlaceObservatory(HexCoord position)

@@ -76,7 +76,8 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
-        /// Hexes adjacent to player city vertices that have no enemy city adjacent.
+        /// Hexes adjacent to player city vertices that have no enemy city adjacent, ordered from the
+        /// cheapest to the costliest to sacrifice (see <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
         /// </summary>
         public List<HexCoord> GetPlaceableHexes()
         {
@@ -112,7 +113,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 result.Add(hex);
             }
 
-            return result;
+            return MonumentInvestment.OrderByLeastSacrifice(result, playerCiv, _state);
         }
 
         public Wonder? PlaceWonder(HexCoord position)

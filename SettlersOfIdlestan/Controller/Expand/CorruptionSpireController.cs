@@ -111,7 +111,10 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         /// <summary>
         /// Hexes de l'Inframonde portant la feature Corruption, libres de toute autre feature,
-        /// et actuellement visibles par le joueur (dévoilés par une ville ou une route).
+        /// et actuellement visibles par le joueur (dévoilés par une ville ou une route) — triés du
+        /// moins au plus coûteux à sacrifier (voir <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
+        /// La plupart de ces hexes ne touchent aucune ville, donc n'y perdent rien : le tri ne
+        /// départage vraiment que ceux qui en touchent une.
         /// </summary>
         public List<HexCoord> GetPlaceableHexes()
         {
@@ -136,7 +139,7 @@ namespace SettlersOfIdlestan.Controller.Expand
                 result.Add(hex);
             }
 
-            return result;
+            return MonumentInvestment.OrderByLeastSacrifice(result, _state.PlayerCivilization, _state);
         }
 
         /// <summary>Niveau de corruption de l'hex donné (0 si aucune feature Corruption présente).</summary>
