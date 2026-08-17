@@ -304,7 +304,45 @@ starves the Imperial Port stage far down the list.
 
 **Conclusion: this is not reachable by tuning a strategy file.** Making islands 3+ winnable needs a
 capability the autoplayer does not have — expansion *directed at* the priority target (or attack range
-that can be projected). Until then, the realistic lever for end-game points is the Wonder gate itself.
+that can be projected).
+
+### The fix that was applied: open the Wonder gate
+
+`WonderInvestmentObjective`'s predicate became
+`aggressive && (allNpcsEliminated() || !hasTargetInRange())`. The second clause is the one that fires:
+if no enemy is actually reachable there is no war to win, so invest in the Wonder instead of sprawling.
+When a target *is* in range the war keeps priority, which was the original intent.
+
+Reference run, seed 1, 4 islands — points per island, before → after:
+
+| Race | Island 1 | Island 2 | Island 3 | Island 4 | Total |
+|---|---|---|---|---|---|
+| Human | 47 | 198 | 70 → **579** | 44 → **765** | 359 → **1589** |
+| Elf | 35 | 99 | 20 → **331** | 42 → **765** | 196 → **1230** |
+| Dwarf | 30 | 158 | 40 → **393** | 43 → **765** | 271 → **1346** |
+| Goblin | 61 | 122 | 110 → **550** | 62 → **599** | 355 → **1332** |
+| Orc | 47 | 158 | 67 → **662** | 43 → **765** | 315 → **1632** |
+| Giant | 22 | 92 | 47 → **79** | 40 → **206** | 201 → **399** |
+| Garuda | 47 | 118 | 73 → **579** | 42 → **382** | 280 → **1126** |
+| Mermaid | 34 | 191 | 62 → **545** | 60 → **34** ⚠ | 347 → **804** |
+
+Islands 1–2 are unchanged (they already placed their Wonder). **End-game round: 0/9 → 7/9** races reach
+100 points on island 5, with 103–807 points instead of 40–82. The two that still fail are Giant (80/100,
+4–7 cities only, Wonder stuck at level 1) and DarkElf (never leaves island 1).
+
+**Known cost, deliberately accepted.** The objective never yields once active, so the unlimited expansion
+below it stops (12 cities on island 4, against 13–23 without the pivot). Mermaid loses 26 points on
+island 4 specifically — its Wonder stays level 0 there — while gaining 457 across the four islands.
+Three attempts to remove that cost were measured and **all were worse**, so don't re-run them:
+
+| Attempt | Result |
+|---|---|
+| Pivot only from 20 cities | Dwarf/Orc/Human/Garuda each lose ~700 pts — most races cap at 12–13 cities on island 4, so the threshold removes their Wonder entirely |
+| Pivot only from 14 cities | Human stops prestiging on island 4 at all (no Imperial Port after 24h) |
+| Make the objective non-blocking once investments are open | Elf −694, Dwarf −573. `TryAdvanceOnce` also pumps Gold every turn, and that is what funds the Wonder levels; freeing the turns restarts expansion, which is cheap activity that does not raise prestige points, so islands end earlier on the stagnation valve (Human island 2: 198 → 42) |
+
+The lesson: more cities is not what makes points here — the Wonder multiplier is. The blocking pivot is
+not waste, it *is* the valuable action.
 
 **Elf is a second blocker, visible only at 5 islands**: it clears 4 then never prestiges on island 5,
 abandoned after 24h with `11/20 points; 4 cities, 0 buildable vertices, 15 buildable roads` — walled

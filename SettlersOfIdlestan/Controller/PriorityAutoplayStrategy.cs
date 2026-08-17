@@ -560,13 +560,24 @@ namespace SettlersOfIdlestan.Controller
     /// Invests in the Wonder (<see cref="CivilizationAutoplayer.TryWonderInvestmentOnce"/>, plus
     /// <see cref="CivilizationAutoplayer.TryTradeForResourceOnce"/> for Gold to help fund it) while
     /// <paramref name="shouldInvest"/> is true — used by
-    /// <see cref="CivilizationAutoplayerPriorities.Unified"/>'s aggressive mode to only pivot onto the
-    /// Wonder once every enemy civilization is gone, instead of racing it while enemies (and the
+    /// <see cref="CivilizationAutoplayerPriorities.Unified"/>'s aggressive mode to pivot onto the Wonder
+    /// only once there is no enemy left to fight, instead of racing it while enemies (and the
     /// cities/production they still hold) are on the board. A no-op (<see cref="IsComplete"/> true) while
-    /// the predicate is false, exactly like <see cref="ConditionalBuildingLevelObjective"/>; once true,
-    /// never reports complete again (there is no "done" state for Wonder investment), so it must be
-    /// placed ahead of any open-ended fallback objective (e.g. an unbounded
-    /// <see cref="CityCountObjective"/>) that should stop competing for turns once the pivot happens.
+    /// the predicate is false, exactly like <see cref="ConditionalBuildingLevelObjective"/>.
+    ///
+    /// <para>Une fois le prédicat vrai, ne redevient jamais complet, et c'est <b>délibéré</b> : il doit
+    /// donc être placé devant tout objectif ouvert (une <see cref="CityCountObjective"/> illimitée) dont
+    /// on veut qu'il cesse de réclamer des tours après la bascule. La tentation est grande de le rendre
+    /// non bloquant dès que les investissements sont ouverts, sur le modèle de
+    /// <see cref="ResearchObjective"/> — la Merveille monte ensuite seule, l'objectif semble n'avoir
+    /// plus rien à faire. Essayé et mesuré : c'est nettement moins bon. <see cref="TryAdvanceOnce"/> ne
+    /// se contente pas d'ouvrir des cases, il pompe de l'Or à chaque tour
+    /// (<see cref="CivilizationAutoplayer.TryTradeForResourceOnce"/>), et c'est ce pompage qui finance
+    /// réellement les paliers. Rendre la main relance l'expansion illimitée, activité peu coûteuse qui
+    /// ne fait pas monter les points de prestige : les îles se terminaient alors plus tôt sur la
+    /// soupape de stagnation et bien plus bas — île 2 des Humains à 42 points contre 198, Elfes et
+    /// Nains perdant 570 à 700 points sur quatre îles — pour des villes plus nombreuses mais sans
+    /// valeur. Le blocage n'est pas un gaspillage : c'est le pivot qui a de la valeur.</para>
     /// </summary>
     public class WonderInvestmentObjective : IAutoplayObjective
     {
