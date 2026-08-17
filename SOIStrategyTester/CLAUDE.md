@@ -228,26 +228,37 @@ is unchanged to the point. Whichever monument hex `OrderByLeastSacrifice` now pr
 likely cause for a race that only ever has four cities' worth of hexes to choose from; it has not been
 chased down, and a single seed does not make it a regression.
 
-**End-game round — seed 1, `--islands 5 --final-island-points 100`: 0/9.** Nobody reaches 100 points
-on island 5; the best is the Goblin at 82. Measured *before* the Wonder gate was opened (see below,
-which took this round to 7/9) and before the DarkElf fixes. Island 5 points, and how the island ended:
+**End-game round — seed 1, `--islands 5 --final-island-points 100`: 9/9.** Every race clears the five
+islands *and* is worth 100+ points on the last one. Islands 1–4 are point-identical to the 4-island
+table above (same seed, same run up to that point), so the column that carries information here is
+island 5:
 
-| Race | Island 5 | Ended on |
-|---|---|---|
-| Goblin | 82 | stagnation @ 3.23h |
-| Garuda | 62 | stagnation @ 1.92h |
-| Mermaid | 60 | stagnation @ 4.06h |
-| Human / Orc | 57 | stagnation @ 2.90h / 2.45h |
-| Giant | 41 | 8h time cap |
-| Dwarf | 40 | 8h time cap |
-| Elf | — | never prestiged on island 5 (see below) |
-| DarkElf | — | never left island 1 |
+| Race | Island 5 | Cities | Ended on |
+|---|---|---|---|
+| DarkElf | **972** | 15 | 8h time cap |
+| Human / Orc | 786 | 12 | 8h time cap |
+| Garuda | 717 | 12 | reached its 702 target @ 6.00h |
+| Goblin | 615 | 12 | 8h time cap |
+| Dwarf | 331 | 10 | 8h time cap |
+| Mermaid | 133 | 12 | reached the 100 floor @ 2.48h |
+| Elf | 113 | 4 | 8h time cap |
+| Giant | 110 | 5 | reached the 100 floor @ 6.00h |
 
-Six of the seven that got there **plateaued** — points flat for 8 passes, island over between 1.9h and
-4.1h, far short of the 8h budget. That is a strategy ceiling, not a time budget one. Measured: rerunning
-Human and Goblin with `--max-island-hours 24 --abandon-island-hours 48` produced *identical* points
-(Human island 4: 44 pts at 24.00h instead of 44 pts at 8.00h; Goblin bit-identical throughout, every one
-of its islands having ended on stagnation rather than on the cap). More time buys nothing.
+Three of these lines are the three failures this round used to have. **DarkElf tops the table** — the
+race that could not leave its starting city posts the best island-5 score and the highest city count of
+the run. **Elf prestiges on island 5 at all** (it used to be abandoned after 24h): still walled in at
+4 cities, but the road-cost fix gives it the roads it was missing — weak, no longer blocked. **Giant
+clears the 100 bar** at 110, against the 80/100 that was its last standing failure.
+
+Read the two narrow ones with care: Giant at 110 and Elf at 113 are thin margins on a single seed, and
+neither should be called solid until a second seed agrees.
+
+Historical, for contrast — the same round measured 0/9 *before* the Wonder gate was opened (best was
+Goblin at 82, with six of the seven that got there plateauing on the stagnation valve between 1.9h and
+4.1h), then 7/9 with the gate open and Giant and DarkElf still failing. One measurement from that era
+is still worth not re-running: rerunning Human and Goblin with `--max-island-hours 24
+--abandon-island-hours 48` produced *identical* points, every island having ended on stagnation rather
+than on the cap. When a race plateaus, more time buys nothing — the ceiling is the strategy's.
 
 ### Why islands 3+ never build the Wonder
 
@@ -335,9 +346,9 @@ Reference run, seed 1, 4 islands — points per island, before → after:
 | Mermaid | 34 | 191 | 62 → **545** | 60 → **34** ⚠ | 347 → **804** |
 
 Islands 1–2 are unchanged (they already placed their Wonder). **End-game round: 0/9 → 7/9** races reach
-100 points on island 5, with 103–807 points instead of 40–82. The two that still failed then were Giant
-(80/100, 4–7 cities only, Wonder stuck at level 1) and DarkElf (never left island 1 — since fixed, see
-its own section below; the end-game round has not been re-measured with those fixes in).
+100 points on island 5, with 103–807 points instead of 40–82. The two that still failed at that point
+were Giant (80/100, 4–7 cities only, Wonder stuck at level 1) and DarkElf (never left island 1). Both
+pass since the DarkElf fixes — see the 9/9 round above.
 
 **Known cost, deliberately accepted.** The objective never yields once active, so the unlimited expansion
 below it stops (12 cities on island 4, against 13–23 without the pivot). Mermaid loses 26 points on
@@ -353,9 +364,11 @@ Three attempts to remove that cost were measured and **all were worse**, so don'
 The lesson: more cities is not what makes points here — the Wonder multiplier is. The blocking pivot is
 not waste, it *is* the valuable action.
 
-**Elf is a second blocker, visible only at 5 islands**: it clears 4 then never prestiges on island 5,
+**Elf was a second blocker, visible only at 5 islands**: it cleared 4 then never prestiged on island 5,
 abandoned after 24h with `11/20 points; 4 cities, 0 buildable vertices, 15 buildable roads` — walled
-in by Forest adjacency on that map while the road network still had somewhere to go.
+in by Forest adjacency on that map while the road network still had somewhere to go. Fixed as a side
+effect of the road-cost grind (see the DarkElf section): it now prestiges there with 113 points, still
+from only 4 cities.
 
 ### DarkElf: was the one open blocker — fixed, four causes deep
 
@@ -412,7 +425,8 @@ harvesting the hex first, then the most abundant of the resources lost. Both cal
 autoplay takes `hexes[0]`, and the player sees candidates best-first.
 
 Result, `--race-gauntlet --races DarkElf --islands 4 --seed 1`: **FAIL 0/4 → PASS 4/4**, with
-47 / 284 / 745 / 765 points per island.
+47 / 284 / 745 / 765 points per island. On the 5-island end-game round it goes further and tops the
+table at 972 points and 15 cities on island 5.
 
 All strategies in one run start from an **identical** fresh copy of the starting state (a new
 `MainGameController` is built per strategy), so ticks-to-objective are directly comparable.
