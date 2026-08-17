@@ -104,11 +104,21 @@ public static class StrategyRunner
         {
             PhaseKind.Step1 or PhaseKind.Step2 or PhaseKind.Step3 or PhaseKind.Military
                 or PhaseKind.ExterminateMonsters => CivilizationAutoplayerPriorities.Unified(auto, bc),
-            PhaseKind.UnifiedAggressive => CivilizationAutoplayerPriorities.Unified(auto, bc, aggressive: true),
+            PhaseKind.UnifiedAggressive => BuildUnifiedAggressive(phase, auto, bc),
             PhaseKind.ExterminateCivilizations => CivilizationAutoplayerPriorities.Unified(auto, bc, attackNeighborsAtCities: 0),
             _ => null,
         };
     }
+
+    /// <summary>
+    /// La liste unifiée en mode agressif, avec le seuil de guerre de la phase s'il en porte un
+    /// (<see cref="StrategyPhase.AttackNeighborsAtCities"/>). Sans ce seuil, le seul déclencheur
+    /// restant est « expansion bloquée + ennemi visible », qui n'arrive quasiment jamais.
+    /// </summary>
+    private static PriorityAutoplayStrategy BuildUnifiedAggressive(StrategyPhase phase, CivilizationAutoplayer auto, BuildingController bc)
+        => phase.AttackNeighborsAtCities is int atCities
+            ? CivilizationAutoplayerPriorities.Unified(auto, bc, aggressive: true, attackNeighborsAtCities: atCities)
+            : CivilizationAutoplayerPriorities.Unified(auto, bc, aggressive: true);
 
     private static bool ExecutePhaseCore(StrategyPhase phase, CivilizationAutoplayer auto, MainGameController controller, PriorityAutoplayStrategy? priorityStrategy)
     {
@@ -122,7 +132,7 @@ public static class StrategyRunner
                 return CivilizationAutoplayerPriorities.Unified(auto, bc).TryStepOnce();
 
             case PhaseKind.UnifiedAggressive:
-                return CivilizationAutoplayerPriorities.Unified(auto, bc, aggressive: true).TryStepOnce();
+                return BuildUnifiedAggressive(phase, auto, bc).TryStepOnce();
 
             case PhaseKind.ExterminateMonsters:
                 {

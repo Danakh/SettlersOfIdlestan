@@ -394,7 +394,22 @@ public static class EndlessRunner
         if (diagnosticStrategy != null)
             Console.WriteLine($"  bloqué sur l'objectif {diagnosticStrategy.DescribeFirstIncomplete()}");
 
-        Console.WriteLine("  expansion : " + StrategyRunner.BuildAutoplayer(controller).DescribeExpansionState());
+        var autoplayer = StrategyRunner.BuildAutoplayer(controller);
+        Console.WriteLine("  expansion : " + autoplayer.DescribeExpansionState());
+
+        // Militaire : « il reste des PNJ » ne dit pas si la guerre est perdue, mal armée ou jamais
+        // livrée. Une cible prioritaire hors de portée avec des soldats en caserne est le cas qui
+        // trompe le plus — la liste de priorités bascule alors sur son repli d'expansion, qui s'agite
+        // beaucoup sans jamais rapprocher le front d'un seul cran.
+        var target = autoplayer.FindPriorityAttackTarget();
+        autoplayer.PriorityTargetCivilization = target;
+        int soldiers = 0;
+        foreach (var city in civ.Cities) soldiers += city.Soldiers;
+        var npcs = controller.CurrentMainState?.CurrentWorldState?.Civilizations.Where(c => c.IsNpc && c.Cities.Count > 0).ToList() ?? new();
+        Console.WriteLine($"  militaire : {soldiers} soldats, {npcs.Count} civ PNJ vivantes " +
+                          $"({string.Join(", ", npcs.Select(c => $"{c.Cities.Count} villes"))}), " +
+                          $"cible prioritaire : {(target == null ? "aucune" : $"{target.Cities.Count} villes")}, " +
+                          $"à portée : {autoplayer.HasAttackableTargetInRange()}");
 
         var production = controller.HarvestController.GetAverageProductionRatesPerSecond(civ.Index);
         Console.WriteLine("  stock (production/s) : " + string.Join(", ", civ.Resources
@@ -409,8 +424,6 @@ public static class EndlessRunner
     private const int IdleBreakThreshold = 300; // consecutive no-op iterations (≈150 simulated seconds at the default time step) before giving up on a phase early
     private const int StagnantPassLimit = 8; // full passes through every phase with zero prestige-point movement before giving up on the whole cycle
 
-    /// <summary>Logs the prestige that just happened and returns its recorded stats (null if the run
-    /// history somehow has no entry — the caller then just has nothing to report for this island).</summary>
     /// <summary>
     /// État de la Merveille et des PNJ à un instant donné. <c>WonderLevel</c> à 0 ne dit pas laquelle
     /// des trois marches a manqué : <see cref="WondersUnlocked"/> (recherche Architecture, persistante
@@ -440,6 +453,8 @@ public static class EndlessRunner
         }
     }
 
+    /// <summary>Logs the prestige that just happened and returns its recorded stats (null if the run
+    /// history somehow has no entry — the caller then just has nothing to report for this island).</summary>
     private static PrestigeRunStats? LogPrestige(StreamWriter csv, long cycle, int phaseIndex, PhaseKind phaseKind,
         long iterationsUsed, int prestigeCount, int pointsTarget, GameClock clock, MainGameState mainState,
         WonderDiagnostics diagnostics)

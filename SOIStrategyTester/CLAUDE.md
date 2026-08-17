@@ -271,6 +271,41 @@ placed. `WonderPlaced` tracks `NpcCivsAlive == 0` exactly, across every race.
 That is self-reinforcing: no Wonder → few points → a weaker start on the next island → even less able to
 clear a larger NPC count. It is why island 5 stalls at 40–82 rather than 100.
 
+### Can the autoplay just win those wars instead? No — measured
+
+The obvious counter-move is to make the strategy declare war rather than relax the Wonder gate. It does
+not work, and the reason is worth knowing before anyone tries it again.
+
+In aggressive mode the war trigger is `hasVisibleThreats() && !HasBuildableExpansion()`, and
+`HasBuildableExpansion()` counts **a single buildable road**. Since the road network can nearly always
+grow one more step, that trigger essentially never fires: the default gauntlet run never declares war at
+all, whatever its city count. `StrategyPhase.AttackNeighborsAtCities` exists to bypass it — see
+`Data/Strategies/race-gauntlet-warlike.json`, which declares war at 12 cities. Result:
+
+- **Zero NPC civilizations killed in 24 simulated hours.** `NpcCivsAlive` sits flat at 2 across the whole
+  island for both Human (20 cities) and Goblin (48 cities).
+- **The Imperial Port is lost.** Islands 4+ never reach `PrestigeIsAvailable()` at all — the run is
+  abandoned after 24h with points in hand (56 / 105 / 43) but no Port, so it is strictly worse than the
+  baseline: Human and Goblin drop from 5/5 islands to 3/5.
+
+The blocked-state dump says why (`militaire:` line, added for this):
+
+```
+militaire : 44 soldats, 2 civ PNJ vivantes (11 villes, 4 villes), cible prioritaire : 11 villes, à portée : False
+```
+
+The army exists (44 soldiers), an enemy is picked, and it is **never in range**.
+`AttackNeighborsObjective` only re-points the attack flows of cities that *already* have a target within
+`CityAttackRange`; nothing in the priority list advances the front. The declared-war fallback is a plain
+`CityCountObjective(int.MaxValue)`, which chooses vertices by nearest-prospective, not toward the enemy —
+so the civilization sprawls (Goblin to 48 cities, Human laying 98 roads) while both NPC civilizations
+stand untouched, and meanwhile every new city re-opens objective #1 (`Step1Buildings → 1`), which is what
+starves the Imperial Port stage far down the list.
+
+**Conclusion: this is not reachable by tuning a strategy file.** Making islands 3+ winnable needs a
+capability the autoplayer does not have — expansion *directed at* the priority target (or attack range
+that can be projected). Until then, the realistic lever for end-game points is the Wonder gate itself.
+
 **Elf is a second blocker, visible only at 5 islands**: it clears 4 then never prestiges on island 5,
 abandoned after 24h with `11/20 points; 4 cities, 0 buildable vertices, 15 buildable roads` — walled
 in by Forest adjacency on that map while the road network still had somewhere to go.

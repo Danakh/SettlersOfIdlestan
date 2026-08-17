@@ -1,0 +1,12 @@
+[
+  {
+    "name": "RaceGauntlet-UnifiedAggressive-War12",
+    "phases": [
+      {
+        "kind": "UnifiedAggressive",
+        "attackNeighborsAtCities": 12,
+        "maxIterations": 20000
+      }
+    ]
+  }
+]
