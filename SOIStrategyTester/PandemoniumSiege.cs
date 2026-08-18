@@ -37,7 +37,7 @@ namespace SOIStrategyTester;
 /// vise le vertex prospectif le plus proche du réseau, jamais l'ennemi — c'est la limite mesurée au
 /// race gauntlet, où l'armée n'a jamais été « à portée » d'une civilisation PNJ (voir
 /// SOIStrategyTester/CLAUDE.md). Ici l'expansion est réécrite pour tirer la route vers l'hex du
-/// monstre visé : l'arène est un hexagone fermé de 37 cases dont on connaît le centre, donc le front
+/// monstre visé : l'arène est un hexagone fermé de 61 cases dont on connaît le centre, donc le front
 /// avance vraiment au lieu de s'étaler. Sans ça, aucune ville n'arriverait jamais au corps-à-corps
 /// du dieu démon.</para>
 ///
@@ -210,9 +210,11 @@ internal sealed class PandemoniumSiege
     /// <summary>
     /// Abat Poing de Dieu sur la cible : 100 dégâts, réduits par la seule armure (4 pour le dieu démon,
     /// 1 pour une Tentacule), à n'importe quelle distance et sur n'importe quelle couche. Se paie en
-    /// points de prestige — gratuit la première fois depuis le dernier prestige, puis un de plus à
-    /// chaque usage — donc la banque de prestige est ce qui plafonne réellement le nombre de coups :
-    /// ~1 300 points pour les cinquante-et-un que demandent huit Tentacules et le boss.
+    /// points de prestige — gratuit la première fois depuis le dernier prestige, puis 1, 2, et le coût
+    /// double ensuite (4, 8, 16…) — donc la banque de prestige est ce qui plafonne réellement le nombre
+    /// de coups, et elle le plafonne durement : n coups coûtent 2^(n-1) - 1, si bien que les 20 085
+    /// points de la manche ascensionnée n'en achètent que 15, pour 3 Tentacules sur 8. C'est le
+    /// changement qui a rendu la manche dépendante du siège militaire au lieu du seul pouvoir divin.
     ///
     /// <para>Volontairement sans cadence artificielle : le jeu n'en impose aucune au joueur, seul le
     /// coût croissant le fait. La manche mesure si l'état <i>peut</i> gagner, pas à quelle vitesse un

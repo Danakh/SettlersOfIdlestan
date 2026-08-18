@@ -594,16 +594,29 @@ public class AscensionController : IModifierProvider
         _state?.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault(d => d.Level >= WalkOfGodMinDominionLevel);
 
     /// <summary>
+    /// Coût en points de prestige de la prochaine utilisation d'un pouvoir divin ciblé (Marche,
+    /// Présence, Poing de Dieu), calculé depuis le nombre d'usages déjà consommés depuis le dernier
+    /// prestige : le premier usage est <b>gratuit</b>, le deuxième coûte 1, le troisième 2, puis le
+    /// coût <b>double</b> à chaque usage supplémentaire (4, 8, 16...).
+    ///
+    /// <para>Le décalage est plafonné pour ne pas déborder l'int : passé une trentaine d'usages dans
+    /// un même prestige, le coût est de toute façon hors d'atteinte de la cagnotte.</para>
+    /// </summary>
+    public static int TargetedPowerCost(int usesSinceLastPrestige)
+        => usesSinceLastPrestige <= 0 ? 0 : 1 << Math.Min(usesSinceLastPrestige - 1, 30);
+
+    /// <summary>
     /// Coût en points de prestige de la prochaine utilisation de Marche de Dieu : la première
     /// utilisation depuis le dernier prestige est <b>gratuite</b>, la deuxième coûte 1, la troisième 2,
-    /// etc. (voir PrestigeState.WalkOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
+    /// puis le coût double à chaque marche (4, 8, 16... — voir <see cref="TargetedPowerCost"/>,
+    /// PrestigeState.WalkOfGodUsesSinceLastPrestige remis à zéro à chaque prestige).
     ///
     /// <para>La gratuité du premier usage n'est pas qu'un adoucissement : le coût se paie sur la
     /// cagnotte de prestige (PrestigeState.PrestigePoints), qui vaut zéro sur la première île d'un
     /// cycle d'Ascension. Sans elle, le pouvoir serait inutilisable précisément là où une race à
     /// terrain requis en a le plus besoin pour ouvrir son premier emplacement de ville.</para>
     /// </summary>
-    public int GetWalkOfGodCost() => _godState?.PrestigeState?.WalkOfGodUsesSinceLastPrestige ?? 0;
+    public int GetWalkOfGodCost() => TargetedPowerCost(_godState?.PrestigeState?.WalkOfGodUsesSinceLastPrestige ?? 0);
 
     /// <summary>Vrai si Marche de Dieu est débloquée et que le joueur a assez de points de prestige pour son prochain coût.</summary>
     public bool CanUseWalkOfGod()
@@ -718,13 +731,13 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Coût en points de prestige de la prochaine utilisation de Présence de Dieu : même modèle que
-    /// Marche de Dieu, première manifestation gratuite depuis le dernier prestige, puis 1, 2, etc.
+    /// Marche de Dieu, première manifestation gratuite depuis le dernier prestige, puis 1, 2, 4, 8...
     /// — voir PrestigeState.PresenceOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige. La
     /// gratuité du premier usage a la même raison d'être que pour Marche de Dieu : la cagnotte de
     /// prestige vaut zéro sur la première île d'un cycle d'Ascension, où repousser la Corruption
     /// initiale est justement le plus utile.
     /// </summary>
-    public int GetPresenceOfGodCost() => _godState?.PrestigeState?.PresenceOfGodUsesSinceLastPrestige ?? 0;
+    public int GetPresenceOfGodCost() => TargetedPowerCost(_godState?.PrestigeState?.PresenceOfGodUsesSinceLastPrestige ?? 0);
 
     /// <summary>Vrai si Présence de Dieu est débloquée et que le joueur a assez de points de prestige pour son prochain coût.</summary>
     public bool CanUsePresenceOfGod()
@@ -803,10 +816,10 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Coût en points de prestige de la prochaine utilisation de Poing de Dieu : même modèle que
-    /// Marche de Dieu (premier coup gratuit depuis le dernier prestige, puis 1, 2, 3... — voir
+    /// Marche de Dieu (premier coup gratuit depuis le dernier prestige, puis 1, 2, 4, 8... — voir
     /// PrestigeState.FistOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
     /// </summary>
-    public int GetFistOfGodCost() => _godState?.PrestigeState?.FistOfGodUsesSinceLastPrestige ?? 0;
+    public int GetFistOfGodCost() => TargetedPowerCost(_godState?.PrestigeState?.FistOfGodUsesSinceLastPrestige ?? 0);
 
     /// <summary>Vrai si Poing de Dieu est débloqué et que le joueur a assez de points de prestige pour son prochain coût.</summary>
     public bool CanUseFistOfGod()

@@ -395,8 +395,27 @@ public class AscensionControllerTests
         return (hex, dominion);
     }
 
+    /// <summary>
+    /// Barème commun aux trois pouvoirs ciblés : gratuit, 1, 2, puis doublement à chaque usage.
+    /// Le plafond du décalage évite un débordement d'int sur les nombres d'usages absurdes.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(2, 2)]
+    [InlineData(3, 4)]
+    [InlineData(4, 8)]
+    [InlineData(5, 16)]
+    [InlineData(10, 512)]
+    [InlineData(31, 1 << 30)]
+    [InlineData(60, 1 << 30)]
+    public void TargetedPowerCost_DoublesAfterTwo(int uses, int expectedCost)
+    {
+        Assert.Equal(expectedCost, AscensionController.TargetedPowerCost(uses));
+    }
+
     [Fact]
-    public void GetWalkOfGodCost_FirstUseIsFreeThenEscalatesByOne()
+    public void GetWalkOfGodCost_FirstUseIsFreeThenDoubles()
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockWalkOfGod(ascension);
@@ -415,6 +434,12 @@ public class AscensionControllerTests
         Assert.Equal(3, dominion.Level);
 
         Assert.Equal(2, ascension.GetWalkOfGodCost());
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(2, dominion.Level);
+
+        // Passé 2, le coût double à chaque marche suivante : 4, 8, 16...
+        Assert.Equal(4, ascension.GetWalkOfGodCost());
     }
 
     /// <summary>
@@ -662,14 +687,14 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void GetWalkOfGodCost_ReadsDirectlyFromWalkOfGodUsesSinceLastPrestige()
+    public void GetWalkOfGodCost_DoublesFromWalkOfGodUsesSinceLastPrestige()
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockWalkOfGod(ascension);
 
         godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige = 4;
 
-        Assert.Equal(4, ascension.GetWalkOfGodCost());
+        Assert.Equal(8, ascension.GetWalkOfGodCost());
     }
 
     [Fact]
@@ -715,7 +740,7 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void GetPresenceOfGodCost_FirstUseIsFreeThenEscalatesByOne()
+    public void GetPresenceOfGodCost_FirstUseIsFreeThenDoubles()
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockPresenceOfGod(ascension);
@@ -730,6 +755,11 @@ public class AscensionControllerTests
         Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
 
         Assert.Equal(2, ascension.GetPresenceOfGodCost());
+        Assert.True(ascension.ApplyPresenceOfGod(hex));
+        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+
+        // Passé 2, le coût double à chaque manifestation suivante : 4, 8, 16...
+        Assert.Equal(4, ascension.GetPresenceOfGodCost());
     }
 
     [Fact]
@@ -750,14 +780,14 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void GetPresenceOfGodCost_ReadsDirectlyFromPresenceOfGodUsesSinceLastPrestige()
+    public void GetPresenceOfGodCost_DoublesFromPresenceOfGodUsesSinceLastPrestige()
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockPresenceOfGod(ascension);
 
         godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige = 4;
 
-        Assert.Equal(4, ascension.GetPresenceOfGodCost());
+        Assert.Equal(8, ascension.GetPresenceOfGodCost());
     }
 
     [Fact]
@@ -917,7 +947,7 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void GetFistOfGodCost_FirstUseIsFreeThenEscalatesByOne()
+    public void GetFistOfGodCost_FirstUseIsFreeThenDoubles()
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockFistOfGod(ascension);
@@ -931,6 +961,11 @@ public class AscensionControllerTests
         Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
 
         Assert.Equal(2, ascension.GetFistOfGodCost());
+        Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+
+        // Passé 2, le coût double à chaque coup suivant : 4, 8, 16...
+        Assert.Equal(4, ascension.GetFistOfGodCost());
     }
 
     [Fact]

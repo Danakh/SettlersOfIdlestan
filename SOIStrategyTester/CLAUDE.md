@@ -445,6 +445,11 @@ Le code de sortie reflète **la conformité à l'attendu**, pas la victoire : la
 échec voulu, et la faire échouer le build à chaque exécution en ferait un bruit permanent. Ce qu'on
 veut détecter, c'est le jour où l'un des deux résultats change.
 
+🔴 **Et ce jour est arrivé : la manche ascensionnée échoue son attendu depuis que le coût de Poing de
+Dieu double.** Elle sort en code 1 avec `⚠ INATTENDU`, et c'est délibérément laissé tel quel : la
+retourner en DÉFAITE attendue graverait dans le marbre que le contenu final n'est pas battable. Voir
+« Manche ascensionnée » plus bas pour les mesures et ce qui reste à trancher.
+
 ```bash
 dotnet run --project SOIStrategyTester -c Release -- --pandemonium --seed 1 --max-island-hours 4
 dotnet run --project SOIStrategyTester -c Release -- --pandemonium-ascended --seed 1
@@ -462,8 +467,9 @@ parcourt toutes dans chaque contrôleur périodique, et que la seule règle de r
 millier d'hexes par itération : compter une dizaine de minutes rien que pour fabriquer l'état, puis
 autant par heure simulée d'assaut. Le verrouillage de la manche de base est visible dès la première
 demi-heure, et se lit à l'identique sur `--world-id 1 --underworld-cities 20 --abyss-cities 20`, qui
-donne le même verdict en deux minutes. La manche ascensionnée, elle, se termine en 51 itérations :
-seule la fabrication y coûte du temps.
+donne le même verdict en deux minutes. La manche ascensionnée se terminait en 51 itérations tant que
+Poing de Dieu suffisait ; elle va maintenant jusqu'au bout des `--max-island-hours`, donc elle coûte
+autant que l'autre.
 
 **Pour itérer sur la stratégie, repartir de la sauvegarde plutôt que de refabriquer.** La fabrication
 prend une dizaine de minutes (~260 villes posées route par route, puis ~4 500 bâtiments) ; la rejouer à
@@ -550,6 +556,12 @@ peut pas être bâtie.
 
 #### Manche de base — DÉFAITE attendue, et le blocage n'est pas le boss
 
+⚠️ **Les trois lignes ci-dessous datent de l'arène de rayon 3 (37 hexes) et des Tentacules réparties
+partout.** L'arène fait maintenant 61 hexes et les Tentacules sont serrées dans un rayon de 2 autour du
+dieu démon (voir `PandemoniumGenerator`) : la manche de base n'a pas été remesurée depuis. Le verdict
+DÉFAITE ne bouge pas — elle n'a pas Poing de Dieu et le front butait déjà sur la géométrie — mais les
+nombres de villes et de vertex, eux, sont périmés.
+
 Le dieu démon n'est jamais touché, les huit Tentacules non plus, à aucune des échelles mesurées :
 
 | Manche | Villes dans l'arène | Soldats | Vertex sûrs / constructibles | Cible | Tentacules tuées |
@@ -564,7 +576,8 @@ de l'économie derrière n'y change rien : 259 villes et 4 509 bâtiments ne fon
 Trois faits, dans l'ordre où ils se verrouillent :
 
 - **Aucun emplacement sûr, jamais.** Tous les vertex constructibles de l'arène sont à portée d'un
-  monstre : neuf monstres à portée 2 couvrent presque tout un hexagone de 37 cases.
+  monstre : neuf monstres à portée 2 couvraient presque tout l'hexagone de 37 cases d'alors. C'est ce
+  constat qui a fait resserrer les Tentacules puis agrandir l'arène — voir la manche ascensionnée.
 - **Fonder sous le feu est une perte sèche.** Une ville neuve n'a ni défense ni garnison et une
   Tentacule frappe pour 7 + 8 x niveau à deux hexes en ignorant la Palissade : elle tombe avant son
   premier bâtiment. Mesuré sur 6 h simulées : **321 villes fondées et perdues, zéro dégât infligé**,
@@ -581,31 +594,48 @@ la manche de base représente un joueur qui ne l'a pas faite. Ce qu'elle établi
 connu avant de toucher aux PV du boss, c'est que le blocage est **géométrique** — on ne peut pas
 approcher l'arène — et non une question de dégâts, d'économie ou de durée.
 
-#### Manche ascensionnée — VICTOIRE attendue, en 51 coups
+#### Manche ascensionnée — VICTOIRE attendue, DÉFAITE mesurée depuis le coût doublé
 
-Dieu démon abattu en **51 itérations** (25 secondes simulées), 8/8 Tentacules, sans qu'une seule ville
-de l'arène ne soit bâtie ni un seul soldat recruté. Le levier est unique et c'est **Poing de Dieu** :
-100 dégâts au monstre visé, réduits par la seule armure, à n'importe quelle distance et sur n'importe
-quelle couche. 4 coups par Tentacule (360 PV, armure 1), 19 pour le dieu démon (1 800 PV, armure 4) —
-51 en tout, pour 1 275 points de prestige sur les 20 085 en caisse (le coût monte de 1 à chaque usage
-depuis le dernier prestige, d'où la dotation d'Ascension Prestigieuse comme nerf de la manche).
+**Historique — la manche gagnait en 51 coups.** Dieu démon abattu en **51 itérations** (25 secondes
+simulées), 8/8 Tentacules, sans qu'une seule ville de l'arène ne soit bâtie ni un seul soldat recruté.
+Le levier était unique et c'est **Poing de Dieu** : 100 dégâts au monstre visé, réduits par la seule
+armure, à n'importe quelle distance et sur n'importe quelle couche. 4 coups par Tentacule (360 PV,
+armure 1), 19 pour le dieu démon (1 800 PV, armure 4) — 51 en tout, pour 1 275 points de prestige sur
+les 20 085 en caisse, quand le coût ne montait que de 1 à chaque usage.
 
-État de départ mesuré, seed 1, île 5 : 108 villes de surface + 100 Inframonde + 50 Abysse, 4 496
-bâtiments (20 371 niveaux cumulés), 386 975 / 163 645 de stockage.
+**Ce qui a changé.** Le coût de Poing de Dieu **double** maintenant à chaque usage depuis le dernier
+prestige (0, 1, 2, 4, 8…, voir `AscensionController.TargetedPowerCost`). n coups coûtent 2^(n-1) - 1,
+donc la caisse n'achète plus qu'un logarithme de sa taille : **20 085 points ne financent que 15 coups**
+au lieu de 51 — 3 Tentacules sur 8, la 4ᵉ entamée puis régénérée. Le reste doit se prendre militairement,
+ce qui est exactement l'intention. La manche sort donc en `⚠ INATTENDU`.
 
-C'est bien Poing de Dieu et rien d'autre qui décide : la manche de base a elle aussi une Ascension
-(`NewGameForRace` en fait une, avec Foi et le premier pouvoir de chaque colonne — 7 sur 15), mais Poing
-de Dieu est le <b>deuxième</b> de sa colonne et lui manque. Les autres pouvoirs ne servent pas au
-combat ici mais changent l'état : Bras de Dieu (+1 dégât par soldat, soit le double), Courroux de Dieu
-(+100 % de cadence d'attaque), Inventaire Divin (x10 de stockage — 21 345 d'avancé sans lui, 163 645
-avec, ce qui rend enfin payable une fondation de ville dans l'arène), et 16 bâtiments uniques
-permanents contre 0.
+**Trois états mesurés, seed 1, île 5** (108 villes de surface + 100 Inframonde + 50 Abysse, 4 496
+bâtiments, 20 371 niveaux cumulés, 386 975 / 163 645 de stockage) :
 
-**La conclusion d'équilibrage est double, et il faut lire les deux lignes ensemble** : le contenu final
-est battable, mais uniquement par le pouvoir divin, et il l'est alors *trivialement* — 25 secondes,
-aucune bataille. Le siège militaire que la stratégie sait mener n'entre jamais en jeu, ni dans un sens
-ni dans l'autre. Si l'intention de design est que le Pandémonium soit un siège, c'est ce déséquilibre-là
-qu'il faut regarder, pas les PV du dieu démon.
+| Arène | Villes | Soldats | Vertex sûrs | Tentacules tuées | Dieu démon |
+|---|---|---|---|---|---|
+| rayon 3, Tentacules réparties | 3 | 246 | 0 / 25 | 3 / 8 | 1800/1800 |
+| rayon 3, Tentacules rayon 2 | 4 | 328 | 0 / 38 | 3 / 8 | 1800/1800 |
+| **rayon 4, Tentacules rayon 2** (actuel) | **10** | **820** | 0 / 38 | 3 / 8 | 1800/1800 |
+
+La colonisation, elle, est réparée : 10 villes et 820 soldats contre 3 et 246, aucune perdue. `0` vertex
+sûr ne veut pas dire qu'il n'y en avait pas — c'est que le siège **les a tous pris**. La géométrie a été
+mesurée sur 7 seeds avec la règle exacte du siège (sûr = ≥ 3 de tout monstre, `Max` sur les 3 hexes du
+vertex) : 2 à 9 emplacements sûrs sur l'île de rayon 3, **14 à 29 sur celle de rayon 4**, et en grappes
+connexes de 4 à 25 au lieu d'isolats — d'où le passage à `IslandRadius = 4`.
+
+⚠️ **Ce qui bloque encore n'est plus la carte, c'est la règle du siège.** Le front reste figé à 3 hexes
+de la cible aux quatre checkpoints, dans les trois arènes. `PandemoniumSiege.SafeDistance = 3` définit
+« sûr » comme ≥ 3 de tout monstre, alors que frapper (Tour de guet + Surveillance) demande ≤ 2 : **les
+deux conditions sont complémentaires**, donc `TrySettleSafely` ne fondera jamais une ville capable de
+tirer, sur aucune carte et à aucun rayon de Tentacule. Poing de Dieu masquait ce trou en frappant à
+distance infinie. Agrandir l'arène donne une économie plus grande derrière une ligne qui, par
+construction, s'arrête un hex trop tôt : les 820 soldats ne combattent jamais.
+
+**La piste à trancher** est donc l'avance fortifiée : autoriser à fonder à distance 2 de la cible quand
+la ville neuve peut être menée à Mairie + Palissade/Caserne/Tour de guet. La mesure qui justifiait de
+refuser (« 321 villes fondées et perdues, zéro dégât infligé ») a été prise avec 1 ville et 82 soldats
+derrière, pas 10 et 820.
 
 All strategies in one run start from an **identical** fresh copy of the starting state (a new
 `MainGameController` is built per strategy), so ticks-to-objective are directly comparable.

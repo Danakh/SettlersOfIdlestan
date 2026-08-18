@@ -69,8 +69,10 @@ public class EndGameStateOptions
     /// <summary>
     /// Essence divine gagnée depuis le début de la partie. Ascension Prestigieuse la convertit en
     /// autant de points de prestige au début du cycle, et ce sont eux qui financent Poing de Dieu :
-    /// son premier usage depuis le dernier prestige est gratuit, le suivant coûte 1, puis 2, 3…
-    /// Abattre les huit Tentacules et le dieu démon en demande une cinquantaine, soit ~1 300 points.
+    /// son premier usage depuis le dernier prestige est gratuit, le suivant coûte 1, puis 2, et le coût
+    /// double ensuite à chaque usage (4, 8, 16…). Le total de n coups vaut donc 2^(n-1) - 1 : la caisse
+    /// n'achète pas un nombre de coups proportionnel à sa taille, mais son logarithme — 20 085 points
+    /// n'en financent que 15, là où huit Tentacules et le dieu démon en demandent 51.
     /// Ignoré si <see cref="Ascensions"/> vaut 0.
     /// </summary>
     public int DivineEssenceEarned { get; set; } = 20_000;
@@ -131,9 +133,9 @@ public class EndGameStateReport
 
     /// <summary>
     /// Points de prestige restants après l'achat de toute la carte. C'est le nerf de la manche
-    /// ascensionnée : Poing de Dieu se paie en points de prestige, un de plus à chaque usage depuis le
-    /// dernier prestige. Zéro ici veut dire « aucun pouvoir divin utilisable », ce qui est exactement
-    /// l'état de la manche de base.
+    /// ascensionnée : Poing de Dieu se paie en points de prestige, dont le coût double à chaque usage
+    /// depuis le dernier prestige. Zéro ici veut dire « aucun pouvoir divin utilisable », ce qui est
+    /// exactement l'état de la manche de base.
     /// </summary>
     public int PrestigePointsBank { get; set; }
 
@@ -493,7 +495,7 @@ public static class EndGameStateFactory
     /// <summary>
     /// Ouvre le Pandémonium par son vrai point d'entrée : un Portail déjà bâti posé sur l'hex de
     /// l'avant-poste de l'Abysse, puis un tick d'horloge pour que
-    /// <see cref="Controller.Expand.PandemoniumGateController"/> génère la couche (île de 37 hexes,
+    /// <see cref="Controller.Expand.PandemoniumGateController"/> génère la couche (île de 61 hexes,
     /// dieu démon au centre, huit Tentacules, avant-poste du joueur au bord). Poser la couche
     /// nous-mêmes court-circuiterait le calcul du niveau des monstres, qui est justement ce que la
     /// manche met à l'épreuve.

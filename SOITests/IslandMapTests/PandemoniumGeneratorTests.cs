@@ -10,8 +10,9 @@ using Xunit;
 namespace SOITests.IslandMapTests
 {
     /// <summary>
-    /// Génération du Pandémonium : une île hexagonale de 37 hexes cernée de Void, un dieu démon au
-    /// centre, 8 tentacules ailleurs (jamais collées au joueur) et l'avant-poste du joueur au bord.
+    /// Génération du Pandémonium : une île hexagonale de 61 hexes cernée de Void, un dieu démon au
+    /// centre, 8 tentacules serrées autour de lui (jamais collées au joueur) et l'avant-poste du
+    /// joueur au bord.
     /// </summary>
     public class PandemoniumGeneratorTests
     {
@@ -28,7 +29,7 @@ namespace SOITests.IslandMapTests
         [InlineData(1)]
         [InlineData(7)]
         [InlineData(42)]
-        public void Island_Has37LandHexes_SurroundedByVoid(int seed)
+        public void Island_HasSixtyOneLandHexes_SurroundedByVoid(int seed)
         {
             var (layout, _) = Generate(seed);
             var tiles = layout.Layer.Map.Tiles;
@@ -58,6 +59,31 @@ namespace SOITests.IslandMapTests
             Assert.Equal(PandemoniumGenerator.TentacleCount, tentacles.Count);
             Assert.Equal(tentacles.Count, tentacles.Select(t => t.Position).Distinct().Count());
             Assert.All(tentacles, t => Assert.True(t.Position.DistanceTo(Center) <= PandemoniumGenerator.IslandRadius));
+        }
+
+        /// <summary>
+        /// Les Tentacules gardent le dieu démon de près : toutes dans un rayon de
+        /// <see cref="PandemoniumGenerator.TentacleRadius"/>, jamais sur le centre (le dieu démon y
+        /// est). C'est ce qui laisse au joueur des hexes hors de portée pour bâtir son siège — mais
+        /// combien exactement dépend du tirage, donc seul le rayon est un invariant testable.
+        /// </summary>
+        [Theory]
+        [InlineData(1)]
+        [InlineData(7)]
+        [InlineData(42)]
+        [InlineData(123)]
+        [InlineData(2024)]
+        public void Tentacles_GuardTheCenter_WithinTwoHexes(int seed)
+        {
+            var (layout, _) = Generate(seed);
+
+            var tentacles = layout.Monsters.OfType<Tentacle>().ToList();
+            Assert.Equal(PandemoniumGenerator.TentacleCount, tentacles.Count);
+            Assert.All(tentacles, t =>
+            {
+                int distance = t.Position.DistanceTo(Center);
+                Assert.InRange(distance, 1, PandemoniumGenerator.TentacleRadius);
+            });
         }
 
         [Theory]

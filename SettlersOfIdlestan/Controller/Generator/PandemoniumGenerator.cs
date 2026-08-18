@@ -10,9 +10,10 @@ namespace SettlersOfIdlestan.Controller.Generator;
 /// <summary>
 /// Génère le Pandémonium : une île hexagonale unique de <see cref="IslandHexCount"/> hexagones
 /// (rayon <see cref="IslandRadius"/> autour de l'origine) cernée d'un anneau de Void, avec un
-/// <see cref="DemonGod"/> en son centre et <see cref="TentacleCount"/> Tentacules réparties au
-/// hasard sur le reste de l'île. Le joueur y arrive au bord, à l'opposé du centre : tout le trajet
-/// jusqu'au dieu démon se fait donc sous la garde des Tentacules.
+/// <see cref="DemonGod"/> en son centre et <see cref="TentacleCount"/> Tentacules serrées autour de
+/// lui, dans un rayon de <see cref="TentacleRadius"/> hexes. Le joueur y arrive au bord : l'anneau
+/// extérieur lui est laissé pour prendre pied, et c'est en avançant vers le centre qu'il passe sous
+/// la garde des Tentacules.
 ///
 /// Contrairement à l'Abysse (îles générées à la volée derrière chaque hex de Void, voir
 /// <see cref="AbyssIslandGenerator"/>), cette couche est entièrement posée d'un coup et n'est
@@ -20,13 +21,37 @@ namespace SettlersOfIdlestan.Controller.Generator;
 /// </summary>
 public static class PandemoniumGenerator
 {
-    /// <summary>Distance maximale au centre pour un hex de terre — 3 donne 1 + 6 + 12 + 18 = 37 hexes.</summary>
-    public const int IslandRadius = 3;
+    /// <summary>
+    /// Distance maximale au centre pour un hex de terre — 4 donne 1 + 6 + 12 + 18 + 24 = 61 hexes.
+    ///
+    /// <para>Le rayon 3 (37 hexes) ne laissait pas de quoi assiéger : le dieu démon frappant lui-même
+    /// à 2 hexes, seul le dernier anneau échappait à sa garde, et les Tentacules en couvraient
+    /// l'essentiel. Mesuré sur 7 seeds, 2 à 9 emplacements de ville hors de portée sur toute l'île —
+    /// le siège les occupait tous en quatre villes puis se figeait. À rayon 4 il y en a 14 à 29, en
+    /// grappes connexes : la bande côtière devient colonisable, l'approche du centre reste gardée.</para>
+    /// </summary>
+    public const int IslandRadius = 4;
 
     /// <summary>Nombre d'hexagones de terre de l'île (hexagone plein de rayon <see cref="IslandRadius"/>).</summary>
-    public const int IslandHexCount = 37;
+    public const int IslandHexCount = 61;
 
     public const int TentacleCount = 8;
+
+    /// <summary>
+    /// Distance maximale au centre pour une Tentacule : elles gardent le dieu démon de près au lieu
+    /// d'être éparpillées sur toute l'île. Les deux premiers anneaux offrent 6 + 12 = 18 hexes pour
+    /// 8 Tentacules, et jamais moins de 16 une fois exclus les abords du joueur (voir
+    /// <see cref="PickTentacleHexes"/> : arrivé sur le dernier anneau, il n'en exclut au plus que les
+    /// deux hexes d'anneau 2 voisins du seul de ses hexes qui soit d'anneau 3) — le compte est donc
+    /// toujours tenu.
+    ///
+    /// <para>C'est ce qui rend l'arène assiégeable : réparties sur toute l'île, neuf monstres de
+    /// portée 2 ne laissaient aucun emplacement de ville hors de portée (mesuré au Pandémonium du
+    /// SOIStrategyTester : 0 vertex sûr sur 25 constructibles, siège figé). Ramenées au centre, et
+    /// avec le rayon d'île porté à <see cref="IslandRadius"/>, elles laissent les deux anneaux
+    /// extérieurs libres pour bâtir.</para>
+    /// </summary>
+    public const int TentacleRadius = 2;
 
     /// <summary>Résultat de la génération : la couche prête à être ajoutée au monde, et ses monstres.</summary>
     /// <remarks>
@@ -138,9 +163,10 @@ public static class PandemoniumGenerator
     }
 
     /// <summary>
-    /// Hexes des Tentacules : n'importe où sur l'île sauf le centre (occupé par le dieu démon) et
-    /// sauf les hexes collés au joueur — les trois hexes de son vertex d'arrivée et tous leurs
-    /// voisins — pour qu'il ne débarque pas au corps-à-corps d'une Tentacule.
+    /// Hexes des Tentacules : dans un rayon de <see cref="TentacleRadius"/> autour du centre, sauf le
+    /// centre lui-même (occupé par le dieu démon) et sauf les hexes collés au joueur — les trois hexes
+    /// de son vertex d'arrivée et tous leurs voisins — pour qu'il ne débarque pas au corps-à-corps
+    /// d'une Tentacule.
     /// </summary>
     private static List<HexCoord> PickTentacleHexes(
         HexCoord center, List<HexCoord> islandHexes, Vertex arrivalVertex, GamePRNG prng)
@@ -155,7 +181,7 @@ public static class PandemoniumGenerator
 
         var candidates = new List<HexCoord>(islandHexes.Count);
         foreach (var hex in islandHexes)
-            if (!excluded.Contains(hex))
+            if (hex.DistanceTo(center) <= TentacleRadius && !excluded.Contains(hex))
                 candidates.Add(hex);
 
         // Tirage sans remise : une Tentacule par hex.
