@@ -181,6 +181,33 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void OpeningPandemonium_CorruptsEachMonsterHexAndItsNeighbours()
+        {
+            // Le dieu démon et ses Tentacules naissent au milieu de leur flaque : hex propre et six
+            // voisins au niveau de corruption de l'île (1 ici, faute de PrestigeState), une seule
+            // Corruption par hex même là où deux monstres se recouvrent.
+            var (state, clock, _) = CreateSetup();
+            var tentacle = new Tentacle(Abyss1);
+            state.AddFeature(tentacle);
+            Kill(state, tentacle);
+
+            FillInvestment(state.Features.OfType<PandemoniumGate>().Single());
+            clock.SimulateAdvance(PandemoniumGateController.InvestmentIntervalTicks);
+
+            var map = state.Layers[LayerState.PandemoniumZ].Map;
+            var monsters = state.Features.OfType<MonsterFeature>()
+                .Where(m => m.Position.Z == LayerState.PandemoniumZ).ToList();
+            Assert.Equal(PandemoniumGenerator.TentacleCount + 1, monsters.Count);
+
+            foreach (var monster in monsters)
+                foreach (var hex in monster.Position.Neighbors().Append(monster.Position))
+                {
+                    if (map.GetTile(hex) is not { } tile || tile.TerrainType == TerrainType.Void) continue;
+                    var corruption = Assert.Single(state.GetFeaturesAt(hex).OfType<Corruption>());
+                    Assert.Equal(1, corruption.Level);
+                }
+        }
+        [Fact]
         public void Pandemonium_NotOpened_WhileGateNotBuilt()
         {
             var (state, clock, _) = CreateSetup();

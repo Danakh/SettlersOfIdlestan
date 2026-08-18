@@ -94,6 +94,29 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void NewTentacle_CorruptsItsHexAndItsNeighbours()
+        {
+            // Semé après PlaceAbyssCorruption, qui corrompt déjà toute l'île neuve : l'assertion porte
+            // donc surtout sur l'unicité de la Corruption par hex, et sur les voisins hors de l'île
+            // neuve (arrivée du joueur), que seul le semis peut corrompre.
+            const int corruptionLevel = AutoExtendController.TentacleMinCorruptionLevel + 99;
+
+            for (int seed = 0; seed < 5; seed++)
+            {
+                var state = GenerateIsland(corruptionLevel, seed);
+                var tentacle = state.Features.OfType<Tentacle>().Single();
+                var map = state.Layers[LayerState.AbyssZ].Map;
+
+                foreach (var hex in tentacle.Position.Neighbors().Append(tentacle.Position))
+                {
+                    if (map.GetTile(hex) is not { } tile || tile.TerrainType == TerrainType.Void) continue;
+                    var corruption = Assert.Single(state.GetFeaturesAt(hex).OfType<SettlersOfIdlestan.Model.IslandFeatures.Corruption>());
+                    Assert.True(corruption.Level >= corruptionLevel);
+                }
+            }
+        }
+
+        [Fact]
         public void Tentacle_HasMajorDemonStats_ButNeverMoves()
         {
             var tentacle = new Tentacle(Arrival1, level: 3);

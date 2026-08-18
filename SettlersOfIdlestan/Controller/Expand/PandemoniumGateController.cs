@@ -127,8 +127,15 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             var layout = Generator.PandemoniumGenerator.Create(playerCiv, _prng, monsterLevel);
             _state.AddLayer(LayerState.PandemoniumZ, layout.Layer);
+            // Le dieu démon et ses Tentacules naissent au milieu de leur flaque : leur hex et ses
+            // voisins sont corrompus au niveau de l'île, moitié du plafond que leur génération
+            // continue atteindra (voir CorruptionController.ProcessMonsterCorruptionGrowth).
             foreach (var monster in layout.Monsters)
+            {
                 _state.AddFeature(monster);
+                Island.CorruptionController.SeedCorruptionAroundNewMonster(
+                    _state, monster, _prestigeState?.CurrentCorruptionLevel ?? 1);
+            }
             _state.Visibility.RecalculateFor(playerCiv.Index);
         }
     }

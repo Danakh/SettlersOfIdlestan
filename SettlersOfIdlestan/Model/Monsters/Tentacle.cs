@@ -24,6 +24,9 @@ public class Tentacle : MonsterFeature
     // Enracinée : pas de CanMove, donc pas d'intervalle ni de portée de déplacement à déclarer.
     public override bool CanMove => false;
 
+    /// <summary>Enracinée dans la Corruption : fait monter d'un point celle de son hex toutes les 10 s, jusqu'à 2× le niveau de corruption de l'île (voir CorruptionController.ProcessMonsterCorruptionGrowth).</summary>
+    public override bool GeneratesCorruption => true;
+
     public override double HpRegenAmount => 3 + MajorDemon.MajorDemonHpRegenPerLevel * (Level - 1);
     public override long HpRegenIntervalTicks => Dragon.DragonHpRegenIntervalTicks;
 

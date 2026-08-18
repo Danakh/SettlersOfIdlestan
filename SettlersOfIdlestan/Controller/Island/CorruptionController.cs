@@ -8,6 +8,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestan.Controller.Island;
@@ -40,6 +41,14 @@ namespace SettlersOfIdlestan.Controller.Island;
 ///    sain), tant que le niveau y reste sous <see cref="IslandFeatures.DivineBones.GetCorruptionCap"/>
 ///    (2× le niveau de corruption de l'île). Purifier les Os les retire de la carte (voir
 ///    DivineBonesController) et tarit donc la source ; la Corruption déjà semée, elle, reste à nettoyer.
+/// 5. <see cref="ProcessMonsterCorruptionGrowth"/> — même chose pour les monstres enracinés dans la
+///    Corruption (Tentacules et Dieu démon, voir <see cref="MonsterFeature.GeneratesCorruption"/>) :
+///    chacun ajoute un point de Corruption sur son propre hex tant que le niveau y reste sous
+///    <see cref="GetMonsterCorruptionCap"/> (2× le niveau de corruption courant de l'île). Le
+///    Pandémonium se re-corrompt donc depuis son centre et sa couronne de Tentacules : seules leurs
+///    morts tarissent les sources. À leur apparition, <see cref="SeedCorruptionAroundNewMonster"/>
+///    (appelé par les générateurs) corrompt d'office leur hex et ses six voisins au niveau de l'île,
+///    soit la moitié de ce plafond.
 /// </summary>
 public class CorruptionController
 {
@@ -61,6 +70,7 @@ public class CorruptionController
     private long _lastSpreadTick;
     private long _lastMonumentDecayTick;
     private long _lastDivineBonesGrowthTick;
+    private long _lastMonsterGrowthTick;
 
     public void Initialize(WorldState state, GameClock? clock, GamePRNG prng, PrestigeState? prestigeState = null)
     {
@@ -74,6 +84,7 @@ public class CorruptionController
         _lastSpreadTick = 0;
         _lastMonumentDecayTick = 0;
         _lastDivineBonesGrowthTick = 0;
+        _lastMonsterGrowthTick = 0;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -92,6 +103,9 @@ public class CorruptionController
 
         try { ProcessDivineBonesCorruptionGrowth(e.CurrentTick); }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessDivineBonesCorruptionGrowth)}: {ex}"); }
+
+        try { ProcessMonsterCorruptionGrowth(e.CurrentTick); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessMonsterCorruptionGrowth)}: {ex}"); }
     }
 
     /// <summary>Cooldown par Temple (comme AlchimistHut.LastCrystalProductionTick) — chaque Temple agit toutes les 10 s depuis sa dernière action.</summary>
@@ -383,6 +397,93 @@ public class CorruptionController
             if (corruption == null)
                 _state.AddFeature(new Corruption(bones.Position, level: 1));
             else if (corruption.Level < bones.GetCorruptionCap())
+                IncreaseLevel(corruption);
+        }
+    }
+
+    /// <summary>Multiplicateur appliqué au niveau de corruption de l'île pour obtenir le plafond de génération des monstres (miroir de <see cref="DivineBones.CorruptionCapMultiplier"/>).</summary>
+    public const int MonsterCorruptionCapMultiplier = 2;
+
+    /// <summary>
+    /// Niveau de Corruption au-delà duquel les monstres <see cref="MonsterFeature.GeneratesCorruption"/>
+    /// cessent d'alimenter leur hex : deux fois le niveau de corruption courant de l'île
+    /// (<see cref="PrestigeState.CurrentCorruptionLevel"/>). Contrairement aux Os Divins, qui figent
+    /// le niveau vu à leur génération, la référence est ici toujours le niveau courant — le
+    /// Pandémonium n'existe que le temps d'un prestige, pendant lequel ce niveau ne bouge pas.
+    /// </summary>
+    public int GetMonsterCorruptionCap()
+        => Math.Max(1, MonsterCorruptionCapMultiplier * Math.Max(1, _prestigeState?.CurrentCorruptionLevel ?? 1));
+
+    /// <summary>
+    /// Corruption posée d'office à l'apparition d'un monstre enraciné (Tentacule, Dieu démon) : son
+    /// propre hex et ses six voisins sont portés au niveau de corruption de l'île — soit la moitié du
+    /// plafond que sa génération continue atteindra ensuite (voir <see cref="GetMonsterCorruptionCap"/>).
+    /// Le monstre naît donc déjà au milieu de sa flaque, à mi-chemin de son plafond, plutôt que de
+    /// devoir la creuser point par point : le Pandémonium est corrompu dès l'arrivée du joueur, et une
+    /// Tentacule de l'Abysse corrompt d'emblée son voisinage.
+    /// Un hex déjà plus corrompu n'est jamais rabaissé, et les hexes de Void (jamais rendus ni
+    /// interactifs, voir AutoExtendController.PlaceAbyssCorruption) sont ignorés.
+    /// Statique : les deux appelants (AutoExtendController.PlaceTentacle pour l'Abysse,
+    /// PandemoniumGateController.TryInitializePandemonium pour le Pandémonium) posent leurs monstres
+    /// hors de ce contrôleur, mais doivent semer exactement la même chose.
+    /// </summary>
+    public static void SeedCorruptionAroundNewMonster(WorldState state, MonsterFeature monster, int islandCorruptionLevel)
+    {
+        if (!monster.GeneratesCorruption) return;
+
+        int level = Math.Max(1, islandCorruptionLevel);
+
+        RaiseCorruptionTo(state, monster.Position, level);
+        foreach (var neighbor in monster.Position.Neighbors())
+            RaiseCorruptionTo(state, neighbor, level);
+    }
+
+    /// <summary>Porte la Corruption d'un hex existant et non-Void à <paramref name="level"/>, en la semant si l'hex est sain ; ne la réduit jamais.</summary>
+    private static void RaiseCorruptionTo(WorldState state, HexCoord hex, int level)
+    {
+        var tile = state.GetMapFor(hex)?.GetTile(hex);
+        if (tile == null || tile.TerrainType == TerrainType.Void) return;
+
+        var corruption = state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
+        if (corruption == null)
+        {
+            state.AddFeature(new Corruption(hex, level));
+            return;
+        }
+
+        if (corruption.Level >= level) return;
+        corruption.Level = level;
+        if (corruption.Level > corruption.PeakLevel) corruption.PeakLevel = corruption.Level;
+    }
+
+    /// <summary>
+    /// Même mécanique que <see cref="ProcessDivineBonesCorruptionGrowth"/>, appliquée aux monstres
+    /// enracinés dans la Corruption (Tentacules et Dieu démon, voir
+    /// <see cref="MonsterFeature.GeneratesCorruption"/>) : chacun ajoute, à chaque intervalle, un point
+    /// de Corruption sur son propre hex — en la semant à niveau 1 si l'hex est sain — tant que le
+    /// niveau y reste sous <see cref="GetMonsterCorruptionCap"/>. Le Pandémonium se re-corrompt donc
+    /// tout seul depuis son centre et sa couronne de Tentacules : le joueur doit abattre les monstres
+    /// pour tarir les sources, exactement comme il purifie les Os Divins.
+    /// Le plafond ne borne que cette génération : une Corruption déjà plus élevée (tirage initial de
+    /// AutoExtendController.PlaceAbyssCorruption, débordement d'un voisin) n'est jamais réduite ici.
+    /// Passe après la décroissance des monuments, pour la même raison que la croissance des Os Divins :
+    /// sous une Spire, les deux effets s'annulent exactement.
+    /// </summary>
+    private void ProcessMonsterCorruptionGrowth(long currentTick)
+    {
+        if (_state == null) return;
+        if (currentTick - _lastMonsterGrowthTick < ProductionIntervalTicks) return;
+        _lastMonsterGrowthTick = currentTick;
+
+        int cap = GetMonsterCorruptionCap();
+
+        // Snapshot : semer une Corruption ajoute une feature à _state.Features pendant l'itération.
+        foreach (var monster in _state.Features.OfType<MonsterFeature>().Where(m => m.GeneratesCorruption).ToList())
+        {
+            var corruption = _state.GetFeaturesAt(monster.Position).OfType<Corruption>().FirstOrDefault();
+            if (corruption == null)
+                _state.AddFeature(new Corruption(monster.Position, level: 1));
+            else if (corruption.Level < cap)
                 IncreaseLevel(corruption);
         }
     }

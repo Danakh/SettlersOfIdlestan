@@ -158,8 +158,13 @@ public class AutoExtendController
 
             SpawnAbyssIslandCivilization(layerState, newTiles, z);
             PlaceDivineBones(newTiles);
-            PlaceTentacle(newTiles);
+            var tentacle = PlaceTentacle(newTiles);
             PlaceAbyssCorruption(newTiles);
+            // Après PlaceAbyssCorruption, qui pose une Corruption sur chaque hex de l'île sans
+            // regarder l'existant : semer avant lui laisserait deux Corruption sur le même hex.
+            if (tentacle != null)
+                CorruptionController.SeedCorruptionAroundNewMonster(
+                    _state, tentacle, _prestigeState?.CurrentCorruptionLevel ?? 1);
         }
     }
 
@@ -189,22 +194,26 @@ public class AutoExtendController
     /// AbyssGateController.TryInitializeAbyss, qui ne passe pas par ce chemin.
     /// Appelé avant <see cref="PlaceAbyssCorruption"/> (comme <see cref="PlaceDivineBones"/>) car il
     /// exige un hex encore libre, alors que la Corruption occupe ensuite chaque hex de terre.
+    /// Retourne la Tentacule posée (null si aucune) : l'appelant sème ensuite la Corruption de son
+    /// voisinage, une fois PlaceAbyssCorruption passé (voir CorruptionController.SeedCorruptionAroundNewMonster).
     /// </summary>
-    private void PlaceTentacle(List<HexTile> newTiles)
+    private Model.Monsters.Tentacle? PlaceTentacle(List<HexTile> newTiles)
     {
-        if (_state == null || _prng == null) return;
+        if (_state == null || _prng == null) return null;
 
         int corruptionLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
         int chancePercent = corruptionLevel - TentacleMinCorruptionLevel + 1;
-        if (chancePercent <= 0) return;
-        if (_prng.Next(100) >= chancePercent) return;
+        if (chancePercent <= 0) return null;
+        if (_prng.Next(100) >= chancePercent) return null;
 
         var landTiles = newTiles.Where(t => t.TerrainType != TerrainType.Void && !_state.HasFeaturesAt(t.Coord)).ToList();
-        if (landTiles.Count == 0) return;
+        if (landTiles.Count == 0) return null;
 
         var hex = landTiles[_prng.Next(landTiles.Count)].Coord;
         int level = Model.Monsters.MonsterLeveling.UndergroundLevel(_prestigeState?.Tier ?? 1, corruptionLevel);
-        _state.AddFeature(new Model.Monsters.Tentacle(hex, level));
+        var tentacle = new Model.Monsters.Tentacle(hex, level);
+        _state.AddFeature(tentacle);
+        return tentacle;
     }
 
     // Étendue aléatoire au-dessus du niveau de corruption max de l'Inframonde pour l'Abysse
