@@ -428,6 +428,185 @@ Result, `--race-gauntlet --races DarkElf --islands 4 --seed 1`: **FAIL 0/4 → P
 47 / 284 / 745 / 765 points per island. On the 5-island end-game round it goes further and tops the
 table at 972 points and 15 cities on island 5.
 
+### Manches Pandémonium — `--pandemonium` et `--pandemonium-ascended`
+
+L'autre bout de la question d'équilibrage. Le race gauntlet demande « toutes les races savent-elles
+jouer les premières îles ? » ; celles-ci demandent **« le dernier contenu du jeu est-il battable, et
+avec quoi ? »** — une civilisation arrivée au bout peut-elle abattre le dieu démon du Pandémonium ?
+
+Il y a **deux manches, et elles n'ont pas le même verdict attendu** :
+
+| Manche | État de départ | Attendu | Ce qu'elle mesure |
+|---|---|---|---|
+| `--pandemonium` | l'Ascension minimale d'un début de race — 7/15 pouvoirs, **pas Poing de Dieu** | **DÉFAITE** | ce que valent les seuls moyens militaires |
+| `--pandemonium-ascended` | 20 Ascensions, 200 points divins, 15/15 pouvoirs, 9 races, tous les bâtiments uniques permanents | **VICTOIRE** | que le contenu final reste battable une fois la méta-progression faite |
+
+Le code de sortie reflète **la conformité à l'attendu**, pas la victoire : la manche de base est un
+échec voulu, et la faire échouer le build à chaque exécution en ferait un bruit permanent. Ce qu'on
+veut détecter, c'est le jour où l'un des deux résultats change.
+
+```bash
+dotnet run --project SOIStrategyTester -c Release -- --pandemonium --seed 1 --max-island-hours 4
+dotnet run --project SOIStrategyTester -c Release -- --pandemonium-ascended --seed 1
+# verification de plomberie (~2 min) : petite ile, peu de villes
+dotnet run --project SOIStrategyTester -c Release -- --pandemonium --seed 1 \
+  --world-id 1 --underworld-cities 20 --abyss-cities 20 --max-island-hours 2
+```
+
+Ou double-cliquer `Pandemonium.bat` / `PandemoniumAscended.bat`. Sorties dans `--pandemonium-output`
+(défaut `pandemonium/`, gitignoré) : `assault.csv`, `summary.json`, et la sauvegarde finale chargeable
+dans le Desktop.
+
+⚠️ **C'est lent, à l'échelle demandée.** ~260 villes signifient que chaque événement d'horloge les
+parcourt toutes dans chaque contrôleur périodique, et que la seule règle de récolte clique près d'un
+millier d'hexes par itération : compter une dizaine de minutes rien que pour fabriquer l'état, puis
+autant par heure simulée d'assaut. Le verrouillage de la manche de base est visible dès la première
+demi-heure, et se lit à l'identique sur `--world-id 1 --underworld-cities 20 --abyss-cities 20`, qui
+donne le même verdict en deux minutes. La manche ascensionnée, elle, se termine en 51 itérations :
+seule la fabrication y coûte du temps.
+
+**Pour itérer sur la stratégie, repartir de la sauvegarde plutôt que de refabriquer.** La fabrication
+prend une dizaine de minutes (~260 villes posées route par route, puis ~4 500 bâtiments) ; la rejouer à
+chaque essai est du temps perdu, et deux fabrications ne sont comparables qu'à seed égal. Le même
+siège est disponible en `PhaseKind.PandemoniumSiege`, donc en mode normal sur une sauvegarde :
+
+```bash
+dotnet run --project SOIStrategyTester -c Release -- --save pandemonium/pandemonium-Human-final.json \
+  --objective Data/Objectives/demon-god-defeated.json --strategies Data/Strategies/pandemonium-siege.json
+```
+
+#### L'état de départ est fabriqué, pas joué
+
+`EndGameStateFactory` : 100 % des recherches, 100 % des vertex de prestige, île de surface conquise et
+entièrement bâtie, 100 villes dans l'Inframonde et 50 dans l'Abysse, tous bâtiments au niveau plafond,
+puis le Pandémonium ouvert. Aucun autoplay ne sait amener une partie jusque-là — le gauntlet met huit
+heures simulées à monter douze villes sur une île — et ce n'est pas ce qu'on mesure ici.
+
+Ce qui reste passé par les vrais chemins : l'achat des vertex de prestige (seul chemin qui reconstruit
+le cache de `PrestigeModifierProvider`), l'achat des pouvoirs divins (`AscensionController.PurchasePower`,
+dans l'ordre des colonnes) et l'Ascension elle-même, le peuplement route par route (donc
+l'auto-extension génère les couches comme en partie réelle), la pose du Grand Phare puis des Balises
+Maritimes, et l'ouverture du Pandémonium par un Portail bâti auquel `PandemoniumGateController` réagit
+sur l'horloge — c'est lui qui calcule le niveau des monstres.
+
+Sont fabriqués, et documentés comme tels sur place : les *niveaux* de bâtiments et du Grand Phare
+(leur coût d'amélioration dépasse la capacité de stockage bien avant le plafond) et les points de
+recherche des routes du Vide de l'Abysse (1 000 000 puis ×4 à chaque route — cinquante villes
+abyssales en demanderaient des dizaines, coût que rien dans le jeu ne finance). Monstres et
+civilisations PNJ sont purgés partout **sauf** dans le Pandémonium, et la purge alterne avec
+l'expansion (`SettleLayer`) : une civilisation PNJ debout interdit les vertex proches de ses villes, et
+l'Abysse en fait naître une par île générée.
+
+⚠️ **Ne jamais appeler `WorldVisibility.Recalculate()` depuis la fabrique.** La version globale
+remplace son index par couche puis l'énumère en levant `HexesRevealed`, or l'auto-extension de l'Abysse
+réagit à cet événement en faisant pousser une île — ce qui recalcule la visibilité et modifie l'index
+en cours d'énumération. La fabrication échouait ainsi sur cinq seeds sur six
+(`InvalidOperationException: Collection was modified`). Le jeu n'appelle jamais `Recalculate()` sur ce
+chemin : utiliser `RecalculateFor(civIndex)`, comme lui.
+
+
+#### Les deux manches se jouent sur une île endgame
+
+L'Ascension régénère toujours la **première** île de l'atlas, la plus petite : 20 hexes de terre, 0 à 1
+emplacement de Balise Maritime selon le seed, et une surface qui plafonne à 14-16 villes. Une manche de
+fin de partie ne peut pas se mesurer là-dessus, donc la fabrique bascule explicitement sur l'île
+`--world-id` (défaut **5**, la première que l'atlas marque `IsEndgameIsland`) en réécrivant le numéro
+d'île puis en appelant `MainGameController.RestartIsland` — voir `EndGameStateFactory.SwitchToIsland`,
+seul point de fabrication de la bascule, tout le reste étant le vrai chemin du jeu.
+
+Ce que ça change, à seed 1 :
+
+| | Île 1 (par défaut de l'Ascension) | Île 5 (`IsEndgameIsland`) |
+|---|---|---|
+| Hexes de terre | 20 | **165** |
+| Eau | 21 | 115 |
+| Emplacements de Balise Maritime | 0 | **33** |
+| Balises posées par la fabrique | 0 | **33** |
+| Villes de surface | 15 | **108** |
+| Civilisations PNJ à purger | 0 | 4 à 6 |
+
+C'est là que les Balises Maritimes servent enfin à quelque chose — et elles servent beaucoup : l'île
+endgame tire sa forme au hasard et a une chance sur deux d'une île bonus, donc l'essentiel de la
+surface n'est atteignable qu'en mer. L'autoplay n'en pose jamais ; la fabrique monte le Grand Phare au
+niveau 3 dès que la terre ferme est épuisée, puis pose à chaque fois la balise la plus éloignée du
+réseau, ce qui rouvre des routes maritimes vers l'île suivante. Les 33 emplacements de la carte sont
+tous utilisés.
+
+La ligne `surface :` du rapport donne ces nombres à chaque manche : une surface qui plafonne se lit
+alors comme une limite de la carte, pas comme un manque de la fabrique.
+
+#### La stratégie
+
+`PandemoniumSiege` (aussi disponible en `PhaseKind.PandemoniumSiege`) tient en quatre règles :
+**hors du Pandémonium on ne fait que récolter** (les 150 villes des profondeurs sont déjà au maximum,
+leur rôle est d'alimenter le stock commun) ; **Poing de Dieu sur la cible dès qu'il est débloqué** ;
+**dans l'arène on bâtit au maximum** (Mairie, puis garnison — Palissade/Caserne/Tour de guet —, puis
+production, puis tout au plafond) ; **on raid les Tentacules une par une, puis le dieu démon**.
+
+Deux écarts assumés avec l'autoplay standard : l'expansion est réécrite pour tirer la route vers l'hex
+visé (celle de `TryExpandOnce` vise le vertex prospectif le plus proche du réseau, jamais l'ennemi —
+c'est la limite mesurée au gauntlet), et le Camp Mobile sert de tête de pont jetable là où une ville ne
+peut pas être bâtie.
+
+#### Manche de base — DÉFAITE attendue, et le blocage n'est pas le boss
+
+Le dieu démon n'est jamais touché, les huit Tentacules non plus, à aucune des échelles mesurées :
+
+| Manche | Villes dans l'arène | Soldats | Vertex sûrs / constructibles | Cible | Tentacules tuées |
+|---|---|---|---|---|---|
+| île 5, 108 + 100 + 50, 1 h | 1 (12 routes, 17 bâtiments) | 82 | **0 / 9** | Tentacule à 3 hexes | 0 / 8 |
+| île 1, 100 + 50, 2 h | 4 (89 routes, 68 bâtiments) | 328 | **0 / 47** | Tentacule à 3 hexes | 0 / 8 |
+| île 1, 20 + 20, 1 h à 6 h | 1 | 82 | **0 / 9** | Tentacule à 3 hexes | 0 / 8 |
+
+Figé dès la première demi-heure simulée, aucune ville perdue : le siège s'arrête, il ne se fait pas
+détruire. Le front reste à **3 hexes** de la Tentacule la plus proche — un hex de trop — et la taille
+de l'économie derrière n'y change rien : 259 villes et 4 509 bâtiments ne font pas mieux que 22 villes.
+Trois faits, dans l'ordre où ils se verrouillent :
+
+- **Aucun emplacement sûr, jamais.** Tous les vertex constructibles de l'arène sont à portée d'un
+  monstre : neuf monstres à portée 2 couvrent presque tout un hexagone de 37 cases.
+- **Fonder sous le feu est une perte sèche.** Une ville neuve n'a ni défense ni garnison et une
+  Tentacule frappe pour 7 + 8 x niveau à deux hexes en ignorant la Palissade : elle tombe avant son
+  premier bâtiment. Mesuré sur 6 h simulées : **321 villes fondées et perdues, zéro dégât infligé**,
+  chacune au prix d'une fondation en couche profonde (le coût croît au carré du nombre de villes
+  abyssales déjà tenues), jusqu'à assécher le Cristal de toute la civilisation. La stratégie s'en
+  abstient donc.
+- **Le Camp Mobile ne comble pas l'écart.** Il n'est proposé que là où une ville *ne peut pas* être
+  bâtie, or les emplacements à portée sont justement constructibles ; et n'ayant aucun bâtiment il ne
+  peut pas porter de Tour de guet, donc pas de frappe à distance 2 — il lui faudrait le corps-à-corps
+  (distance 1), qu'aucun vertex accessible n'offre.
+
+**C'est un échec attendu, pas un bug** : le Pandémonium est le contenu de fin de méta-progression, et
+la manche de base représente un joueur qui ne l'a pas faite. Ce qu'elle établit, et qui mérite d'être
+connu avant de toucher aux PV du boss, c'est que le blocage est **géométrique** — on ne peut pas
+approcher l'arène — et non une question de dégâts, d'économie ou de durée.
+
+#### Manche ascensionnée — VICTOIRE attendue, en 51 coups
+
+Dieu démon abattu en **51 itérations** (25 secondes simulées), 8/8 Tentacules, sans qu'une seule ville
+de l'arène ne soit bâtie ni un seul soldat recruté. Le levier est unique et c'est **Poing de Dieu** :
+100 dégâts au monstre visé, réduits par la seule armure, à n'importe quelle distance et sur n'importe
+quelle couche. 4 coups par Tentacule (360 PV, armure 1), 19 pour le dieu démon (1 800 PV, armure 4) —
+51 en tout, pour 1 275 points de prestige sur les 20 085 en caisse (le coût monte de 1 à chaque usage
+depuis le dernier prestige, d'où la dotation d'Ascension Prestigieuse comme nerf de la manche).
+
+État de départ mesuré, seed 1, île 5 : 108 villes de surface + 100 Inframonde + 50 Abysse, 4 496
+bâtiments (20 371 niveaux cumulés), 386 975 / 163 645 de stockage.
+
+C'est bien Poing de Dieu et rien d'autre qui décide : la manche de base a elle aussi une Ascension
+(`NewGameForRace` en fait une, avec Foi et le premier pouvoir de chaque colonne — 7 sur 15), mais Poing
+de Dieu est le <b>deuxième</b> de sa colonne et lui manque. Les autres pouvoirs ne servent pas au
+combat ici mais changent l'état : Bras de Dieu (+1 dégât par soldat, soit le double), Courroux de Dieu
+(+100 % de cadence d'attaque), Inventaire Divin (x10 de stockage — 21 345 d'avancé sans lui, 163 645
+avec, ce qui rend enfin payable une fondation de ville dans l'arène), et 16 bâtiments uniques
+permanents contre 0.
+
+**La conclusion d'équilibrage est double, et il faut lire les deux lignes ensemble** : le contenu final
+est battable, mais uniquement par le pouvoir divin, et il l'est alors *trivialement* — 25 secondes,
+aucune bataille. Le siège militaire que la stratégie sait mener n'entre jamais en jeu, ni dans un sens
+ni dans l'autre. Si l'intention de design est que le Pandémonium soit un siège, c'est ce déséquilibre-là
+qu'il faut regarder, pas les PV du dieu démon.
+
 All strategies in one run start from an **identical** fresh copy of the starting state (a new
 `MainGameController` is built per strategy), so ticks-to-objective are directly comparable.
 
@@ -472,6 +651,8 @@ One object, `kind` plus the fields it needs. These mirror the `Condition` lambda
 | `WonderLevelAtLeast` | `level` | `WonderLevelStep` |
 | `PrestigeRunCountAtLeast` | `count` | the `IsPrestigeStep` steps (RunHistory.Count) |
 | `AbyssGateUnlocked` | — | live `AbyssGate.Built` on the current island, or cross-prestige `GameRecord.HasBuiltAbyssGate` |
+| `DemonGodDefeated` | — | plus aucun `DemonGod` vivant — la victoire des manches `--pandemonium` |
+| `TentaclesRemainingAtMost` | `count` | Tentacules encore vivantes dans le Pandémonium ≤ count |
 
 ### StrategyDefinition (`Data/Strategies/*.json` — an array of these)
 
@@ -486,7 +667,7 @@ One object, `kind` plus the fields it needs. These mirror the `Condition` lambda
 
 ```json
 {
-  "kind": "Step1 | Step2 | Step3 | Military | UnifiedAggressive | ExterminateMonsters | ExterminateCivilizations | Wonder | Prestige | Priority",
+  "kind": "Step1 | Step2 | Step3 | Military | UnifiedAggressive | ExterminateMonsters | ExterminateCivilizations | Wonder | Prestige | Priority | PandemoniumSiege",
   "shouldExpand": true,                  // Step1/Step2/Step3 only
   "prestigePriorityVertexNames": [...],  // Prestige only — names of public static Vertex fields on
                                           // SettlersOfIdlestan.Model.Prestige.PrestigeMap.PrestigeMap,

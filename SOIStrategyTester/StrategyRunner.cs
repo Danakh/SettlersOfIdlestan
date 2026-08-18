@@ -179,6 +179,11 @@ public static class StrategyRunner
             case PhaseKind.Priority:
                 return priorityStrategy!.TryStepOnce();
 
+            // Reconstruit à chaque itération, comme les listes de priorités ci-dessus : le siège ne
+            // porte aucun état entre deux pas (sa cible se relit sur les monstres encore vivants).
+            case PhaseKind.PandemoniumSiege:
+                return new PandemoniumSiege(auto, controller).TryStepOnce();
+
             default:
                 throw new NotSupportedException($"Unknown phase kind: {phase.Kind}");
         }

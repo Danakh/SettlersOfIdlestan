@@ -42,6 +42,11 @@ public enum PhaseKind
     Prestige,
     /// <summary>Drives a PriorityAutoplayStrategy built from PriorityObjectives.</summary>
     Priority,
+    /// <summary>La stratégie end-game de <see cref="SOIStrategyTester.PandemoniumSiege"/> : récolte
+    /// partout, construction au maximum dans le Pandémonium uniquement, et Raid sur les Tentacules une
+    /// par une puis sur le dieu démon. Ne suppose rien du reste de la partie, mais n'a de sens que sur
+    /// un état où le Pandémonium est ouvert — voir <see cref="SOIStrategyTester.EndGameStateFactory"/>.</summary>
+    PandemoniumSiege,
 }
 
 public enum PriorityObjectiveKind

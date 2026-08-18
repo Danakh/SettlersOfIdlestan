@@ -497,7 +497,9 @@ export
 /install/steamcontent/scripts/app_build_win.vdf
 /install/steamcontent/scripts/depot_build_win.vdf
 
-# Sorties locales de SOIStrategyTester (gauntlet par race)
+# Sorties locales de SOIStrategyTester (gauntlet par race, manche Pandémonium)
 /SOIStrategyTester/race-gauntlet/
 /SOIStrategyTester/race-gauntlet-endgame/
+/SOIStrategyTester/pandemonium/
+/SOIStrategyTester/pandemonium-ascended/
 /SettlersOfIdlestanAvalonia.Desktop/Properties/launchSettings.json

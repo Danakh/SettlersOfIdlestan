@@ -41,6 +41,15 @@ public enum ObjectiveKind
     /// prestige after building it). The live check makes this trigger the moment the Gate finishes,
     /// without waiting for the run to prestige again.</summary>
     AbyssGateUnlocked,
+    /// <summary>Plus aucun DemonGod vivant sur la couche Pandémonium — la victoire de la manche
+    /// end-game (voir PandemoniumRunner). Vrai aussi tant que le Pandémonium n'est pas ouvert, donc à
+    /// n'utiliser que sur un état qui l'a déjà : c'est le cas de tout ce que produit
+    /// EndGameStateFactory.</summary>
+    DemonGodDefeated,
+    /// <summary>Il reste au plus Count Tentacules vivantes dans le Pandémonium. Sert d'étape
+    /// intermédiaire : « les huit sont tombées » (Count = 0) est le vrai préalable au boss, et le
+    /// distinguer de la victoire dit si une manche perdue l'a été sur les gardes ou sur le centre.</summary>
+    TentaclesRemainingAtMost,
 }
 
 public class ObjectiveSpec
