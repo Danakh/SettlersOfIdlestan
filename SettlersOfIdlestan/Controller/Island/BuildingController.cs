@@ -429,6 +429,16 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 var prototype = CreateBuilding(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
 
+                // Bâtiments verrouillés par défaut (GetDefaultMaxLevel() == 0, ex. Smelter/MushroomFarm)
+                // tant qu'un vertex de prestige ne relève pas leur plafond : la liste UI
+                // (GetBuildingOrBuildableEntry) filtre déjà sur ce plafond, mais les appelants qui
+                // construisent directement — l'automatisation de guilde (TickGuildAutomation) en
+                // tête — passaient outre et posaient le bâtiment en douce dès le niveau d'Hôtel de
+                // Ville requis atteint, sans jamais consulter le prestige. Miroir de la garde sur
+                // l'amélioration ci-dessous (existing.Level >= GetMaxLevel(...)).
+                if (GetMaxLevel(prototype, civ) <= 0)
+                    return false;
+
                 // Les deux tests qui suivent lisent les prérequis, donc passent par le contexte allégé
                 // quand la civilisation en réduit les seuils (voir BuildReducedPrerequisiteContext).
                 var buildContext = prototype.IsUnique ? BuildReducedPrerequisiteContext(city, civ) : city;

@@ -109,6 +109,7 @@ public static class PrestigeMapFactory
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "ArtisansGuild", EType.ADDITIVE, 1),
                     new(ECategory.BUILDING_MAX_LEVEL, "GlassWorks", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESOURCE, "Glass", EType.ADDITIVE, 1),
                     new(ECategory.BUILDING_MAX_LEVEL, "Warehouse", EType.ADDITIVE, 1),
                 }
             ),
@@ -179,6 +180,7 @@ public static class PrestigeMapFactory
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "Smelter", EType.ADDITIVE, 2),
                     new(ECategory.BUILDING_MAX_LEVEL, "BlastFurnace", EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_RESOURCE, "Steel", EType.ADDITIVE, 1),
                     new(ECategory.UNLOCK_RESEARCH, "Siderurgie", EType.ADDITIVE, 1),
                 }
             ),
