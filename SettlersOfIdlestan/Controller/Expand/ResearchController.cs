@@ -276,6 +276,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         public bool CancelResearch()
         {
             if (Tree == null) return false;
+            if (!IsResearchCancelUnlocked()) return false;
             var tree = Tree;
             if (tree.ActiveResearch == null) return false;
 
@@ -418,6 +419,9 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public bool IsResearchQueueUnlocked()
             => _state?.PlayerCivilization.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_RESEARCH_QUEUE) == true;
+
+        public bool IsResearchCancelUnlocked()
+            => _state?.PlayerCivilization.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_RESEARCH_CANCEL) == true;
 
         private bool IsPrestigeRequirementMet(TechnologyId id)
         {

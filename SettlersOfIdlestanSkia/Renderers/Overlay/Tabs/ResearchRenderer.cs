@@ -207,7 +207,7 @@ public sealed class ResearchRenderer : IGameRenderer
             SkiaTextUtils.DrawText(canvas, rpLabel, PanelPadding, _topOffset + 24f, _nameFont, _textPaint);
         }
 
-        if (ctrl.ActiveResearch != null)
+        if (ctrl.ActiveResearch != null && ctrl.IsResearchCancelUnlocked())
         {
             float btnX = _canvasSize.Width - PanelPadding - CancelBtnWidth;
             float btnY = _topOffset + (HeaderHeight - CancelBtnHeight) / 2f;
@@ -511,7 +511,7 @@ public sealed class ResearchRenderer : IGameRenderer
                 bool isDoubleClick = elapsed <= DoubleClickMaxMs && dist <= DoubleClickMaxDist;
                 _lastNodeClickTime = e.Timestamp;
                 _lastNodeClickPosition = e.Position;
-                if (isDoubleClick)
+                if (isDoubleClick && ctrl.IsResearchCancelUnlocked())
                 {
                     _lastNodeClickTime = DateTime.MinValue;
                     if (ctrl.HasCancelLoss()) _cancelPopup.Open(ctrl.GetCancelRefundAmount());

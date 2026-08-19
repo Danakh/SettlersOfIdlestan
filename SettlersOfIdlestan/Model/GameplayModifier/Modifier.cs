@@ -61,6 +61,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_RESEARCH_SYSTEM,
             /// <summary>Flags que la file de recherche est déverrouillée pour la civilisation.</summary>
             UNLOCK_RESEARCH_QUEUE,
+            /// <summary>Flags que l'annulation de la recherche en cours est déverrouillée pour la civilisation.</summary>
+            UNLOCK_RESEARCH_CANCEL,
             /// <summary>Flags que le renforcement automatique est déverrouillé pour la civilisation.</summary>
             UNLOCK_AUTO_REINFORCEMENT,
             /// <summary>Obsolète — la patrouille automatique (raid anti-monstres près des villes) a été supprimée. Conservé pour compatibilité des sauvegardes.</summary>

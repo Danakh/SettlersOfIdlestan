@@ -744,6 +744,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_MARITIME_ROUTES    => _localization.Get("prestige_tooltip_unlocks_maritime_routes"),
         Modifier.ECategory.UNLOCK_RESEARCH_SYSTEM    => _localization.Get("prestige_tooltip_unlocks_research_system"),
         Modifier.ECategory.UNLOCK_RESEARCH_QUEUE     => _localization.Get("prestige_tooltip_unlocks_research_queue"),
+        Modifier.ECategory.UNLOCK_RESEARCH_CANCEL    => _localization.Get("prestige_tooltip_unlocks_research_cancel"),
         Modifier.ECategory.UNLOCK_RESOURCE            => $"{_localization.Get("prestige_tooltip_unlocks_resource")} {_localization.Get($"resource_{mod.SubCategory.ToLower()}")}",
         Modifier.ECategory.PRESTIGE_GAIN              => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_gain")}",
         Modifier.ECategory.PRESTIGE_GAIN_RACE         => $"{(mod.Value >= 0 ? "+" : "")}{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_gain_race")}",

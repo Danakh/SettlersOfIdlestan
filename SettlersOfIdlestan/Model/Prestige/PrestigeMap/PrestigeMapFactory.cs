@@ -144,7 +144,11 @@ public static class PrestigeMapFactory
                 PrestigeMap.AcademyVertex,
                 "prestige_vertex_academy",
                 cost: Cost(PrestigeMap.AcademyVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "Academy", EType.ADDITIVE, 4) }
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "Academy", EType.ADDITIVE, 4),
+                    new(ECategory.UNLOCK_RESEARCH_CANCEL, EType.ADDITIVE, 1),
+                }
             ),
             new(
                 PrestigeMap.SteelSecretVertex,

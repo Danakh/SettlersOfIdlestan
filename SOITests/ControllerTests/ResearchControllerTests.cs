@@ -139,6 +139,8 @@ public class ResearchControllerTests
         var civ = new Civilization { Index = 0 };
         var city = new City(CityVertex) { CivilizationIndex = 0 };
         civ.AddCity(city);
+        civ.AddCustomAggregator(new StaticModifierProvider(
+            new[] { new Modifier(Modifier.ECategory.UNLOCK_RESEARCH_CANCEL, Modifier.EType.ADDITIVE, 1) }));
 
         var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
         var prestigeState = new PrestigeState(state);
