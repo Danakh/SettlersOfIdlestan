@@ -19,6 +19,8 @@ public sealed class MilitaryInteractionService
     public const string RequiresWatchtowerMessageKey = "tooltip_monster_attack_requires_watchtower";
     /// <summary>Clé de localisation du tooltip affiché en survol quand la cible (ville ou monstre) est hors de portée.</summary>
     public const string TooFarMessageKey = "tooltip_attack_too_far";
+    /// <summary>Clé de localisation du tooltip affiché en survol quand la ville alliée ciblée n'a aucune capacité de soldats (pas de Caserne/Arsenal).</summary>
+    public const string NoSoldierCapacityMessageKey = "tooltip_reinforcement_no_capacity";
 
     private readonly GameControllerService _gameControllerService;
     private readonly MilitaryController _militaryController;
@@ -34,6 +36,7 @@ public sealed class MilitaryInteractionService
     public IMilitaryVertex? DragSourceCity => _activeDragSourceCity;
     public IMilitaryVertex? DragTargetCity { get; private set; }
     public bool DragTargetIsInRange { get; private set; }
+    public bool DragTargetHasCapacity { get; private set; } = true;
     public MonsterFeature? DragTargetMonster { get; private set; }
     public MonsterAttackAvailability DragTargetMonsterAvailability { get; private set; }
     public SKPoint DragCurrentScreenPoint { get; private set; }
@@ -119,10 +122,15 @@ public sealed class MilitaryInteractionService
         return best;
     }
 
-    private bool IsValidFlowTarget(IMilitaryVertex target)
+    /// <summary>
+    /// True si la cible est une ville alliée sans aucune capacité de soldats (pas de Caserne/Arsenal
+    /// construit). Reflète la même condition que <see cref="Controller.Military.MilitaryController.SetCityFlow"/>
+    /// (capacité brute, hors bonus civ-wide) : inutile de proposer un flux que le moteur rejettera silencieusement.
+    /// </summary>
+    private bool IsAllyTargetWithoutCapacity(IMilitaryVertex target)
     {
         var playerIndex = _gameControllerService.CurrentWorldState?.PlayerCivilization?.Index ?? -1;
-        return target.CivilizationIndex != playerIndex || _militaryController.GetMaximumSoldierCapacity(target) > 0;
+        return target.CivilizationIndex == playerIndex && target.MaxSoldiers == 0;
     }
 
     private bool IsInRange(IMilitaryVertex source, IMilitaryVertex target)
@@ -144,6 +152,7 @@ public sealed class MilitaryInteractionService
         DragCurrentScreenPoint = e.Position;
         DragTargetCity = null;
         DragTargetIsInRange = false;
+        DragTargetHasCapacity = true;
         DragTargetMonster = null;
         DragTargetMonsterAvailability = MonsterAttackAvailability.TooFar;
 
@@ -176,10 +185,9 @@ public sealed class MilitaryInteractionService
         {
             var islandPoint = ScreenToIsland(e.Position);
             var target = FindAnyCityNear(islandPoint, _activeDragSourceCity.Position.Z);
-            if (target != null && !IsValidFlowTarget(target))
-                target = null;
             DragTargetCity = target;
             DragTargetIsInRange = target != null && target != _activeDragSourceCity && IsInRange(_activeDragSourceCity, target);
+            DragTargetHasCapacity = target == null || !IsAllyTargetWithoutCapacity(target);
 
             if (target != null && target != _activeDragSourceCity)
             {
@@ -206,14 +214,13 @@ public sealed class MilitaryInteractionService
         {
             var islandPoint = ScreenToIsland(e.Position);
             var target = FindAnyCityNear(islandPoint, _activeDragSourceCity.Position.Z);
-            if (target != null && !IsValidFlowTarget(target))
-                target = null;
 
             if (target != null && target != _activeDragSourceCity)
             {
-                if (IsInRange(_activeDragSourceCity, target))
+                if (IsInRange(_activeDragSourceCity, target) && !IsAllyTargetWithoutCapacity(target))
                     _militaryController.SetCityFlow(_activeDragSourceCity, target.Position);
-                // hors portée → ne rien faire (conserver le flux existant)
+                // hors portée ou ville alliée sans capacité de soldats → ne rien faire (conserver le flux existant) ;
+                // la raison est déjà visible en tooltip pendant le survol (cf. MilitaryRenderer.DrawDragInteraction).
             }
             else
             {
@@ -236,6 +243,7 @@ public sealed class MilitaryInteractionService
         _potentialDragCity = null;
         DragTargetCity = null;
         DragTargetIsInRange = false;
+        DragTargetHasCapacity = true;
         DragTargetMonster = null;
     }
 

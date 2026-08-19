@@ -353,15 +353,18 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         {
             var targetPt = VertexToIsland(targetCity.Position);
             bool inRange = _interactionService.DragTargetIsInRange;
+            bool hasCapacity = _interactionService.DragTargetHasCapacity;
             var playerIndex = _gameControllerService?.PlayerCivilization?.Index ?? -1;
             bool isAlly = targetCity.CivilizationIndex == playerIndex;
 
-            _dragCirclePaint.Color = inRange
+            _dragCirclePaint.Color = (inRange && hasCapacity)
                 ? (isAlly ? new SKColor(50, 200, 80, 220) : new SKColor(220, 60, 60, 220))
                 : new SKColor(150, 150, 150, 180);
             canvas.DrawCircle(targetPt, 20f, _dragCirclePaint);
 
-            if (!inRange)
+            if (!hasCapacity)
+                _tooltipRenderer.SetTooltip(_localizationService.Get(MilitaryInteractionService.NoSoldierCapacityMessageKey), screen);
+            else if (!inRange)
                 _tooltipRenderer.SetTooltip(_localizationService.Get(MilitaryInteractionService.TooFarMessageKey), screen);
         }
         else if (_interactionService.DragTargetMonster is { } targetMonster)
