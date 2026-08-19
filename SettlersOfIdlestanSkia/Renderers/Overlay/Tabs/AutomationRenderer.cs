@@ -344,11 +344,12 @@ public sealed class AutomationRenderer : IDisposable
 
         // La restriction s'applique aux Casernes ET aux Arsenaux du layer : une ligne par layer
         // connu, seulement si l'un des deux existe.
-        if (BuildingExists<Barracks>(civ) || BuildingExists<Arsenal>(civ))
+        // Le quota est celui lu par SoldierProductionEngine : le meme pour tous les layers,
+        // applique ville par ville. A 0, la restriction n'a aucun effet (rien a limiter) :
+        // le reglage est masque plutot que d'afficher une case sans consequence.
+        int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+        if (freePerCity > 0 && (BuildingExists<Barracks>(civ) || BuildingExists<Arsenal>(civ)))
         {
-            // Le quota est celui lu par SoldierProductionEngine : le meme pour tous les layers,
-            // applique ville par ville. On l'affiche en note pour que la limite soit chiffree.
-            int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
             string note = _localization.GetFormated("automation_restrict_soldier_production_note", freePerCity);
 
             foreach (var layerZ in worldState.Layers.Keys.OrderBy(z => z))

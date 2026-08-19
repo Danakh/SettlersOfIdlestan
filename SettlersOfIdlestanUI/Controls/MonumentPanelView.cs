@@ -31,7 +31,7 @@ public sealed class MonumentPanelView : UserControl
         HorizontalAlignment = HorizontalAlignment.Right;
         VerticalAlignment = VerticalAlignment.Top;
 
-        var panel = new GamePanelView(title: "", onClose: viewModel.Close);
+        var panel = new GamePanelView(title: "", onClose: null);
         panel.TitleBlock[!TextBlock.TextProperty] = new Binding(nameof(MonumentPanelViewModel.Title));
 
         var rows = new ItemsControl
