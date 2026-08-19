@@ -593,6 +593,7 @@ namespace SettlersOfIdlestan.Controller
                     // abandoning the target the moment its direct path is blocked.
                     var target = expansionTarget.Value.target;
                     nextRoad = buildableRoads
+                        .Where(r => r.Position.Z == target.Z)
                         .OrderBy(r => r.Position.GetVertices().Min(v => v.EdgeDistanceTo(target)))
                         .FirstOrDefault();
                 }
