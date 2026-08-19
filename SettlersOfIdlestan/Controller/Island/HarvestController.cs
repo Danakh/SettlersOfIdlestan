@@ -1235,6 +1235,8 @@ namespace SettlersOfIdlestan.Controller.Island
             var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return false;
 
+            int amount = civ.ModifierAggregator.ApplyModifiers(ECategory.MANUAL_HARVEST_AMOUNT, "", 1);
+
             var harvested = new ResourceSet();
             Vertex? harvestCity = null;
             foreach (var city in cities)
@@ -1247,8 +1249,8 @@ namespace SettlersOfIdlestan.Controller.Island
                         var res = resource.Value;
                         if (!harvested.Contains(res))
                         {
-                            civ.AddResource(res, 1);
-                            harvested[res] = 1;
+                            civ.AddResource(res, amount);
+                            harvested[res] = amount;
                             harvestCity ??= city.Position;
                         }
                     }

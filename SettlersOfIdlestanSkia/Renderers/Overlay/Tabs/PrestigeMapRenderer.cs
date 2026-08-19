@@ -727,6 +727,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.HARVEST_SPEED            => string.IsNullOrEmpty(mod.SubCategory)
             ? $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")}"
             : $"+{(int)(mod.Value * 100)}% {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {_localization.Get("prestige_tooltip_harvest_speed")}",
+        Modifier.ECategory.MANUAL_HARVEST_AMOUNT    => $"×{mod.Value:0.##} {_localization.Get("prestige_tooltip_manual_harvest_amount")}",
         Modifier.ECategory.RESEARCH_PRODUCTION_SPEED  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_production_speed")}",
         Modifier.ECategory.RESEARCH_INVESTMENT_SPEED  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_investment_speed")}",
         Modifier.ECategory.UNIT_PRODUCTION_SPEED    => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_unit_speed")}",
