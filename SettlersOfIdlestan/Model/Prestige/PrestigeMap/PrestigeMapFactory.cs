@@ -105,7 +105,12 @@ public static class PrestigeMapFactory
                 PrestigeMap.ArtisansGuildVertex,
                 "prestige_vertex_artisans_guild",
                 cost: Cost(PrestigeMap.ArtisansGuildVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "ArtisansGuild", EType.ADDITIVE, 1) }
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "ArtisansGuild", EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "GlassWorks", EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "Warehouse", EType.ADDITIVE, 1),
+                }
             ),
             new(
                 PrestigeMap.AppliedResearchVertex,
@@ -393,6 +398,7 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[]
                 {
                     new(ECategory.BUILDING_MAX_LEVEL, "WarRoom", EType.ADDITIVE, 1),
+                    new(ECategory.ATTACK_SPEED, EType.ADDITIVE, 0.2),
                 }
             ),
             new(
