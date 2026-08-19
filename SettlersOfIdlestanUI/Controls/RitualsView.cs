@@ -19,7 +19,7 @@ namespace SettlersOfIdlestanUI.Controls;
 /// </summary>
 public sealed class RitualsView : UserControl
 {
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(240, 18, 18, 24));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(240, 18, 18, 24));
     private static readonly SolidColorBrush Card = new(Color.FromArgb(220, 30, 30, 40));
     private static readonly SolidColorBrush CardActive = new(Color.FromArgb(230, 35, 30, 55));
     private static readonly SolidColorBrush CardBorder = new(Color.FromRgb(60, 60, 80));
@@ -28,7 +28,7 @@ public sealed class RitualsView : UserControl
     private static readonly SolidColorBrush Stop = new(Color.FromRgb(120, 55, 55));
     private static readonly SolidColorBrush Disabled = new(Color.FromRgb(60, 60, 70));
     private static readonly SolidColorBrush Accent = new(Color.FromRgb(190, 150, 255));
-    private static readonly SolidColorBrush Name = new(Color.FromRgb(230, 230, 240));
+    private static readonly SolidColorBrush NameText = new(Color.FromRgb(230, 230, 240));
     private static readonly SolidColorBrush Desc = new(Color.FromRgb(150, 150, 165));
     private static readonly SolidColorBrush Cost = new(Color.FromRgb(170, 150, 220));
     private static readonly SolidColorBrush Bonus = new(Color.FromRgb(120, 200, 140));
@@ -107,7 +107,7 @@ public sealed class RitualsView : UserControl
 
         Content = new Border
         {
-            Background = Background,
+            Background = PanelBackground,
             Child = new ScrollViewer
             {
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
@@ -139,7 +139,7 @@ public sealed class RitualsView : UserControl
         {
             FontSize = 13,
             FontWeight = FontWeight.Bold,
-            Foreground = Name,
+            Foreground = NameText,
             TextWrapping = TextWrapping.Wrap,
             [!TextBlock.TextProperty] = new Binding(namePath),
         });

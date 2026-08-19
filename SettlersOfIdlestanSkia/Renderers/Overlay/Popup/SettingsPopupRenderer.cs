@@ -10,14 +10,6 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
 public sealed class SettingsPopupRenderer : PopupRendererBase
 {
-    protected override float PopupWidth  => 580;
-    protected override float PopupHeight => _allowDebugMode ? 658 : 530;
-    protected override float BtnFontSize => 12f;
-
-    private const float BtnRightMargin = 24;
-    private const float FirstRowY      = 72;
-    private const float BottomMargin   = 16;
-
     private readonly MainGameController  _gameController;
     private readonly LocalizationService _localization;
     private readonly IFileSystemService  _fileSystemService;
@@ -78,12 +70,5 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     {
         _contentPanel.ClearFocus();
         base.Close();
-    }
-
-    public override void Dispose()
-    {
-        if (Disposed) return;
-        _contentPanel.Dispose();
-        base.Dispose();
     }
 }

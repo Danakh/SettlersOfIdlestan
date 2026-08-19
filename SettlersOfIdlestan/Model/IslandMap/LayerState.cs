@@ -17,6 +17,14 @@ public class LayerState
     /// </summary>
     public const int AbyssZ = 2;
 
+    /// <summary>
+    /// Layer du Pandémonium. Point d'entrée : <see cref="SettlersOfIdlestan.Controller.Expand.PandemoniumGateController"/>,
+    /// une fois le Portail du Pandémonium bâti (voir OnPandemoniumGateBuilt). Contrairement à
+    /// l'Inframonde et à l'Abysse, cette couche n'est pas auto-étendue : c'est une île unique et
+    /// entièrement générée d'avance (voir <see cref="SettlersOfIdlestan.Controller.Generator.PandemoniumGenerator"/>).
+    /// </summary>
+    public const int PandemoniumZ = 3;
+
     public IslandMap Map { get; set; }
 
     /// <summary>

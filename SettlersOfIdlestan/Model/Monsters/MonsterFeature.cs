@@ -106,6 +106,16 @@ public abstract class MonsterFeature : IslandFeature
     /// </summary>
     public virtual bool AttacksOtherMonsters => false;
 
+    // ── Génération de Corruption (opt-in) ──────────────────────────────────
+    /// <summary>
+    /// Opt-in : ce monstre fait monter d'un point la Corruption de son propre hex à chaque
+    /// intervalle, en la semant à niveau 1 si l'hex est sain, jusqu'au plafond
+    /// <see cref="Controller.Island.CorruptionController.GetMonsterCorruptionCap"/> — deux fois le
+    /// niveau de corruption de l'île (voir CorruptionController.ProcessMonsterCorruptionGrowth).
+    /// Le tuer tarit la source, comme purifier des Os Divins.
+    /// </summary>
+    public virtual bool GeneratesCorruption => false;
+
     // ── Invocation de nouvelles créatures (opt-in) ─────────────────────────
     /// <summary>Tente de générer une nouvelle MonsterFeature. Retourne null si aucune invocation n'a lieu.</summary>
     public virtual MonsterFeature? TrySpawn(IReadOnlyList<MonsterFeature> existingMonsters, long tick, int level = 1) => null;

@@ -42,6 +42,11 @@ public enum PhaseKind
     Prestige,
     /// <summary>Drives a PriorityAutoplayStrategy built from PriorityObjectives.</summary>
     Priority,
+    /// <summary>La stratégie end-game de <see cref="SOIStrategyTester.PandemoniumSiege"/> : récolte
+    /// partout, construction au maximum dans le Pandémonium uniquement, et Raid sur les Tentacules une
+    /// par une puis sur le dieu démon. Ne suppose rien du reste de la partie, mais n'a de sens que sur
+    /// un état où le Pandémonium est ouvert — voir <see cref="SOIStrategyTester.EndGameStateFactory"/>.</summary>
+    PandemoniumSiege,
 }
 
 public enum PriorityObjectiveKind
@@ -94,6 +99,19 @@ public class StrategyPhase
     /// <summary>Overrides the run's default max-iterations-per-phase budget for this phase specifically
     /// (some phases, like extermination, legitimately need tens of thousands of iterations).</summary>
     public int? MaxIterations { get; set; }
+
+    /// <summary>
+    /// City count from which a Unified/UnifiedAggressive phase declares war
+    /// (<c>CivilizationAutoplayerPriorities.Unified</c>'s <c>attackNeighborsAtCities</c>). Null keeps
+    /// the preset's own default — <c>int.MaxValue</c>, i.e. "never on city count alone".
+    ///
+    /// <para>Worth setting explicitly in aggressive mode, whose <i>other</i> trigger is
+    /// "expansion is blocked while an enemy is visible" — and expansion is blocked far more rarely than
+    /// it sounds, since <see cref="CivilizationAutoplayer.HasBuildableExpansion"/> counts a single
+    /// buildable road, and the road network can nearly always grow one more step. A run that never
+    /// exhausts its roads therefore never declares war at all, whatever its city count.</para>
+    /// </summary>
+    public int? AttackNeighborsAtCities { get; set; }
 }
 
 public class StrategyDefinition

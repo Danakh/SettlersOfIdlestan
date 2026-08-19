@@ -112,6 +112,51 @@ namespace SOITests.ControllerTests
             Assert.Equal(2, city.Soldiers);
         }
 
+        /// <summary>
+        /// Bras de Dieu (SOLDIER_ATTACK_DAMAGE +1) : chaque attaque inflige 2 dégâts au lieu d'un,
+        /// pour un seul soldat engagé.
+        /// </summary>
+        [Fact]
+        public void Bandit_WithSoldierDamageBonus_TakesTwoDamagePerAttack()
+        {
+            var (state, clock, _, city) = CreateSetup(initialSoldiers: 3);
+            state.Civilizations[0].AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(Modifier.ECategory.SOLDIER_ATTACK_DAMAGE, Modifier.EType.ADDITIVE, 1),
+            }));
+            state.AddFeature(new Bandit(NE, 0));
+            var bandit = state.Features.OfType<Bandit>().First();
+
+            clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
+
+            Assert.Equal(bandit.MaxHp - 2, bandit.Hp);
+            Assert.Equal(2, city.Soldiers);
+        }
+
+        /// <summary>
+        /// Le bonus de Bras de Dieu s'ajoute à celui de l'Arme en Acier : 1 + 1 + 1 = 3 dégâts,
+        /// et l'arme reste consommée une seule fois.
+        /// </summary>
+        [Fact]
+        public void Bandit_WithSoldierDamageBonusAndSteelWeapon_TakesThreeDamage()
+        {
+            var (state, clock, _, _) = CreateSetup(initialSoldiers: 3);
+            var civ = state.Civilizations[0];
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(Modifier.ECategory.SOLDIER_ATTACK_DAMAGE, Modifier.EType.ADDITIVE, 1),
+                new Modifier(Modifier.ECategory.UNLOCK_STEEL_WEAPONS, Modifier.EType.ADDITIVE, 1),
+            }));
+            civ.Resources[Resource.SteelWeapon] = 5;
+            state.AddFeature(new Bandit(NE, 0));
+            var bandit = state.Features.OfType<Bandit>().First();
+
+            clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
+
+            Assert.Equal(bandit.MaxHp - 3, bandit.Hp);
+            Assert.Equal(4, civ.GetResourceQuantity(Resource.SteelWeapon));
+        }
+
         [Fact]
         public void Bandit_KilledByBarracksSoldiers_IsRemovedFromState()
         {

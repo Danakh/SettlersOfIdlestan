@@ -186,6 +186,23 @@ public class CityVsCityAttackTests
     }
 
     [Fact]
+    public void Attack_WithSoldierDamageBonus_ReducesCurrentDefenseTwice()
+    {
+        // Bras de Dieu (SOLDIER_ATTACK_DAMAGE +1) : contre une ville, un dégât = une application de
+        // la cascade, donc une attaque retire 2 points de défense au lieu d'un.
+        var palisade = new Palisade { Level = 1 };
+        var (state, clock, ctrl, _, _, cityB, _) = Setup(buildingsB: [palisade]);
+        state.Civilizations[0].AddCustomAggregator(new StaticModifierProvider(
+            [new Modifier(ECategory.SOLDIER_ATTACK_DAMAGE, EType.ADDITIVE, 1)]));
+        cityB.CurrentDefense = ctrl.GetDefenseScore(cityB); // = 10, regen ne s'active pas
+
+        clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
+
+        Assert.Equal(8, cityB.CurrentDefense);
+        Assert.Equal(4, state.Civilizations[0].Cities[0].Soldiers); // un seul soldat engagé
+    }
+
+    [Fact]
     public void Attack_DoesNotDestroyBuilding_WhenDefenseAboveZero()
     {
         var palisade = new Palisade { Level = 1 };

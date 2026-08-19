@@ -19,7 +19,7 @@ namespace SettlersOfIdlestanUI.Controls;
 public sealed class TimeJumpView : UserControl
 {
     private static readonly SolidColorBrush Veil = new(Color.FromArgb(160, 0, 0, 0));
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(245, 24, 24, 30));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(245, 24, 24, 30));
     private static readonly SolidColorBrush BorderGold = new(Colors.Gold);
     private static readonly SolidColorBrush TitleText = new(Color.FromRgb(255, 200, 50));
     private static readonly SolidColorBrush BodyText = new(Color.FromRgb(180, 180, 190));
@@ -85,7 +85,7 @@ public sealed class TimeJumpView : UserControl
         {
             MinWidth = 420,
             MaxWidth = 520,
-            Background = Background,
+            Background = PanelBackground,
             BorderBrush = BorderGold,
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(10),

@@ -417,11 +417,14 @@ namespace SettlersOfIdlestan.Controller
             if (_roadController.BuildRoad(_civ.Index, edge) != null)
                 return true;
 
+            // Coût réel de l'arête (GetRoadCostFor), et non le coût de base GetRoadCost : sur une
+            // route de l'Inframonde ce dernier omet le surcoût en Minerai et en Pierre, donc le troc
+            // automatique comparait un besoin de Bois/Brique à un stock déjà au plafond, concluait
+            // qu'il ne manquait rien et n'achetait jamais ce qui bloquait réellement — un Elfe noir
+            // restait ainsi à 0 route posée indéfiniment. Même famille de bug que la majoration
+            // ignorée de NewCityBuildingCostFor (voir TryBuildOutpostOnce).
             if (withGrind)
-            {
-                var road = _roadController.GetBuildableRoads(_civ.Index).FirstOrDefault(r => r.Position.Equals(edge));
-                if (road != null) TryGrindOnce(_roadController.GetRoadCost(road.DistanceToNearestCity));
-            }
+                TryGrindOnce(_roadController.GetRoadCostFor(_civ, edge));
             return false;
         }
 

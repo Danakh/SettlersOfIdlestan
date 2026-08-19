@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
 using System.Collections.Generic;
 using System.Linq;
@@ -784,5 +785,369 @@ public class CorruptionControllerTests
         var gateController = new AbyssGateController();
         gateController.Initialize(state, clock);
         Assert.True(gateController.IsAbyssGateEligible());
+    }
+
+    // ── Os Divins : générateurs de Corruption tant qu'ils ne sont pas purifiés ─────────────
+    // La carte à un seul hex isole ce mécanisme du débordement (aucun voisin candidat).
+
+    [Fact]
+    public void DivineBones_RaiseCorruptionOnTheirOwnHex_EachInterval()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 1));
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 3)); // plafond 6
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        Assert.Equal(2, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        var corruption = state.GetFeaturesAt(landHex).OfType<Corruption>().Single();
+        Assert.Equal(3, corruption.Level);
+        Assert.Equal(3, corruption.PeakLevel); // le pic engendré compte pour le record de nettoyage
+    }
+
+    [Fact]
+    public void DivineBones_SeedCorruption_WhenTheirHexIsClean()
+    {
+        // Hex sain (une Spire voisine a pu le nettoyer) : les Os y resèment une poche de niveau 1.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 2));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(1, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void DivineBones_StopRaisingCorruption_AtTwiceTheIslandCorruptionLevel()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        var bones = new DivineBones(landHex, corruptionLevel: 2); // plafond 4
+        state.AddFeature(new Corruption(landHex, level: 1));
+        state.AddFeature(bones);
+
+        Assert.Equal(4, bones.GetCorruptionCap());
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 10; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(4, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void DivineBones_DoNotReduceCorruptionAlreadyAboveTheirCap()
+    {
+        // Le plafond ne borne que la génération : une Corruption plus élevée (tirage initial de
+        // l'Abysse, débordement d'un voisin) est laissée telle quelle, jamais rabaissée.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 9));
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 2)); // plafond 4
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 3; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(9, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void DivineBones_Purified_GenerateNoCorruption()
+    {
+        // En jeu, des Os purifiés sont retirés de la carte (DivineBonesController.ProcessInvestment) ;
+        // l'état transitoire ne doit de toute façon plus rien engendrer.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 3) { Purified = true });
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
+    }
+
+    [Fact]
+    public void DivineBones_UnderBuiltSpire_CancelOutItsDecay()
+    {
+        // Décroissance garantie de la Spire (-1) puis génération des Os (+1) dans le même intervalle :
+        // la Corruption reste figée tant que les Os ne sont pas purifiés.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 3));
+        state.AddFeature(new CorruptionSpire(landHex) { Built = true });
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 3)); // plafond 6
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 5; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(3, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    // ── Tentacules et Dieu démon : générateurs de Corruption tant qu'ils sont vivants ──────
+    // Même mécanique que les Os Divins, avec le plafond calculé sur le niveau de corruption courant.
+
+    [Fact]
+    public void Tentacle_RaisesCorruptionOnItsOwnHex_EachInterval()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 1));
+        state.AddFeature(new Tentacle(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock, prestigeState: new PrestigeState { CurrentCorruptionLevel = 3 }); // plafond 6
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        Assert.Equal(2, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        var corruption = state.GetFeaturesAt(landHex).OfType<Corruption>().Single();
+        Assert.Equal(3, corruption.Level);
+        Assert.Equal(3, corruption.PeakLevel); // le pic engendré compte pour le record de nettoyage
+    }
+
+    [Fact]
+    public void DemonGod_SeedsCorruption_WhenItsHexIsClean()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new DemonGod(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock, prestigeState: new PrestigeState { CurrentCorruptionLevel = 2 });
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(1, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void Monsters_StopRaisingCorruption_AtTwiceTheIslandCorruptionLevel()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 1));
+        state.AddFeature(new DemonGod(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        var controller = CreateController(state, clock, prestigeState: new PrestigeState { CurrentCorruptionLevel = 4 });
+
+        Assert.Equal(8, controller.GetMonsterCorruptionCap());
+
+        for (int i = 0; i < 20; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(8, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void Monsters_DoNotReduceCorruptionAlreadyAboveTheirCap()
+    {
+        // Le plafond ne borne que la génération : le tirage initial d'une île de l'Abysse peut déjà
+        // dépasser 2× le niveau de corruption, il est laissé tel quel.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 9));
+        state.AddFeature(new Tentacle(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock, prestigeState: new PrestigeState { CurrentCorruptionLevel = 2 }); // plafond 4
+
+        for (int i = 0; i < 3; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(9, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void MonsterRemovedFromMap_GeneratesNoMoreCorruption()
+    {
+        // Abattre la Tentacule tarit la source ; la Corruption déjà semée reste à nettoyer.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        var tentacle = new Tentacle(landHex);
+        state.AddFeature(tentacle);
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock, prestigeState: new PrestigeState { CurrentCorruptionLevel = 5 });
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        Assert.Equal(1, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+
+        state.RemoveFeature(tentacle);
+        for (int i = 0; i < 5; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(1, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void OtherMonsters_GenerateNoCorruption()
+    {
+        // L'opt-in ne concerne que les monstres enracinés dans la Corruption (Tentacule, Dieu démon).
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new MajorDemon(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock, prestigeState: new PrestigeState { CurrentCorruptionLevel = 5 });
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
+    }
+
+    [Fact]
+    public void Tentacle_UnderBuiltSpire_CancelsOutItsDecay()
+    {
+        // Décroissance garantie de la Spire (-1) puis génération de la Tentacule (+1) dans le même
+        // intervalle : la Corruption reste figée tant que la Tentacule est vivante.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 3));
+        state.AddFeature(new CorruptionSpire(landHex) { Built = true });
+        state.AddFeature(new Tentacle(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock, prestigeState: new PrestigeState { CurrentCorruptionLevel = 3 }); // plafond 6
+
+        for (int i = 0; i < 5; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(3, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    // ── Corruption semée à l'apparition d'un monstre enraciné ─────────────────────────────
+
+    /// <summary>Carte pleine de rayon 2 autour de l'origine — de quoi observer les 6 voisins d'un monstre placé au centre.</summary>
+    private static (WorldState state, HexCoord center) CreateRadius2MapSetup(TerrainType centerTerrain = TerrainType.Plain)
+    {
+        var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var tiles = new List<HexTile>();
+        for (int q = -2; q <= 2; q++)
+            for (int r = System.Math.Max(-2, -q - 2); r <= System.Math.Min(2, -q + 2); r++)
+                tiles.Add(new HexTile(new HexCoord(q, r, IslandMap.SurfaceLayer), centerTerrain));
+
+        var map = new IslandMap(tiles.ToArray());
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        return (state, center);
+    }
+
+    [Fact]
+    public void NewMonster_CorruptsItsHexAndAllSixNeighbours_ToTheIslandCorruptionLevel()
+    {
+        var (state, center) = CreateRadius2MapSetup();
+        var tentacle = new Tentacle(center);
+        state.AddFeature(tentacle);
+
+        CorruptionController.SeedCorruptionAroundNewMonster(state, tentacle, islandCorruptionLevel: 5);
+
+        foreach (var hex in center.Neighbors().Append(center))
+        {
+            var corruption = state.GetFeaturesAt(hex).OfType<Corruption>().Single();
+            Assert.Equal(5, corruption.Level);
+            Assert.Equal(5, corruption.PeakLevel);
+        }
+
+        // Le deuxième anneau reste sain : seul le voisinage immédiat est semé.
+        Assert.Empty(state.GetFeaturesAt(new HexCoord(2, 0, IslandMap.SurfaceLayer)).OfType<Corruption>());
+    }
+
+    [Fact]
+    public void NewMonster_SeedsHalfOfItsGenerationCap()
+    {
+        // Le niveau semé est exactement la moitié du plafond que la génération continue atteindra.
+        var (state, center) = CreateRadius2MapSetup();
+        var god = new DemonGod(center);
+        state.AddFeature(god);
+
+        var clock = new GameClock();
+        clock.Start();
+        var prestigeState = new PrestigeState { CurrentCorruptionLevel = 4 };
+        var controller = CreateController(state, clock, prestigeState: prestigeState);
+
+        CorruptionController.SeedCorruptionAroundNewMonster(state, god, prestigeState.CurrentCorruptionLevel);
+
+        Assert.Equal(8, controller.GetMonsterCorruptionCap());
+        Assert.Equal(4, state.GetFeaturesAt(center).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void NewMonster_NeverLowersAnAlreadyDeeperCorruption()
+    {
+        var (state, center) = CreateRadius2MapSetup();
+        var neighbour = center.Neighbors()[0];
+        state.AddFeature(new Corruption(center, level: 9));
+        state.AddFeature(new Corruption(neighbour, level: 2));
+
+        var tentacle = new Tentacle(center);
+        state.AddFeature(tentacle);
+
+        CorruptionController.SeedCorruptionAroundNewMonster(state, tentacle, islandCorruptionLevel: 5);
+
+        Assert.Equal(9, state.GetFeaturesAt(center).OfType<Corruption>().Single().Level);
+        Assert.Equal(5, state.GetFeaturesAt(neighbour).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void NewMonster_SkipsVoidAndMissingHexes()
+    {
+        // Un hex de Void n'est jamais rendu ni interactif (cf. PlaceAbyssCorruption) ; un hex sans
+        // tuile n'existe pas du tout.
+        var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var voidHex = center.Neighbors()[0];
+        var landHex = center.Neighbors()[1];
+        var missingHex = center.Neighbors()[2];
+
+        var map = new IslandMap(new[]
+        {
+            new HexTile(center, TerrainType.Plain),
+            new HexTile(voidHex, TerrainType.Void),
+            new HexTile(landHex, TerrainType.Plain),
+        });
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        var tentacle = new Tentacle(center);
+        state.AddFeature(tentacle);
+
+        CorruptionController.SeedCorruptionAroundNewMonster(state, tentacle, islandCorruptionLevel: 3);
+
+        Assert.Equal(3, state.GetFeaturesAt(center).OfType<Corruption>().Single().Level);
+        Assert.Equal(3, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+        Assert.Empty(state.GetFeaturesAt(voidHex).OfType<Corruption>());
+        Assert.Empty(state.GetFeaturesAt(missingHex).OfType<Corruption>());
+    }
+
+    [Fact]
+    public void NewMonster_WithoutCorruptionGeneration_SeedsNothing()
+    {
+        var (state, center) = CreateRadius2MapSetup();
+        var demon = new MajorDemon(center);
+        state.AddFeature(demon);
+
+        CorruptionController.SeedCorruptionAroundNewMonster(state, demon, islandCorruptionLevel: 5);
+
+        Assert.Empty(state.Features.OfType<Corruption>());
     }
 }

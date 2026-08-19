@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Ascension;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Ascension;
@@ -8,6 +9,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Races;
 using SOITests.TestUtilities;
@@ -20,14 +22,20 @@ namespace SOITests.ControllerTests;
 /// Tests des pouvoirs divins et du bâtiment unique permanent d'Ascension (voir AscensionController.
 /// CanPurchasePower/PurchasePower, PermanentUniqueBuildingChoices/SelectPermanentUniqueBuilding/
 /// ApplyPermanentUniqueBuildingToCivilization) : coût en points divins, emplacements de bâtiment
-/// permanent (1 par Ascension effectuée), application à la civilisation sans occuper d'emplacement
+/// permanent (1 par Ascension effectuée et par pouvoir de la colonne Héritage, rétroactivement,
+/// aucun sans ces pouvoirs), application à la civilisation sans occuper d'emplacement
 /// en ville, blocage de la construction manuelle, survie à la perte de toutes les villes, et cumul
 /// avec un bâtiment unique physiquement construit.
 /// </summary>
 public class AscensionControllerTests
 {
+    /// <param name="legacyRanks">
+    /// Nombre de pouvoirs de la colonne Héritage déjà acquis (0 à 2) : ce sont eux qui ouvrent les
+    /// emplacements de bâtiment unique permanent, à raison d'un par Ascension effectuée chacun. La
+    /// valeur par défaut 1 donne donc « 1 emplacement par Ascension ».
+    /// </param>
     private static (WorldState state, City city, Civilization civ, AscensionController ascension, GodState godState) CreateTestSetup(
-        int godPoints = 100, int ascensionsPerformed = 1, int? prestigePoints = null)
+        int godPoints = 100, int ascensionsPerformed = 1, int? prestigePoints = null, int legacyRanks = 1)
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];
@@ -35,6 +43,8 @@ public class AscensionControllerTests
 
         var godState = new GodState { GodPoints = godPoints };
         godState.AscensionState.AscensionsPerformed = ascensionsPerformed;
+        if (legacyRanks >= 1) godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.DivineLegacy);
+        if (legacyRanks >= 2) godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.EternalLegacy);
         if (prestigePoints.HasValue)
             godState.PrestigeState = new PrestigeState(state) { PrestigePoints = prestigePoints.Value };
 
@@ -87,6 +97,64 @@ public class AscensionControllerTests
 
         Assert.Equal(3, ascension.PermanentUniqueBuildingSlots);
         Assert.Equal(3, godState.AscensionState.AscensionsPerformed);
+    }
+
+    [Fact]
+    public void PermanentUniqueBuildingSlots_WithoutLegacyPowers_IsZeroWhateverTheAscensionCount()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 5, legacyRanks: 0);
+
+        Assert.Equal(0, ascension.PermanentUniqueBuildingSlots);
+    }
+
+    [Fact]
+    public void PermanentUniqueBuildingSlots_EternalLegacy_DoublesSlotsPerAscension()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 3, legacyRanks: 2);
+
+        Assert.Equal(6, ascension.PermanentUniqueBuildingSlots);
+    }
+
+    [Fact]
+    public void PurchasePower_DivineLegacy_OpensSlotsRetroactivelyForPastAscensions()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 2, legacyRanks: 0);
+        Assert.Equal(0, ascension.PermanentUniqueBuildingSlots);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
+
+        Assert.Equal(2, ascension.PermanentUniqueBuildingSlots);
+        Assert.True(ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom));
+        Assert.True(ascension.SelectPermanentUniqueBuilding(BuildingType.Academy));
+    }
+
+    [Fact]
+    public void PurchasePower_EternalLegacy_RequiresDivineLegacyFirst()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(legacyRanks: 0);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.False(ascension.ArePrerequisitesMet(AscensionPowerId.EternalLegacy));
+        Assert.False(ascension.PurchasePower(AscensionPowerId.EternalLegacy));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EternalLegacy));
+    }
+
+    [Fact]
+    public void ApplyPermanentUniqueBuildingToCivilization_MoreChoicesThanSlots_TrimsExcessAndGrantsOnlyWhatIsUnlocked()
+    {
+        // Sauvegarde antérieure à la colonne Héritage : des bâtiments choisis quand les emplacements
+        // étaient gratuits, mais plus aucun pouvoir pour les autoriser.
+        var (_, _, civ, ascension, godState) = CreateTestSetup(ascensionsPerformed: 2, legacyRanks: 0);
+        godState.AscensionState.PermanentUniqueBuildings.Add(BuildingType.WarRoom);
+        godState.AscensionState.PermanentUniqueBuildings.Add(BuildingType.Academy);
+
+        ascension.ApplyPermanentUniqueBuildingToCivilization();
+
+        Assert.Empty(ascension.PermanentUniqueBuildings);
+        Assert.Empty(civ.UniqueBuildings);
     }
 
     [Fact]
@@ -306,7 +374,7 @@ public class AscensionControllerTests
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100);
 
-        // DivineInventory (colonne 0, coût 6) nécessite HandOfGod (colonne 0, coût 3) déjà débloqué,
+        // DivineInventory (colonne 0, coût 5) nécessite HandOfGod (colonne 0, coût 3) déjà débloqué,
         // même avec largement assez de points divins.
         Assert.False(ascension.CanPurchasePower(AscensionPowerId.DivineInventory));
 
@@ -315,7 +383,7 @@ public class AscensionControllerTests
 
         Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineInventory));
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.Equal(100 - 1 - 3 - 6, godState.GodPoints);
+        Assert.Equal(100 - 1 - 3 - 5, godState.GodPoints);
     }
 
     /// <summary>Pose un Dominion sur un hex de l'île de test — Marche de Dieu ne cible que les hexs sous Dominion de niveau 2+.</summary>
@@ -327,8 +395,27 @@ public class AscensionControllerTests
         return (hex, dominion);
     }
 
+    /// <summary>
+    /// Barème commun aux trois pouvoirs ciblés : gratuit, 1, 2, puis doublement à chaque usage.
+    /// Le plafond du décalage évite un débordement d'int sur les nombres d'usages absurdes.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(2, 2)]
+    [InlineData(3, 4)]
+    [InlineData(4, 8)]
+    [InlineData(5, 16)]
+    [InlineData(10, 512)]
+    [InlineData(31, 1 << 30)]
+    [InlineData(60, 1 << 30)]
+    public void TargetedPowerCost_DoublesAfterTwo(int uses, int expectedCost)
+    {
+        Assert.Equal(expectedCost, AscensionController.TargetedPowerCost(uses));
+    }
+
     [Fact]
-    public void GetWalkOfGodCost_FirstUseIsFreeThenEscalatesByOne()
+    public void GetWalkOfGodCost_FirstUseIsFreeThenDoubles()
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockWalkOfGod(ascension);
@@ -347,6 +434,12 @@ public class AscensionControllerTests
         Assert.Equal(3, dominion.Level);
 
         Assert.Equal(2, ascension.GetWalkOfGodCost());
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(2, dominion.Level);
+
+        // Passé 2, le coût double à chaque marche suivante : 4, 8, 16...
+        Assert.Equal(4, ascension.GetWalkOfGodCost());
     }
 
     /// <summary>
@@ -594,14 +687,14 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void GetWalkOfGodCost_ReadsDirectlyFromWalkOfGodUsesSinceLastPrestige()
+    public void GetWalkOfGodCost_DoublesFromWalkOfGodUsesSinceLastPrestige()
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockWalkOfGod(ascension);
 
         godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige = 4;
 
-        Assert.Equal(4, ascension.GetWalkOfGodCost());
+        Assert.Equal(8, ascension.GetWalkOfGodCost());
     }
 
     [Fact]
@@ -641,16 +734,21 @@ public class AscensionControllerTests
         // Voisin vide (3 points) : Dominion niveau 3.
         Assert.Equal(3, state.GetFeaturesAt(west).OfType<Dominion>().Single().Level);
 
-        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+        // Première manifestation depuis le dernier prestige : gratuite.
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(1, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
     }
 
     [Fact]
-    public void GetPresenceOfGodCost_EscalatesByOneOnEachUse()
+    public void GetPresenceOfGodCost_FirstUseIsFreeThenDoubles()
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockPresenceOfGod(ascension);
         var hex = ascension.GetPresenceOfGodTargetHexes()[0];
+
+        Assert.Equal(0, ascension.GetPresenceOfGodCost());
+        Assert.True(ascension.ApplyPresenceOfGod(hex));
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
 
         Assert.Equal(1, ascension.GetPresenceOfGodCost());
         Assert.True(ascension.ApplyPresenceOfGod(hex));
@@ -660,7 +758,8 @@ public class AscensionControllerTests
         Assert.True(ascension.ApplyPresenceOfGod(hex));
         Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
 
-        Assert.Equal(3, ascension.GetPresenceOfGodCost());
+        // Passé 2, le coût double à chaque manifestation suivante : 4, 8, 16...
+        Assert.Equal(4, ascension.GetPresenceOfGodCost());
     }
 
     [Fact]
@@ -668,24 +767,27 @@ public class AscensionControllerTests
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
         UnlockPresenceOfGod(ascension);
+        // La première manifestation étant gratuite, il faut en avoir déjà consommé une pour que
+        // l'absence de points de prestige bloque le pouvoir.
+        godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige = 1;
         var hex = ascension.GetPresenceOfGodTargetHexes()[0];
 
         Assert.False(ascension.ApplyPresenceOfGod(hex));
 
         Assert.Equal(0, godState.PrestigeState!.PrestigePoints);
-        Assert.Equal(0, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
+        Assert.Equal(1, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
         Assert.Empty(state.Features.OfType<Dominion>());
     }
 
     [Fact]
-    public void GetPresenceOfGodCost_ReadsDirectlyFromPresenceOfGodUsesSinceLastPrestige()
+    public void GetPresenceOfGodCost_DoublesFromPresenceOfGodUsesSinceLastPrestige()
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockPresenceOfGod(ascension);
 
         godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige = 4;
 
-        Assert.Equal(5, ascension.GetPresenceOfGodCost());
+        Assert.Equal(8, ascension.GetPresenceOfGodCost());
     }
 
     [Fact]
@@ -716,5 +818,470 @@ public class AscensionControllerTests
 
         // L'eau est un hex valide : le Dominion y naît comme sur la terre (prélude à Marche de Dieu).
         Assert.Equal(5, state.GetFeaturesAt(west).OfType<Dominion>().Single().Level);
+    }
+
+    [Fact]
+    public void GetModifiers_ArmOfGod_GrantsSoldierAttackDamageBonus()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.SOLDIER_ATTACK_DAMAGE);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+
+        var modifier = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.SOLDIER_ATTACK_DAMAGE));
+        Assert.Equal(Modifier.EType.ADDITIVE, modifier.Type);
+        Assert.Equal(1, modifier.Value);
+    }
+
+    [Fact]
+    public void GetModifiers_WrathOfGod_GrantsAttackSpeedBonus()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.ATTACK_SPEED);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.WrathOfGod));
+
+        var modifier = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.ATTACK_SPEED));
+        Assert.Equal(Modifier.EType.ADDITIVE, modifier.Type);
+        Assert.Equal(1.0, modifier.Value);
+    }
+
+    [Fact]
+    public void WrathOfGod_RequiresFistOfGodFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.WrathOfGod));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.WrathOfGod));
+    }
+
+    [Fact]
+    public void GetModifiers_HornOfPlenty_DoublesEveryAutomaticHarvestAndGrantsBasicResources()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.HARVEST_PRODUCTION_BONUS);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.HornOfPlenty));
+
+        // Sans SubCategory : le doublement vaut pour tous les bâtiments récolteurs.
+        var doubling = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.HARVEST_PRODUCTION_BONUS));
+        Assert.Equal("", doubling.SubCategory);
+        Assert.Equal(Modifier.EType.ADDITIVE, doubling.Type);
+        Assert.Equal(100, doubling.Value);
+
+        var passive = ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.PASSIVE_RESOURCE_GENERATION)
+            .ToList();
+        Assert.Equal(ResourceUtils.BasicResources.Count, passive.Count);
+        foreach (var resource in ResourceUtils.BasicResources)
+            Assert.Contains(passive, m => m.SubCategory == resource.ToString()
+                && m.Value == AscensionController.HornOfPlentyPassiveGenerationPerCycle);
+    }
+
+    [Fact]
+    public void HornOfPlenty_RequiresDivineInventoryFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.HornOfPlenty));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.HornOfPlenty));
+    }
+
+    // ── Poing de Dieu ────────────────────────────────────────────────────────
+
+    private static void UnlockFistOfGod(AscensionController ascension)
+    {
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
+    }
+
+    private static readonly HexCoord Center = new(0, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+
+    /// <summary>Ville ennemie posée sur un vertex adjacent au hex central, avec son Hôtel de ville.</summary>
+    private static City AddEnemyCityAdjacentToCenter(WorldState state, int townHallLevel = 2, int soldiers = 0, int defense = 0)
+    {
+        var enemyCiv = new Civilization { Index = 1 };
+        var vertex = Vertex.Create(
+            Center,
+            new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer),
+            new HexCoord(1, -1, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer));
+        var city = new City(vertex) { CivilizationIndex = enemyCiv.Index, Soldiers = soldiers, CurrentDefense = defense };
+        city.AddBuilding(new TownHall { Level = townHallLevel });
+        enemyCiv.AddCity(city);
+        state.Civilizations.Add(enemyCiv);
+        return city;
+    }
+
+    [Fact]
+    public void FistOfGod_RequiresArmOfGodFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.FistOfGod));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.FistOfGod));
+    }
+
+    [Fact]
+    public void GetFistOfGodCost_FirstUseIsFreeThenDoubles()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        Assert.Equal(0, ascension.GetFistOfGodCost());
+        Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+
+        Assert.Equal(1, ascension.GetFistOfGodCost());
+        Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+
+        Assert.Equal(2, ascension.GetFistOfGodCost());
+        Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+
+        // Passé 2, le coût double à chaque coup suivant : 4, 8, 16...
+        Assert.Equal(4, ascension.GetFistOfGodCost());
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_DamagesMonsterOnTargetedHex()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        // Rats niveau 30 : 5 + 5 × 29 = 150 PV, sans armure.
+        var rats = new Rats(Center, level: 30);
+        state.AddFeature(rats);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(150 - AscensionController.FistOfGodDamage, rats.Hp);
+        Assert.Contains(rats, state.Features);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_KillsAndRemovesMonsterItBringsToZero()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        var rats = new Rats(Center);
+        state.AddFeature(rats);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.DoesNotContain(rats, state.Features);
+        Assert.Equal(state.PlayerCivilization.Index, rats.KilledByCivilizationIndex);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_SparesFriendlyMonsters()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        // L'Aventurier (AttacksOtherMonsters) est un allié : jamais ciblé, ici comme ailleurs.
+        var adventurer = new Adventurer(Center);
+        state.AddFeature(adventurer);
+        int hpBefore = adventurer.Hp;
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(hpBefore, adventurer.Hp);
+        Assert.Contains(adventurer, state.Features);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_CascadesDamageOnAdjacentEnemyCity()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        // 100 dégâts : 60 soldats, puis 38 de défense, puis les 2 restants sur l'Hôtel de ville.
+        var enemyCity = AddEnemyCityAdjacentToCenter(state, townHallLevel: 4, soldiers: 60, defense: 38);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(0, enemyCity.Soldiers);
+        Assert.Equal(0, enemyCity.CurrentDefense);
+        Assert.Equal(2, enemyCity.Buildings.OfType<TownHall>().Single().Level);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_LeavesEnemyCityStandingWhenDamageIsAbsorbed()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        var enemyCity = AddEnemyCityAdjacentToCenter(state, townHallLevel: 3, soldiers: 200, defense: 50);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(100, enemyCity.Soldiers);
+        Assert.Equal(50, enemyCity.CurrentDefense);
+        Assert.Equal(3, enemyCity.Buildings.OfType<TownHall>().Single().Level);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_DestroysEnemyCityThatLosesItsTownHall()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        var cityBuilder = new CityBuilderController();
+        cityBuilder.Initialize(state, clock: null, new GamePRNG(1));
+        ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), godState, cityBuilder);
+        UnlockFistOfGod(ascension);
+
+        var enemyCity = AddEnemyCityAdjacentToCenter(state, townHallLevel: 2);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.DoesNotContain(enemyCity, state.Civilizations[1].Cities);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_NeverDamagesPlayerCities()
+    {
+        var (state, city, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        city.AddBuilding(new TownHall { Level = 3 });
+        city.Soldiers = 5;
+        city.CurrentDefense = 7;
+
+        // La ville du joueur est elle aussi adjacente au hex central.
+        Assert.True(city.Position.IsAdjacentTo(Center));
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(5, city.Soldiers);
+        Assert.Equal(7, city.CurrentDefense);
+        Assert.Equal(3, city.Buildings.OfType<TownHall>().Single().Level);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_InsufficientPrestigePoints_FailsAndLeavesStateUntouched()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        UnlockFistOfGod(ascension);
+        // Premier coup gratuit : il faut en avoir déjà porté un pour que le manque de points bloque.
+        godState.PrestigeState!.FistOfGodUsesSinceLastPrestige = 1;
+
+        var rats = new Rats(Center);
+        state.AddFeature(rats);
+
+        Assert.False(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(rats.MaxHp, rats.Hp);
+        Assert.Equal(1, godState.PrestigeState!.FistOfGodUsesSinceLastPrestige);
+    }
+
+    [Fact]
+    public void GetFistOfGodTargetHexes_CoversTheWholeViewedLayer()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        var targets = ascension.GetFistOfGodTargetHexes();
+
+        Assert.Equal(state.GetMapForZ(state.CurrentViewedLayer)!.Tiles.Count, targets.Count);
+        Assert.Contains(Center, targets);
+    }
+
+    // ── Mémoire de Dieu ──────────────────────────────────────────────────────
+
+    private static void UnlockMemoryOfGod(AscensionController ascension)
+    {
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+    }
+
+    [Fact]
+    public void MemoryOfGod_RequiresEyeOfGodFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.MemoryOfGod));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.MemoryOfGod));
+    }
+
+    [Fact]
+    public void GetModifiers_MemoryOfGod_HalvesRepeatableResearchScaling()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+
+        Assert.DoesNotContain(ascension.GetModifiers(),
+            m => m.Category == Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+
+        var modifier = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION));
+        Assert.Equal(Modifier.EType.ADDITIVE, modifier.Type);
+        Assert.Equal(0.5, modifier.Value);
+    }
+
+    /// <summary>
+    /// L'achat du pouvoir rend immédiatement les paliers perdus : les recherches répétables remontent
+    /// au meilleur rang jamais atteint, modificateurs cumulés compris.
+    /// </summary>
+    [Fact]
+    public void PurchaseMemoryOfGod_RestoresRepeatableResearchToItsBestRankEverReached()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        godState.AscensionState.BestRepeatCounts[TechnologyId.MasterHarvest] = 3;
+
+        UnlockMemoryOfGod(ascension);
+
+        var tree = godState.PrestigeState!.TechnologyTree;
+        Assert.Equal(3, tree.RepeatCounts[TechnologyId.MasterHarvest]);
+        Assert.Contains(TechnologyId.MasterHarvest, tree.CompletedTechnologies);
+        // MasterHarvest : +5% HARVEST_SPEED par complétion, donc 3 rangs = +15%.
+        Assert.Equal(0.15, tree.ApplyModifiers(Modifier.ECategory.HARVEST_SPEED, "", 0.0), 3);
+    }
+
+    /// <summary>Un palier déjà atteint dans le cycle en cours ne doit jamais être rabaissé par la restauration.</summary>
+    [Fact]
+    public void PurchaseMemoryOfGod_NeverLowersARankAlreadyHigherThanTheRecord()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
+        godState.AscensionState.BestRepeatCounts[TechnologyId.MasterHarvest] = 1;
+        var tree = godState.PrestigeState!.TechnologyTree;
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+
+        UnlockMemoryOfGod(ascension);
+
+        Assert.Equal(3, tree.RepeatCounts[TechnologyId.MasterHarvest]);
+    }
+
+    /// <summary>
+    /// Le relevé du meilleur palier a lieu à chaque Ascension, pouvoir acquis ou non — sans quoi
+    /// Mémoire de Dieu, achetée plus tard, ne saurait rien des cycles déjà joués.
+    /// </summary>
+    [Fact]
+    public void PerformAscension_WithoutMemoryOfGod_ResetsRepeatableResearchButRecordsItsBestRank()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        var tree = controller.CurrentMainState!.PrestigeState!.TechnologyTree;
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+
+        controller.PerformAscension();
+
+        var newTree = controller.CurrentMainState.PrestigeState!.TechnologyTree;
+        Assert.DoesNotContain(TechnologyId.MasterHarvest, newTree.CompletedTechnologies);
+        Assert.Equal(2, godState.AscensionState.BestRepeatCounts[TechnologyId.MasterHarvest]);
+    }
+
+    [Fact]
+    public void PerformAscension_WithMemoryOfGod_KeepsRepeatableResearchAtItsBestRank()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        var ascension = controller.AscensionController;
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+
+        var tree = controller.CurrentMainState!.PrestigeState!.TechnologyTree;
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+        tree.CompleteResearch(TechnologyId.MasterHarvest);
+
+        controller.PerformAscension();
+
+        var newTree = controller.CurrentMainState.PrestigeState!.TechnologyTree;
+        Assert.NotSame(tree, newTree);
+        Assert.Equal(2, newTree.RepeatCounts[TechnologyId.MasterHarvest]);
+        Assert.Contains(TechnologyId.MasterHarvest, newTree.CompletedTechnologies);
+        Assert.Equal(0.10, newTree.ApplyModifiers(Modifier.ECategory.HARVEST_SPEED, "", 0.0), 3);
+        Assert.Equal(2, godState.AscensionState.BestRepeatCounts[TechnologyId.MasterHarvest]);
+    }
+
+    // ── Ascension Prestigieuse ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Le pouvoir est acheté juste après une Ascension : sa dotation est versée sur-le-champ, sinon
+    /// il ne servirait à rien avant la suivante.
+    /// </summary>
+    [Fact]
+    public void PurchasePrestigiousAscension_GrantsOnePrestigePointPerDivineEssenceEverEarned()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 5);
+        godState.TotalDivineEssenceEarned = 7;
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
+
+        Assert.Equal(12, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(7, godState.PrestigeState.TotalPrestigePointsEarned);
+    }
+
+    [Fact]
+    public void PerformAscension_WithPrestigiousAscension_StartsTheNewCycleWithPrestigePoints()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        godState.TotalDivineEssenceEarned = 9;
+        var ascension = controller.AscensionController;
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
+
+        controller.PerformAscension();
+
+        // Le PrestigeState du cycle qui commence est neuf : ces 9 points ne peuvent venir que de la
+        // dotation, pas de celle déjà versée au cycle précédent à l'achat.
+        Assert.Equal(9, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
+        Assert.Equal(9, controller.CurrentMainState.PrestigeState.TotalPrestigePointsEarned);
+    }
+
+    [Fact]
+    public void PerformAscension_WithoutPrestigiousAscension_StartsTheNewCycleAtZero()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        godState.TotalDivineEssenceEarned = 9;
+
+        controller.PerformAscension();
+
+        Assert.Equal(0, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
+    }
+
+    /// <summary>Partie complète prête à ascensionner (essence divine et points divins fournis).</summary>
+    private static MainGameController CreateAscendableGame(out GodState godState)
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = AscensionController.MinDivineEssenceForAscension;
+        return controller;
     }
 }

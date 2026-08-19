@@ -5,11 +5,13 @@ using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Races;
 
@@ -17,8 +19,9 @@ namespace SettlersOfIdlestan.Controller.Ascension;
 
 /// <summary>
 /// Gère les pouvoirs divins (GodState.AscensionState) : Foi est le pouvoir fondateur (toujours
-/// disponible), qui déverrouille les 4 colonnes indépendantes (Main/Oeil/Marche/Bras de Dieu) ;
-/// effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu, Foi) et l'action ciblée Marche de Dieu.
+/// disponible), qui déverrouille les colonnes indépendantes (Main/Oeil/Marche/Bras de Dieu,
+/// Ascension Prestigieuse, Héritage) ; effets passifs (Main de Dieu, Oeil de Dieu, Bras de Dieu, Mémoire de
+/// Dieu, Foi) et l'action ciblée Marche de Dieu.
 /// Gère aussi l'Ascension elle-même (voir <see cref="PerformAscension"/>) : convertit l'essence
 /// divine accumulée (DivineBonesController) en points divins et repart de zéro (île + prestige).
 /// </summary>
@@ -26,6 +29,12 @@ public class AscensionController : IModifierProvider
 {
     /// <summary>Nombre minimum d'essences divines requis pour pouvoir déclencher une Ascension.</summary>
     public const int MinDivineEssenceForAscension = 4;
+
+    /// <summary>
+    /// Manne versée par Corne d'Abondance, pour chaque ressource de base et par cycle de génération
+    /// passive (HarvestController.PassiveResourceGenerationIntervalTicks, soit 1 s).
+    /// </summary>
+    public const int HornOfPlentyPassiveGenerationPerCycle = 20;
 
     /// <summary>
     /// Bâtiments uniques toujours choisissables comme bâtiment permanent d'Ascension (voir
@@ -149,8 +158,92 @@ public class AscensionController : IModifierProvider
         var def = AscensionPowerDefinitions.Get(id)!;
         _godState!.GodPoints -= def.GodPointCost;
         _ascensionState!.UnlockedPowers.Add(id);
+
+        // Mémoire de Dieu rend immédiatement au joueur ce que les Ascensions passées lui avaient
+        // repris : ses recherches répétables remontent au meilleur palier jamais atteint.
+        if (id == AscensionPowerId.MemoryOfGod)
+            RestoreRepeatableResearchToBest();
+
+        // Ascension Prestigieuse est achetée juste après une Ascension, cycle où elle n'aurait
+        // sinon rien donné : elle verse sa dotation tout de suite plutôt que de la faire attendre
+        // jusqu'à l'Ascension suivante.
+        if (id == AscensionPowerId.PrestigiousAscension)
+            GrantPrestigiousAscensionPoints(_godState!);
+
         OnModifiersChanged?.Invoke();
         return true;
+    }
+
+    /// <summary>
+    /// Points de prestige versés par Ascension Prestigieuse : 1 par essence divine gagnée depuis le
+    /// tout début de la partie (GodState.TotalDivineEssenceEarned, jamais remis à zéro). Versés au
+    /// PrestigeState courant — celui du nouveau cycle quand l'appel vient de
+    /// <see cref="PerformAscension(MainGameState, IslandParameters, RaceId)"/>. Ils comptent comme
+    /// n'importe quel gain de prestige, y compris pour le palier d'île (PrestigeState.Tier).
+    /// </summary>
+    private static void GrantPrestigiousAscensionPoints(GodState godState)
+    {
+        var prestigeState = godState.PrestigeState;
+        if (prestigeState == null) return;
+
+        int points = godState.TotalDivineEssenceEarned;
+        if (points <= 0) return;
+
+        prestigeState.PrestigePoints += points;
+        prestigeState.TotalPrestigePointsEarned += points;
+    }
+
+    /// <summary>
+    /// Enregistre dans AscensionState.BestRepeatCounts le meilleur palier atteint par chaque
+    /// recherche répétable de <paramref name="tree"/>. Appelé à chaque Ascension, avant que le
+    /// PrestigeState (et donc l'arbre de recherche) ne soit remplacé — y compris quand Mémoire de
+    /// Dieu n'est pas encore acquise, sans quoi le pouvoir ne saurait rien des cycles précédents.
+    /// </summary>
+    private static void RecordBestRepeatCounts(AscensionState ascensionState, TechnologyTree tree)
+    {
+        foreach (var (techId, count) in tree.RepeatCounts)
+        {
+            if (TechnologyDefinitions.Get(techId)?.Repeatable != true) continue;
+            if (!ascensionState.BestRepeatCounts.TryGetValue(techId, out int best) || count > best)
+                ascensionState.BestRepeatCounts[techId] = count;
+        }
+    }
+
+    /// <summary>
+    /// Ramène chaque recherche répétable de l'arbre courant au meilleur palier jamais atteint
+    /// (AscensionState.BestRepeatCounts) : la recherche est marquée complétée et ses modificateurs
+    /// sont recumulés d'autant. Appelé à l'achat de Mémoire de Dieu, puis au début de chaque cycle
+    /// d'Ascension tant que le pouvoir est acquis (voir <see cref="PerformAscension"/>) — c'est ce
+    /// qui fait que les recherches répétables ne sont plus remises à zéro par l'Ascension.
+    ///
+    /// <para>Une recherche ainsi restaurée compte comme complétée sans que ses prérequis le soient :
+    /// les recherches qui en dépendent redeviennent donc accessibles dès le début du cycle, leur
+    /// coût en points de recherche restant le seul verrou.</para>
+    /// </summary>
+    private void RestoreRepeatableResearchToBest()
+    {
+        if (_ascensionState == null || _godState?.PrestigeState == null) return;
+        RestoreRepeatableResearchToBest(_ascensionState, _godState.PrestigeState.TechnologyTree);
+    }
+
+    private static void RestoreRepeatableResearchToBest(AscensionState ascensionState, TechnologyTree tree)
+    {
+        bool changed = false;
+        foreach (var (techId, best) in ascensionState.BestRepeatCounts)
+        {
+            if (best <= 0 || TechnologyDefinitions.Get(techId)?.Repeatable != true) continue;
+
+            int current = tree.RepeatCounts.TryGetValue(techId, out var c) ? c : 0;
+            if (current >= best) continue;
+
+            tree.RepeatCounts[techId] = best;
+            if (!tree.CompletedTechnologies.Contains(techId))
+                tree.CompletedTechnologies.Add(techId);
+            changed = true;
+        }
+
+        if (changed)
+            tree.RebuildModifiers();
     }
 
     /// <summary>Race jouée pendant le cycle d'Ascension en cours (Humains par défaut).</summary>
@@ -161,11 +254,20 @@ public class AscensionController : IModifierProvider
         (IReadOnlyCollection<RaceId>?)_ascensionState?.AscendedRaces ?? Array.Empty<RaceId>();
 
     /// <summary>
+    /// Colonnes de pouvoirs divins qui conditionnent le déblocage des races : les 4 premières
+    /// (Main/Oeil/Marche/Bras de Dieu). Volontairement figé plutôt qu'aligné sur
+    /// AscensionPowerDefinitions.ColumnCount : une colonne ajoutée après coup reverrouillerait le
+    /// choix de race des joueurs qui l'ont déjà acquis.
+    /// </summary>
+    private const int RaceUnlockColumnCount = 4;
+
+    /// <summary>
     /// Vrai si le choix de race est débloqué : toute la première rangée de pouvoirs divins achetée,
-    /// c'est-à-dire le premier pouvoir de chacune des 4 colonnes (Main/Oeil/Marche/Bras de Dieu).
+    /// c'est-à-dire le premier pouvoir de chacune des <see cref="RaceUnlockColumnCount"/> colonnes
+    /// d'origine (Main/Oeil/Marche/Bras de Dieu).
     /// </summary>
     public bool IsRaceSelectionUnlocked =>
-        Enumerable.Range(0, 4).All(col =>
+        Enumerable.Range(0, RaceUnlockColumnCount).All(col =>
         {
             var column = AscensionPowerDefinitions.GetColumn(col);
             return column.Count > 0 && IsPowerUnlocked(column[0].Id);
@@ -173,11 +275,11 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Vrai si les races avancées (Géants, Garudas, Sirènes, Elfes noirs) sont débloquées : toute la
-    /// seconde rangée de pouvoirs divins achetée (le deuxième pouvoir de chaque colonne qui en possède un).
+    /// seconde rangée de pouvoirs divins achetée (le deuxième pouvoir de chacune de ces colonnes).
     /// </summary>
     public bool AreAdvancedRacesUnlocked =>
         IsRaceSelectionUnlocked &&
-        Enumerable.Range(0, 4).All(col =>
+        Enumerable.Range(0, RaceUnlockColumnCount).All(col =>
         {
             var column = AscensionPowerDefinitions.GetColumn(col);
             return column.Count < 2 || IsPowerUnlocked(column[1].Id);
@@ -206,10 +308,22 @@ public class AscensionController : IModifierProvider
         (IReadOnlyCollection<BuildingType>?)_ascensionState?.PermanentUniqueBuildings ?? Array.Empty<BuildingType>();
 
     /// <summary>
-    /// Nombre d'emplacements de bâtiments uniques permanents disponibles : 1 par Ascension déjà
-    /// effectuée (voir AscensionState.AscensionsPerformed) — 0 tant qu'aucune Ascension n'a eu lieu.
+    /// Nombre d'emplacements de bâtiments uniques permanents accordés par chaque Ascension déjà
+    /// effectuée : 0 sans pouvoir divin, 1 avec Héritage Divin, 2 avec Héritage Éternel. C'est la
+    /// colonne Héritage qui ouvre entièrement le système — aucun emplacement n'est gratuit.
     /// </summary>
-    public int PermanentUniqueBuildingSlots => _ascensionState?.AscensionsPerformed ?? 0;
+    private int PermanentUniqueBuildingSlotsPerAscension =>
+        (IsPowerUnlocked(AscensionPowerId.DivineLegacy) ? 1 : 0)
+        + (IsPowerUnlocked(AscensionPowerId.EternalLegacy) ? 1 : 0);
+
+    /// <summary>
+    /// Nombre d'emplacements de bâtiments uniques permanents disponibles :
+    /// <see cref="PermanentUniqueBuildingSlotsPerAscension"/> par Ascension déjà effectuée (voir
+    /// AscensionState.AscensionsPerformed). Les deux pouvoirs de la colonne Héritage sont donc
+    /// rétroactifs : ils comptent les Ascensions déjà accomplies, pas seulement les suivantes.
+    /// </summary>
+    public int PermanentUniqueBuildingSlots =>
+        (_ascensionState?.AscensionsPerformed ?? 0) * PermanentUniqueBuildingSlotsPerAscension;
 
     /// <summary>
     /// Choisit un bâtiment unique permanent supplémentaire accordé par l'Ascension, tant qu'un
@@ -240,14 +354,54 @@ public class AscensionController : IModifierProvider
     public void ApplyPermanentUniqueBuildingToCivilization()
     {
         if (_state == null) return;
+        EnforcePermanentUniqueBuildingSlots();
         _state.PlayerCivilization.SetAscensionGrantedUniqueBuildings(PermanentUniqueBuildings);
+    }
+
+    /// <summary>
+    /// Ramène le nombre de bâtiments choisis au nombre d'emplacements réellement disponibles. Sans
+    /// cela, une sauvegarde antérieure à la colonne Héritage — où chaque Ascension donnait un
+    /// emplacement gratuitement — continuerait d'accorder ses bâtiments alors que le pouvoir qui les
+    /// autorise n'a pas été acheté. Les choix retirés ne coûtent rien à refaire : la sélection est
+    /// gratuite et réversible (voir <see cref="DeselectPermanentUniqueBuilding"/>).
+    /// </summary>
+    private void EnforcePermanentUniqueBuildingSlots()
+    {
+        var chosen = _ascensionState?.PermanentUniqueBuildings;
+        if (chosen == null) return;
+
+        int slots = PermanentUniqueBuildingSlots;
+        while (chosen.Count > slots)
+            chosen.Remove(chosen.Last());
     }
 
     public bool CanAscend(GodState godState) => godState.DivineEssence >= MinDivineEssenceForAscension;
 
     /// <summary>
-    /// Convertit toute l'essence divine accumulée en points divins (1 pour 1, cross-prestige) —
-    /// remettant DivineEssence à zéro, ce qui réinitialise le coût de Purification des Os Divins
+    /// Niveau de la Nécropole bâtie sur l'île courante (0 s'il n'y en a pas) — chaque niveau majore
+    /// de 15% les points divins de l'Ascension (voir <see cref="GetGodPointsGain"/>).
+    /// </summary>
+    public int GetNecropolisLevel() => _state?.Features.OfType<Necropolis>().FirstOrDefault()?.Level ?? 0;
+
+    /// <summary>
+    /// Bonus de points divins accordé par la Nécropole de l'île courante (0.15 par niveau, 0 sans
+    /// Nécropole) — voir <see cref="GetGodPointsGain"/>.
+    /// </summary>
+    public double GetNecropolisAscensionBonus() => Necropolis.GetAscensionGainBonusForLevel(GetNecropolisLevel());
+
+    /// <summary>
+    /// Points divins qu'une Ascension immédiate rapporterait : 1 par essence divine détenue, majorés
+    /// de 15% par niveau de la Nécropole bâtie sur l'île courante (arrondi à l'entier inférieur, voir
+    /// <see cref="Necropolis"/>). Utilisé par <see cref="PerformAscension"/> et par l'écran Ascension,
+    /// qui doivent afficher et créditer exactement le même nombre.
+    /// </summary>
+    public int GetGodPointsGain(GodState godState)
+        => (int)Math.Floor(godState.DivineEssence * Necropolis.GetAscensionGainMultiplierForLevel(GetNecropolisLevel()));
+
+    /// <summary>
+    /// Convertit toute l'essence divine accumulée en points divins (1 pour 1, majoré par la Nécropole
+    /// de l'île courante, voir <see cref="GetGodPointsGain"/>) — puis remet DivineEssence à zéro, ce
+    /// qui réinitialise le coût de Purification des Os Divins
     /// (voir DivineBones.EssenceAlreadyCollected) — puis efface la progression de la partie en
     /// cours : le PrestigeState (recherches, points de prestige, niveau de corruption,
     /// historique...) est entièrement remplacé par un nouveau, câblé sur une toute nouvelle
@@ -271,9 +425,11 @@ public class AscensionController : IModifierProvider
         if (!GetSelectableRaces().Contains(chosenRace))
             throw new InvalidOperationException($"Race {chosenRace} is not selectable.");
 
-        int essenceGained = godState.DivineEssence;
-        godState.GodPoints += essenceGained;
-        godState.TotalGodPointsEarned += essenceGained;
+        // La Nécropole de l'île courante majore la conversion (+15% par niveau) : elle doit donc être
+        // lue avant que l'île ne soit remplacée plus bas.
+        int godPointsGained = GetGodPointsGain(godState);
+        godState.GodPoints += godPointsGained;
+        godState.TotalGodPointsEarned += godPointsGained;
         godState.DivineEssence = 0;
         godState.AscensionState.AscensionsPerformed++;
 
@@ -283,6 +439,11 @@ public class AscensionController : IModifierProvider
         godState.AscensionState.SelectedRace = chosenRace;
 
         RecordAscensionCycleStats(mainGameState, godState);
+
+        // Meilleurs paliers de recherches répétables du cycle qui s'achève : à relever avant que le
+        // PrestigeState ne soit remplacé, c'est la mémoire sur laquelle s'appuie Mémoire de Dieu.
+        if (godState.PrestigeState != null)
+            RecordBestRepeatCounts(godState.AscensionState, godState.PrestigeState.TechnologyTree);
 
         var generator = new IslandMapGenerator(mainGameState.WorldPRNG);
         var worldState = generator.GenerateWorldState(
@@ -294,6 +455,16 @@ public class AscensionController : IModifierProvider
 
         godState.PrestigeState = new PrestigeState(worldState);
         GrantFreePrestigeVertices(godState.PrestigeState, chosenRace);
+
+        // Ascension Prestigieuse : le nouveau cycle ne repart plus la bourse vide, mais avec 1 point
+        // de prestige par essence divine jamais gagnée.
+        if (IsPowerUnlocked(AscensionPowerId.PrestigiousAscension))
+            GrantPrestigiousAscensionPoints(godState);
+
+        // Mémoire de Dieu : les recherches répétables ne sont pas remises à zéro par l'Ascension —
+        // le nouvel arbre repart directement au meilleur palier jamais atteint.
+        if (IsPowerUnlocked(AscensionPowerId.MemoryOfGod))
+            RestoreRepeatableResearchToBest(godState.AscensionState, godState.PrestigeState.TechnologyTree);
 
         godState.AscensionState.CycleStartTick = mainGameState.Clock.CurrentTick;
         godState.AscensionState.CycleStartResearchCompleted = mainGameState.GameRecord.TotalResearchCompleted;
@@ -370,6 +541,25 @@ public class AscensionController : IModifierProvider
             yield return new Modifier(Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER, Modifier.EType.ADDITIVE, 10.0);
 
         if (IsPowerUnlocked(AscensionPowerId.ArmOfGod))
+            yield return new Modifier(Modifier.ECategory.SOLDIER_ATTACK_DAMAGE, Modifier.EType.ADDITIVE, 1);
+
+        if (IsPowerUnlocked(AscensionPowerId.MemoryOfGod))
+            yield return new Modifier(Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION, Modifier.EType.ADDITIVE, 0.5);
+
+        if (IsPowerUnlocked(AscensionPowerId.HornOfPlenty))
+        {
+            // +100% de rendement sans SubCategory : toute récolte automatique, quel que soit le
+            // bâtiment, produit au moins double. Le bonus s'additionne à ceux des recherches et des
+            // bâtiments et peut dépasser 100% — au-delà, la partie entière est garantie et seul le
+            // reste est tiré au sort (voir HarvestController.PerformAutomaticProductionHarvests).
+            yield return new Modifier(Modifier.ECategory.HARVEST_PRODUCTION_BONUS, Modifier.EType.ADDITIVE, 100);
+
+            foreach (var resource in ResourceUtils.BasicResources)
+                yield return new Modifier(Modifier.ECategory.PASSIVE_RESOURCE_GENERATION, resource.ToString(),
+                    Modifier.EType.ADDITIVE, HornOfPlentyPassiveGenerationPerCycle);
+        }
+
+        if (IsPowerUnlocked(AscensionPowerId.WrathOfGod))
             yield return new Modifier(Modifier.ECategory.ATTACK_SPEED, Modifier.EType.ADDITIVE, 1.0);
 
         // Bonus/malus de la race jouée pendant ce cycle (voir RaceDefinitions).
@@ -404,16 +594,29 @@ public class AscensionController : IModifierProvider
         _state?.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault(d => d.Level >= WalkOfGodMinDominionLevel);
 
     /// <summary>
+    /// Coût en points de prestige de la prochaine utilisation d'un pouvoir divin ciblé (Marche,
+    /// Présence, Poing de Dieu), calculé depuis le nombre d'usages déjà consommés depuis le dernier
+    /// prestige : le premier usage est <b>gratuit</b>, le deuxième coûte 1, le troisième 2, puis le
+    /// coût <b>double</b> à chaque usage supplémentaire (4, 8, 16...).
+    ///
+    /// <para>Le décalage est plafonné pour ne pas déborder l'int : passé une trentaine d'usages dans
+    /// un même prestige, le coût est de toute façon hors d'atteinte de la cagnotte.</para>
+    /// </summary>
+    public static int TargetedPowerCost(int usesSinceLastPrestige)
+        => usesSinceLastPrestige <= 0 ? 0 : 1 << Math.Min(usesSinceLastPrestige - 1, 30);
+
+    /// <summary>
     /// Coût en points de prestige de la prochaine utilisation de Marche de Dieu : la première
     /// utilisation depuis le dernier prestige est <b>gratuite</b>, la deuxième coûte 1, la troisième 2,
-    /// etc. (voir PrestigeState.WalkOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
+    /// puis le coût double à chaque marche (4, 8, 16... — voir <see cref="TargetedPowerCost"/>,
+    /// PrestigeState.WalkOfGodUsesSinceLastPrestige remis à zéro à chaque prestige).
     ///
     /// <para>La gratuité du premier usage n'est pas qu'un adoucissement : le coût se paie sur la
     /// cagnotte de prestige (PrestigeState.PrestigePoints), qui vaut zéro sur la première île d'un
     /// cycle d'Ascension. Sans elle, le pouvoir serait inutilisable précisément là où une race à
     /// terrain requis en a le plus besoin pour ouvrir son premier emplacement de ville.</para>
     /// </summary>
-    public int GetWalkOfGodCost() => _godState?.PrestigeState?.WalkOfGodUsesSinceLastPrestige ?? 0;
+    public int GetWalkOfGodCost() => TargetedPowerCost(_godState?.PrestigeState?.WalkOfGodUsesSinceLastPrestige ?? 0);
 
     /// <summary>Vrai si Marche de Dieu est débloquée et que le joueur a assez de points de prestige pour son prochain coût.</summary>
     public bool CanUseWalkOfGod()
@@ -528,10 +731,13 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Coût en points de prestige de la prochaine utilisation de Présence de Dieu : même modèle que
-    /// Marche de Dieu (1 à la première utilisation depuis le dernier prestige, 2 à la deuxième, etc.
-    /// — voir PrestigeState.PresenceOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
+    /// Marche de Dieu, première manifestation gratuite depuis le dernier prestige, puis 1, 2, 4, 8...
+    /// — voir PrestigeState.PresenceOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige. La
+    /// gratuité du premier usage a la même raison d'être que pour Marche de Dieu : la cagnotte de
+    /// prestige vaut zéro sur la première île d'un cycle d'Ascension, où repousser la Corruption
+    /// initiale est justement le plus utile.
     /// </summary>
-    public int GetPresenceOfGodCost() => (_godState?.PrestigeState?.PresenceOfGodUsesSinceLastPrestige ?? 0) + 1;
+    public int GetPresenceOfGodCost() => TargetedPowerCost(_godState?.PrestigeState?.PresenceOfGodUsesSinceLastPrestige ?? 0);
 
     /// <summary>Vrai si Présence de Dieu est débloquée et que le joueur a assez de points de prestige pour son prochain coût.</summary>
     public bool CanUsePresenceOfGod()
@@ -586,6 +792,137 @@ public class AscensionController : IModifierProvider
             dominion.Level += points;
         else
             _state.AddFeature(new Dominion(hex, level: points));
+    }
+
+    /// <summary>Dégâts infligés par Poing de Dieu au monstre visé et à chaque ville ennemie adjacente.</summary>
+    public const int FistOfGodDamage = 100;
+
+    /// <summary>
+    /// Hexs ciblables par Poing de Dieu : tous les hexs du calque actuellement affiché. Contrairement
+    /// à Marche de Dieu et Présence de Dieu, le pouvoir n'est pas limité à la surface — les monstres
+    /// des profondeurs sont précisément ceux contre lesquels il vaut le plus.
+    /// </summary>
+    public IReadOnlyList<HexCoord> GetFistOfGodTargetHexes()
+    {
+        if (_state == null) return Array.Empty<HexCoord>();
+
+        var map = _state.GetMapForZ(_state.CurrentViewedLayer);
+        if (map == null) return Array.Empty<HexCoord>();
+
+        return map.Tiles.Values
+            .Select(t => t.Coord)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Coût en points de prestige de la prochaine utilisation de Poing de Dieu : même modèle que
+    /// Marche de Dieu (premier coup gratuit depuis le dernier prestige, puis 1, 2, 4, 8... — voir
+    /// PrestigeState.FistOfGodUsesSinceLastPrestige, remis à zéro à chaque prestige).
+    /// </summary>
+    public int GetFistOfGodCost() => TargetedPowerCost(_godState?.PrestigeState?.FistOfGodUsesSinceLastPrestige ?? 0);
+
+    /// <summary>Vrai si Poing de Dieu est débloqué et que le joueur a assez de points de prestige pour son prochain coût.</summary>
+    public bool CanUseFistOfGod()
+    {
+        var prestigeState = _godState?.PrestigeState;
+        return prestigeState != null && IsPowerUnlocked(AscensionPowerId.FistOfGod) && prestigeState.PrestigePoints >= GetFistOfGodCost();
+    }
+
+    /// <summary>
+    /// Abat le poing divin sur un hex : <see cref="FistOfGodDamage"/> dégâts au monstre qui s'y
+    /// trouve (réduits par son armure, comme toute autre source de dégâts) et autant à chaque ville
+    /// <b>ennemie</b> adjacente — les villes du joueur ne sont jamais touchées, le pouvoir est une
+    /// arme, pas un châtiment. Les monstres « amis » (MonsterFeature.AttacksOtherMonsters, ex.
+    /// l'Aventurier) sont épargnés, comme partout ailleurs.
+    ///
+    /// <para>Les dégâts sur une ville cascadent comme une attaque de monstre (voir
+    /// MonsterController.ApplyMonsterAttack) : soldats, puis défense, puis niveaux d'Hôtel de ville ;
+    /// une ville qui perd son Hôtel de ville est détruite.</para>
+    /// </summary>
+    public bool ApplyFistOfGod(HexCoord hex)
+    {
+        if (_state == null || _prng == null || !CanUseFistOfGod()) return false;
+
+        if (_state.GetMapFor(hex)?.GetTile(hex) == null) return false;
+
+        StrikeMonsterAt(hex);
+        StrikeCitiesAdjacentTo(hex);
+
+        var prestigeState = _godState!.PrestigeState!;
+        prestigeState.PrestigePoints -= GetFistOfGodCost();
+        prestigeState.FistOfGodUsesSinceLastPrestige++;
+
+        return true;
+    }
+
+    private void StrikeMonsterAt(HexCoord hex)
+    {
+        var monster = _state!.GetFeaturesAt(hex).OfType<MonsterFeature>().FirstOrDefault(m => !m.AttacksOtherMonsters);
+        if (monster == null) return;
+
+        monster.Hp -= MonsterFeature.ApplyArmorReduction(FistOfGodDamage, monster.Armor, _prng!);
+        if (monster.Hp > 0) return;
+
+        monster.KilledByCivilizationIndex = _state.PlayerCivilization.Index;
+        _state.RemoveFeature(monster);
+        _state.EventLog.Add(monster.RemovedEventType);
+    }
+
+    private void StrikeCitiesAdjacentTo(HexCoord hex)
+    {
+        int playerIndex = _state!.PlayerCivilization.Index;
+
+        // Liste matérialisée avant de frapper : une ville détruite est retirée de la civilisation
+        // pendant l'itération.
+        var targets = new List<City>();
+        foreach (var civ in _state.Civilizations)
+        {
+            if (civ.Index == playerIndex) continue;
+            foreach (var city in civ.Cities)
+                if (city.Position.IsAdjacentTo(hex))
+                    targets.Add(city);
+        }
+
+        foreach (var city in targets)
+            StrikeCity(city, FistOfGodDamage);
+    }
+
+    /// <summary>
+    /// Cascade de dégâts sur une ville : soldats, défense, niveaux d'Hôtel de ville, puis destruction
+    /// si l'Hôtel de ville a disparu. Même ordre que MonsterController.ApplyMonsterAttack, sans les
+    /// Armures d'Acier : rien ne pare le poing de Dieu.
+    /// </summary>
+    private void StrikeCity(City city, int damage)
+    {
+        var civ = _state!.GetCivilization(city.CivilizationIndex);
+        if (civ == null) return;
+
+        int soldierDmg = Math.Min(damage, city.Soldiers);
+        city.Soldiers -= soldierDmg;
+        damage -= soldierDmg;
+
+        int defenseDmg = Math.Min(damage, city.CurrentDefense);
+        city.CurrentDefense -= defenseDmg;
+        damage -= defenseDmg;
+
+        if (damage > 0)
+        {
+            var townHall = city.Buildings.OfType<TownHall>().FirstOrDefault();
+            if (townHall != null)
+            {
+                townHall.Level -= Math.Min(damage, townHall.Level);
+                if (townHall.Level <= 0)
+                {
+                    city.RemoveBuilding(townHall);
+                    city.InvalidateLevelCache();
+                }
+                BuildingController.RecalculateStorageCapacity(civ);
+                civ.TrimResourcesToMax();
+            }
+        }
+
+        if (!city.Buildings.OfType<TownHall>().Any())
+            _cityBuilderController?.DestroyCity(city, CityDestructionCause.Combat);
     }
 
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)

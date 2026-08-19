@@ -22,7 +22,9 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             STORAGE_CAPACITY_BASIC,
             STORAGE_CAPACITY_ADVANCED,
             TRADE_GOLD_PACKAGES,
-            /// <summary>Chance (in %) to double automatic harvest yield. SubCategory = BuildingType name (empty = applies to all).</summary>
+            /// <summary>Bonus (en %) de rendement d'une récolte automatique, tiré au sort comme celui de la Forge :
+            /// au-delà de 100%, la partie entière est acquise et seul le reste est aléatoire (150% = +1 unité
+            /// garantie, puis 50% de chance d'une seconde). SubCategory = BuildingType name (vide = tous).</summary>
             HARVEST_PRODUCTION_BONUS,
             /// <summary>Flat bonus (in %) added to the Forge's double-harvest chance.</summary>
             FORGE_DOUBLE_HARVEST_BONUS,
@@ -229,6 +231,14 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             MONSTER_ATTACK_IMMUNITY,
             /// <summary>Abaisse de Value tous les seuils de niveau qui gardent la construction d'un bâtiment unique : niveau de la ville (AvailableAtLevel) et niveau exigé des autres bâtiments (« Port Impérial : Comptoir 4 »). Base = 0 ; 1 = -1 niveau partout. Jamais sous 1 pour un bâtiment exigé, jamais sous 0 pour la ville. SubCategory unused. Voir BuildingController.BuildReducedPrerequisiteContext (Grand Terrier gobelin).</summary>
             UNIQUE_BUILDING_PREREQUISITE_REDUCTION,
+            /// <summary>Flags que la construction de l'Observatoire (Monument, uniquement sur une Montagne de la surface) est déverrouillée pour la civilisation. Chaque niveau de l'Observatoire abaisse le multiplicateur du coût en points de recherche des routes du Vide (voir Observatory et RoadController.GetVoidRouteResearchCost). SubCategory unused.</summary>
+            UNLOCK_OBSERVATORY,
+            /// <summary>Flags que la construction de la Nécropole (Monument, uniquement sur un hex portant des Os Divins non purifiés, qu'elle consomme) est déverrouillée pour la civilisation. Chaque niveau de la Nécropole augmente de 15% les points divins gagnés à l'Ascension (voir Necropolis et AscensionController.GetGodPointsGain). SubCategory unused.</summary>
+            UNLOCK_NECROPOLIS,
+            /// <summary>Dégâts infligés par une attaque de soldat, contre les monstres comme contre les villes ennemies. Base = 1 ; +1 = 2 dégâts par attaque. S'ajoute au dégât supplémentaire des Armes en Acier (voir MonsterCombatEngine et CityAttackEngine). SubCategory unused.</summary>
+            SOLDIER_ATTACK_DAMAGE,
+            /// <summary>Fraction de réduction de la croissance du coût des recherches répétables. Base = 0.0 (coût ×2 par relance) ; 0.5 = croissance réduite de moitié, soit ×1,5 par relance (voir ResearchController.GetRepeatCostFactor). SubCategory unused.</summary>
+            REPEATABLE_RESEARCH_SCALING_REDUCTION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

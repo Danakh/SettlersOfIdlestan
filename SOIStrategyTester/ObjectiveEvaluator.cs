@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using SOIStrategyTester.Model;
 
 namespace SOIStrategyTester;
@@ -74,6 +76,14 @@ public static class ObjectiveEvaluator
             case ObjectiveKind.AbyssGateUnlocked:
                 return worldState.Features.OfType<AbyssGate>().Any(g => g.Built)
                     || (controller.CurrentMainState?.GameRecord.HasBuiltAbyssGate ?? false);
+
+            case ObjectiveKind.DemonGodDefeated:
+                return !worldState.Features.OfType<DemonGod>().Any(d => d.Hp > 0);
+
+            case ObjectiveKind.TentaclesRemainingAtMost:
+                return worldState.Features.OfType<Tentacle>()
+                    .Count(t => t.Position.Z == LayerState.PandemoniumZ && t.Hp > 0)
+                    <= Require(spec.Count, nameof(spec.Count));
 
             default:
                 throw new NotSupportedException($"Unknown objective kind: {spec.Kind}");

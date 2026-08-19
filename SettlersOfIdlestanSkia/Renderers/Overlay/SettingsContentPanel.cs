@@ -14,7 +14,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 /// Panneau de contenu des paramètres — utilisé par SettingsPopupRenderer et TitleScreen.
 /// Ajouter une option ici la fait apparaître automatiquement dans les deux endroits.
 /// </summary>
-public sealed class SettingsContentPanel : IDisposable
+public sealed class SettingsContentPanel
 {
     public const float UiScaleMin = 0.5f;
     public const float UiScaleMax = 2f;
@@ -29,7 +29,6 @@ public sealed class SettingsContentPanel : IDisposable
 
     /// Valeur du curseur d'échelle en cours de glissement, pas encore appliquée aux réglages.
     private float? _pendingUiScaleValue;
-    private bool _disposed;
 
     public event Action<bool>? FullscreenToggleRequested;
     public event Action<float>? UiScaleChanged;
@@ -198,6 +197,4 @@ public sealed class SettingsContentPanel : IDisposable
     /// <summary>Abandonne la saisie en cours du champ de résolution debug — à appeler quand
     /// l'écran ou le popup qui héberge ce panneau se ferme.</summary>
     public void ClearFocus() => _debugResolutionFocused = false;
-
-    public void Dispose() => _disposed = true;
 }

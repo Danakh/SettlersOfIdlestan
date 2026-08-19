@@ -680,6 +680,27 @@ public static class TechnologyDefinitions
             },
             tier: 10, line: 10),
 
+        // Suite directe de la Magie du Vide : débloque le sort Pont du Vide, qui bâtit d'un coup les
+        // trois routes autour d'un vertex bordé de Vide. Contrairement aux routes du Vide classiques,
+        // il ne consomme pas de points de recherche — le prix est en cristaux, et il double à chaque
+        // lancement du run (voir SpellDefinition.CostDoublesPerCast).
+        new(TechnologyId.PontDuVide,
+            "tech_pont_du_vide_name", "tech_pont_du_vide_desc",
+            cost: 418750000,
+            prerequisites: new[] { TechnologyId.MagieDuVide },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "VoidBridge", EType.ADDITIVE, 1) },
+            tier: 11, line: 10),
+
+        // Seconde suite de la Magie du Vide : débloque l'Observatoire, monument bâti sur une Montagne
+        // de la surface. Chaque niveau abaisse le multiplicateur exponentiel du coût en points de
+        // recherche des routes du Vide, de ×4 à ×3 une fois l'Observatoire complet (voir Observatory).
+        new(TechnologyId.CartesDesEtoiles,
+            "tech_cartes_des_etoiles_name", "tech_cartes_des_etoiles_desc",
+            cost: 418750000,
+            prerequisites: new[] { TechnologyId.MagieDuVide },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_OBSERVATORY, EType.ADDITIVE, 1) },
+            tier: 11, line: 11),
+
         // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.CoeurDeLaTerre,
             "tech_coeur_de_la_terre_name", "tech_coeur_de_la_terre_desc",
@@ -732,6 +753,16 @@ public static class TechnologyDefinitions
             prerequisites: new[] { TechnologyId.ReliquaireSacre, TechnologyId.AcierAbyssal },
             modifiers: new Modifier[] { new(ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE, EType.ADDITIVE, 1) },
             tier: 11, line: 3),
+
+        // Suite du Reliquaire Sacré : débloque la Nécropole, bâtie sur des Os Divins non purifiés
+        // qu'elle consomme (l'essence divine qu'ils auraient donnée est sacrifiée). Chaque niveau
+        // augmente de 15% les points divins gagnés à l'Ascension (voir Necropolis).
+        new(TechnologyId.NecropoleDivine,
+            "tech_necropole_divine_name", "tech_necropole_divine_desc",
+            cost: 418750000,
+            prerequisites: new[] { TechnologyId.ReliquaireSacre },
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_NECROPOLIS, EType.ADDITIVE, 1) },
+            tier: 11, line: 5),
 
         // Les routes du Vide déjà bâties ne comptent que pour moitié dans le coût exponentiel de la
         // suivante : 1M × 4^n devient 1M × 4^(n/2) (voir RoadController.GetVoidRouteResearchCost).

@@ -66,6 +66,7 @@ internal class CityAttackEngine
             double speed = attackerCiv.ModifierAggregator.ApplyModifiers(ECategory.ATTACK_SPEED, "", 1.0);
             int attackRange = CityAttackRange(attackerCiv);
             bool steelWeaponsUnlocked = attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
+            int soldierDamage = attackerCiv.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_ATTACK_DAMAGE, "", 1);
 
             // Copie des emplacements : un tour de boucle peut détruire une ville et donc muter la
             // liste. Le tampon est réutilisé d'un événement à l'autre plutôt que réalloué par
@@ -127,8 +128,12 @@ internal class CityAttackEngine
                     _state.AutomationSettings.VendettaTargetCivIndex = attackerCiv.Index;
                 }
 
-                bool destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed, onConsumableConsumed);
-                if (!destroyed && hasSteelWeapon)
+                // Contre une ville, un dégât = une application de la cascade (soldat, défense, niveau
+                // d'Hôtel de ville) : les dégâts supplémentaires du soldat (SOLDIER_ATTACK_DAMAGE,
+                // Bras de Dieu) et de l'Arme en Acier se traduisent donc en applications répétées.
+                int hits = soldierDamage + (hasSteelWeapon ? 1 : 0);
+                bool destroyed = false;
+                for (int hit = 0; hit < hits && !destroyed; hit++)
                     destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed, onConsumableConsumed);
                 if (destroyed)
                 {

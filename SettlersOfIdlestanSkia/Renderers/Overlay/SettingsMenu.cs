@@ -16,28 +16,9 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay;
 /// </summary>
 public class SettingsMenu
 {
-    private const float MenuItemHeight = 35;
-    public const float MenuItemWidth = 250;
-    private const float IconSize = PlayerResourcesOverlayRenderer.IconSize;
-    private const float Padding = 12;
-    private const float SeparatorHeight = 10;
-
     private bool _isOpen = false;
-    private int _hoveredItemIndex = -1;
-    private float _lastScale = 0f;
-
-    private SKPaint? _backgroundPaint;
-    private SKPaint? _menuItemPaint;
-    private SKPaint? _menuItemHoverPaint;
-    private SKPaint? _textPaint;
-    private SKPaint? _borderPaint;
-    private SKPaint? _separatorPaint;
-    private SKFont? _textFont;
-    private SKPaint? _itemBorderPaint;
-    private SKPaint? _separatorTextPaint;
 
     private readonly MainGameController _gameController;
-    private readonly InputHandlingService _inputService;
     private readonly LocalizationService _localization;
     private readonly SettingsPopupRenderer _settingsPopupRenderer;
     private readonly IFileSystemService _fileSystemService;
@@ -47,11 +28,7 @@ public class SettingsMenu
     private readonly Action? _onReturnToMenu;
     private readonly Action? _onRestartIsland;
     private readonly Action<string>? _onLoadGame;
-    private readonly UILayoutService? _uiLayout;
     private List<MenuItem> _menuItems = new();
-
-    private float _gearX;
-    private float _barHeight;
 
     private class MenuItem
     {
@@ -64,10 +41,9 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, InputHandlingService inputService, LocalizationService localization, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, UILayoutService? uiLayout = null, Action? onReturnToMenu = null, Action? onRestartIsland = null, Action<string>? onLoadGame = null)
+    public SettingsMenu(MainGameController gameController, LocalizationService localization, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, Action? onReturnToMenu = null, Action? onRestartIsland = null, Action<string>? onLoadGame = null)
     {
         _gameController = gameController;
-        _inputService = inputService;
         _localization = localization;
         _settingsPopupRenderer = settingsPopupRenderer;
         _fileSystemService = fileSystemService;
@@ -77,10 +53,6 @@ public class SettingsMenu
         _onReturnToMenu = onReturnToMenu;
         _onRestartIsland = onRestartIsland;
         _onLoadGame = onLoadGame;
-        _uiLayout = uiLayout;
-        _inputService.PointerPressed += HandlePointerPressed;
-
-        Initialize();
 
         _menuItems.Add(new MenuItem
         {
@@ -155,64 +127,6 @@ public class SettingsMenu
         }
     }
 
-    public void Initialize()
-    {
-        _backgroundPaint = new SKPaint
-        {
-            Color = new SKColor(0, 0, 0, 220),
-            Style = SKPaintStyle.Fill,
-            IsAntialias = true
-        };
-
-        _menuItemPaint = new SKPaint
-        {
-            Color = new SKColor(40, 40, 40, 240),
-            Style = SKPaintStyle.Fill,
-            IsAntialias = true
-        };
-
-        _menuItemHoverPaint = new SKPaint
-        {
-            Color = new SKColor(60, 60, 60, 240),
-            Style = SKPaintStyle.Fill,
-            IsAntialias = true
-        };
-
-        _textPaint = new SKPaint
-        {
-            Color = SKColors.White,
-            IsAntialias = true
-        };
-
-        _borderPaint = new SKPaint
-        {
-            Color = SKColors.Gold,
-            StrokeWidth = 1,
-            Style = SKPaintStyle.Stroke,
-            IsAntialias = true
-        };
-
-        _separatorPaint = new SKPaint
-        {
-            Color = new SKColor(100, 100, 100, 150),
-            Style = SKPaintStyle.Fill,
-            IsAntialias = true
-        };
-
-        _textFont = new SKFont { Size = 12, Typeface = SkiaFonts.Bold };
-        _itemBorderPaint = new SKPaint { Color = SKColors.Gold, Style = SKPaintStyle.Stroke, StrokeWidth = 1, IsAntialias = true };
-        _separatorTextPaint = new SKPaint { Color = new SKColor(150, 150, 150, 180), IsAntialias = true };
-    }
-
-    private bool _hostedByAvalonia;
-
-    /// <summary>
-    /// Declare que ce menu est desormais affiche par l'hote Avalonia : il cesse de se dessiner
-    /// et d'intercepter les clics du service d'entree Skia, sans quoi chaque clic serait traite
-    /// deux fois — une fois par la vue, une fois ici.
-    /// </summary>
-    public void MigrateToHost() => _hostedByAvalonia = true;
-
     /// <summary>Instantane du menu pour une vue portee par l'hote.</summary>
     public SettingsMenuSnapshot GetSnapshot()
     {
@@ -241,164 +155,12 @@ public class SettingsMenu
         Close();
     }
 
-    public void ToggleMenu()
-    {
-        _isOpen = !_isOpen;
-        _hoveredItemIndex = -1;
-    }
+    public void ToggleMenu() => _isOpen = !_isOpen;
 
-    public void Close()
-    {
-        _isOpen = false;
-        _hoveredItemIndex = -1;
-    }
+    public void Close() => _isOpen = false;
 
-    public void SetGearPosition(float gearX, float barHeight)
-    {
-        _gearX = gearX;
-        _barHeight = barHeight;
-    }
-
-    public void Draw(SKCanvas canvas, float gearX, float barHeight)
-    {
-        _gearX = gearX;
-        _barHeight = barHeight;
-
-        if (!_isOpen || _hostedByAvalonia)
-            return;
-
-        float s = _uiLayout?.UiScale ?? 1f;
-        if (s != _lastScale)
-        {
-            _lastScale = s;
-            _textFont?.Dispose();
-            _textFont = new SKFont { Size = 12 * s, Typeface = SkiaFonts.Bold };
-        }
-
-        float menuItemW  = MenuItemWidth * s;
-        float menuItemH  = MenuItemHeight * s;
-        float separatorH = SeparatorHeight * s;
-        float cornerRadius = 4 * s;
-        float menuX = gearX - menuItemW + 20 * s;
-        float menuY = barHeight + 5 * s;
-
-        // Calcule la hauteur totale du menu
-        float totalHeight = 0;
-        foreach (var item in _menuItems)
-            totalHeight += item.IsSeparator ? separatorH : menuItemH;
-
-        // Dessine le fond du menu
-        var menuRect = new SKRect(menuX, menuY, menuX + menuItemW, menuY + totalHeight);
-        canvas.DrawRoundRect(menuRect, cornerRadius, cornerRadius, _backgroundPaint);
-        canvas.DrawRoundRect(menuRect, cornerRadius, cornerRadius, _borderPaint);
-
-        // Dessine les items du menu
-        float currentY = menuY;
-        for (int i = 0; i < _menuItems.Count; i++)
-        {
-            var item = _menuItems[i];
-            float itemHeight = item.IsSeparator ? separatorH : menuItemH;
-            var itemRect = new SKRect(menuX, currentY, menuX + menuItemW, currentY + itemHeight);
-
-            if (item.IsSeparator)
-            {
-                DrawSeparator(canvas, itemRect, item.LabelKey);
-            }
-            else
-            {
-                var bgPaint = i == _hoveredItemIndex ? _menuItemHoverPaint : _menuItemPaint;
-                canvas.DrawRect(itemRect, bgPaint);
-                canvas.DrawRect(itemRect, _itemBorderPaint);
-
-                if (_textFont != null && _textPaint != null)
-                {
-                    float textX = menuX + 8 * s;
-                    float textY = currentY + itemHeight / 2 + _textFont.Size / 2;
-                    string label = item.DynamicLabel?.Invoke() ?? _localization.Get(item.LabelKey);
-                    SkiaTextUtils.DrawText(canvas, label, textX, textY, _textFont, _textPaint);
-                }
-            }
-
-            currentY += itemHeight;
-        }
-    }
-
-    private void DrawSeparator(SKCanvas canvas, SKRect rect, string text)
-    {
-        // Dessine une ligne pointillée ou un texte centré
-        if (_textFont != null && _textPaint != null)
-        {
-            float textY = rect.MidY + _textFont.Size / 2;
-            float textX = rect.Left + (rect.Width - _textFont.MeasureText(text)) / 2;
-
-            SkiaTextUtils.DrawText(canvas, text, textX, textY, _textFont, _separatorTextPaint);
-        }
-    }
-
-    public void HandleGearClick()
-    {
-        ToggleMenu();
-    }
-
-    private void HandlePointerPressed(object? sender, PointerEventArgs e)
-    {
-        if (e.Button != PointerButton.Left)
-            return;
-
-        if (!_isOpen || _hostedByAvalonia)
-            return;
-
-        float s = _uiLayout?.UiScale ?? 1f;
-        float menuItemW  = MenuItemWidth * s;
-        float menuItemH  = MenuItemHeight * s;
-        float separatorH = SeparatorHeight * s;
-
-        // Vérifie si le clic est sur la roue crantée pour l'ignorer
-        float iconSize = PlayerResourcesOverlayRenderer.IconSize * s;
-        float gearY = (_barHeight - iconSize) / 2;
-        var gearRect = new SKRect(_gearX, gearY, _gearX + iconSize, gearY + iconSize);
-        if (gearRect.Contains(e.Position.X, e.Position.Y))
-            return;
-
-        // Calcule la hauteur totale et les Y positions
-        float menuX = _gearX - menuItemW + 20 * s;
-        float menuY = _barHeight + 5 * s;
-        float totalHeight = 0;
-        foreach (var item in _menuItems)
-            totalHeight += item.IsSeparator ? separatorH : menuItemH;
-
-        var menuRect = new SKRect(menuX, menuY, menuX + menuItemW, menuY + totalHeight);
-
-        if (menuRect.Contains(e.Position.X, e.Position.Y))
-        {
-            // Trouve l'item cliqué
-            float currentY = menuY;
-            for (int i = 0; i < _menuItems.Count; i++)
-            {
-                var item = _menuItems[i];
-                float itemHeight = item.IsSeparator ? separatorH : menuItemH;
-
-                if (e.Position.Y >= currentY && e.Position.Y < currentY + itemHeight)
-                {
-                    if (item.IsClickable)
-                    {
-                        item.Action?.Invoke();
-                        _isOpen = false;
-                        _hoveredItemIndex = -1;
-                    }
-                    break;
-                }
-
-                currentY += itemHeight;
-            }
-        }
-        else
-        {
-            // Ferme le menu si on clique ailleurs
-            _isOpen = false;
-            _hoveredItemIndex = -1;
-        }
-    }
+    /// <summary>Ouvre/ferme le menu depuis l'icone d'engrenage portee par l'hote.</summary>
+    public void HandleGearClick() => ToggleMenu();
 
     private void OpenSettingsPopup()
     {
@@ -504,19 +266,5 @@ public class SettingsMenu
             _onLoadGame(json);
         else
             _gameController.ImportMainState(json);
-    }
-
-    public void Dispose()
-    {
-        _inputService.PointerPressed -= HandlePointerPressed;
-        _backgroundPaint?.Dispose();
-        _menuItemPaint?.Dispose();
-        _menuItemHoverPaint?.Dispose();
-        _textPaint?.Dispose();
-        _borderPaint?.Dispose();
-        _separatorPaint?.Dispose();
-        _textFont?.Dispose();
-        _itemBorderPaint?.Dispose();
-        _separatorTextPaint?.Dispose();
     }
 }

@@ -1,0 +1,11 @@
+[
+  {
+    "name": "PandemoniumSiege",
+    "phases": [
+      {
+        "kind": "PandemoniumSiege",
+        "maxIterations": 2000000
+      }
+    ]
+  }
+]

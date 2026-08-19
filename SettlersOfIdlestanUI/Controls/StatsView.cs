@@ -20,7 +20,7 @@ namespace SettlersOfIdlestanUI.Controls;
 /// </summary>
 public sealed class StatsView : UserControl
 {
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(240, 18, 18, 24));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(240, 18, 18, 24));
     private static readonly SolidColorBrush CardBackground = new(Color.FromArgb(220, 30, 30, 40));
     private static readonly SolidColorBrush CardBorder = new(Color.FromRgb(80, 80, 100));
     private static readonly SolidColorBrush CurrentBorder = new(Colors.Gold);
@@ -65,7 +65,7 @@ public sealed class StatsView : UserControl
 
         Content = new Border
         {
-            Background = Background,
+            Background = PanelBackground,
             Child = new ScrollViewer
             {
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,

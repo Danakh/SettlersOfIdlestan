@@ -189,16 +189,34 @@ namespace SettlersOfIdlestan.Controller.Island
             => GetSurfaceArrivalVertex() != null
                && !playerCiv.Cities.Any(c => c.Position.Z == IslandMap.SurfaceLayer);
 
+        /// <summary>
+        /// Nombre de villes souterraines exigé avant de pouvoir ouvrir le chantier de la Percée.
+        ///
+        /// <para>La Percée est un Monument : elle stérilise la récolte de son hexagone
+        /// (<see cref="Model.IslandFeatures.Monument.BlocksHarvest"/>), et elle ne se pose que sur une
+        /// Montagne. Or le triangle de départ d'une race souterraine n'en contient qu'une seule
+        /// (RaceDefinition.UnderworldStartTerrains), donc la poser dès la première ville coupe la
+        /// seule source de Pierre de la partie — et les routes de l'Inframonde coûtent justement de la
+        /// Pierre et du Minerai, ce qui gèle toute expansion pour de bon. Mesuré au race gauntlet :
+        /// Elfe noir bloqué à 1 ville, 0 route posée, 0 Pierre, sur 20 h simulées. Attendre quatre
+        /// villes garantit que d'autres Montagnes ont été révélées avant d'en sacrifier une (voir
+        /// aussi <see cref="MonumentInvestment.OrderByLeastSacrifice"/>, qui choisit alors la moins
+        /// coûteuse).</para>
+        /// </summary>
+        public const int MinCitiesToPlace = 4;
+
         public bool CanPlaceSurfaceBreach(Civilization playerCiv)
         {
             if (!HasSurfaceBreachUnlocked(playerCiv)) return false;
+            if (playerCiv.Cities.Count < MinCitiesToPlace) return false;
             if (_state?.Features.OfType<SurfaceBreach>().Any() == true) return false;
             return true;
         }
 
         /// <summary>
         /// Hexes de Montagne de l'Inframonde, adjacents à une ville du joueur,
-        /// sans ville ennemie adjacente et sans autre feature.
+        /// sans ville ennemie adjacente et sans autre feature — du moins au plus coûteux à sacrifier
+        /// (voir <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
         /// </summary>
         public List<HexCoord> GetPlaceableHexes()
         {
@@ -233,7 +251,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 result.Add(hex);
             }
 
-            return result;
+            return MonumentInvestment.OrderByLeastSacrifice(result, playerCiv, _state);
         }
 
         public SurfaceBreach? PlaceSurfaceBreach(HexCoord position)

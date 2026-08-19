@@ -67,7 +67,7 @@ public class PrestigePopupViewModelTests
         vm.Refresh();
 
         Assert.False(vm.HasTierPicker);
-        Assert.False(vm.HasImperialPortWarning);
+        Assert.False(vm.HasWarning);
         Assert.False(vm.HasWonderRow);
     }
 

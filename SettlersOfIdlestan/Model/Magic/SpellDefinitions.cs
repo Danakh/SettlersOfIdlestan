@@ -7,6 +7,7 @@ public static class SpellDefinitions
         new(SpellId.Abundance, crystalCost: 50, goldReward: 1000),
         new(SpellId.SummonTroops, crystalCost: 200, troopReward: 100, targetKind: SpellTargetKind.AllyCity),
         new(SpellId.ArcaneEdification, crystalCost: 2000, targetKind: SpellTargetKind.BuildableVertex),
+        new(SpellId.VoidBridge, crystalCost: 2500, targetKind: SpellTargetKind.VoidVertex, costDoublesPerCast: true),
     };
 
     public static SpellDefinition? Get(SpellId id) => All.FirstOrDefault(s => s.Id == id);

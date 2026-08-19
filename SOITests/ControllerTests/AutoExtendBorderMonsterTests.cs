@@ -91,6 +91,22 @@ namespace SOITests.ControllerTests
             return (state, clock, layer);
         }
 
+        /// <summary>
+        /// PrestigeState d'une île située au-delà de l'anneau sûr des premières îles
+        /// (AutoExtendController.UnderworldSafeRadiusBonusByIsland : +8 / +6 / +4 / +2 hexagones de
+        /// distance minimale au point d'arrivée sur les quatre premières). Sans cela, ces tests
+        /// mesureraient cet anneau et non le tirage d'apparition : l'unique hexagone de bordure de
+        /// cette carte est à 3 hexagones de l'arrivée, donc dans la zone sûre des quatre premières
+        /// îles. Le numéro d'île se lit sur le nombre de prestiges déjà enregistrés.
+        /// </summary>
+        private static PrestigeState LateIslandPrestigeState(int corruptionLevel = 1)
+        {
+            var prestigeState = new PrestigeState { CurrentCorruptionLevel = corruptionLevel };
+            for (int i = 0; i < 4; i++)
+                prestigeState.RunHistory.Add(new PrestigeRunStats());
+            return prestigeState;
+        }
+
         /// <summary>Cherche la plus petite graine pour laquelle la séquence de tirages d'un GamePRNG frais satisfait le prédicat.</summary>
         private static int FindSeed(Func<GamePRNG, bool> predicate)
         {
@@ -107,7 +123,7 @@ namespace SOITests.ControllerTests
             // d'apparition réussi (<5%) au prochain check, pour vérifier qu'il ne se produit pas
             // avant que l'intervalle ne soit écoulé.
             int seed = FindSeed(rng => rng.Next(100) < 5);
-            var (state, clock, _) = CreateSetup(new GamePRNG(seed));
+            var (state, clock, _) = CreateSetup(new GamePRNG(seed), LateIslandPrestigeState());
 
             clock.SimulateAdvance(2_900);
 
@@ -119,8 +135,7 @@ namespace SOITests.ControllerTests
         {
             // Niveau de corruption 1 → chance de démon = 0% (toujours faux) → troll/ogre uniquement.
             int seed = FindSeed(rng => rng.Next(100) < 5);
-            var prestigeState = new PrestigeState { CurrentCorruptionLevel = 1 };
-            var (state, clock, _) = CreateSetup(new GamePRNG(seed), prestigeState);
+            var (state, clock, _) = CreateSetup(new GamePRNG(seed), LateIslandPrestigeState(corruptionLevel: 1));
 
             clock.SimulateAdvance(6_000);
 
@@ -135,8 +150,7 @@ namespace SOITests.ControllerTests
             // Niveau de corruption 100 → chance de démon = 99% : pratiquement garanti avec la
             // graine choisie (on vérifie explicitement les deux tirages dans le prédicat).
             int seed = FindSeed(rng => rng.Next(100) < 5 && rng.Next(100) < 99);
-            var prestigeState = new PrestigeState { CurrentCorruptionLevel = 100 };
-            var (state, clock, _) = CreateSetup(new GamePRNG(seed), prestigeState);
+            var (state, clock, _) = CreateSetup(new GamePRNG(seed), LateIslandPrestigeState(corruptionLevel: 100));
 
             clock.SimulateAdvance(6_000);
 
@@ -145,11 +159,44 @@ namespace SOITests.ControllerTests
             Assert.Equal(BorderHex, monster.Position);
         }
 
+        /// <summary>
+        /// Anneau sûr : sur la première île, l'unique hexagone de bordure de cette carte est à
+        /// 3 hexagones de l'arrivée, donc sous la distance minimale de 2 + 8. Aucun monstre n'y
+        /// apparaît, même quand le tirage d'apparition réussit. Voir
+        /// AutoExtendController.UnderworldSafeRadiusBonusByIsland — un monstre stérilise son
+        /// hexagone, et une civilisation qui démarre sous terre n'a de quoi en déloger aucun.
+        /// </summary>
+        [Fact]
+        public void NoMonster_OnUnderworld_OnTheFirstIsland()
+        {
+            int seed = FindSeed(rng => rng.Next(100) < 5);
+            var (state, clock, _) = CreateSetup(new GamePRNG(seed), new PrestigeState { CurrentCorruptionLevel = 1 });
+
+            clock.SimulateAdvance(6_000);
+
+            Assert.Empty(state.Features.OfType<MonsterFeature>());
+        }
+
+        /// <summary>
+        /// L'anneau sûr est propre à l'Inframonde : l'Abysse, qu'on ne visite jamais avant d'avoir
+        /// une civilisation debout, garde sa distance minimale ordinaire dès la première île.
+        /// </summary>
+        [Fact]
+        public void SpawnsDemon_OnAbyss_EvenOnTheFirstIsland()
+        {
+            int seed = FindSeed(rng => rng.Next(100) < 5);
+            var (state, clock, _) = CreateAbyssSetup(new GamePRNG(seed), corruptionLevelOnBorderHex: 1, new PrestigeState());
+
+            clock.SimulateAdvance(6_000);
+
+            Assert.Single(state.Features.OfType<MonsterFeature>());
+        }
+
         [Fact]
         public void NoMonster_WhenLayerIsNotAutoExtended()
         {
             int seed = FindSeed(rng => rng.Next(100) < 5);
-            var (state, clock, layer) = CreateSetup(new GamePRNG(seed));
+            var (state, clock, layer) = CreateSetup(new GamePRNG(seed), LateIslandPrestigeState());
             layer.AutoExtend = false;
 
             clock.SimulateAdvance(6_000);

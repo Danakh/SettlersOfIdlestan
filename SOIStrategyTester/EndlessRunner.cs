@@ -48,6 +48,22 @@ public class EndlessRunOptions
     /// a prestige with whatever points are available rather than hang forever. Only relevant for the
     /// fixed (no-time-cap) targets, where a genuinely unreachable target would otherwise loop forever.</summary>
     public int MaxPassesPerCycle { get; set; } = 500;
+
+    /// <summary>
+    /// Plancher appliqué au objectif de points du <b>dernier</b> cycle (celui qui atteint
+    /// <see cref="MaxCycles"/>) : son objectif devient le maximum de ce plancher et de celui qu'il
+    /// aurait eu autrement. 0 désactive.
+    ///
+    /// <para>Sert aux appelants qui jugent une manche sur les points de la dernière île plutôt que
+    /// sur le simple fait d'avoir prestigé — voir <see cref="RaceGauntletOptions.MinFinalIslandPrestigePoints"/>.
+    /// Sans ce plancher, le critère serait truqué : l'objectif d'une île passée les cibles fixes vaut
+    /// le double des points réels de la précédente (~80-120 en pratique), donc l'île prestigerait dès
+    /// ce palier et la mesure ne dirait pas si la race pouvait aller plus loin, seulement qu'on ne le
+    /// lui a pas demandé. Ce n'est pas une garantie d'atteindre le plancher pour autant : le plafond
+    /// de temps par île et la soupape de stagnation continuent de terminer l'île en dessous, ce qui
+    /// est précisément le résultat négatif qu'on cherche à observer.</para>
+    /// </summary>
+    public int LastCyclePointsFloor { get; set; }
 }
 
 /// <summary>
@@ -69,6 +85,15 @@ public class EndlessRunResult
 
     /// <summary>One entry per completed island, in order — PrestigeState.RunHistory's own stats.</summary>
     public List<PrestigeRunStats> IslandStats { get; } = new();
+
+    /// <summary>
+    /// Ce qui a déclenché le dernier prestige, tel qu'affiché en console : cible atteinte, plafond de
+    /// temps, ou abandon sur stagnation. Null si aucune île n'a été terminée. Les trois ne se lisent
+    /// pas pareil quand on juge une île sur ses points — « plafond de 8 h avec 57 pts » dit que le
+    /// budget de temps est la contrainte, « 57 pts n'ont pas bougé en 8 passes » dit que l'île avait
+    /// fini de produire bien avant et que lui donner plus de temps n'y changerait rien.
+    /// </summary>
+    public string? LastPrestigeReason { get; set; }
 }
 
 /// <summary>
@@ -89,8 +114,8 @@ public static class EndlessRunner
     private const string CsvHeader =
         "EventType,Cycle,PhaseIndex,PhaseKind,Iterations,Tick,SimulatedHours,PrestigeCount,PointsTarget," +
         "IslandTicks,WorldId,Tier,CityCount,BuildingCount,TotalBuildingLevels,PrestigePoints," +
-        "ResearchCompleted,UniqueBuildings,WonderLevel,HasDeepestMine,HasCorruptionSpire,HasAbyssGate," +
-        "AbyssGateEverUnlocked";
+        "ResearchCompleted,UniqueBuildings,WonderLevel,WondersUnlocked,WonderPlaced,NpcCivsAlive," +
+        "HasDeepestMine,HasCorruptionSpire,HasAbyssGate,AbyssGateEverUnlocked";
 
     public static EndlessRunResult Run(MainGameController controller, StrategyDefinition strategy, ObjectiveSpec globalObjective,
         StrategyRunOptions options, EndlessRunOptions endlessOptions)
@@ -137,11 +162,21 @@ public static class EndlessRunner
             int pointsTarget = pastFixedTargets
                 ? Math.Max(1, lastAchievedPoints * 2)
                 : endlessOptions.PrestigePointTargets[cycleIdx0];
+
+            // Dernière île jugée sur ses points : ne pas la laisser prestiger sous le plancher demandé
+            // simplement parce que sa cible calculée était plus basse (voir LastCyclePointsFloor).
+            bool flooredLastCycle = cycle == endlessOptions.MaxCycles
+                && endlessOptions.LastCyclePointsFloor > pointsTarget;
+            if (flooredLastCycle) pointsTarget = endlessOptions.LastCyclePointsFloor;
+
             long islandStartTick = mainState.CurrentWorldState?.StartTick ?? clock.CurrentTick;
 
+            string targetOrigin = flooredLastCycle ? " (plancher dernière île)"
+                : pastFixedTargets ? " (2x previous)"
+                : "";
             Console.WriteLine(hasTimeCap
-                ? $"== Cycle {cycle}: target {pointsTarget} prestige points{(pastFixedTargets ? " (2x previous)" : "")}, or {endlessOptions.MaxIslandHoursAfterFixedTargets}h simulated — whichever comes first =="
-                : $"== Cycle {cycle}: target {pointsTarget} prestige points ==");
+                ? $"== Cycle {cycle}: target {pointsTarget} prestige points{targetOrigin}, or {endlessOptions.MaxIslandHoursAfterFixedTargets}h simulated — whichever comes first =="
+                : $"== Cycle {cycle}: target {pointsTarget} prestige points{targetOrigin} ==");
 
             bool prestigedThisCycle = false;
             int pointsAtLastPassBoundary = -1;
@@ -205,12 +240,15 @@ public static class EndlessRunner
                                     : $"gave up after {endlessOptions.MaxPassesPerCycle} passes with {currentPoints} pts (target was {pointsTarget})";
 
                             int prestigesBefore = mainState.GameRecord.TotalPrestigesPerformed;
+                            // Avant le prestige : après, le monde courant est déjà l'île suivante.
+                            var diagnostics = WonderDiagnostics.Capture(controller, mainState);
                             auto.TryPrestigeOnce();
                             if (mainState.GameRecord.TotalPrestigesPerformed > prestigesBefore)
                             {
                                 prestigeCount++;
+                                result.LastPrestigeReason = reason;
                                 Console.WriteLine($"[trigger] {reason}");
-                                var stats = LogPrestige(csv, cycle, phaseIndex, phase.Kind, iterationsUsed, prestigeCount, pointsTarget, clock, mainState);
+                                var stats = LogPrestige(csv, cycle, phaseIndex, phase.Kind, iterationsUsed, prestigeCount, pointsTarget, clock, mainState, diagnostics);
                                 lastAchievedPoints = stats?.PrestigePoints ?? 0;
                                 if (stats != null)
                                     result.IslandStats.Add(stats);
@@ -356,7 +394,22 @@ public static class EndlessRunner
         if (diagnosticStrategy != null)
             Console.WriteLine($"  bloqué sur l'objectif {diagnosticStrategy.DescribeFirstIncomplete()}");
 
-        Console.WriteLine("  expansion : " + StrategyRunner.BuildAutoplayer(controller).DescribeExpansionState());
+        var autoplayer = StrategyRunner.BuildAutoplayer(controller);
+        Console.WriteLine("  expansion : " + autoplayer.DescribeExpansionState());
+
+        // Militaire : « il reste des PNJ » ne dit pas si la guerre est perdue, mal armée ou jamais
+        // livrée. Une cible prioritaire hors de portée avec des soldats en caserne est le cas qui
+        // trompe le plus — la liste de priorités bascule alors sur son repli d'expansion, qui s'agite
+        // beaucoup sans jamais rapprocher le front d'un seul cran.
+        var target = autoplayer.FindPriorityAttackTarget();
+        autoplayer.PriorityTargetCivilization = target;
+        int soldiers = 0;
+        foreach (var city in civ.Cities) soldiers += city.Soldiers;
+        var npcs = controller.CurrentMainState?.CurrentWorldState?.Civilizations.Where(c => c.IsNpc && c.Cities.Count > 0).ToList() ?? new();
+        Console.WriteLine($"  militaire : {soldiers} soldats, {npcs.Count} civ PNJ vivantes " +
+                          $"({string.Join(", ", npcs.Select(c => $"{c.Cities.Count} villes"))}), " +
+                          $"cible prioritaire : {(target == null ? "aucune" : $"{target.Cities.Count} villes")}, " +
+                          $"à portée : {autoplayer.HasAttackableTargetInRange()}");
 
         var production = controller.HarvestController.GetAverageProductionRatesPerSecond(civ.Index);
         Console.WriteLine("  stock (production/s) : " + string.Join(", ", civ.Resources
@@ -371,10 +424,40 @@ public static class EndlessRunner
     private const int IdleBreakThreshold = 300; // consecutive no-op iterations (≈150 simulated seconds at the default time step) before giving up on a phase early
     private const int StagnantPassLimit = 8; // full passes through every phase with zero prestige-point movement before giving up on the whole cycle
 
+    /// <summary>
+    /// État de la Merveille et des PNJ à un instant donné. <c>WonderLevel</c> à 0 ne dit pas laquelle
+    /// des trois marches a manqué : <see cref="WondersUnlocked"/> (recherche Architecture, persistante
+    /// d'une île à l'autre) sépare « jamais débloquée » de « débloquée mais jamais posée », et
+    /// <see cref="NpcCivsAlive"/> donne la raison du second cas — en mode agressif,
+    /// WonderInvestmentObjective est gaté sur l'élimination de toutes les civilisations PNJ.
+    ///
+    /// <para>Capturé, et non recalculé au moment d'écrire la ligne : sur une ligne Prestige, le monde
+    /// courant est déjà l'île <i>suivante</i>, donc lire l'état vivant y décrirait la mauvaise île.</para>
+    /// </summary>
+    private readonly record struct WonderDiagnostics(bool WondersUnlocked, bool WonderPlaced, int NpcCivsAlive)
+    {
+        public static WonderDiagnostics Capture(MainGameController controller, MainGameState mainState)
+        {
+            var worldState = mainState.CurrentWorldState;
+            if (worldState == null) return default;
+
+            var civ = worldState.Civilizations.FirstOrDefault(c => !c.IsNpc);
+            int npcCivsAlive = 0;
+            foreach (var c in worldState.Civilizations)
+                if (c.IsNpc && c.Cities.Count > 0) npcCivsAlive++;
+
+            return new WonderDiagnostics(
+                civ != null && controller.WonderController.HasWondersUnlocked(civ),
+                worldState.Features.OfType<Wonder>().Any(),
+                npcCivsAlive);
+        }
+    }
+
     /// <summary>Logs the prestige that just happened and returns its recorded stats (null if the run
     /// history somehow has no entry — the caller then just has nothing to report for this island).</summary>
     private static PrestigeRunStats? LogPrestige(StreamWriter csv, long cycle, int phaseIndex, PhaseKind phaseKind,
-        long iterationsUsed, int prestigeCount, int pointsTarget, GameClock clock, MainGameState mainState)
+        long iterationsUsed, int prestigeCount, int pointsTarget, GameClock clock, MainGameState mainState,
+        WonderDiagnostics diagnostics)
     {
         var stats = mainState.PrestigeState?.RunHistory.LastOrDefault();
         Console.WriteLine(stats == null
@@ -392,6 +475,7 @@ public static class EndlessRunner
             stats?.TickDuration ?? 0, stats?.WorldId ?? 0, mainState.PrestigeState?.Tier ?? 0,
             stats?.CityCount ?? 0, stats?.BuildingCount ?? 0, stats?.TotalBuildingLevels ?? 0,
             stats?.PrestigePoints ?? 0, stats?.ResearchCompleted ?? 0, stats?.UniqueBuildings ?? 0, stats?.WonderLevel ?? 0,
+            diagnostics.WondersUnlocked, diagnostics.WonderPlaced, diagnostics.NpcCivsAlive,
             stats?.HasDeepestMine ?? false, stats?.HasCorruptionSpire ?? false, stats?.HasAbyssGate ?? false,
             mainState.GameRecord.HasBuiltAbyssGate,
         }));
@@ -422,17 +506,11 @@ public static class EndlessRunner
             $"{allBuildings.Count} buildings, {controller.PrestigeController.CalculatePrestigePoints()}/{pointsTarget} prestige pts, " +
             $"wonder lvl {wonder?.Level ?? 0}, mine={hasDeepestMine}, spire={hasCorruptionSpire}, gate={hasAbyssGate}");
 
-        csv.WriteLine(string.Join(',', new object?[]
-        {
-            "Checkpoint", cycle, phaseIndex, phaseKind, iterationsUsed, clock.CurrentTick, FormatHours(clock.CurrentTick),
-            prestigeCount, pointsTarget,
-            islandTicks, worldState.WorldId, mainState.PrestigeState?.Tier ?? 0,
-            civ.Cities.Count, allBuildings.Count, allBuildings.Sum(b => b.Level),
-            controller.PrestigeController.CalculatePrestigePoints(),
-            worldState.RunRecord?.ResearchCompleted ?? 0, allBuildings.Count(b => b.IsUnique), wonder?.Level ?? 0,
-            hasDeepestMine, hasCorruptionSpire, hasAbyssGate,
-            mainState.GameRecord.HasBuiltAbyssGate,
-        }));
+        // La ligne CSV elle-même passe par WriteRow : ces deux writers étaient des copies l'une de
+        // l'autre, et n'en ayant mis à jour qu'une en ajoutant des colonnes, les lignes Checkpoint se
+        // sont retrouvées avec trois champs de moins que l'en-tête — décalage silencieux à la lecture.
+        WriteRow(csv, "Checkpoint", cycle, phaseIndex, phaseKind, iterationsUsed, prestigeCount, pointsTarget,
+            clock, controller, mainState);
         csv.Flush();
     }
 
@@ -448,6 +526,7 @@ public static class EndlessRunner
         bool hasCorruptionSpire = worldState?.Features.OfType<CorruptionSpire>().Any(s => s.Built) ?? false;
         bool hasAbyssGate = worldState?.Features.OfType<AbyssGate>().Any(g => g.Built) ?? false;
         long islandTicks = worldState == null ? 0 : clock.CurrentTick - worldState.StartTick;
+        var diagnostics = WonderDiagnostics.Capture(controller, mainState);
 
         csv.WriteLine(string.Join(',', new object?[]
         {
@@ -457,6 +536,7 @@ public static class EndlessRunner
             civ?.Cities.Count ?? 0, allBuildings.Count, allBuildings.Sum(b => b.Level),
             controller.PrestigeController.CalculatePrestigePoints(),
             worldState?.RunRecord?.ResearchCompleted ?? 0, allBuildings.Count(b => b.IsUnique), wonder?.Level ?? 0,
+            diagnostics.WondersUnlocked, diagnostics.WonderPlaced, diagnostics.NpcCivsAlive,
             hasDeepestMine, hasCorruptionSpire, hasAbyssGate,
             mainState.GameRecord.HasBuiltAbyssGate,
         }));

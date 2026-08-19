@@ -23,7 +23,7 @@ namespace SettlersOfIdlestanUI.Controls;
 /// </summary>
 public sealed class EventLogView : UserControl
 {
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(240, 18, 18, 24));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(240, 18, 18, 24));
     private static readonly SolidColorBrush Accent = new(Color.FromRgb(255, 215, 0));
     private static readonly SolidColorBrush Muted = new(Color.FromRgb(120, 120, 130));
     private static readonly SolidColorBrush BodyText = new(Color.FromRgb(200, 200, 210));
@@ -75,7 +75,7 @@ public sealed class EventLogView : UserControl
             Padding = new Thickness(20),
         };
 
-        Content = new Border { Background = Background, Child = scroll };
+        Content = new Border { Background = PanelBackground, Child = scroll };
     }
 
     private static Control BuildCard()
@@ -117,7 +117,7 @@ public sealed class EventLogView : UserControl
             },
             [!BorderBrushProperty] = new Binding(nameof(EventLogEntryViewModel.Tone))
             {
-                Converter = new FuncValueConverter<SkiaLayer.EventLogTone, IBrush>(BorderBrush),
+                Converter = new FuncValueConverter<SkiaLayer.EventLogTone, IBrush>(ToneBorderBrush),
             },
         };
     }
@@ -133,7 +133,7 @@ public sealed class EventLogView : UserControl
         _ => new SolidColorBrush(Color.FromArgb(220, 70, 15, 15)),
     };
 
-    private static IBrush BorderBrush(SkiaLayer.EventLogTone tone) => tone switch
+    private static IBrush ToneBorderBrush(SkiaLayer.EventLogTone tone) => tone switch
     {
         SkiaLayer.EventLogTone.Warning => new SolidColorBrush(Color.FromRgb(210, 100, 20)),
         SkiaLayer.EventLogTone.Success => new SolidColorBrush(Color.FromRgb(70, 200, 70)),

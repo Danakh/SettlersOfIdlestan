@@ -24,7 +24,7 @@ public sealed class ToastStackView : UserControl
     /// Hauteur de la barre d'onglets mobile, sous laquelle les toasts ne doivent pas passer.
     private const double MobileTabBarHeight = 56;
 
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(245, 20, 20, 28));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(245, 20, 20, 28));
     private static readonly SolidColorBrush Border_ = new(Color.FromRgb(180, 150, 60));
     private static readonly SolidColorBrush MessageText = new(Color.FromRgb(180, 180, 195));
 
@@ -72,7 +72,7 @@ public sealed class ToastStackView : UserControl
 
             Width = 274;
             Height = 64;
-            Background = ToastStackView.Background;
+            Background = PanelBackground;
             BorderBrush = Border_;
             BorderThickness = new Thickness(1.5);
             CornerRadius = new CornerRadius(8);

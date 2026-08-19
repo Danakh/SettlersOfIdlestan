@@ -21,6 +21,41 @@ namespace SettlersOfIdlestan.Model.Races;
 /// </summary>
 public static class RaceDefinitions
 {
+    /// <summary>
+    /// Bâtiments allégés par le malus garuda : production (récolte et transformation), recherche et
+    /// magie. Tout le reste est épargné — Comptoir, Entrepôt, Marché, Temple, Hôtel de Ville, les
+    /// militaires et les uniques.
+    ///
+    /// <para>Déclaré <b>avant</b> <see cref="All"/> : l'initialisation des champs statiques suit
+    /// l'ordre du texte, et <see cref="All"/> énumère cette liste immédiatement (le <c>ToArray()</c>
+    /// de la définition garuda). Le déplacer sous <see cref="All"/> le laisserait null au moment de
+    /// l'initialisation.</para>
+    ///
+    /// <para>Le Comptoir en particulier est délibérément hors liste : le Port Impérial exige un
+    /// Comptoir niveau 4 (<see cref="Buildings.ImperialPort.HasBuildPrerequisites"/>) et le Comptoir
+    /// plafonne à 4 par défaut, donc un -1 dessus rendrait le prestige inatteignable pour la race —
+    /// aucun modificateur BUILDING_MAX_LEVEL sur le Comptoir n'existe ailleurs pour compenser.
+    /// C'est aussi la définition de « production » retenue par
+    /// <c>CivilizationAutoplayerPriorities.ProductionBuildings</c>, qui exclut le Comptoir.</para>
+    ///
+    /// <para>La Verrerie est écartée pour la même raison mécanique : son niveau max par défaut est 0
+    /// et son unique déblocage vaut +1 (vertex Laboratoire), donc un -1 la rendrait définitivement
+    /// inconstructible. Les autres bâtiments partant de 0 gagnent tous +2 ou plus à leur déblocage,
+    /// donc le malus les abaisse sans les bloquer.</para>
+    /// </summary>
+    private static readonly BuildingType[] GarudaLightBuildings =
+    {
+        // Production — récolte
+        BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Mill, BuildingType.Quarry,
+        BuildingType.Mine, BuildingType.MushroomFarm, BuildingType.MithrilMine,
+        // Production — transformation
+        BuildingType.Forge, BuildingType.Smelter, BuildingType.WeaponSmith, BuildingType.ArmorSmith,
+        // Recherche
+        BuildingType.Library, BuildingType.Laboratory,
+        // Magie
+        BuildingType.MageTower, BuildingType.AlchimistHut,
+    };
+
     public static IReadOnlyList<RaceDefinition> All { get; } = new[]
     {
         // Humains : race religieuse — le Dominion se propage plus vite (base : 10 %/niveau,
@@ -106,14 +141,14 @@ public static class RaceDefinitions
                 .ToArray()),
 
         // Garudas : seigneurs du vent — le Vol fonde des villes sans route (jusqu'à 3 arêtes d'une
-        // ville, voir CityBuilderController.AddFlightCandidateVertices) et à distance 2 comme les
-        // Gobelins ; portée d'attaque +1. En échange : bâtiments standards -1 et défense -3
-        // (compensée par le Trône des Vents).
+        // ville, voir CityBuilderController.AddFlightCandidateVertices) ; distance minimale entre
+        // villes standard (3), portée d'attaque +1, portée encore étendue par le Trône des Vents.
+        // En échange : -1 de niveau max sur la production, la recherche et la magie
+        // (GarudaLightBuildings) et défense -3.
         new RaceDefinition(RaceId.Garuda, RaceTier.Advanced,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.ThroneOfWinds,
-            modifiers: BuildStandardMaxLevelModifiers(-1)
-                .Append(new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2))
+            modifiers: BuildMaxLevelModifiers(GarudaLightBuildings, -1)
                 .Append(new Modifier(ECategory.CITY_PLACEMENT_FLYING, EType.ADDITIVE, 3))
                 .Append(new Modifier(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1))
                 .Append(new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3))
@@ -182,6 +217,18 @@ public static class RaceDefinitions
 
     /// <inheritdoc cref="RacialBuildings"/>
     public static bool IsRacialBuilding(BuildingType type) => RacialBuildings.Contains(type);
+
+    /// <summary>
+    /// Modifiers de niveau max (±delta) pour une liste explicite de types de bâtiments. Contrairement
+    /// à <see cref="BuildStandardMaxLevelModifiers"/>, aucun filtre n'est appliqué : c'est à l'appelant
+    /// de vérifier qu'un delta négatif ne ramène pas le niveau max d'un bâtiment à 0 (voir la doc de
+    /// <see cref="GarudaLightBuildings"/>).
+    /// </summary>
+    private static IEnumerable<Modifier> BuildMaxLevelModifiers(BuildingType[] types, int delta)
+    {
+        foreach (var type in types)
+            yield return new Modifier(ECategory.BUILDING_MAX_LEVEL, type.ToString(), EType.ADDITIVE, delta);
+    }
 
     /// <summary>
     /// Modifiers de niveau max (±delta) pour les bâtiments « standards » : non uniques, hors Hôtel

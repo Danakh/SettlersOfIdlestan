@@ -20,6 +20,14 @@ public static class Program
     /// since 9 races x 4 islands run back to back and the question is reachability, not depth.</summary>
     private const double DefaultGauntletIslandHours = 8.0;
 
+    /// <summary>Default --max-island-hours for --pandemonium, where it caps the assault itself. Bien plus
+    /// bas que les autres modes : à 166 villes, une heure simulée coûte de l'ordre de la dizaine de
+    /// minutes réelles (voir SOIStrategyTester/CLAUDE.md).</summary>
+    private const double DefaultPandemoniumHours = 4.0;
+
+    /// <summary>Île de l'atlas des manches Pandémonium : la première marquée <c>IsEndgameIsland</c>.</summary>
+    private const int DefaultPandemoniumWorldId = 5;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -49,6 +57,33 @@ public static class Program
             return 0;
         }
 
+        // Avant la lecture du fichier de stratégies : la manche Pandémonium n'en utilise aucune — elle
+        // pilote PandemoniumSiege directement (voir PandemoniumRunner), la stratégie end-game n'ayant
+        // ni phases ni objectifs à paramétrer.
+        if (options.Pandemonium)
+        {
+            bool won = PandemoniumRunner.Run(new PandemoniumRunOptions
+            {
+                State = new EndGameStateOptions
+                {
+                    Race = options.Races.Count > 0 ? options.Races[0] : RaceId.Human,
+                    Seed = options.Seed,
+                    UnderworldCities = options.UnderworldCities,
+                    AbyssCities = options.AbyssCities,
+                    CorruptionLevel = options.CorruptionLevel,
+                    WorldId = options.WorldId ?? DefaultPandemoniumWorldId,
+                    Ascensions = options.Ascensions,
+                    GodPoints = options.GodPoints,
+                    DivineEssenceEarned = options.DivineEssenceEarned,
+                },
+                MaxHours = options.MaxIslandHours ?? DefaultPandemoniumHours,
+                CheckpointHours = options.CheckpointHours,
+                TimeStep = options.TimeStep,
+                OutputDirectory = options.PandemoniumOutputDirectory,
+            });
+            return won ? 0 : 1;
+        }
+
         var strategies = JsonSerializer.Deserialize<List<StrategyDefinition>>(File.ReadAllText(options.StrategiesPath!), JsonOptions)
             ?? throw new InvalidOperationException($"Could not parse strategies file: {options.StrategiesPath}");
 
@@ -76,6 +111,7 @@ public static class Program
                 MaxIslandHours = options.MaxIslandHours ?? DefaultGauntletIslandHours,
                 AbandonIslandAfterHours = options.AbandonIslandHours,
                 CheckpointHours = options.CheckpointHours,
+                MinFinalIslandPrestigePoints = options.FinalIslandPoints,
             });
             return allPassed ? 0 : 1;
         }
@@ -208,6 +244,47 @@ public static class Program
               --abandon-island-hours <n> Simulated hours on one island without ever reaching
                                          Prestige-available before the race is declared blocked
                                          (default: 24).
+              --final-island-points <n> Also require the LAST island to be worth n prestige points for
+                                         the race to pass, and raise that island's own prestige target
+                                         to n so it isn't cut short below it (default: 0, verdict on
+                                         the island count alone). The end-game round is
+                                         `--islands 5 --final-island-points 100`.
+
+            Pandémonium — les deux manches de fin de partie : un état où tout est acquis (100 % des
+            recherches et des vertex de prestige, île de surface conquise et bâtie, villes des
+            profondeurs) est fabriqué, puis la stratégie de siège tente d'abattre le dieu démon (voir
+            PandemoniumRunner). Le code de sortie vaut 0 quand l'issue est celle attendue par la
+            manche — la manche de base est un échec voulu :
+              --pandemonium             Manche de base : aucune Ascension, donc aucun pouvoir divin.
+                                         ÉCHEC ATTENDU — mesure ce que valent les seuls moyens
+                                         militaires. Ni --objective ni --strategies ne sont lus.
+              --pandemonium-ascended    Manche ascensionnée : 20 Ascensions, 200 points divins, tous
+                                         les pouvoirs, toutes les races, tous les bâtiments uniques
+                                         permanents. VICTOIRE ATTENDUE (Poing de Dieu). Raccourci de
+                                         `--pandemonium --ascensions 20`.
+              --ascensions <n>          Ascensions de l'état fabriqué (0 = manche de base).
+              --god-points <n>          Points divins en caisse une fois tous les pouvoirs achetés
+                                         (défaut : 200).
+              --divine-essence <n>      Essence divine gagnée : Ascension Prestigieuse la convertit en
+                                         autant de points de prestige, qui financent Poing de Dieu
+                                         (défaut : 20000 ; ~1300 suffisent à tuer le boss).
+              --races <race>            Race jouée (une seule ; défaut : Human).
+              --seed <n>                Seed de génération. Omis = aléatoire.
+              --underworld-cities <n>   Villes fabriquées dans l'Inframonde (défaut : 100).
+              --abyss-cities <n>        Villes fabriquées dans l'Abysse (défaut : 50).
+              --world-id <n>            Île de l'atlas jouée (défaut : 5, la première marquée
+                                         IsEndgameIsland : 65 hexes de terre contre 20 pour l'île 1,
+                                         4 à 6 civilisations PNJ, et une île bonus une fois sur deux).
+                                         L'Ascension régénérant toujours l'île 1, la bascule est
+                                         explicite (voir EndGameStateFactory.SwitchToIsland).
+              --corruption-level <n>    PrestigeState.CurrentCorruptionLevel de départ (défaut : 6, le
+                                         minimum pour qu'une Tentacule ait pu pousser dans l'Abysse).
+                                         Il fixe le niveau du dieu démon : le monter durcit le boss.
+              --max-island-hours <n>    Heures simulées accordées à l'assaut (défaut : 4 — à 166 villes,
+                                         une heure simulée coûte de l'ordre de la dizaine de minutes
+                                         réelles).
+              --checkpoint-hours <n>    Intervalle des lignes de progression (défaut : 1).
+              --pandemonium-output <dir> assault.csv + summary.json + sauvegarde finale (défaut : pandemonium).
             """);
     }
 }
@@ -246,7 +323,24 @@ internal class CliOptions
     public string GauntletOutputDirectory { get; set; } = "race-gauntlet";
     public double AbandonIslandHours { get; set; } = 24.0;
 
+    public bool Pandemonium { get; set; }
+
+    /// <summary>Nombre d'Ascensions de l'état fabriqué. 0 = manche de base (échec attendu) ; > 0 = manche ascensionnée (victoire attendue).</summary>
+    public int Ascensions { get; set; }
+    public int GodPoints { get; set; } = 200;
+    public int DivineEssenceEarned { get; set; } = 20_000;
+    public int UnderworldCities { get; set; } = 100;
+    public int AbyssCities { get; set; } = 50;
+    public int CorruptionLevel { get; set; } = 6;
+    public string PandemoniumOutputDirectory { get; set; } = "pandemonium";
+
+    /// <summary>0 = verdict sur le seul nombre d'îles (voir RaceGauntletOptions.MinFinalIslandPrestigePoints).</summary>
+    public int FinalIslandPoints { get; set; }
+
     private const string DefaultGauntletStrategiesPath = "Data/Strategies/race-gauntlet.json";
+
+    /// <summary>Ascensions posées par --pandemonium-ascended (voir GameStateFactory.NewGameForAscendedRace).</summary>
+    private const int DefaultAscensions = 20;
 
     public static CliOptions Parse(string[] args)
     {
@@ -327,12 +421,52 @@ internal class CliOptions
                 case "--abandon-island-hours":
                     options.AbandonIslandHours = double.Parse(RequireValue(args, ref i), CultureInfo.InvariantCulture);
                     break;
+                case "--final-island-points":
+                    options.FinalIslandPoints = int.Parse(RequireValue(args, ref i));
+                    break;
+                case "--pandemonium":
+                    options.Pandemonium = true;
+                    break;
+                case "--pandemonium-ascended":
+                    options.Pandemonium = true;
+                    options.Ascensions = DefaultAscensions;
+                    break;
+                case "--ascensions":
+                    options.Ascensions = int.Parse(RequireValue(args, ref i));
+                    break;
+                case "--god-points":
+                    options.GodPoints = int.Parse(RequireValue(args, ref i));
+                    break;
+                case "--divine-essence":
+                    options.DivineEssenceEarned = int.Parse(RequireValue(args, ref i));
+                    break;
+                case "--underworld-cities":
+                    options.UnderworldCities = int.Parse(RequireValue(args, ref i));
+                    break;
+                case "--abyss-cities":
+                    options.AbyssCities = int.Parse(RequireValue(args, ref i));
+                    break;
+                case "--corruption-level":
+                    options.CorruptionLevel = int.Parse(RequireValue(args, ref i));
+                    break;
+                case "--pandemonium-output":
+                    options.PandemoniumOutputDirectory = RequireValue(args, ref i);
+                    break;
                 default:
                     throw new ArgumentException($"Unknown argument: {args[i]}");
             }
         }
 
         if (options.ShowHelp) return options;
+
+        // La manche Pandémonium ne lit ni objectif ni stratégie : son état de départ est fabriqué et sa
+        // stratégie est du code (voir PandemoniumRunner). Rien d'autre n'est requis sur la ligne.
+        if (options.Pandemonium)
+        {
+            if (options.Races.Count > 1)
+                throw new ArgumentException("--pandemonium ne joue qu'une race à la fois — passer une seule valeur à --races.");
+            return options;
+        }
 
         // The gauntlet's stopping condition is fixed (N prestiges, see RaceGauntletRunner), and it
         // ships its own strategy — neither has to be passed on the command line.

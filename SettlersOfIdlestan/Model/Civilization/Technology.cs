@@ -152,6 +152,12 @@ public enum TechnologyId
     // Capstones des branches existantes (tiers 12-13)
     AcierAbyssal,
     MagieDuVide,
+    // Suite de la Magie du Vide : débloque le sort Pont du Vide, qui bâtit d'un coup les trois routes
+    // autour d'un vertex bordé de Vide contre des cristaux, sans coût en points de recherche.
+    PontDuVide,
+    // Seconde suite de la Magie du Vide : débloque l'Observatoire, monument de Montagne dont chaque
+    // niveau abaisse le multiplicateur du coût en points de recherche des routes du Vide (×4 → ×3).
+    CartesDesEtoiles,
     CoeurDeLaTerre,
     // Baissée de 2 tiers (coût / 16) puis d'un tier supplémentaire (coût / 4), tier 9, pour la rendre
     // accessible plus tôt.
@@ -163,6 +169,9 @@ public enum TechnologyId
     // Un tier au-dessus de ReliquaireSacre, prérequis ReliquaireSacre + AcierAbyssal : conserve une
     // seconde essence divine lors du prestige (voir ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE).
     ReliquaireRenforce,
+    // Suite du Reliquaire Sacré : débloque la Nécropole, monument bâti sur des Os Divins non purifiés
+    // (qu'il consomme) dont chaque niveau augmente de 15% les points divins gagnés à l'Ascension.
+    NecropoleDivine,
     // Branche de la Théocratie (tiers 14-15) — recherches du Dominion, visibles uniquement une fois
     // le pouvoir divin Foi débloqué (RequiresDominionUnlock, voir ResearchController).
     DogmeDeLEmprise,

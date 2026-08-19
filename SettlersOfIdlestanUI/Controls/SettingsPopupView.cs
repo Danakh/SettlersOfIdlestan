@@ -14,7 +14,7 @@ namespace SettlersOfIdlestanUI.Controls;
 public sealed class SettingsPopupView : UserControl
 {
     private static readonly SolidColorBrush Veil = new(Color.FromArgb(120, 0, 0, 0));
-    private static readonly SolidColorBrush Background = new(Color.FromArgb(245, 24, 24, 30));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(245, 24, 24, 30));
     private static readonly SolidColorBrush Border_ = new(Colors.Gold);
     private static readonly SolidColorBrush CloseButton = new(Color.FromArgb(230, 90, 50, 50));
 
@@ -81,7 +81,7 @@ public sealed class SettingsPopupView : UserControl
             // La largeur du cadre suit celle du panneau : 24 de padding et 2 de bordure de
             // chaque cote, plus un peu de jeu pour l'ascenseur.
             Width = SettingsPanelView.ContentWidth + 60,
-            Background = Background,
+            Background = PanelBackground,
             BorderBrush = Border_,
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(10),

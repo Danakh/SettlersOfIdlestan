@@ -13,10 +13,10 @@ namespace SettlersOfIdlestanUI.Controls;
 /// <summary>
 /// Hote Avalonia du runtime de jeu.
 ///
-/// Etape intermediaire assumee de la migration : ce controle porte encore l'integralite du
-/// runtime Skia (carte ET overlay legacy), ce qui rend le jeu jouable sous Avalonia des la
-/// phase 2. Les phases suivantes extraient l'overlay panneau par panneau vers de vrais
-/// controles Avalonia ; ce controle se reduira alors a la seule carte hex.
+/// Ne porte plus que la carte hex, dessinee en SkiaSharp : l'overlay (barre du haut, panneaux,
+/// popups, ecran-titre) est entierement fait de controles Avalonia poses par-dessus. Seuls
+/// quelques onglets a contenu canevas (recherche, prestige, ascension, historique) restent
+/// dessines en Skia par l'overlay lui-meme, cf. <c>OverlayRenderer</c>.
 ///
 /// Tout passe par <see cref="GameRuntimeHost"/> : le rendu s'execute sur le thread de rendu
 /// d'Avalonia alors que la boucle de jeu et l'input vivent sur le thread UI, ce que le

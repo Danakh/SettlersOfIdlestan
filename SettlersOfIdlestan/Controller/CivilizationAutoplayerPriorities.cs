@@ -285,11 +285,44 @@ namespace SettlersOfIdlestan.Controller
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, AllUtilityBuildings, 10)),
                 new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, MilitaryBuildings, 10)),
 
-                // Mode agressif uniquement : une fois tous les NPC éliminés, bascule sur l'investissement
-                // dans la Merveille plutôt que de continuer l'expansion à l'infini juste en dessous —
-                // placé avant elle pour lui couper l'herbe sous le pied une fois le déclencheur actif
-                // (voir WonderInvestmentObjective, qui ne redevient jamais "complete" une fois actif).
-                new WonderInvestmentObjective(auto, () => aggressive && allNpcsEliminated()),
+                // Mode agressif uniquement : bascule sur l'investissement dans la Merveille plutôt que
+                // de continuer l'expansion à l'infini juste en dessous — placé avant elle pour lui
+                // couper l'herbe sous le pied une fois le déclencheur actif (voir
+                // WonderInvestmentObjective, qui ne redevient jamais "complete" une fois actif).
+                //
+                // Le déclencheur n'est pas seulement « tous les NPC éliminés » mais aussi « aucune
+                // cible à portée », et ce second cas est celui qui compte en pratique. L'élimination
+                // totale n'arrive que sur les îles sans NPC du tout : mesuré au race gauntlet, la
+                // Merveille était posée sur les îles 1 et 2 (0 civ NPC) et jamais au-delà (1, 2 puis
+                // 10 civs NPC), WonderPlaced suivant exactement NpcCivsAlive == 0 pour les neuf races.
+                // Les points s'effondraient d'autant — 122-198 sur l'île 2 contre 40-82 ensuite —
+                // puisque la Merveille est un multiplicateur (PrestigeController.CalculatePrestigePoints :
+                // niveau × (1 + heures sur l'île)), de loin le plus gros levier de points du jeu.
+                //
+                // Attendre l'extermination était d'autant plus vain que l'autoplay ne sait pas la mener :
+                // il repointe les flux des villes ayant déjà une cible dans CityAttackRange, mais rien
+                // dans cette liste ne rapproche le front d'un ennemi hors de portée (le repli de guerre
+                // est un CityCountObjective illimité, qui vise le plus proche vertex prospectif et non
+                // l'ennemi). Mesuré en forçant la guerre à 12 villes : zéro civ NPC tuée en 24 h
+                // simulées, 44 soldats en caisse et « à portée : False » du début à la fin.
+                //
+                // hasTargetInRange reste la bonne garde : tant qu'un ennemi est réellement frappable, la
+                // guerre garde la priorité et la Merveille attend, ce qui était l'intention d'origine.
+                //
+                // Coût assumé : l'objectif ne rend jamais la main une fois actif, donc l'expansion
+                // illimitée juste en dessous s'arrête là (12 villes en pratique à l'île 4, contre 13 à
+                // 23 sans bascule). Une race dont la Merveille monte mal y perd — les Sirènes, 26
+                // points à l'île 4 — pour en gagner beaucoup plus ailleurs (347 → 804 sur 4 îles).
+                //
+                // Deux corrections de ce coût ont été essayées et mesurées, toutes deux pires :
+                // un garde-fou « ne basculer qu'à partir de N villes » (14 et 20 — la plupart des races
+                // plafonnant à 12-13 villes à l'île 4, tout seuil au-dessus de 13 leur retire la
+                // Merveille et coûte ~700 points à Nains, Orcs, Humains et Garudas, alors qu'il en faut
+                // plus de 13 pour que les Sirènes y gagnent quoi que ce soit), et rendre l'objectif non
+                // bloquant une fois les investissements ouverts (voir la doc de
+                // WonderInvestmentObjective : le blocage finance la Merveille en Or, et l'expansion
+                // qu'il libère ne rapporte pas de points).
+                new WonderInvestmentObjective(auto, () => aggressive && (allNpcsEliminated() || !hasTargetInRange())),
 
                 // Expansion illimitée après le prestige. completeWhenExpansionExhausted: false — cet
                 // objectif de fin de liste est le puits qui garantit que la stratégie n'est jamais

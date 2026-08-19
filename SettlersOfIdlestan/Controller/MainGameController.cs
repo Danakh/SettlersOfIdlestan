@@ -42,11 +42,14 @@ namespace SettlersOfIdlestan.Controller
         public MilitaryController MilitaryController { get; private set; }
         public WonderController WonderController { get; private set; }
         public GreatLighthouseController GreatLighthouseController { get; private set; }
+        public ObservatoryController ObservatoryController { get; private set; }
+        public NecropolisController NecropolisController { get; private set; }
         public DeepestMineController DeepestMineController { get; private set; }
         public SurfaceBreachController SurfaceBreachController { get; private set; }
         public CorruptionSpireController CorruptionSpireController { get; private set; }
         public CorruptionController CorruptionController { get; private set; }
         public AbyssGateController AbyssGateController { get; private set; }
+        public PandemoniumGateController PandemoniumGateController { get; private set; }
         public DivineBonesController DivineBonesController { get; private set; }
         public Magic.MagicController MagicController { get; private set; }
         public AscensionController AscensionController { get; private set; }
@@ -97,11 +100,14 @@ namespace SettlersOfIdlestan.Controller
             MilitaryController = new MilitaryController();
             WonderController = new WonderController();
             GreatLighthouseController = new GreatLighthouseController();
+            ObservatoryController = new ObservatoryController();
+            NecropolisController = new NecropolisController();
             DeepestMineController = new DeepestMineController();
             SurfaceBreachController = new SurfaceBreachController();
             CorruptionSpireController = new CorruptionSpireController();
             CorruptionController = new CorruptionController();
             AbyssGateController = new AbyssGateController();
+            PandemoniumGateController = new PandemoniumGateController();
             DivineBonesController = new DivineBonesController();
             MagicController = new Magic.MagicController();
             AscensionController = new AscensionController();
@@ -290,12 +296,35 @@ namespace SettlersOfIdlestan.Controller
             CurrentMainState = mainGame;
             Clock = mainGame.Clock;
             Clock.ResumeAfterOffline(DateTimeOffset.UtcNow);
+            ClampDemoIslandPlaytime(mainGame);
             if (Clock.WasPausedAtSave)
                 Clock.Pause();
             else
                 Clock.Start();
 
             InitializeControllersForCurrentIsland();
+        }
+
+        /// <summary>Ticks correspondant aux 8 h de <see cref="ClampDemoIslandPlaytime"/> (1 tick = 0.01 s).</summary>
+        private const long DemoMaxIslandTicks = 8L * 60 * 60 * 100;
+
+        /// <summary>
+        /// Ramène à 8 h le temps passé sur l'île courante d'une sauvegarde issue de la version démo
+        /// (<see cref="MainGameState.IsDemoSave"/>), en repoussant le StartTick de l'île. Ce temps
+        /// alimente le multiplicateur de la Merveille (PrestigeController.GetWonderBonusDetails) :
+        /// sans ce plafond, une démo laissée tourner des jours rapporterait un prestige sans commune
+        /// mesure avec ce que la version démo est censée montrer.
+        /// </summary>
+        private static void ClampDemoIslandPlaytime(MainGameState mainGame)
+        {
+            if (!mainGame.IsDemoSave) return;
+
+            var island = mainGame.CurrentWorldState;
+            if (island == null || island.StartTick <= 0) return;
+
+            long elapsed = mainGame.Clock.CurrentTick - island.StartTick;
+            if (elapsed > DemoMaxIslandTicks)
+                island.StartTick = mainGame.Clock.CurrentTick - DemoMaxIslandTicks;
         }
 
         private void InitializeControllersForCurrentIsland()
@@ -361,13 +390,16 @@ namespace SettlersOfIdlestan.Controller
                 PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock, CurrentMainState?.PrestigeState);
                 WonderController.Initialize(WorldState, Clock, HarvestController);
                 GreatLighthouseController.Initialize(WorldState, Clock, HarvestController);
+                ObservatoryController.Initialize(WorldState, Clock, HarvestController);
+                NecropolisController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
                 DeepestMineController.Initialize(WorldState, Clock, HarvestController);
                 SurfaceBreachController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionSpireController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 AbyssGateController.Initialize(WorldState, Clock, HarvestController);
+                PandemoniumGateController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState, CurrentMainState!.PRNG);
-                MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController);
+                MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController, RoadController);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);
 

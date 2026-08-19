@@ -274,7 +274,6 @@ public sealed class GameScreen : IDisposable
 
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(
             _gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager);
-        selectedCityPanelRenderer.LayoutService = _uiLayoutService;
 
         _monumentService = new MonumentService();
         _constructionInteractionService.AttachMonumentService(_monumentService);
@@ -305,11 +304,11 @@ public sealed class GameScreen : IDisposable
 
         var settingsMenu = new SettingsMenu(
             _gameControllerService.MainGameController,
-            _inputService, _localizationService,
+            _localizationService,
             settingsPopupRenderer,
             _fileSystemService, _gameControllerService.CityBuildingService!,
             allowDebugMode, debugPanelRenderer,
-            StartNewGameIntro, _uiLayoutService,
+            StartNewGameIntro,
             onReturnToMenu: () => ReturnToTitleRequested?.Invoke(),
             // Recommencer l'île depuis le menu passe par une confirmation : le joueur perd sa
             // partie sans rien gagner. La modale de fin de partie, elle, redémarre directement —
@@ -319,14 +318,13 @@ public sealed class GameScreen : IDisposable
             // fichier) : il faut donc reprendre le verrou de l'hôte avant de toucher au modèle.
             onLoadGame: json => RunSynchronized(() => HandleLoadGame(json)));
 
-        _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer(_localizationService, _resourceManager);
+        _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer();
         _playerResourcesOverlayRenderer.ConnectLowStock(null, _gameControllerService.PlayerCivilization!);
 
         var tradeRenderer           = new TradePopupRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);
         var prestigeRenderer        = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige, tooltipRenderer);
         var prestigeMapRenderer     = new PrestigeMapRenderer(_gameControllerService, _localizationService, tooltipRenderer, _uiLayoutService);
         var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService, _uiLayoutService);
-        var timeControlRenderer     = new TimeControlRenderer(_gameControllerService, _inputService, _localizationService);
         var researchRenderer        = new ResearchRenderer(_gameControllerService, _localizationService, _inputService, _uiLayoutService);
         var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService, _uiLayoutService);
         var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService, _uiLayoutService);
@@ -347,13 +345,10 @@ public sealed class GameScreen : IDisposable
             _playerResourcesOverlayRenderer, settingsMenu, settingsPopupRenderer,
             selectedCityPanelRenderer, selectedMonumentPanelRenderer,
             tradeRenderer, prestigeRenderer, prestigeMapRenderer, prestigeHistoryRenderer,
-            timeControlRenderer, researchRenderer, eventLogRenderer, automationRenderer,
+            researchRenderer, eventLogRenderer, automationRenderer,
             ritualsRenderer, ascensionRenderer, tooltipRenderer, _cameraService, _resourceManager,
             _uiLayoutService, allowDebugMode, historyTabRenderer);
         _overlayRenderer.ConnectTargetSelectionService(_targetSelectionService);
-        _overlayRenderer.ConnectZoomCallbacks(
-            () => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep),
-            () => _cameraService.SetZoom(_cameraService.ZoomLevel / ZoomStep));
         _renderService.RegisterRenderer(_overlayRenderer);
 
         _constructionInteractionService.ShouldSuppressHover = pos =>
@@ -421,8 +416,8 @@ public sealed class GameScreen : IDisposable
         if (_gameOverPopup?.IsOpen    == true) return _gameOverPopup.GetSnapshot();
         if (_demoEndPopup?.IsOpen     == true) return _demoEndPopup.GetSnapshot();
 
-        // Puis les modales portées par l'overlay (confirmation de perte d'essences) : même
-        // forme, même vue, donc même chaîne.
+        // Puis les modales portées par l'overlay (confirmations du popup de prestige : montée de
+        // corruption, perte d'essences) : même forme, même vue, donc même chaîne.
         return _overlayRenderer?.GetOverlayModalSnapshot() ?? ModalPopupSnapshot.None;
     }
 
@@ -437,7 +432,8 @@ public sealed class GameScreen : IDisposable
             case ModalPopupSnapshot.IdGameOver:    _gameOverPopup?.InvokeButton(buttonKey);    break;
             case ModalPopupSnapshot.IdDemoEnd:     _demoEndPopup?.InvokeButton(buttonKey);     break;
             case ModalPopupSnapshot.IdPrestigeEssenceLoss:
-                _overlayRenderer?.InvokeOverlayModalButtonFromHost(buttonKey);
+            case ModalPopupSnapshot.IdPrestigeCorruptionWarning:
+                _overlayRenderer?.InvokeOverlayModalButtonFromHost(popupId, buttonKey);
                 break;
         }
     }
@@ -1116,6 +1112,14 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_great_lighthouse_levelup_title"),
                 _localizationService.GetFormated("event_great_lighthouse_levelup_body", entry.Message ?? "?"),
                 NotificationIcon.Achievement),
+            GameEventType.ObservatoryLevelUp => (
+                _localizationService.Get("event_observatory_levelup_title"),
+                _localizationService.GetFormated("event_observatory_levelup_body", entry.Message ?? "?"),
+                NotificationIcon.Achievement),
+            GameEventType.NecropolisLevelUp => (
+                _localizationService.Get("event_necropolis_levelup_title"),
+                _localizationService.GetFormated("event_necropolis_levelup_body", entry.Message ?? "?"),
+                NotificationIcon.Achievement),
             GameEventType.CivilizationDiscovered => (
                 _localizationService.Get("event_civilization_discovered_title"),
                 _localizationService.Get("event_civilization_discovered_body"),
@@ -1171,6 +1175,22 @@ public sealed class GameScreen : IDisposable
             GameEventType.AbyssGateBuilt => (
                 _localizationService.Get("event_abyss_gate_built_title"),
                 _localizationService.Get("event_abyss_gate_built_body"),
+                NotificationIcon.Achievement),
+            GameEventType.TentacleDiscovered => (
+                _localizationService.Get("event_tentacle_discovered_title"),
+                _localizationService.Get("event_tentacle_discovered_body"),
+                NotificationIcon.StoreFail),
+            GameEventType.DemonGodDiscovered => (
+                _localizationService.Get("event_demon_god_discovered_title"),
+                _localizationService.Get("event_demon_god_discovered_body"),
+                NotificationIcon.StoreFail),
+            GameEventType.PandemoniumGatePlaced => (
+                _localizationService.Get("event_pandemonium_gate_placed_title"),
+                _localizationService.Get("event_pandemonium_gate_placed_body"),
+                NotificationIcon.Achievement),
+            GameEventType.PandemoniumGateBuilt => (
+                _localizationService.Get("event_pandemonium_gate_built_title"),
+                _localizationService.Get("event_pandemonium_gate_built_body"),
                 NotificationIcon.Achievement),
             _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
         };

@@ -31,16 +31,21 @@ public class MonumentService
         if (SelectedInvestable == null) return;
         if (SelectedInvestable is Wonder { IsMaxLevel: true }) return;
         if (SelectedInvestable is GreatLighthouse { IsMaxLevel: true }) return;
+        if (SelectedInvestable is Observatory { IsMaxLevel: true }) return;
+        if (SelectedInvestable is Necropolis { IsMaxLevel: true }) return;
         if (SelectedInvestable.InvestmentEnabled.Contains(resource))
             SelectedInvestable.InvestmentEnabled.Remove(resource);
         else
             SelectedInvestable.InvestmentEnabled.Add(resource);
     }
 
-    /// <summary>Bascule l'investissement en points de recherche des Os Divins (pool séparé, voir DivineBones.InvestedResearch).</summary>
+    /// <summary>
+    /// Bascule l'investissement en points de recherche du monument sélectionné (pool séparé, voir
+    /// Monument.InvestedResearch) — Os Divins et Observatoire.
+    /// </summary>
     public void ToggleResearchInvestment()
     {
-        if (SelectedInvestable is not DivineBones bones || bones.Purified) return;
-        bones.ResearchInvestmentEnabled = !bones.ResearchInvestmentEnabled;
+        if (SelectedInvestable is not { UsesResearchInvestment: true } monument) return;
+        monument.ResearchInvestmentEnabled = !monument.ResearchInvestmentEnabled;
     }
 }

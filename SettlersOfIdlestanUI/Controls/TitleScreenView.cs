@@ -22,7 +22,7 @@ namespace SettlersOfIdlestanUI.Controls;
 /// </summary>
 public sealed class TitleScreenView : UserControl
 {
-    private static readonly SolidColorBrush Background = new(Color.FromRgb(15, 15, 22));
+    private static readonly SolidColorBrush PanelBackground = new(Color.FromRgb(15, 15, 22));
     private static readonly SolidColorBrush TitleBrush = new(Color.FromRgb(230, 190, 90));
     private static readonly SolidColorBrush Divider = new(Color.FromRgb(100, 85, 45));
     private static readonly SolidColorBrush SectionBg = new(Color.FromRgb(22, 22, 32));
@@ -119,7 +119,7 @@ public sealed class TitleScreenView : UserControl
         root.Children.Add(layout);
         root.Children.Add(discord);
 
-        Content = new Border { Background = Background, Child = root };
+        Content = new Border { Background = PanelBackground, Child = root };
     }
 
     private static Control BuildTab(TitleScreenViewModel owner)

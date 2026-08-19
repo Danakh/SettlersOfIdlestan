@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.Buildings;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Races;
 
 namespace SettlersOfIdlestan.Model.Ascension;
@@ -15,15 +16,21 @@ public class AscensionState
 
     public bool IsEyeOfGodActive => UnlockedPowers.Contains(AscensionPowerId.EyeOfGod);
 
+    /// <summary>Purification Supérieure : la Nécropole récolte les Os Divins sur lesquels elle est
+    /// bâtie au lieu de les détruire (voir NecropolisController.PlaceNecropolis).</summary>
+    public bool IsGreaterPurificationActive => UnlockedPowers.Contains(AscensionPowerId.GreaterPurification);
+
     /// <summary>
     /// Nombre total d'Ascensions effectuées (cross-prestige, ne diminue jamais). Pilote le nombre
     /// d'emplacements de bâtiments uniques permanents (voir AscensionController.
-    /// PermanentUniqueBuildingSlots) : 1 emplacement supplémentaire gratuit par Ascension.
+    /// PermanentUniqueBuildingSlots) : 1 emplacement par Ascension une fois Héritage Divin acquis,
+    /// 2 avec Héritage Éternel — aucun sans ces pouvoirs.
     /// </summary>
     public int AscensionsPerformed { get; set; }
 
     /// <summary>
-    /// Bâtiments uniques permanents choisis (jusqu'à <see cref="AscensionsPerformed"/> emplacements)
+    /// Bâtiments uniques permanents choisis (jusqu'au nombre d'emplacements ouvert par la colonne
+    /// Héritage, voir AscensionController.PermanentUniqueBuildingSlots)
     /// — voir AscensionController.PermanentUniqueBuildingChoices. Appliqués à chaque début d'île
     /// (AscensionController.ApplyPermanentUniqueBuildingToCivilization), sans jamais occuper
     /// d'emplacement dans une ville.
@@ -44,6 +51,16 @@ public class AscensionState
     /// AscensionController.PermanentUniqueBuildingChoices), quelle que soit la race jouée ensuite.
     /// </summary>
     public HashSet<RaceId> AscendedRaces { get; set; } = new();
+
+    /// <summary>
+    /// Meilleur nombre de complétions jamais atteint par chaque recherche répétable, tous cycles
+    /// d'Ascension confondus. Alimenté à chaque Ascension depuis le TechnologyTree du cycle qui se
+    /// termine (voir AscensionController.RecordBestRepeatCounts) — donc renseigné même pour les
+    /// cycles joués avant l'achat de Mémoire de Dieu. C'est le palier auquel ce pouvoir ramène les
+    /// recherches répétables, à son achat comme au début de chaque cycle suivant (voir
+    /// AscensionController.RestoreRepeatableResearchToBest).
+    /// </summary>
+    public Dictionary<TechnologyId, int> BestRepeatCounts { get; set; } = new();
 
     /// <summary>Tick (GameClock) auquel le cycle d'Ascension en cours a débuté — sert à calculer le temps de jeu du cycle.</summary>
     public long CycleStartTick { get; set; }

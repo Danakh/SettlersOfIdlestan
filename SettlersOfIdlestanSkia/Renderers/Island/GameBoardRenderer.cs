@@ -174,9 +174,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .OfType<Dominion>()
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => g.Max(d => d.Level));
-                    var uwAbyssGate = worldState.Features
-                        .OfType<AbyssGate>()
-                        .ToDictionary(f => f.Position, f => f.Built);
+                    var uwAbyssGate = BuildPortalsByHex(worldState);
                     var uwFeaturesByPosition = worldState.Features
                         .Where(f => f.ShouldRenderIconFor(worldState.PlayerCivilization) && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
@@ -226,9 +224,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .OfType<Dominion>()
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => g.Max(d => d.Level));
-                    var abyssGateByHex = worldState.Features
-                        .OfType<AbyssGate>()
-                        .ToDictionary(f => f.Position, f => f.Built);
+                    var abyssGateByHex = BuildPortalsByHex(worldState);
                     DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockers, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, context.TotalTime);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
@@ -240,6 +236,22 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Hexes portant un portail (Faille des Abysses ou Portail du Pandémonium), avec leur état
+    /// bâti/non bâti : les deux sont rendus par le même tourbillon procédural
+    /// (<see cref="DrawAbyssGatePortal"/>) et il en existe au plus un de chaque par partie.
+    /// </summary>
+    private static Dictionary<HexCoord, bool> BuildPortalsByHex(WorldState worldState)
+    {
+        var portals = new Dictionary<HexCoord, bool>();
+        foreach (var feature in worldState.Features)
+        {
+            if (feature is AbyssGate abyssGate) portals[abyssGate.Position] = abyssGate.Built;
+            else if (feature is PandemoniumGate pandemoniumGate) portals[pandemoniumGate.Position] = pandemoniumGate.Built;
+        }
+        return portals;
     }
 
     private void DrawIslandMap(SKCanvas canvas, IslandMap map, int playerIdx,

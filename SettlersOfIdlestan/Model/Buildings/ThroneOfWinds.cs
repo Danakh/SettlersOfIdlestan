@@ -5,9 +5,10 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
-/// Trône des Vents : bâtiment unique racial des Garudas (voir RaceDefinitions). Rend +3 de défense
-/// des villes (compensant le malus racial -3) et génère de l'Or passivement. Niveau max par
-/// défaut 0 : constructible uniquement quand la race Garuda fournit son BUILDING_MAX_LEVEL +1.
+/// Trône des Vents : bâtiment unique racial des Garudas (voir RaceDefinitions). Ajoute +1 de portée
+/// d'attaque des villes (cumulé au +1 racial, soit +2 au total) et génère de l'Or passivement.
+/// Niveau max par défaut 0 : constructible uniquement quand la race Garuda fournit son
+/// BUILDING_MAX_LEVEL +1.
 /// </summary>
 public class ThroneOfWinds : Building, IUniqueBuilding
 {
@@ -31,7 +32,7 @@ public class ThroneOfWinds : Building, IUniqueBuilding
     public IEnumerable<Modifier> GetUniqueBuildingModifiers()
     {
         if (Level <= 0) yield break;
-        yield return new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, 3);
+        yield return new Modifier(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1);
         yield return new Modifier(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Gold), EType.ADDITIVE, 5);
     }
 }

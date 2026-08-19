@@ -4,7 +4,7 @@ using System;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 
-public abstract class PanelRendererBase : IGameRenderer
+public abstract class PanelRendererBase
 {
     protected const float CollapseTabW = 22f;
     protected const float CollapseTabH = 32f;
@@ -134,8 +134,6 @@ public abstract class PanelRendererBase : IGameRenderer
         int dir = delta > 0 ? -1 : 1;
         ScrollOffset = Math.Clamp(ScrollOffset + dir, 0, Math.Max(0, LastTotalCount - LastVisibleCount));
     }
-
-    public abstract void Render(SKCanvas canvas, GameRenderContext context);
 
     public virtual void Dispose()
     {

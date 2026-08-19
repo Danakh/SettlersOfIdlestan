@@ -340,7 +340,7 @@ namespace SOITests.ControllerTests
 
             // Attack 2: garrison is gone, the TownHall falls → city A is destroyed.
             clock.SimulateAdvance(Dragon.DragonAttackIntervalTicks);
-            Assert.Equal(1, civ.Cities.Count);
+            Assert.Single(civ.Cities);
             Assert.DoesNotContain(cityA, civ.Cities);
             AssertCityCountsConsistent();
 
@@ -354,7 +354,7 @@ namespace SOITests.ControllerTests
 
                 Assert.Null(dragon.LastAttackTargetVertex);
                 Assert.Null(state.FindCityAt(cityA.Position));
-                Assert.Equal(1, civ.Cities.Count);
+                Assert.Single(civ.Cities);
                 AssertCityCountsConsistent();
             }
         }

@@ -36,7 +36,6 @@ public abstract class PopupRendererBase : IDisposable
     // ── État partagé ─────────────────────────────────────────────────────────────
     protected SKSize CanvasSize;
     protected bool   Disposed;
-    protected bool   JustOpened;
 
     public bool IsOpen { get; protected set; }
 
@@ -54,11 +53,7 @@ public abstract class PopupRendererBase : IDisposable
         UpdateFonts(1f);
     }
 
-    public virtual void Open()
-    {
-        IsOpen     = true;
-        JustOpened = true;
-    }
+    public virtual void Open() => IsOpen = true;
 
     public virtual void Close() => IsOpen = false;
 
@@ -100,13 +95,6 @@ public abstract class PopupRendererBase : IDisposable
         canvas.DrawRect(new SKRect(0, 0, CanvasSize.Width, CanvasSize.Height), _overlayPaint);
         canvas.DrawRoundRect(popup, ChromeCornerRadius * s, ChromeCornerRadius * s, _bgPaint);
         canvas.DrawRoundRect(popup, ChromeCornerRadius * s, ChromeCornerRadius * s, _borderPaint);
-    }
-
-    /// <summary>Dessine uniquement le fond et la bordure, sans overlay (ex : About).</summary>
-    protected void DrawBackgroundOnly(SKCanvas canvas, SKRect popup, float cornerRadius)
-    {
-        canvas.DrawRoundRect(popup, cornerRadius, cornerRadius, _bgPaint);
-        canvas.DrawRoundRect(popup, cornerRadius, cornerRadius, _borderPaint);
     }
 
     protected static SKRect GetCloseRect(SKRect popup, float s = 1f) =>

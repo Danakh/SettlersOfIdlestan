@@ -227,6 +227,40 @@ public class ResearchControllerTests
     }
 
     /// <summary>
+    /// REPEATABLE_RESEARCH_SCALING_REDUCTION (pouvoir divin Mémoire de Dieu) rabote la croissance du
+    /// coût des relances : ×1,5 par complétion au lieu de ×2, sans toucher au coût du premier palier.
+    /// </summary>
+    [Fact]
+    public void RepeatableResearchScalingReduction_HalvesTheCostGrowthPerRelaunch()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        civ.TechnologyTree = prestigeState.TechnologyTree; // relie l'arbre partagé, comme en production
+        civ.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION, Modifier.EType.ADDITIVE, 0.5),
+        }));
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        var tech = TechnologyDefinitions.Get(TechnologyId.MasterHarvest)!;
+        Assert.Equal(tech.Cost, ctrl.GetResearchProgress(TechnologyId.MasterHarvest).total);
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.MasterHarvest);
+        Assert.Equal((long)(tech.Cost * 1.5), ctrl.GetResearchProgress(TechnologyId.MasterHarvest).total);
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.MasterHarvest);
+        Assert.Equal((long)(tech.Cost * 2.25), ctrl.GetResearchProgress(TechnologyId.MasterHarvest).total);
+    }
+
+    /// <summary>
     /// Le bouton "loop" (déverrouillé avec la file de recherche) relance automatiquement une
     /// recherche répétable dès qu'elle se termine, et reste actif après la relance (elle est sa
     /// propre file — voir ResearchController.ToggleLoopResearch / AdvanceActiveResearch).

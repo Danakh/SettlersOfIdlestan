@@ -166,8 +166,9 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
-        /// Hexes de Montagne en surface, adjacents à une ville du joueur,
-        /// sans ville ennemie adjacente et sans autre feature.
+        /// Hexes de Montagne en surface, adjacents à une ville du joueur, sans ville ennemie
+        /// adjacente et sans autre feature — du moins au plus coûteux à sacrifier (voir
+        /// <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
         /// </summary>
         public List<HexCoord> GetPlaceableHexes()
         {
@@ -202,7 +203,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 result.Add(hex);
             }
 
-            return result;
+            return MonumentInvestment.OrderByLeastSacrifice(result, playerCiv, _state);
         }
 
         public DeepestMine? PlaceDeepestMine(HexCoord position)

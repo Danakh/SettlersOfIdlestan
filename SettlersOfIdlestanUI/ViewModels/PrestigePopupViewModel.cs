@@ -53,7 +53,7 @@ public sealed class PrestigePopupViewModel : ViewModelBase
     private string _tierPickerTooltip = "";
     private bool _canDecreaseTier;
     private bool _canIncreaseTier;
-    private string? _imperialPortWarning;
+    private string? _warning;
     private bool _hasWonderRow;
     private string _wonderLabel = "";
     private string _wonderValue = "";
@@ -95,17 +95,17 @@ public sealed class PrestigePopupViewModel : ViewModelBase
 
     public bool HasTierPicker => _tierPickerLabel != null;
 
-    /// Rappel affiche quand les points suffisent mais qu'il manque le Port Imperial.
-    public string? ImperialPortWarning
+    /// Rappel affiche sous les actions : Port Imperial manquant, plafond de prestige de la demo atteint.
+    public string? Warning
     {
-        get => _imperialPortWarning;
+        get => _warning;
         private set
         {
-            if (SetProperty(ref _imperialPortWarning, value)) RaisePropertyChanged(nameof(HasImperialPortWarning));
+            if (SetProperty(ref _warning, value)) RaisePropertyChanged(nameof(HasWarning));
         }
     }
 
-    public bool HasImperialPortWarning => _imperialPortWarning != null;
+    public bool HasWarning => _warning != null;
 
     public void Refresh()
     {
@@ -119,7 +119,7 @@ public sealed class PrestigePopupViewModel : ViewModelBase
         CanDecreaseTier = snapshot.CanDecreaseTier;
         CanIncreaseTier = snapshot.CanIncreaseTier;
         TierPickerTooltip = string.Join('\n', snapshot.TierPickerTooltip);
-        ImperialPortWarning = snapshot.ImperialPortWarning;
+        Warning = snapshot.Warning;
 
         HasWonderRow = snapshot.WonderRow != null;
         WonderLabel = snapshot.WonderRow?.Label ?? "";

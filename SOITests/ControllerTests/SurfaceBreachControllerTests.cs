@@ -51,13 +51,48 @@ namespace SOITests.ControllerTests
             return (state, clock, controller, arrivalVertex);
         }
 
+        /// <summary>
+        /// Amène la civilisation au nombre de villes exigé par
+        /// <see cref="SurfaceBreachController.MinCitiesToPlace"/>. Les villes ajoutées siègent sur des
+        /// vertex souterrains hors de la carte générée : sans tuile sous elles, elles ne changent que
+        /// le compte, jamais la liste des hexagones plaçables.
+        /// </summary>
+        private static void GrowToMinimumCities(Civilization civ)
+        {
+            for (int i = civ.Cities.Count; i < SurfaceBreachController.MinCitiesToPlace; i++)
+            {
+                int q = 10 + i * 3;
+                var vertex = Vertex.Create(
+                    new HexCoord(q, 0, LayerState.UnderworldZ),
+                    new HexCoord(q - 1, 0, LayerState.UnderworldZ),
+                    new HexCoord(q - 1, 1, LayerState.UnderworldZ));
+                civ.AddCity(new City(vertex) { CivilizationIndex = civ.Index });
+            }
+        }
+
         // ── Déblocage et placement ───────────────────────────────────────────
 
         [Fact]
-        public void CanPlaceSurfaceBreach_TrueWhenLockedUnderground()
+        public void CanPlaceSurfaceBreach_TrueWhenLockedUndergroundWithEnoughCities()
         {
             var (state, _, controller, _) = CreateSetup();
+            GrowToMinimumCities(state.PlayerCivilization);
+
             Assert.True(controller.CanPlaceSurfaceBreach(state.PlayerCivilization));
+        }
+
+        /// <summary>
+        /// La Percée stérilise la Montagne qu'elle occupe, et le triangle de départ n'en compte
+        /// qu'une : l'ouvrir dès la première ville coupe la seule source de Pierre, donc les routes de
+        /// l'Inframonde, donc toute expansion. Voir SurfaceBreachController.MinCitiesToPlace.
+        /// </summary>
+        [Fact]
+        public void CanPlaceSurfaceBreach_FalseBeforeTheMinimumCityCount()
+        {
+            var (state, _, controller, _) = CreateSetup();
+
+            Assert.Single(state.PlayerCivilization.Cities);
+            Assert.False(controller.CanPlaceSurfaceBreach(state.PlayerCivilization));
         }
 
         [Fact]
@@ -65,6 +100,7 @@ namespace SOITests.ControllerTests
         {
             var (state, _, controller, arrivalVertex) = CreateSetup();
             var civ = state.PlayerCivilization;
+            GrowToMinimumCities(civ);
             civ.AddCity(new City(arrivalVertex) { CivilizationIndex = civ.Index });
 
             Assert.False(controller.CanPlaceSurfaceBreach(civ));
@@ -74,6 +110,7 @@ namespace SOITests.ControllerTests
         public void CanPlaceSurfaceBreach_FalseWithoutMemorizedArrivalVertex()
         {
             var (state, _, controller, _) = CreateSetup();
+            GrowToMinimumCities(state.PlayerCivilization);
             state.Layers[IslandMap.SurfaceLayer].ArrivalVertex = null;
 
             Assert.False(controller.CanPlaceSurfaceBreach(state.PlayerCivilization));
@@ -83,6 +120,7 @@ namespace SOITests.ControllerTests
         public void CanPlaceSurfaceBreach_FalseWhenAlreadyPlaced()
         {
             var (state, _, controller, _) = CreateSetup();
+            GrowToMinimumCities(state.PlayerCivilization);
             controller.PlaceSurfaceBreach(UnderworldMountain);
 
             Assert.False(controller.CanPlaceSurfaceBreach(state.PlayerCivilization));

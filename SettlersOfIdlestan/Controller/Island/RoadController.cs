@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestan.Controller.Island
@@ -410,6 +411,73 @@ namespace SettlersOfIdlestan.Controller.Island
             return road;
         }
 
+        /// <summary>
+        /// Vrai si le vertex est bordé par au moins deux hexagones de Vide — cible du sort Pont du Vide
+        /// (<see cref="BuildVoidBridge"/>). Les trois hexagones doivent exister sur la carte du layer.
+        /// </summary>
+        public bool IsVoidBridgeVertex(Vertex vertex, IslandMap map)
+        {
+            int voidCount = 0;
+            foreach (var hex in vertex.GetHexes())
+            {
+                var tile = map.GetTile(hex);
+                if (tile == null) return false;
+                if (tile.TerrainType == TerrainType.Void) voidCount++;
+            }
+            return voidCount >= 2;
+        }
+
+        /// <summary>
+        /// Sort Pont du Vide : bâtit d'un coup, et gratuitement, les trois routes autour d'un vertex bordé
+        /// de Vide — ni ressources, ni points de recherche (le coût est payé en cristaux par le sort), ni
+        /// contrainte de raccordement au réseau. Les arêtes déjà occupées par une route de la civilisation
+        /// ou protégées par une route ennemie proche de sa ville sont simplement ignorées ; les autres
+        /// routes ennemies sont conquises comme lors d'une construction normale.
+        /// Retourne le nombre de routes réellement posées (0 si le vertex n'offrait plus rien à bâtir).
+        /// </summary>
+        public int BuildVoidBridge(int civilizationIndex, Vertex vertex)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var civ = _state.GetCivilization(civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            var map = _state.GetMapForZ(vertex.Z);
+            if (map == null) return 0;
+
+            var enemyProtectedEdges = new HashSet<Edge>(
+                _state.Civilizations
+                    .Where(c => c.Index != civilizationIndex)
+                    .SelectMany(c => c.Roads)
+                    .Where(r => r.Position.Z == vertex.Z && r.DistanceToNearestCity <= 2)
+                    .Select(r => r.Position));
+
+            var built = new List<Edge>();
+            foreach (var edge in GetEdgesAtVertex(vertex))
+            {
+                if (!map.HasTile(edge.Hex1) || !map.HasTile(edge.Hex2)) continue;
+                if (civ.Roads.Any(r => r.Position.Equals(edge))) continue;
+                if (enemyProtectedEdges.Contains(edge)) continue;
+
+                TryRemoveEnemyRoadAt(edge, civilizationIndex);
+                civ.AddRoad(new Road(edge) { CivilizationIndex = civilizationIndex });
+                built.Add(edge);
+            }
+
+            if (built.Count == 0) return 0;
+
+            ComputeRoadDistancesForCivilization(civ, vertex.Z);
+            InvalidateBuildableRoadsCacheForLayer(vertex.Z);
+            _state.Visibility.RecalculateFor(civilizationIndex);
+
+            // Même événement qu'une route bâtie à la main : c'est lui qui déclenche l'extension
+            // automatique de la carte de l'Abysse (voir MainGameController.OnRoadBuiltExtendMap).
+            foreach (var edge in built)
+                OnRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civilizationIndex, edge));
+
+            return built.Count;
+        }
+
         private void TryRemoveEnemyRoadAt(Edge edge, int buildingCivIndex)
         {
             if (_state == null) return;
@@ -665,16 +733,20 @@ namespace SettlersOfIdlestan.Controller.Island
             return hex1IsVoid && hex2IsVoid;
         }
 
+        /// <summary>Coût en points de recherche de la première route du Vide.</summary>
+        public const long VoidRouteBaseResearchCost = 1_000_000L;
+
         /// <summary>
-        /// Coût en points de recherche d'une route du Vide supplémentaire : 1 000 000 × 4^n,
-        /// n étant le nombre de routes du Vide déjà construites par la civilisation.
+        /// Coût en points de recherche d'une route du Vide supplémentaire : 1 000 000 × m^n,
+        /// n étant le nombre de routes du Vide déjà construites par la civilisation et m le
+        /// multiplicateur exponentiel (4 par défaut, abaissé jusqu'à 3 par l'Observatoire — voir
+        /// <see cref="Observatory.GetVoidRouteCostMultiplierForLevel"/>).
         /// </summary>
-        public static long GetVoidRouteResearchCost(int alreadyBuilt)
+        public static long GetVoidRouteResearchCost(int alreadyBuilt, double multiplier = Observatory.BaseVoidRouteCostMultiplier)
         {
-            long cost = 1_000_000L;
-            for (int i = 0; i < alreadyBuilt; i++)
-                cost *= 4;
-            return cost;
+            if (alreadyBuilt <= 0) return VoidRouteBaseResearchCost;
+            double cost = VoidRouteBaseResearchCost * Math.Pow(multiplier, alreadyBuilt);
+            return cost >= long.MaxValue ? long.MaxValue : (long)cost;
         }
 
         /// <summary>
@@ -691,7 +763,8 @@ namespace SettlersOfIdlestan.Controller.Island
             return hex1IsDeepWater || hex2IsDeepWater;
         }
 
-        private static Edge[] GetEdgesAtVertex(Vertex vertex)
+        /// <summary>Les trois arêtes qui se rejoignent sur ce vertex.</summary>
+        public static Edge[] GetEdgesAtVertex(Vertex vertex)
         {
             var hexes = vertex.GetHexes();
             return new[]
@@ -723,14 +796,28 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Coût de la prochaine route du Vide pour cette civilisation. Avec Cartographie du Vide
         /// (VOID_ROUTE_COST_REDUCTION), les routes déjà bâties ne comptent que pour moitié
-        /// (arrondi en faveur du joueur) dans l'exposant de <see cref="GetVoidRouteResearchCost"/>.
+        /// (arrondi en faveur du joueur) dans l'exposant de <see cref="GetVoidRouteResearchCost"/> ;
+        /// l'Observatoire, lui, abaisse le multiplicateur lui-même (voir
+        /// <see cref="GetVoidRouteCostMultiplier"/>).
         /// </summary>
         private long GetVoidRouteResearchCostFor(Civilization civ)
         {
             int alreadyBuilt = civ.Roads.Count(r => IsEdgeBetweenVoidHexes(r.Position));
             if (civ.ModifierAggregator.HasModifier(Modifier.ECategory.VOID_ROUTE_COST_REDUCTION))
                 alreadyBuilt /= 2;
-            return GetVoidRouteResearchCost(alreadyBuilt);
+            return GetVoidRouteResearchCost(alreadyBuilt, GetVoidRouteCostMultiplier());
+        }
+
+        /// <summary>
+        /// Multiplicateur exponentiel courant du coût des routes du Vide : ×4 sans Observatoire,
+        /// abaissé d'un pas par niveau jusqu'à ×3 une fois l'Observatoire complet. L'Observatoire est
+        /// unique sur la carte (monument du joueur) : le multiplicateur vaut donc pour toutes les
+        /// civilisations, comme les bonus de portée du Grand Phare.
+        /// </summary>
+        public double GetVoidRouteCostMultiplier()
+        {
+            var observatory = _state?.Features.OfType<Observatory>().FirstOrDefault();
+            return observatory?.VoidRouteCostMultiplier ?? Observatory.BaseVoidRouteCostMultiplier;
         }
 
         public static ResourceSet GetMaritimeRoadCost() => new ResourceSet
@@ -753,15 +840,29 @@ namespace SettlersOfIdlestan.Controller.Island
             };
         }
 
-        public ResourceSet GetPlayerRoadCost(Edge edge)
+        /// <summary>
+        /// Coût réellement débité par <see cref="BuildRoad"/> à cette civilisation pour cette arête :
+        /// route maritime/du Vide, ou coût de base majoré des surcoûts de l'Inframonde
+        /// (<see cref="ApplyUnderworldRoadCostAdjustments"/>). C'est cette méthode, et jamais
+        /// <see cref="GetRoadCost(int, Civilization?)"/> seule, que doit interroger tout appelant qui
+        /// veut savoir ce qu'il lui manque — sur une arête de l'Inframonde, le coût de base ne
+        /// mentionne ni le Minerai ni la Pierre, si bien qu'un stock de Bois/Brique au plafond
+        /// paraît suffire (voir <see cref="CivilizationAutoplayer.TryBuildRoadOnce"/>, dont le troc
+        /// automatique ne cherchait alors jamais à acheter ce qui bloquait vraiment).
+        /// </summary>
+        public ResourceSet GetRoadCostFor(Civilization civ, Edge edge)
         {
             if (IsEdgeBetweenVoidHexes(edge) || !IsEdgeOnLand(edge))
                 return GetMaritimeRoadCost();
-            var civ = _state!.PlayerCivilization;
             var distance = GetDistanceForEdge(edge, civ);
+            // Arête déconnectée du réseau : jamais constructible, donc ce coût n'est qu'indicatif —
+            // mais distance² déborderait sur int.MaxValue.
+            if (distance == int.MaxValue) distance = 1;
             var cost = GetRoadCost(distance, civ);
             return ApplyUnderworldRoadCostAdjustments(cost, edge, civ);
         }
+
+        public ResourceSet GetPlayerRoadCost(Edge edge) => GetRoadCostFor(_state!.PlayerCivilization, edge);
 
         /// <summary>
         /// Applique au coût de base d'une route terrestre les majorations propres à l'Inframonde :

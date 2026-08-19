@@ -5,6 +5,10 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using SettlersOfIdlestanSkia.Renderers.Overlay;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
+using SettlersOfIdlestanSkia.Services;
+using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanUI;
 using SettlersOfIdlestanUI.Controls;
 using SettlersOfIdlestanUI.ViewModels;
@@ -191,5 +195,96 @@ public class TradePopupViewTests
         Dispatcher.UIThread.RunJobs();
 
         return (window, map, view);
+    }
+}
+
+/// <summary>
+/// Multiplicateur temporaire du popup de commerce : Ctrl et Maj maintenus imposent x10 / x100 /
+/// x1000 le temps de l'appui, par-dessus le multiplicateur permanent choisi au clic.
+///
+/// Teste sur le renderer et non sur la vue : les touches n'arrivent pas par le popup mais par
+/// GameView, qui les ecoute au niveau de l'overlay Avalonia (le popup s'ouvre depuis un bouton
+/// qui prend le focus clavier, le canevas ne les verrait jamais) et les route jusqu'ici via
+/// GameRuntimeHost.KeyPressed -> OverlayRenderer.HandleKeyInput.
+/// </summary>
+public class TradePopupMultiplierTests
+{
+    private static TradePopupRenderer OpenPopup()
+    {
+        var service = new GameControllerService();
+        service.InitializeNewGame();
+
+        var localization = new LocalizationService();
+        var resources    = new ResourceManager();
+        var renderer     = new TradePopupRenderer(
+            service, localization, new TooltipRenderer(localization, service, resources), resources);
+
+        renderer.Open();
+        return renderer;
+    }
+
+    /// Le multiplicateur en vigueur, lu la ou la vue le lit : l'instantane.
+    private static int ActiveMultiplier(TradePopupRenderer renderer) =>
+        renderer.GetSnapshot().Multipliers.Single(m => m.IsActive).Value;
+
+    private static bool IsTemporary(TradePopupRenderer renderer, int value) =>
+        renderer.GetSnapshot().Multipliers.Single(m => m.Value == value).IsTemporary;
+
+    [Fact]
+    public void Sans_touche_maintenue_le_multiplicateur_est_celui_choisi()
+    {
+        using var popup = OpenPopup();
+        Assert.Equal(1, ActiveMultiplier(popup));
+
+        popup.SetMultiplierFromHost(100);
+
+        Assert.Equal(100, ActiveMultiplier(popup));
+        Assert.False(IsTemporary(popup, 100));
+    }
+
+    [Theory]
+    [InlineData(new[] { "Control" }, 10)]
+    [InlineData(new[] { "Shift" }, 100)]
+    [InlineData(new[] { "Control", "Shift" }, 1000)]
+    public void Les_touches_maintenues_imposent_leur_multiplicateur(string[] keys, int expected)
+    {
+        using var popup = OpenPopup();
+
+        foreach (var key in keys) popup.HandleKeyDown(key);
+
+        Assert.Equal(expected, ActiveMultiplier(popup));
+        Assert.True(IsTemporary(popup, expected));
+    }
+
+    [Fact]
+    public void Relacher_la_touche_rend_la_main_au_multiplicateur_choisi()
+    {
+        using var popup = OpenPopup();
+        popup.SetMultiplierFromHost(100);
+
+        popup.HandleKeyDown("Control");
+        Assert.Equal(10, ActiveMultiplier(popup));
+
+        popup.HandleKeyUp("Control");
+
+        Assert.Equal(100, ActiveMultiplier(popup));
+        Assert.False(IsTemporary(popup, 100));
+    }
+
+    /// <summary>
+    /// Fermer le popup pendant que Ctrl est enfonce ne doit pas laisser le multiplicateur arme :
+    /// le relachement se produit hors du popup et ne lui parvient jamais.
+    /// </summary>
+    [Fact]
+    public void Fermer_le_popup_desarme_les_touches_maintenues()
+    {
+        using var popup = OpenPopup();
+        popup.HandleKeyDown("Control");
+        Assert.Equal(10, ActiveMultiplier(popup));
+
+        popup.Close();
+        popup.Open();
+
+        Assert.Equal(1, ActiveMultiplier(popup));
     }
 }

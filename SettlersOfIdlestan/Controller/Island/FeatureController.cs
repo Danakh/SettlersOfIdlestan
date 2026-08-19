@@ -130,7 +130,7 @@ public class FeatureController
             if (visible)
             {
                 feature.Found = true;
-                bool featureToast = feature.DiscoveredEventType is GameEventType.BanditHideoutDiscovered or GameEventType.DragonDiscovered or GameEventType.MinorDemonDiscovered or GameEventType.MajorDemonDiscovered or GameEventType.VolcanoDiscovered;
+                bool featureToast = feature.DiscoveredEventType is GameEventType.BanditHideoutDiscovered or GameEventType.DragonDiscovered or GameEventType.MinorDemonDiscovered or GameEventType.MajorDemonDiscovered or GameEventType.VolcanoDiscovered or GameEventType.TentacleDiscovered or GameEventType.DemonGodDiscovered;
                 _state.EventLog.Add(feature.DiscoveredEventType, toast: featureToast);
                 OnFeatureDiscovered?.Invoke(this, feature);
             }

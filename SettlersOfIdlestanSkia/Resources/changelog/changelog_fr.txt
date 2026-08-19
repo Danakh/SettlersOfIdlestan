@@ -4,6 +4,19 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.15
+• Tentacules : à partir du niveau de corruption 6, chaque nouvelle île des Abysses peut voir surgir une tentacule — aussi coriace qu'un démon majeur, mais enracinée sur son hex
+• Pandémonium : abattre une tentacule ouvre un Portail du Pandémonium (même prix que la Faille des Abysses). Une fois bâti, il donne accès à une île unique cernée de Vide, gardée par un dieu démon en son centre et huit tentacules — le joueur y débarque au bord
+• Corne d'Abondance : nouveau pouvoir divin (suite d'Inventaire Divin) qui ajoute +100% de rendement à toute récolte automatique — cumulable avec les autres bonus de rendement — et verse chaque seconde 20 unités de chaque ressource de base
+• Courroux de Dieu : nouveau pouvoir divin (suite de Poing de Dieu) qui ajoute +100% de vitesse d'attaque à vos soldats, contre les monstres comme contre les villes ennemies
+• Héritage Divin : nouveau pouvoir divin, premier d'une sixième colonne, qui débloque les bâtiments uniques permanents — chaque Ascension effectuée ouvre un emplacement, rétroactivement pour celles déjà accomplies
+• Héritage Éternel : nouveau pouvoir divin (suite d'Héritage Divin) qui ouvre un second emplacement de bâtiment unique permanent par Ascension effectuée
+• Ascension Prestigieuse : nouveau pouvoir divin, premier d'une cinquième colonne, qui fait verser à chaque Ascension 1 point de prestige par essence divine gagnée depuis le début de la partie — dotation également versée à l'achat du pouvoir
+• Purification Supérieure : nouveau pouvoir divin (suite d'Ascension Prestigieuse) grâce auquel la Nécropole purifie les Os Divins sur lesquels elle est bâtie au lieu de les détruire — leur essence divine est récoltée gratuitement à la construction
+• Mémoire de Dieu : nouveau pouvoir divin (suite de Oeil de Dieu) qui réduit de 50% la croissance du coût des recherches répétables et les préserve de l'Ascension — chaque nouveau cycle repart au meilleur palier jamais atteint
+• Poing de Dieu : nouveau pouvoir divin (suite de Bras de Dieu) qui abat 100 dégâts sur un hexagone — au monstre qui s'y trouve et à chaque ville ennemie adjacente. Le premier coup après chaque prestige est gratuit
+• Pont du Vide : nouvelle recherche (suite de Magie du Vide) débloquant un sort qui bâtit d'un coup les trois routes autour d'un vertex bordé de Vide, contre des cristaux plutôt que des points de recherche — son coût double à chaque lancement
+• Cartes des Étoiles : nouvelle recherche (suite de Magie du Vide) débloquant l'Observatoire, un monument bâti sur une Montagne de la surface. Chaque niveau abaisse le multiplicateur du coût en points de recherche des routes du Vide, de × 4 à × 3 une fois l'Observatoire complet
+• Nécropole Divine : nouvelle recherche (suite du Reliquaire Sacré) débloquant la Nécropole, un monument bâti sur des Os Divins non purifiés qu'il consume — chaque niveau augmente de 15% les points divins obtenus lors de l'Ascension
 
 ---
 
