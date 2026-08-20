@@ -140,13 +140,13 @@ public sealed class AutomationView : UserControl
             // La note s'affiche au survol de toute la carte, comme dans le rendu Skia.
             this[!ToolTip.TipProperty] = new Binding(nameof(AutomationRowViewModel.Note));
 
-            var toggle = new CheckBox
+            // Case coloree par famille plutot qu'un CheckBox neutre du theme (voir
+            // CategoryToggleSquare) : construction / comportement / activation se distinguent
+            // d'un coup d'oeil, meme dans cette liste qui les regroupe deja par section.
+            var toggle = new CategoryToggleSquare
             {
-                IsThreeState = true,
-                VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 10, 0),
                 [!IsVisibleProperty] = new Binding(nameof(AutomationRowViewModel.HasToggle)),
-                [!ToggleButton.IsCheckedProperty] = new Binding(nameof(AutomationRowViewModel.IsOn)),
             };
             toggle.Click += (_, _) => { if (_row != null) _owner.Toggle(_row); };
 

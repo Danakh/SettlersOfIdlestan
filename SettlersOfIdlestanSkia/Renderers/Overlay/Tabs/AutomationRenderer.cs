@@ -59,6 +59,50 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyRestrictSoldierProductionAbyss      = "RestrictSoldierProductionAbyss";
     internal const string PinKeyRestrictSoldierProductionPandemonium = "RestrictSoldierProductionPandemonium";
 
+    /// <summary>
+    /// Famille de chaque cle d'epinglage, pour styler differemment les bascules du panneau
+    /// civilisation. Reprend exactement le classement des sections de <see cref="BuildColumns"/> :
+    /// "buildings" -> Construction, "behaviors" -> Behavior, "controls" -> Activation. Table
+    /// separee plutot que deduite de BuildColumns (comme PlayerCivilizationPanelRenderer le fait
+    /// deja pour les libelles avec AutomationPinLocalizationRoots) car ce panneau ne connait une
+    /// bascule que par sa cle, jamais par la RowModel qui l'a produite. Un test verrouille
+    /// l'accord entre les deux.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, AutomationCategory> PinKeyCategories =
+        new Dictionary<string, AutomationCategory>
+        {
+            [PinKeyRoad] = AutomationCategory.Construction,
+            [PinKeyRoadUnderworld] = AutomationCategory.Construction,
+            [PinKeyOutpost] = AutomationCategory.Construction,
+            [PinKeyOutpostUnderworld] = AutomationCategory.Construction,
+            [PinKeyTownHall] = AutomationCategory.Construction,
+            [PinKeyProduction] = AutomationCategory.Construction,
+            [PinKeyArtisan] = AutomationCategory.Construction,
+            [PinKeyLibrary] = AutomationCategory.Construction,
+            [PinKeyMarket] = AutomationCategory.Construction,
+            [PinKeySeaport] = AutomationCategory.Construction,
+            [PinKeyMilBuildings] = AutomationCategory.Construction,
+            [PinKeyGrandTemple] = AutomationCategory.Construction,
+            [PinKeyMithrilMine] = AutomationCategory.Construction,
+            [PinKeyArcaneTower] = AutomationCategory.Construction,
+
+            [PinKeyMilReinforce] = AutomationCategory.Behavior,
+            [PinKeyMilVendetta] = AutomationCategory.Behavior,
+            [PinKeyMonumentInvestment] = AutomationCategory.Behavior,
+
+            [PinKeyBarracks] = AutomationCategory.Activation,
+            [PinKeyArsenal] = AutomationCategory.Activation,
+            [PinKeyLaboratory] = AutomationCategory.Activation,
+            [PinKeySmelter] = AutomationCategory.Activation,
+            [PinKeyWeaponSmith] = AutomationCategory.Activation,
+            [PinKeyArmorSmith] = AutomationCategory.Activation,
+            [PinKeyAlchimistHut] = AutomationCategory.Activation,
+            [PinKeyRestrictSoldierProduction] = AutomationCategory.Activation,
+            [PinKeyRestrictSoldierProductionUnderworld] = AutomationCategory.Activation,
+            [PinKeyRestrictSoldierProductionAbyss] = AutomationCategory.Activation,
+            [PinKeyRestrictSoldierProductionPandemonium] = AutomationCategory.Activation,
+        };
+
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
     private readonly UILayoutService _uiLayout;
@@ -252,7 +296,8 @@ public sealed class AutomationRenderer : IDisposable
         bool? IsOn,
         bool IsLocked,
         bool CanPin,
-        BuildingType[]? SummaryTypes);
+        BuildingType[]? SummaryTypes,
+        AutomationCategory Category);
 
     private sealed record SectionModel(string Header, List<RowModel> Rows);
 
@@ -294,12 +339,18 @@ public sealed class AutomationRenderer : IDisposable
         bool roadUnlocked = buildersGuild != null && buildersGuild.Level >= 1;
         bool outpostUnlocked = buildersGuild != null && buildersGuild.Level >= 4;
 
+        // Categorie deduite de la cle plutot que passee en parametre : PinKeyCategories est deja
+        // la table de reference (partagee avec le panneau civilisation), la dedoubler ici ne
+        // pourrait que diverger.
+        AutomationCategory CategoryOf(string key) =>
+            PinKeyCategories.TryGetValue(key, out var category) ? category : AutomationCategory.Construction;
+
         RowModel Row(string key, string root, bool unlocked, bool isOn, BuildingType[]? summary = null, bool hasNote = true) =>
             unlocked
                 ? new RowModel(key, _localization.Get(root + "_name"), _localization.Get(root + "_desc"),
-                    hasNote ? _localization.Get(root + "_note") : null, isOn, IsLocked: false, CanPin: true, summary)
+                    hasNote ? _localization.Get(root + "_note") : null, isOn, IsLocked: false, CanPin: true, summary, CategoryOf(key))
                 : new RowModel(key, _localization.Get(root + "_name"), _localization.Get(root + "_locked"),
-                    null, null, IsLocked: true, CanPin: false, null);
+                    null, null, IsLocked: true, CanPin: false, null, CategoryOf(key));
 
         var buildings = new List<RowModel>
         {
@@ -337,7 +388,7 @@ public sealed class AutomationRenderer : IDisposable
         {
             if (!BuildingExists<T>(civ)) return;
             controls.Add(new RowModel(key, _localization.Get(nameKey), _localization.Get(descKey),
-                null, AreAllActiveNullable<T>(civ), IsLocked: false, CanPin: true, null));
+                null, AreAllActiveNullable<T>(civ), IsLocked: false, CanPin: true, null, CategoryOf(key)));
         }
 
         BuildingControl<Barracks>(PinKeyBarracks, "building_barracks_name", "tooltip_toggle_barracks");
@@ -359,7 +410,7 @@ public sealed class AutomationRenderer : IDisposable
                 string key = RestrictSoldierProductionPinKey(layerZ);
                 bool isRestricted = settings.RestrictSoldierProductionToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v;
                 controls.Add(new RowModel(key, _localization.Get(root + "_name"), _localization.Get(root + "_desc"),
-                    note, isRestricted, IsLocked: false, CanPin: true, null));
+                    note, isRestricted, IsLocked: false, CanPin: true, null, CategoryOf(key)));
             }
         }
 
@@ -611,7 +662,8 @@ public sealed class AutomationRenderer : IDisposable
                     IsPinned: pinned.Contains(row.Key),
                     SummaryLines: row.SummaryTypes == null
                         ? []
-                        : row.SummaryTypes.Select(t => FormatSummaryEntry(civ.Cities, t).Text).ToList()))
+                        : row.SummaryTypes.Select(t => FormatSummaryEntry(civ.Cities, t).Text).ToList(),
+                    Category: row.Category))
                     .ToList()))
                 .ToList();
 

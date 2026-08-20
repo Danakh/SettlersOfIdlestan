@@ -386,6 +386,8 @@ public sealed record SettingsMenuSnapshot(bool IsOpen, IReadOnlyList<SettingsMen
 /// porte la condition de deblocage.</param>
 /// <param name="Note">Precision affichee en infobulle au survol de la carte ; null si absente.</param>
 /// <param name="SummaryLines">Etat de construction par type de batiment concerne, deja formate.</param>
+/// <param name="Category">Famille de l'automatisme (voir <see cref="AutomationCategory"/>), pour
+/// colorer sa case a cocher comme celle du panneau civilisation.</param>
 public sealed record AutomationRowSnapshot(
     string Key,
     string Name,
@@ -395,7 +397,8 @@ public sealed record AutomationRowSnapshot(
     bool IsLocked,
     bool CanPin,
     bool IsPinned,
-    IReadOnlyList<string> SummaryLines);
+    IReadOnlyList<string> SummaryLines,
+    AutomationCategory Category);
 
 public sealed record AutomationSectionSnapshot(string Header, IReadOnlyList<AutomationRowSnapshot> Rows);
 
@@ -685,11 +688,20 @@ public sealed record CivActionSnapshot(
     IReadOnlyList<string> TooltipLines);
 
 /// <summary>
+/// Famille d'un automatisme epinglable, utilisee pour styler differemment les bascules du panneau
+/// civilisation : construction automatique de batiments, comportement (raid, renfort...), ou
+/// activation d'un type de batiment deja construit. Correspond aux trois sections de la page
+/// Automatisation (<c>automation_header_buildings/_behaviors/_controls</c>), definies dans
+/// AutomationRenderer.PinKeyCategories.
+/// </summary>
+public enum AutomationCategory { Construction, Behavior, Activation }
+
+/// <summary>
 /// Une bascule epinglee dans la section Controles.
 /// </summary>
 /// <param name="IsOn">Trois etats : tous actifs, tous inactifs, ou null pour un etat mixte
 /// (certains batiments du type actifs, d'autres non).</param>
-public sealed record CivToggleSnapshot(string Key, string Label, bool? IsOn, string Tooltip);
+public sealed record CivToggleSnapshot(string Key, string Label, bool? IsOn, string Tooltip, AutomationCategory Category);
 
 /// <summary>
 /// Panneau lateral de la civilisation du joueur : actions disponibles et bascules epinglees

@@ -17,9 +17,10 @@ namespace SOIUITests;
 public class AutomationRowViewModelTests
 {
     private static SkiaLayer.AutomationRowSnapshot Row(
-        bool? isOn = true, bool isLocked = false, bool isPinned = false, string[]? summary = null) =>
+        bool? isOn = true, bool isLocked = false, bool isPinned = false, string[]? summary = null,
+        SkiaLayer.AutomationCategory category = SkiaLayer.AutomationCategory.Construction) =>
         new("Road", "Routes", isLocked ? "Necessite une Guilde des Batisseurs" : "Construit les routes",
-            isLocked ? null : "Note", isOn, isLocked, CanPin: !isLocked, isPinned, summary ?? []);
+            isLocked ? null : "Note", isOn, isLocked, CanPin: !isLocked, isPinned, summary ?? [], category);
 
     [Fact]
     public void Une_ligne_verrouillee_n_a_pas_de_bascule()
@@ -114,7 +115,8 @@ public class AutomationViewModelTests
         var vm = new AutomationViewModel(host);
         vm.LeftColumn.Add(new AutomationSectionViewModel(new SkiaLayer.AutomationSectionSnapshot(
             "Batiments",
-            [new("Road", "Routes", "Construit les routes", "Note", true, false, true, false, [])])));
+            [new("Road", "Routes", "Construit les routes", "Note", true, false, true, false, [],
+                SkiaLayer.AutomationCategory.Construction)])));
 
         // Pas de partie en cours : l'instantane est celui d'un onglet inactif.
         vm.Refresh();
@@ -163,7 +165,8 @@ public class AutomationViewTests
             "Constructions",
             [
                 new("Road", "Routes", "Necessite une Guilde des Batisseurs", null, null,
-                    IsLocked: true, CanPin: false, IsPinned: false, []),
+                    IsLocked: true, CanPin: false, IsPinned: false, [],
+                    Category: SkiaLayer.AutomationCategory.Construction),
             ]));
 
         var visibleBoxes = view.GetVisualDescendants().OfType<CheckBox>()
@@ -180,13 +183,21 @@ public class AutomationViewTests
             "Constructions",
             [
                 new("Production", "Production", "Construit les batiments de production", "Note", true,
-                    IsLocked: false, CanPin: true, IsPinned: true, ["Scierie: 2xNiv1"]),
+                    IsLocked: false, CanPin: true, IsPinned: true, ["Scierie: 2xNiv1"],
+                    Category: SkiaLayer.AutomationCategory.Construction),
             ]));
 
-        var boxes = view.GetVisualDescendants().OfType<CheckBox>()
+        // La bascule est une CategoryToggleSquare coloree par famille, pas un CheckBox : seule
+        // la case d'epinglage en reste un.
+        var pins = view.GetVisualDescendants().OfType<CheckBox>()
             .Where(c => c.DataContext is AutomationRowViewModel && c.IsVisible)
             .ToList();
-        Assert.Equal(2, boxes.Count);
+        Assert.Single(pins);
+
+        var toggles = view.GetVisualDescendants().OfType<CategoryToggleSquare>()
+            .Where(c => c.DataContext is AutomationRowViewModel && c.IsVisible)
+            .ToList();
+        Assert.Single(toggles);
 
         var texts = view.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
         Assert.Contains("Scierie: 2xNiv1", texts);

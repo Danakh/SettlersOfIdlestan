@@ -17,6 +17,10 @@ public sealed class AutomationRowViewModel : ViewModelBase
     /// Cle d'epinglage, qui sert aussi d'identifiant et de routage.
     public string Key => _snapshot.Key;
 
+    /// Famille de l'automatisme (construction, comportement, activation) : fixe pour la duree de
+    /// vie de la ligne, comme la section a laquelle elle appartient — pas repercutee dans Apply.
+    public SkiaLayer.AutomationCategory Category => _snapshot.Category;
+
     public string Name => _snapshot.Name;
     public string Description => _snapshot.Description;
     public string? Note => _snapshot.Note;

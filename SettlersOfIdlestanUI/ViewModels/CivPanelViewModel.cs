@@ -90,12 +90,18 @@ public sealed class CivToggleViewModel : ViewModelBase
     public CivToggleViewModel(SkiaLayer.CivToggleSnapshot snapshot)
     {
         Key = snapshot.Key;
+        Category = snapshot.Category;
         _label = snapshot.Label;
         _isOn = snapshot.IsOn;
         _tooltip = snapshot.Tooltip;
     }
 
     public string Key { get; }
+
+    /// Famille de l'automatisme (construction, comportement, activation) : la vue s'en sert pour
+    /// styler chaque bascule differemment. Fixe pour la duree de vie de la ligne — une bascule
+    /// epinglee ne change jamais de famille — donc pas repercutee dans Apply.
+    public SkiaLayer.AutomationCategory Category { get; }
 
     public string Label { get => _label; private set => SetProperty(ref _label, value); }
 

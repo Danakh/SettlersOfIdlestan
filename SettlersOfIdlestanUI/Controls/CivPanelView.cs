@@ -261,14 +261,11 @@ public sealed class CivPanelView : UserControl
             Padding = new Thickness(10, 2);
             this[!ToolTip.TipProperty] = new Binding(nameof(CivToggleViewModel.Tooltip));
 
-            var checkbox = new CheckBox
-            {
-                IsThreeState = true,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 8, 0),
-                [!ToggleButton.IsCheckedProperty] = new Binding(nameof(CivToggleViewModel.IsOn)),
-            };
-            checkbox.Click += (_, _) => { if (_toggle != null) _owner.Toggle(_toggle); };
+            // Case coloree par famille plutot qu'un CheckBox neutre du theme (voir
+            // CategoryToggleSquare) : construction / comportement / activation se distinguent
+            // d'un coup d'oeil, sans lire le libelle.
+            var square = new CategoryToggleSquare { Margin = new Thickness(0, 0, 8, 0) };
+            square.Click += (_, _) => { if (_toggle != null) _owner.Toggle(_toggle); };
 
             var label = new TextBlock
             {
@@ -280,8 +277,8 @@ public sealed class CivPanelView : UserControl
             };
 
             var layout = new DockPanel { LastChildFill = true };
-            DockPanel.SetDock(checkbox, Dock.Left);
-            layout.Children.Add(checkbox);
+            DockPanel.SetDock(square, Dock.Left);
+            layout.Children.Add(square);
             layout.Children.Add(label);
             Child = layout;
         }

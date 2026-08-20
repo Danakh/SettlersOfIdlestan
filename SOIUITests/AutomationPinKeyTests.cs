@@ -48,4 +48,17 @@ public class AutomationPinKeyTests
     private static bool IsBuildingPinKey(string pinKey) => pinKey is
         "Barracks" or "Arsenal" or "Laboratory" or "Smelter" or
         "WeaponSmith" or "ArmorSmith" or "AlchimistHut";
+
+    /// Contrairement a AutomationPinLocalizationRoots, PinKeyCategories doit couvrir aussi les
+    /// cles de batiment (Barracks...) : le panneau civilisation en a besoin pour styler leur
+    /// bascule, meme si leur libelle vient d'ailleurs (building_*_name).
+    [Theory]
+    [MemberData(nameof(AllPinKeys))]
+    public void Chaque_automatisme_epinglable_a_une_famille_pour_le_panneau_civilisation(string pinKey)
+    {
+        Assert.True(
+            AutomationRenderer.PinKeyCategories.ContainsKey(pinKey),
+            $"L'automatisme « {pinKey} » peut etre epingle mais n'a pas de famille declaree dans "
+            + "AutomationRenderer.PinKeyCategories : le panneau civilisation ne saurait pas le styler.");
+    }
 }

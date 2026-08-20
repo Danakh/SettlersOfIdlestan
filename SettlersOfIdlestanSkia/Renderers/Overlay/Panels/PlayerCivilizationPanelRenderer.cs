@@ -865,8 +865,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 continue;
 
             var (value, nameKey, tooltipKey) = ResolvePinnedToggle(key, civ, worldState);
-            toggles.Add(new CivToggleSnapshot(key, _localization.Get(nameKey), value, _localization.Get(tooltipKey)));
+            var category = AutomationRenderer.PinKeyCategories.GetValueOrDefault(key, AutomationCategory.Construction);
+            toggles.Add(new CivToggleSnapshot(key, _localization.Get(nameKey), value, _localization.Get(tooltipKey), category));
         }
+
+        // Regroupees par famille (construction, comportement, activation) plutot que dans l'ordre
+        // d'epinglage : c'est ce classement que la vue s'appuie dessus pour styler chaque bascule,
+        // et regrouper les bascules de meme style les rend plus faciles a parcourir d'un coup d'oeil.
+        toggles = toggles.OrderBy(t => t.Category).ToList();
 
         // Même règle que Render : sans action ni bascule, le panneau n'a rien à montrer.
         if (iconActions.Count == 0 && actions.Count == 0 && toggles.Count == 0)
