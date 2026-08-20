@@ -249,7 +249,7 @@ internal sealed class ScrollIndicator : Control
 /// <summary>Pastille d'une ressource : icone a gauche, quantite/max a droite.</summary>
 internal sealed class ResourcePill : Border
 {
-    internal const double PillWidth = 66;
+    internal const double PillWidth = 76;
 
     private const int IconPixelSize = 22;
 
@@ -364,9 +364,11 @@ internal sealed class ResourcePill : Border
             return;
         }
 
-        // Deux lignes quand la capacite est grande, comme l'ancien renderer : sinon
-        // "12,3k/45,6k" deborde de la pastille.
-        _quantity.Text = _item.MaxLabel.Length > 4
+        // Deux lignes quand le texte combine est long, comme l'ancien renderer : sinon
+        // "12,3k/45,6k" deborde de la pastille. Se base sur la longueur des deux labels et non
+        // du seul MaxLabel : une quantite a une decimale de plus que son maximum (ex. "6.68k"
+        // pour un max "6.7k") deborde tout autant sur une seule ligne.
+        _quantity.Text = _item.QuantityLabel.Length + _item.MaxLabel.Length > 8
             ? $"{_item.QuantityLabel}\n/{_item.MaxLabel}"
             : $"{_item.QuantityLabel}/{_item.MaxLabel}";
 
