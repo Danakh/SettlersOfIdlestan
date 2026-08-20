@@ -140,6 +140,47 @@ namespace SettlersOfIdlestan.Controller.Expand
             }
         }
 
+        /// <summary>Clé de source pour l'or consommé par les Laboratoires actifs, pour l'infobulle de ressource.</summary>
+        public const string LaboratoryGoldConsumptionSourceKey = "tooltip_source_laboratory_production";
+
+        /// <summary>
+        /// Or/seconde consommé par les Laboratoires actifs (niveau ≥ 1), toutes villes de la civilisation
+        /// confondues. Reflète les mêmes conditions que <see cref="ProduceResearchPoints"/> : chaque
+        /// Laboratoire éligible tourne son propre cooldown et consomme 1 or à la fin de celui-ci.
+        /// </summary>
+        public double GetLaboratoryGoldConsumptionRate(int civilizationIndex)
+        {
+            var civ = _state?.GetCivilization(civilizationIndex);
+            if (civ == null) return 0;
+
+            double productionSpeed = civ.ResearchProductionSpeed;
+            const double ticksPerSecond = 100.0;
+            double total = 0;
+
+            foreach (var city in civ.Cities)
+            {
+                var lab = city.FindBuilding<Laboratory>(BuildingType.Laboratory);
+                if (lab == null || lab.Level < 1 || lab.ActivationStatus != ActivationStatus.ACTIVE) continue;
+
+                long cooldown = Math.Max(1L, (long)(lab.GetResearchCooldownTicks() / productionSpeed));
+                total += ticksPerSecond / cooldown;
+            }
+
+            return total;
+        }
+
+        /// <summary>
+        /// Vrai si la civilisation possède au moins un Laboratoire construit et actif. Sert à afficher la
+        /// ligne de consommation d'or même à 0/s, pour la même raison que <see cref="SettlersOfIdlestan.Controller.Military.MilitaryController.HasAnySoldierProductionBuilding"/>.
+        /// </summary>
+        public bool HasAnyActiveLaboratory(int civilizationIndex)
+        {
+            var civ = _state?.GetCivilization(civilizationIndex);
+            if (civ == null) return false;
+            return civ.Cities.Any(c => c.FindBuilding<Laboratory>(BuildingType.Laboratory) is { } lab
+                && lab.Level >= 1 && lab.ActivationStatus == ActivationStatus.ACTIVE);
+        }
+
         private void AdvanceActiveResearch()
         {
             if (_state == null || _clock == null || Tree == null) return;

@@ -269,6 +269,18 @@ public sealed class OverlayRenderer : IGameRenderer
                 steelLosses.Add((SettlersOfIdlestan.Controller.Military.MilitaryController.ArsenalProductionSteelSourceKey, arsenalSteelRate));
             }
 
+            // L'or consommé par les Laboratoires actifs est calculé par le ResearchController (source de
+            // vérité pour tout ce qui touche aux Laboratoires) plutôt que par le HarvestController, même
+            // logique que pour le minerai/l'acier des Casernes/Arsenaux ci-dessus.
+            if (hoveredResource == SettlersOfIdlestan.Model.IslandMap.Resource.Gold
+                && controller.ResearchController.HasAnyActiveLaboratory(civIndex))
+            {
+                double laboratoryGoldRate = controller.ResearchController.GetLaboratoryGoldConsumptionRate(civIndex);
+                if (!lossesBySource.TryGetValue(SettlersOfIdlestan.Model.IslandMap.Resource.Gold, out var goldLosses))
+                    lossesBySource[SettlersOfIdlestan.Model.IslandMap.Resource.Gold] = goldLosses = new System.Collections.Generic.List<(string SourceKey, double Rate)>();
+                goldLosses.Add((SettlersOfIdlestan.Controller.Expand.ResearchController.LaboratoryGoldConsumptionSourceKey, laboratoryGoldRate));
+            }
+
             gainsBySource.TryGetValue(hoveredResource, out gains);
             lossesBySource.TryGetValue(hoveredResource, out losses);
         }

@@ -445,6 +445,7 @@
   "tooltip_source_soldier_upkeep": "Soldier upkeep",
   "tooltip_source_soldier_production": "Soldier production",
   "tooltip_source_arsenal_production": "Soldier production (Arsenal)",
+  "tooltip_source_laboratory_production": "Research (Laboratory)",
   "tooltip_source_ritual_upkeep": "Ritual upkeep",
   "outpost_construction": "Outpost Construction\nDouble-click to build",
   "maritime_beacon_construction": "Maritime Beacon Construction\nDouble-click to build",
