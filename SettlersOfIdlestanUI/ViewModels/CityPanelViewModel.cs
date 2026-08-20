@@ -108,9 +108,16 @@ public sealed class CityBuildingRowViewModel : ViewModelBase
         ActionLabel = snapshot.ActionLabel;
         IsActionEnabled = snapshot.IsActionEnabled;
 
-        // Le nombre de ressources d'un cout change au passage de palier : on ne met a jour en
-        // place que si la composition est identique.
-        if (snapshot.Cost.Count == Cost.Count)
+        // La composition d'un cout (nombre ET nature des ressources) peut changer au passage de
+        // palier — ex. Hutte d'Alchimie : cout de construction en Or, cout d'amelioration en
+        // Cristal, tous deux a 3 lignes. Comparer seulement Count laisserait IconName perime
+        // (lecture seule, jamais reecrit par CostItemViewModel.Apply) : on ne met a jour en
+        // place que si chaque ressource occupe la meme position.
+        bool sameComposition = snapshot.Cost.Count == Cost.Count;
+        for (int i = 0; i < Cost.Count && sameComposition; i++)
+            sameComposition = Cost[i].IconName == snapshot.Cost[i].IconName;
+
+        if (sameComposition)
         {
             for (int i = 0; i < Cost.Count; i++) Cost[i].Apply(snapshot.Cost[i]);
             return;
