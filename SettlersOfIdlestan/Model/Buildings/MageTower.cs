@@ -38,19 +38,24 @@ public class MageTower : Building
     }
 
     public override bool HasBuildPrerequisites(IBuildingContext city, WorldState state)
-        => IsAdjacentToCrystalCaveOrFoundFairyCircle(city, state);
+        => IsAdjacentToCrystalCave(city, state) || IsAdjacentToFoundFairyCircle(city, state);
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state)
         => HasBuildPrerequisites(city, state) ? null : "tooltip_requires_crystal_cave_or_fairy_circle";
 
-    private static bool IsAdjacentToCrystalCaveOrFoundFairyCircle(IBuildingContext city, WorldState state)
+    public override string? GetBuildWarningKey(IBuildingContext city, WorldState state)
+        => !IsAdjacentToCrystalCave(city, state) && IsAdjacentToFoundFairyCircle(city, state)
+            ? "tooltip_mage_tower_no_crystal_harvest"
+            : null;
+
+    private static bool IsAdjacentToCrystalCave(IBuildingContext city, WorldState state)
     {
         var map = state.GetMapFor(city.Position);
-        if (map != null && map.VertexHasTerrainType(city.Position, TerrainType.CrystalCave))
-            return true;
-
-        return city.Position.GetHexes().Any(hex => state.GetFeaturesAt(hex).OfType<FairyCircle>().Any(f => f.Found));
+        return map != null && map.VertexHasTerrainType(city.Position, TerrainType.CrystalCave);
     }
+
+    private static bool IsAdjacentToFoundFairyCircle(IBuildingContext city, WorldState state)
+        => city.Position.GetHexes().Any(hex => state.GetFeaturesAt(hex).OfType<FairyCircle>().Any(f => f.Found));
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

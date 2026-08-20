@@ -466,4 +466,11 @@ public class Building
     /// Default implementation ignores state and falls back to the simple overload.
     /// </summary>
     public virtual string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state) => GetMissingPrerequisiteKey(city);
+
+    /// <summary>
+    /// Returns the localization key for a non-blocking build warning, or null if none.
+    /// Unlike <see cref="GetMissingPrerequisiteKey(IBuildingContext, WorldState)"/>, the build is still
+    /// allowed — this only informs the player of a limitation (e.g. reduced functionality at this spot).
+    /// </summary>
+    public virtual string? GetBuildWarningKey(IBuildingContext city, WorldState state) => null;
 }

@@ -320,6 +320,12 @@ public class CityBuildingService
             ? null
             : building.GetMissingPrerequisiteKey(BuildingController.BuildPrerequisiteContext(SelectedCity), State);
 
+    /// <summary>Clé de localisation de l'avertissement non bloquant pour ce bâtiment, ou null si aucun.</summary>
+    public string? GetBuildWarningKey(Building building)
+        => SelectedCity == null
+            ? null
+            : building.GetBuildWarningKey(BuildingController.BuildPrerequisiteContext(SelectedCity), State);
+
     /// <summary>Quantité actuelle d'une ressource détenue par la civilisation de la ville sélectionnée (0 si aucune ville sélectionnée).</summary>
     public int GetSelectedCivilizationResourceQuantity(Resource resource)
         => SelectedCivilization?.GetResourceQuantity(resource) ?? 0;

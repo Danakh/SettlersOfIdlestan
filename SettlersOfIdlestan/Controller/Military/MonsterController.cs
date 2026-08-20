@@ -20,6 +20,8 @@ public class MonsterFeatureController
     private GameClock? _clock;
     private GamePRNG? _prng;
     private CityBuilderController? _cityBuilderController;
+    private WarFleetController? _warFleetController;
+    private MobileCampController? _mobileCampController;
     private PrestigeState? _prestigeState;
 
     private List<MonsterFeature> _monsters = new();
@@ -30,7 +32,7 @@ public class MonsterFeatureController
     /// <summary>Un consommable (Armure d'Acier, Potion de Soin) a été détruit pour sauver un soldat lors d'une attaque de monstre.</summary>
     public event EventHandler<ConsumableConsumedEventArgs>? ConsumableConsumed;
 
-    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null, PrestigeState? prestigeState = null)
+    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null, PrestigeState? prestigeState = null, WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -48,6 +50,8 @@ public class MonsterFeatureController
         _clock = clock;
         if (prng != null) _prng = prng;
         _cityBuilderController = cityBuilderController;
+        _warFleetController = warFleetController;
+        _mobileCampController = mobileCampController;
         _prestigeState = prestigeState;
 
         RebuildCache();
@@ -168,7 +172,7 @@ public class MonsterFeatureController
                 if (monster.AttacksOtherMonsters)
                     AttackNearbyMonster(monster, currentTick);
                 else
-                    AttackNearbyCity(monster, currentTick);
+                    AttackNearbyMilitaryTarget(monster, currentTick);
             }
         }
     }
@@ -447,9 +451,9 @@ public class MonsterFeatureController
         return nearest;
     }
 
-    // ── Attaque des villes ───────────────────────────────────────────────────
+    // ── Attaque des cibles militaires ─────────────────────────────────────────
 
-    private void AttackNearbyCity(MonsterFeature monster, long currentTick)
+    private void AttackNearbyMilitaryTarget(MonsterFeature monster, long currentTick)
     {
         if (_state == null) return;
         if (currentTick - monster.LastAttackTick < monster.AttackIntervalTicks) return;
@@ -467,15 +471,20 @@ public class MonsterFeatureController
         ApplyMonsterAttack(monster, target, currentTick);
     }
 
-    private City? FindAttackTarget(MonsterFeature monster)
+    /// <summary>
+    /// Cherche un emplacement militaire (ville, Flotte de Guerre, Camp Mobile — voir
+    /// <see cref="IMilitaryVertex"/>) à attaquer, tous types confondus.
+    /// </summary>
+    private IMilitaryVertex? FindAttackTarget(MonsterFeature monster)
     {
-        // Priorité : villes dont un hex coïncide avec la position du monstre
+        // Priorité : emplacements militaires dont un hex coïncide avec la position du monstre
         foreach (var civ in _state!.Civilizations)
         {
             if (IsImmuneTo(civ, monster)) continue;
-            foreach (var city in civ.Cities)
-                if (city.Position.GetHexes().Any(h => h.Equals(monster.Position)))
-                    return city;
+            var vertices = civ.MilitaryVertices;
+            for (int i = 0; i < vertices.Count; i++)
+                if (vertices[i].Position.GetHexes().Any(h => h.Equals(monster.Position)))
+                    return vertices[i];
         }
 
         if (monster.AttackRangeInHexes < 2) return null;
@@ -489,9 +498,10 @@ public class MonsterFeatureController
         foreach (var civ in _state.Civilizations)
         {
             if (IsImmuneTo(civ, monster)) continue;
-            foreach (var city in civ.Cities)
-                if (city.Position.GetHexes().Any(h => neighborSet.Contains(h)))
-                    return city;
+            var vertices = civ.MilitaryVertices;
+            for (int i = 0; i < vertices.Count; i++)
+                if (vertices[i].Position.GetHexes().Any(h => neighborSet.Contains(h)))
+                    return vertices[i];
         }
 
         return null;
@@ -507,13 +517,13 @@ public class MonsterFeatureController
     private static bool IsImmuneTo(Civilization civ, MonsterFeature monster)
         => civ.ModifierAggregator.HasModifier(ECategory.MONSTER_ATTACK_IMMUNITY, monster.GetType().Name);
 
-    private void ApplyMonsterAttack(MonsterFeature monster, City city, long tick)
+    private void ApplyMonsterAttack(MonsterFeature monster, IMilitaryVertex target, long tick)
     {
         monster.LastAttackTick = tick;
-        var civ = _state!.GetCivilization(city.CivilizationIndex);
+        var civ = _state!.GetCivilization(target.CivilizationIndex);
         if (civ == null) return;
 
-        if (!monster.IgnoresPalisade && city.FindBuilding(BuildingType.Palisade) is { Level: > 0 })
+        if (!monster.IgnoresPalisade && target is City palisadeCheck && palisadeCheck.FindBuilding(BuildingType.Palisade) is { Level: > 0 })
         {
             monster.LastAttackTargetVertex = null;
             monster.LastAttackResourcesString = null;
@@ -528,12 +538,12 @@ public class MonsterFeatureController
         if (damage > 0)
         {
             // 1. Soldats — Armures d'Acier : chaque soldat touché peut survivre en consommant 1 Acier
-            int soldierDmg = Math.Min(damage, city.Soldiers);
+            int soldierDmg = Math.Min(damage, target.Soldiers);
             if (soldierDmg > 0)
             {
-                int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, soldierDmg, _prng!,
+                int saved = SteelArmorEngine.TrySaveSoldiers(civ, target, soldierDmg, _prng!,
                     (v, res) => ConsumableConsumed?.Invoke(this, new ConsumableConsumedEventArgs(v.Position, res)));
-                city.Soldiers -= soldierDmg - saved;
+                target.Soldiers -= soldierDmg - saved;
                 damage -= soldierDmg;
                 didSomething = true;
             }
@@ -541,36 +551,49 @@ public class MonsterFeatureController
             // 2. Défense
             if (damage > 0)
             {
-                int defenseDmg = Math.Min(damage, city.CurrentDefense);
-                if (defenseDmg > 0) { city.CurrentDefense -= defenseDmg; damage -= defenseDmg; didSomething = true; }
+                int defenseDmg = Math.Min(damage, target.CurrentDefense);
+                if (defenseDmg > 0) { target.CurrentDefense -= defenseDmg; damage -= defenseDmg; didSomething = true; }
             }
 
-            // 3. Niveaux de Townhall (1 dégât = 1 niveau)
-            if (damage > 0)
+            if (target is City city)
             {
-                var townHall = city.Buildings.OfType<TownHall>().FirstOrDefault();
-                if (townHall != null)
+                // 3. Niveaux de Townhall (1 dégât = 1 niveau)
+                if (damage > 0)
                 {
-                    int thDmg = Math.Min(damage, townHall.Level);
-                    townHall.Level -= thDmg;
-                    damage -= thDmg;
-                    didSomething = true;
-                    if (townHall.Level <= 0)
+                    var townHall = city.Buildings.OfType<TownHall>().FirstOrDefault();
+                    if (townHall != null)
                     {
-                        city.RemoveBuilding(townHall);
-                        city.InvalidateLevelCache();
+                        int thDmg = Math.Min(damage, townHall.Level);
+                        townHall.Level -= thDmg;
+                        damage -= thDmg;
+                        didSomething = true;
+                        if (townHall.Level <= 0)
+                        {
+                            city.RemoveBuilding(townHall);
+                            city.InvalidateLevelCache();
+                        }
+                        BuildingController.RecalculateStorageCapacity(civ);
+                        civ.TrimResourcesToMax();
                     }
-                    BuildingController.RecalculateStorageCapacity(civ);
-                    civ.TrimResourcesToMax();
+                }
+
+                // 4. Destruction de la ville — plus de Townhall (même si damage tombé à 0 pendant la cascade)
+                if (!city.Buildings.OfType<TownHall>().Any())
+                {
+                    monster.LastAttackTargetVertex = city.Position;
+                    monster.LastAttackResourcesString = null;
+                    _cityBuilderController?.DestroyCity(city, CityDestructionCause.Monster);
+                    return;
                 }
             }
-
-            // 4. Destruction de la ville — plus de Townhall (même si damage tombé à 0 pendant la cascade)
-            if (!city.Buildings.OfType<TownHall>().Any())
+            else if (damage > 0)
             {
-                monster.LastAttackTargetVertex = city.Position;
+                // Une Flotte de Guerre / un Camp Mobile n'a pas de bâtiments (voir
+                // CityAttackEngine.ApplyAttackToCity) : une fois soldats et défense épuisés, le dégât
+                // restant la/le détruit directement, sans étape "structurelle" façon Townhall.
+                monster.LastAttackTargetVertex = target.Position;
                 monster.LastAttackResourcesString = null;
-                _cityBuilderController?.DestroyCity(city, CityDestructionCause.Monster);
+                DestroyMilitaryTarget(target);
                 return;
             }
         }
@@ -597,11 +620,25 @@ public class MonsterFeatureController
         }
 
         if (didSomething)
-            monster.LastAttackTargetVertex = city.Position;
+            monster.LastAttackTargetVertex = target.Position;
         else
         {
             monster.LastAttackTargetVertex = null;
             monster.LastAttackResourcesString = null;
+        }
+    }
+
+    /// <summary>Détruit une Flotte de Guerre ou un Camp Mobile tué par un monstre (voir ApplyMonsterAttack).</summary>
+    private void DestroyMilitaryTarget(IMilitaryVertex target)
+    {
+        switch (target)
+        {
+            case WarFleet fleet:
+                _warFleetController?.DestroyFleet(fleet);
+                break;
+            case MobileCamp camp:
+                _mobileCampController?.DestroyMobileCamp(camp);
+                break;
         }
     }
 

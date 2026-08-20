@@ -115,6 +115,16 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     }
                 }
 
+                if (!tooltipIsOtherCity)
+                {
+                    var buildWarningKey = _cityBuildingService.GetBuildWarningKey(hoveredBuilding);
+                    if (buildWarningKey != null)
+                    {
+                        tooltipLines.Add(_localization.Get(buildWarningKey));
+                        tooltipLines.Add("");
+                    }
+                }
+
                 var manualHarvestRes = hoveredBuilding.ManualHarvestResource;
                 var autoHarvestRes   = hoveredBuilding.AutomaticHarvestResource;
                 if (hoveredBuilding.Level > 0 && (manualHarvestRes.HasValue || autoHarvestRes.HasValue))
