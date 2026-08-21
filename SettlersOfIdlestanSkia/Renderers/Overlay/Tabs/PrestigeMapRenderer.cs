@@ -738,6 +738,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.CITY_DEFENSE              => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_defense")}",
         Modifier.ECategory.CITY_MAX_SOLDIERS_BONUS   => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_max_soldiers")}",
         Modifier.ECategory.CITY_DEFENSE_REGEN_SPEED  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_city_defense_regen")}",
+        Modifier.ECategory.UNDERWORLD_CITY_DEFENSE_REGEN_SPEED => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_underworld_defense_regen")}",
         Modifier.ECategory.BUILDING_PRODUCTION       => string.IsNullOrEmpty(mod.SubCategory)
             ? $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_production")}"
             : $"+{(int)mod.Value} {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {_localization.Get("prestige_tooltip_production")}",

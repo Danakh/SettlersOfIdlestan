@@ -262,13 +262,14 @@ public class MilitaryController
     /// </summary>
     private double GetDefenseRegenSpeed(IMilitaryVertex vertex, Civilization civ)
         => GetDefenseRegenSpeed(vertex, civ.CityDefenseRegenSpeed,
-            civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, "", 0.0));
+            civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, "", 0.0),
+            civ.ModifierAggregator.ApplyModifiers(ECategory.UNDERWORLD_CITY_DEFENSE_REGEN_SPEED, "", 0.0));
 
     /// <summary>
-    /// Variante prenant les deux valeurs propres à la civilisation déjà calculées — voir
+    /// Variante prenant les valeurs propres à la civilisation déjà calculées — voir
     /// <see cref="ResolveDefenseRegen"/>, qui les remonte hors de sa boucle par emplacement.
     /// </summary>
-    private double GetDefenseRegenSpeed(IMilitaryVertex vertex, double civRegenSpeed, double perDominionLevel)
+    private double GetDefenseRegenSpeed(IMilitaryVertex vertex, double civRegenSpeed, double perDominionLevel, double underworldRegenBonus)
     {
         // Caché sur la ville et invalidé par ses changements de bâtiments : le parcours était refait
         // pour chaque emplacement à chaque événement d'horloge.
@@ -289,7 +290,9 @@ public class MilitaryController
             dominionBonus = perDominionLevel * dominionLevels;
         }
 
-        return (civRegenSpeed + buildingBonus) * (1.0 + dominionBonus);
+        double underworldBonus = vertex.Position.Z == LayerState.UnderworldZ ? underworldRegenBonus : 0.0;
+
+        return (civRegenSpeed + buildingBonus) * (1.0 + dominionBonus + underworldBonus);
     }
 
     /// <summary>Score de défense maximal (bâtiments/bonus fixe + modificateurs de civilisation).</summary>
@@ -383,7 +386,7 @@ public class MilitaryController
     /// Régénération de défense de tous les emplacements de toutes les civilisations, à chaque
     /// événement d'horloge.
     ///
-    /// <para>Les quatre valeurs lues sur <c>ModifierAggregator</c> ne dépendent que de la
+    /// <para>Les cinq valeurs lues sur <c>ModifierAggregator</c> ne dépendent que de la
     /// civilisation : elles sont calculées une fois par civ, pas une fois par emplacement. En fin de
     /// partie cette boucle voit plusieurs centaines d'emplacements et pesait 11 % du budget d'image
     /// à elle seule, l'essentiel en agrégation de modifiers refaite à l'identique.</para>
@@ -400,6 +403,7 @@ public class MilitaryController
             bool hasTempleDefenseBonus = aggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS);
             double perDominionLevel = aggregator.ApplyModifiers(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, "", 0.0);
             double civRegenSpeed = civ.CityDefenseRegenSpeed;
+            double underworldRegenBonus = aggregator.ApplyModifiers(ECategory.UNDERWORLD_CITY_DEFENSE_REGEN_SPEED, "", 0.0);
 
             var vertices = civ.MilitaryVertices;
             for (int v = 0; v < vertices.Count; v++)
@@ -407,7 +411,7 @@ public class MilitaryController
                 var vertex = vertices[v];
                 if (vertex.CurrentDefense >= GetDefenseScore(vertex, civDefenseBonus, hasTempleDefenseBonus)) continue;
 
-                double regenSpeed = GetDefenseRegenSpeed(vertex, civRegenSpeed, perDominionLevel);
+                double regenSpeed = GetDefenseRegenSpeed(vertex, civRegenSpeed, perDominionLevel, underworldRegenBonus);
                 long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / regenSpeed);
                 if (currentTick - vertex.LastDefenseRegenTick < effectiveRegenInterval) continue;
 

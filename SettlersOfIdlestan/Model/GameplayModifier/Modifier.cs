@@ -243,6 +243,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             SOLDIER_ATTACK_DAMAGE,
             /// <summary>Fraction de réduction de la croissance du coût des recherches répétables. Base = 0.0 (coût ×2 par relance) ; 0.5 = croissance réduite de moitié, soit ×1,5 par relance (voir ResearchController.GetRepeatCostFactor). SubCategory unused.</summary>
             REPEATABLE_RESEARCH_SCALING_REDUCTION,
+            /// <summary>Bonus additif de vitesse de régénération de défense, appliqué uniquement aux villes de l'Inframonde (voir MilitaryController.GetDefenseRegenSpeed). Base = 0.0 ; +0.2 = +20%. SubCategory unused.</summary>
+            UNDERWORLD_CITY_DEFENSE_REGEN_SPEED,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

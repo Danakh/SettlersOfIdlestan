@@ -361,7 +361,7 @@ public static class TechnologyDefinitions
         // Rapprochée de la racine de l'arbre (tier -2, coût /16) pour la rendre accessible plus tôt :
         // Watchtower et Rail Logistics dépendent désormais d'elle plutôt que l'inverse. Débloque la
         // construction du Camp Mobile (voir MobileCampController) — l'accès est vérifié directement
-        // sur la recherche complétée, comme ProspectionAvancee, plutôt que via un modificateur dédié.
+        // sur la recherche complétée, plutôt que via un modificateur dédié.
         new(TechnologyId.MobileCampConstruction,
             "tech_mobile_camp_construction_name", "tech_mobile_camp_construction_desc",
             cost: 112500,
@@ -472,14 +472,13 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.25) },
             tier: 7, line: 3),
 
-        // 20% de chance qu'un hexagone Désert de l'Inframonde soit un Filon de Mithril, à la fois
-        // pour les hexagones déjà révélés (conversion à la complétion) et pour les futurs
-        // (voir ResearchController/AutoExtendController).
+        // +20% de vitesse de régénération de la défense pour les villes de l'Inframonde
+        // (voir MilitaryController.GetDefenseRegenSpeed).
         new(TechnologyId.ProspectionAvancee,
             "tech_prospection_avancee_name", "tech_prospection_avancee_desc",
             cost: 5800000,
             prerequisites: new[] { TechnologyId.CartographieSouterraine, TechnologyId.OutilsEnMithril },
-            modifiers: Array.Empty<Modifier>(),
+            modifiers: new Modifier[] { new(ECategory.UNDERWORLD_CITY_DEFENSE_REGEN_SPEED, EType.ADDITIVE, 0.2) },
             tier: 8, line: 1),
 
         // === Branche de la Magie (débloquée par le vertex de prestige Secret de la Magie) ===
