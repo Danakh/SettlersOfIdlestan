@@ -712,6 +712,13 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.GetCivilization(city.CivilizationIndex)
                       ?? throw new ArgumentException("City's civilization not found", nameof(city));
 
+            // Plusieurs flux d'attaque ou monstres peuvent achever la même ville dans le même tick :
+            // une fois soldats/défense/Hôtel de Ville épuisés, chacun redétecte indépendamment la
+            // destruction. Sans ce garde-fou, DestroyCity serait invoqué plusieurs fois pour la même
+            // ville et OnCityDestroyed se déclencherait autant de fois — dupliquant le toast
+            // « civilisation détruite » quand il s'agit de sa dernière ville.
+            if (!civ.Cities.Contains(city)) return;
+
             city.RaiseDestroyed();
             civ.RemoveCity(city);
             civ.TrimResourcesToMax();

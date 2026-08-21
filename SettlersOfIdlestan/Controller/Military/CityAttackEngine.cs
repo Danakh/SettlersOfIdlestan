@@ -40,6 +40,7 @@ internal class CityAttackEngine
     /// <summary>Tampons réutilisés par <see cref="ResolveCityAttacks"/> — voir ses commentaires.</summary>
     private readonly List<IMilitaryVertex> _attackerVerticesScratch = new();
     private readonly List<(Civilization civ, IMilitaryVertex vertex, Civilization attackerCiv)> _toDestroyScratch = new();
+    private readonly HashSet<Vertex> _destroyedPositionsScratch = new();
 
     internal void ResolveCityAttacks(long currentTick,
         Action<CityAttackEventArgs> onSoldierAttackedCity,
@@ -48,6 +49,15 @@ internal class CityAttackEngine
     {
         var toDestroy = _toDestroyScratch;
         toDestroy.Clear();
+        // Plusieurs flux d'attaque peuvent viser la même ville et se résoudre dans le même tick :
+        // une fois ses soldats/défense/Hôtel de Ville épuisés par un premier flux, ApplyAttackToCity
+        // renvoie destroyed=true pour n'importe quel autre flux qui la frappe ensuite, sans que rien
+        // ne signale qu'elle est déjà promise à la destruction. Sans cette déduplication, DestroyCity
+        // est appelé plusieurs fois pour la même ville — inoffensif pour civ.RemoveCity (no-op), mais
+        // OnCityDestroyed se déclenche à chaque appel et déclenche autant de toasts « civilisation
+        // détruite » que de flux d'attaque impliqués.
+        var destroyedPositions = _destroyedPositionsScratch;
+        destroyedPositions.Clear();
 
         var raidTarget = _state!.AutomationSettings.RaidTargetVertex;
         var playerCiv = _state.PlayerCivilization;
@@ -89,6 +99,10 @@ internal class CityAttackEngine
 
                 var targetVertex = FindEnemyCityAt(attackerVertex.FlowTarget, attackerCiv);
                 if (targetVertex == null) continue;
+                // Cible déjà achevée par un autre flux d'attaque plus tôt dans ce même tick : la
+                // frapper de nouveau ne ferait que redétecter destroyed=true et dupliquer l'entrée
+                // dans toDestroy (voir le commentaire sur destroyedPositions ci-dessus).
+                if (destroyedPositions.Contains(targetVertex.Position)) continue;
                 // La cible doit rester visible pour l'attaquant : hors de vue (brouillard de guerre),
                 // le flux d'attaque est annulé au lieu d'attendre indéfiniment.
                 if (!IsCityVisibleTo(targetVertex, attackerCiv))
@@ -135,7 +149,7 @@ internal class CityAttackEngine
                 bool destroyed = false;
                 for (int hit = 0; hit < hits && !destroyed; hit++)
                     destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed, onConsumableConsumed);
-                if (destroyed)
+                if (destroyed && destroyedPositions.Add(targetVertex.Position))
                 {
                     var ownerCiv = _state.GetCivilization(targetVertex.CivilizationIndex);
                     if (ownerCiv != null)
