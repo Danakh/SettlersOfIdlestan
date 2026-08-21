@@ -321,7 +321,7 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[]
                 {
                     new(ECategory.UNLOCK_MAGIC, EType.ADDITIVE, 1),
-                    new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 2),
+                    new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 1),
                     new(ECategory.UNLOCK_RESEARCH, "MagicInitiation", EType.ADDITIVE, 1),
                 }
             ),
@@ -332,7 +332,7 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[]
                 {
                     new(ECategory.UNLOCK_INVOCATIONS, EType.ADDITIVE, 1),
-                    new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 2),
+                    new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 1),
                     new(ECategory.UNLOCK_RESEARCH, "Invocation", EType.ADDITIVE, 1),
                 }
             ),
@@ -574,7 +574,11 @@ public static class PrestigeMapFactory
                 PrestigeMap.ArcaneTowerVertex,
                 "prestige_vertex_arcane_tower",
                 cost: Cost(PrestigeMap.ArcaneTowerVertex),
-                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "ArcaneTower", EType.ADDITIVE, 1) }
+                modifiers: new Modifier[]
+                {
+                    new(ECategory.BUILDING_MAX_LEVEL, "ArcaneTower", EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "MageTower", EType.ADDITIVE, 2),
+                }
             ),
             new(
                 PrestigeMap.ForgottenAltarVertex,
