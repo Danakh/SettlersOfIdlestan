@@ -140,18 +140,46 @@ public class City : IBuildingContext, IMilitaryVertex
         }
     }
 
+    [NonSerialized]
+    private double _cachedUnitProductionSpeedBonus;
+    [NonSerialized]
+    private bool _unitProductionSpeedBonusCacheValid;
+
     /// <summary>
-    /// Invalide les caches dérivés de la défense. Appelé par <see cref="InvalidateLevelCache"/> <b>et</b>
+    /// Bonus de vitesse de production de soldats propre à cette ville (Garnison), qui s'ajoute au
+    /// <see cref="Civilization.UnitProductionSpeed"/> civ-wide uniquement pour SES propres Caserne/Arsenal
+    /// (voir SoldierProductionEngine, MilitaryController.GetSoldierProductionRate). Lu sur le même chemin
+    /// chaud que <see cref="MaxDefense"/>, et caché pour la même raison.
+    /// </summary>
+    public double UnitProductionSpeedBonus
+    {
+        get
+        {
+            if (!_unitProductionSpeedBonusCacheValid)
+            {
+                double total = 0;
+                for (int i = 0; i < _buildings.Count; i++) total += _buildings[i].GetUnitProductionSpeedBonus();
+                _cachedUnitProductionSpeedBonus = total;
+                _unitProductionSpeedBonusCacheValid = true;
+            }
+            return _cachedUnitProductionSpeedBonus;
+        }
+    }
+
+    /// <summary>
+    /// Invalide les caches dérivés de la défense (et de la vitesse de production de soldats, même
+    /// logique de dépendance). Appelé par <see cref="InvalidateLevelCache"/> <b>et</b>
     /// par <see cref="InvalidateMaxSoldiersCache"/> : les deux invalidations manuelles existantes ne
     /// couvrent pas les mêmes sites — le prestige améliore une Caserne en n'appelant que la seconde,
     /// un combat qui rétrograde un bâtiment n'appelle que la première — alors que les bonus de défense
     /// dépendent du niveau dans les deux cas. Les brancher aux deux garantit qu'aucun chemin de
-    /// changement de niveau ne laisse la défense périmée.
+    /// changement de niveau ne laisse la défense (ou la vitesse de production) périmée.
     /// </summary>
     private void InvalidateDefenseCaches()
     {
         _maxDefenseCacheValid = false;
         _defenseRegenBonusCacheValid = false;
+        _unitProductionSpeedBonusCacheValid = false;
     }
 
     /// <summary>

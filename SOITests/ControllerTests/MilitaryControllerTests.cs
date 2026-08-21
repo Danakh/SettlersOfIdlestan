@@ -333,13 +333,11 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Garrison_Level4_DoublesSoldierProductionRate()
         {
-            var (state, _, controller, city) = CreateSetup(initialSoldiers: 0);
-            var civ = state.Civilizations[0];
+            var (_, _, controller, city) = CreateSetup(initialSoldiers: 0);
 
             double baseRate = controller.GetSoldierProductionRate(city);
 
-            var garrison = new Garrison { Level = 4 };
-            civ.AddCustomAggregator(new StaticModifierProvider(garrison.GetUniqueBuildingModifiers()));
+            city.AddBuilding(new Garrison { Level = 4 });
 
             double newRate = controller.GetSoldierProductionRate(city);
 
@@ -349,13 +347,11 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Garrison_Level4_ProducesSoldiersAtDoubleSpeed()
         {
-            var (state, clock, _, city) = CreateSetup(initialSoldiers: 0);
-            var civ = state.Civilizations[0];
+            var (_, clock, _, city) = CreateSetup(initialSoldiers: 0);
 
-            var garrison = new Garrison { Level = 4 };
-            civ.AddCustomAggregator(new StaticModifierProvider(garrison.GetUniqueBuildingModifiers()));
+            city.AddBuilding(new Garrison { Level = 4 });
 
-            // Avec UnitProductionSpeed=2.0, l'intervalle effectif est 500 ticks
+            // Avec UnitProductionSpeedBonus=1.0 (Garnison niveau 4, propre à cette ville), l'intervalle effectif est 500 ticks
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks / 2);
             Assert.Equal(1, city.Soldiers);
         }

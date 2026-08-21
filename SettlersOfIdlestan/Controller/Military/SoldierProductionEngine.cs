@@ -36,10 +36,12 @@ internal class SoldierProductionEngine
 
         foreach (var civ in _state.Civilizations)
         {
-            // Constantes par civilisation, relues auparavant à chaque ville : en fin de partie cette
+            // Constante par civilisation, relue auparavant à chaque ville : en fin de partie cette
             // boucle voit plusieurs centaines de villes par événement d'horloge, et la seule lecture
-            // de UnitProductionSpeed (qui réagrège les modifiers) pesait ~2 % du budget d'image.
-            long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
+            // de UnitProductionSpeed (qui réagrège les modifiers) pesait ~2 % du budget d'image. Le
+            // bonus de Garnison, propre à chaque ville (voir City.UnitProductionSpeedBonus), s'y ajoute
+            // individuellement pour chaque ville ci-dessous plutôt que d'être plié dans cette constante.
+            double civUnitProductionSpeed = civ.UnitProductionSpeed;
             int maxSoldiersBonus = civ.CityMaxSoldiersBonus;
             int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
             bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
@@ -50,6 +52,7 @@ internal class SoldierProductionEngine
             {
                 var city = cities[i];
                 if (city.Soldiers + city.IncomingSoldiers.Count >= city.MaxSoldiers + maxSoldiersBonus) continue;
+                long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / (civUnitProductionSpeed + city.UnitProductionSpeedBonus));
                 if (currentTick - city.LastSoldierProductionTick < productionInterval) continue;
 
                 // FindBuilding plutôt que OfType<Barracks>().FirstOrDefault() : la chaîne LINQ boxait
@@ -106,8 +109,8 @@ internal class SoldierProductionEngine
         {
             if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION)) continue;
 
-            // Constantes par civilisation — même motif que ProduceSoldiers.
-            long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed);
+            // Constante par civilisation — même motif que ProduceSoldiers.
+            double civUnitProductionSpeed = civ.UnitProductionSpeed;
             int maxSoldiersBonus = civ.CityMaxSoldiersBonus;
             int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
             bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
@@ -119,6 +122,7 @@ internal class SoldierProductionEngine
                 int room = city.MaxSoldiers + maxSoldiersBonus - city.Soldiers - city.IncomingSoldiers.Count;
                 if (room <= 0) continue;
 
+                long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / (civUnitProductionSpeed + city.UnitProductionSpeedBonus));
                 if (currentTick - city.LastArsenalProductionTick < productionInterval) continue;
 
                 var arsenal = city.FindBuilding<Arsenal>(BuildingType.Arsenal) is { Level: >= 1 } ars ? ars : null;

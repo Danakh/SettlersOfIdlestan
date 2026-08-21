@@ -1,10 +1,8 @@
-using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
-using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
-public class Garrison : Building, IUniqueBuilding
+public class Garrison : Building
 {
     public const int MaxSoldiersPerLevel = 5;
 
@@ -31,9 +29,5 @@ public class Garrison : Building, IUniqueBuilding
         { Resource.Glass,  20 * (level + 1) },
     };
 
-    public IEnumerable<Modifier> GetUniqueBuildingModifiers()
-    {
-        if (Level <= 0) yield break;
-        yield return new Modifier(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.25 * Level);
-    }
+    public override double GetUnitProductionSpeedBonus() => 0.25 * Level;
 }

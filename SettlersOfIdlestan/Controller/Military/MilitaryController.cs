@@ -121,7 +121,8 @@ public class MilitaryController
     /// <summary>
     /// Soldats produits par seconde par les Casernes et Arsenaux actifs de la ville (0 pour une Flotte
     /// de Guerre, voir WarFleet, qui n'a pas de bâtiment). Tient compte du modificateur UnitProductionSpeed
-    /// de la civilisation ; l'Arsenal produit <see cref="Arsenal.SoldiersProducedPerCycle"/> soldats par
+    /// de la civilisation et du bonus propre à cette ville (Garnison, voir City.UnitProductionSpeedBonus) ;
+    /// l'Arsenal produit <see cref="Arsenal.SoldiersProducedPerCycle"/> soldats par
     /// cycle (au lieu de 1) et nécessite le vertex de prestige Production Accélérée (UNLOCK_ARSENAL_PRODUCTION).
     /// </summary>
     public double GetSoldierProductionRate(IMilitaryVertex vertex)
@@ -131,7 +132,7 @@ public class MilitaryController
         if (civ == null) return 0;
 
         const double ticksPerSecond = 100.0;
-        double perCycleRate = civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
+        double perCycleRate = (civ.UnitProductionSpeed + city.UnitProductionSpeedBonus) * ticksPerSecond / SoldierProductionIntervalTicks;
 
         double rate = 0;
         var barracks = city.FindBuilding(BuildingType.Barracks) is { ActivationStatus: ActivationStatus.ACTIVE } b1 && b1.Level >= SoldierProductionEngine.SoldierProductionMinLevel ? b1 : null;

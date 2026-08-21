@@ -433,6 +433,13 @@ public class Building
     public virtual double GetDefenseRegenBonus() => 0.0;
 
     /// <summary>
+    /// Returns an additive bonus to this city's own soldier production speed (Barracks/Arsenal), on top
+    /// of the civ-wide <see cref="SettlersOfIdlestan.Model.Civilization.Civilization.UnitProductionSpeed"/>.
+    /// Base = 0; +0.25 = +25% for this city only (see Garrison).
+    /// </summary>
+    public virtual double GetUnitProductionSpeedBonus() => 0.0;
+
+    /// <summary>
     /// Returns the bonus this building contributes to the civilization's basic resource storage capacity.
     /// </summary>
     public virtual int GetStorageCapacityBonusBasic() => 0;
