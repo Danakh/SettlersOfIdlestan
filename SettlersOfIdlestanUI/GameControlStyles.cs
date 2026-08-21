@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
 
@@ -66,6 +67,21 @@ public static class GameControlStyles
         styles.Add(new Style(x => x.Is<Control>())
         {
             Setters = { new Setter(ToolTip.ShowDelayProperty, 0) },
+        });
+
+        // Aucun bouton/case/interrupteur ne doit garder le focus clavier apres un clic : sinon
+        // Espace (pause) ou une autre touche du jeu se retrouve interceptee par le dernier
+        // controle clique au lieu d'atteindre GameRuntimeControl ou GameView. Is<Button>() et
+        // Is<ToggleButton>() couvrent a eux deux Button, RepeatButton, ToggleButton, CheckBox et
+        // RadioButton. Slider, TextBox et ComboBox restent focusables : ils ont besoin du clavier
+        // pour etre utilisables.
+        styles.Add(new Style(x => x.Is<Button>())
+        {
+            Setters = { new Setter(InputElement.FocusableProperty, false) },
+        });
+        styles.Add(new Style(x => x.Is<ToggleButton>())
+        {
+            Setters = { new Setter(InputElement.FocusableProperty, false) },
         });
 
         // Le fond vit sur le ContentPresenter du template : c'est lui qu'il faut retablir,
