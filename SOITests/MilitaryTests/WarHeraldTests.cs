@@ -279,4 +279,46 @@ public class WarHeraldTests
 
         Assert.Equal(target.Position, allyNoFlow.FlowTarget);
     }
+
+    [Fact]
+    public void StartRaid_DisablesWarHerald_SoReactivatingOnSameTargetRedirectsInsteadOfClearing()
+    {
+        var civ = new Civilization { Index = 0 };
+        var enemyCiv = new Civilization { Index = 1 };
+        var target = new City(Target) { CivilizationIndex = 0 };
+        target.AddBuilding(new Barracks { Level = 1 });
+        var enemyCity = new City(EnemyCity) { CivilizationIndex = 1 };
+        civ.AddCity(target);
+        enemyCiv.AddCity(enemyCity);
+
+        var state = new WorldState(BuildMap(), [civ, enemyCiv], AtlasController.InvalidIslandId);
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new MilitaryController();
+        ctrl.Initialize(state, clock);
+
+        ctrl.StartWarHeraldRaid(civ, target.Position);
+        Assert.Equal(target.Position, state.AutomationSettings.WarHeraldTargetVertex);
+
+        ctrl.StartRaid(civ, EnemyCity); // launching a raid should disable the War Herald
+
+        Assert.Null(state.AutomationSettings.WarHeraldTargetVertex);
+
+        ctrl.StartWarHeraldRaid(civ, target.Position); // reactivation, not a toggle-off
+
+        Assert.Equal(target.Position, state.AutomationSettings.WarHeraldTargetVertex);
+    }
+
+    [Fact]
+    public void StartMonsterRaid_DisablesWarHerald()
+    {
+        var (ctrl, civ, target, _, _, _) = Setup();
+
+        ctrl.StartWarHeraldRaid(civ, target.Position);
+        ctrl.StartMonsterRaid(civ, new HexCoord(9, 9, IslandMap.SurfaceLayer));
+
+        ctrl.StartWarHeraldRaid(civ, target.Position); // must redirect again, not toggle off
+
+        Assert.Equal(target.Position, civ.Cities.First(c => c.Position.Equals(AllyNoFlow)).FlowTarget);
+    }
 }

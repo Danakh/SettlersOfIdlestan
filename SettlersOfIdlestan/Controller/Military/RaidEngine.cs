@@ -96,6 +96,7 @@ internal class RaidEngine
     internal void StartRaid(Civilization civ, Vertex targetCityVertex)
     {
         if (_state == null) return;
+        _state.AutomationSettings.WarHeraldTargetVertex = null;
         _state.AutomationSettings.RaidTargetHex = null;
         _state.AutomationSettings.RaidTargetVertex = targetCityVertex;
         _state.AutomationSettings.RaidCurrentUpkeep = 10;
@@ -119,6 +120,7 @@ internal class RaidEngine
     internal void StartMonsterRaid(Civilization civ, HexCoord targetHex)
     {
         if (_state == null) return;
+        _state.AutomationSettings.WarHeraldTargetVertex = null;
         _state.AutomationSettings.RaidTargetVertex = null;
         _state.AutomationSettings.RaidTargetHex = targetHex;
         _state.AutomationSettings.RaidCurrentUpkeep = 10;

@@ -120,7 +120,10 @@ public class AutomationSettings
     /// <summary>
     /// Dernière cible du War Herald (voir RaidEngine.StartWarHeraldRaid). Permet de détecter une
     /// réactivation sur la même cible pour désactiver tous les flux de renfort au lieu de les
-    /// rediriger à nouveau. Null si le War Herald n'a jamais été activé ou vient d'être désactivé.
+    /// rediriger à nouveau. Null si le War Herald n'a jamais été activé, vient d'être désactivé, ou
+    /// a été implicitement désactivé par le lancement d'un Raid (voir RaidEngine.StartRaid et
+    /// StartMonsterRaid) — sans quoi réactiver le War Herald sur la même cible qu'avant le raid serait
+    /// interprété comme une désactivation au lieu d'une (ré)activation.
     /// </summary>
     public Vertex? WarHeraldTargetVertex { get; set; } = null;
 
