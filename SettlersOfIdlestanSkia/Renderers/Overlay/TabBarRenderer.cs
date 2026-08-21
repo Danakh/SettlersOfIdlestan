@@ -51,6 +51,9 @@ public sealed class TabBarRenderer : IDisposable
     private bool _hasPandemoniumTab;
     private bool _hasNewEvent;
     private int? _seenEventCount;
+    private int _lastEventLogCount;
+    private float _eventGlowRemainingSeconds;
+    private const float EventGlowDurationSeconds = 3f;
     private bool _prestigeGlowing;
     private bool _lastCanBuyPrestige;
     private bool _researchGlowing;
@@ -129,7 +132,7 @@ public sealed class TabBarRenderer : IDisposable
         if (showTabBar)
         {
             ComputeTabRects(tabsAtBottom, uiScale);
-            UpdateEventNotification();
+            UpdateEventNotification(context.DeltaTime);
             UpdatePrestigeNotification();
             UpdateResearchNotification();
         }
@@ -168,7 +171,7 @@ public sealed class TabBarRenderer : IDisposable
         }
     }
 
-    private void UpdateEventNotification()
+    private void UpdateEventNotification(float deltaTime)
     {
         int currentEventCount = _gameControllerService.CurrentWorldState?.EventLog?.Entries.Count ?? 0;
         if (_seenEventCount == null || _seenEventCount > currentEventCount)
@@ -183,8 +186,14 @@ public sealed class TabBarRenderer : IDisposable
         }
         else if (currentEventCount > _seenEventCount)
         {
-            _hasNewEvent = true;
+            // Un nouvel evenement relance la pulsation pour EventGlowDurationSeconds ; passe ce
+            // delai, l'onglet s'eteint meme si le joueur n'est toujours pas alle le consulter.
+            if (currentEventCount > _lastEventLogCount) _eventGlowRemainingSeconds = EventGlowDurationSeconds;
+            _eventGlowRemainingSeconds -= deltaTime;
+            _hasNewEvent = _eventGlowRemainingSeconds > 0f;
         }
+
+        _lastEventLogCount = currentEventCount;
     }
 
     private string GetTabLabel(int tabId) => tabId switch
