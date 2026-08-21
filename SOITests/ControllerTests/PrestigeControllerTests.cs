@@ -231,6 +231,31 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void MainGameController_PerformPrestige_PreservesAutomationToggles()
+        {
+            var controller = new MainGameController();
+            controller.CreateNewGame();
+            var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
+            for (int i = 0; i < 20; i++)
+                civ.Cities[0].AddBuilding(new Temple());
+            civ.AddUniqueBuilding(BuildingType.ImperialPort);
+
+            var automationSettings = controller.CurrentMainState.CurrentWorldState!.AutomationSettings;
+            automationSettings.ProductionBuildingAutomationEnabled = true;
+            automationSettings.TownHallAutomationEnabled = true;
+            automationSettings.MonumentInvestmentAutomationEnabled = true;
+            automationSettings.RestrictSoldierProductionToFreeSoldiersByLayer[IslandMap.SurfaceLayer] = true;
+
+            controller.PerformPrestige();
+
+            var newAutomationSettings = controller.CurrentMainState.CurrentWorldState!.AutomationSettings;
+            Assert.True(newAutomationSettings.ProductionBuildingAutomationEnabled);
+            Assert.True(newAutomationSettings.TownHallAutomationEnabled);
+            Assert.True(newAutomationSettings.MonumentInvestmentAutomationEnabled);
+            Assert.True(newAutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer[IslandMap.SurfaceLayer]);
+        }
+
+        [Fact]
         public void MainGameController_PerformPrestige_ResetsWalkOfGodUsesSinceLastPrestige()
         {
             var controller = new MainGameController();

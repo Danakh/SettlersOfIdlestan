@@ -131,4 +131,37 @@ public class AutomationSettings
     /// CityAttackEngine.ResolveCityAttacks). Null si aucune cible valide.
     /// </summary>
     public int? VendettaTargetCivIndex { get; set; } = null;
+
+    /// <summary>
+    /// Reporte les interrupteurs individuels d'automatisation (les champs XEnabled, y compris la
+    /// restriction de production de soldats par layer) depuis l'île précédente vers celle-ci, appelé
+    /// par PrestigeController.PerformPrestige. AutomationSettings est recréé à chaque île (voir
+    /// WorldState.AutomationSettings) : sans ce report, un prestige désactiverait silencieusement
+    /// toutes les automatisations. L'activation est conservée même si le bâtiment unique qui la rend
+    /// effective (Guilde des bâtisseurs, Académie, etc.) n'est pas encore reconstruit sur la nouvelle
+    /// île — chaque automatisation vérifie déjà la présence de son bâtiment avant d'agir (voir
+    /// BuildingController/RoadController/CityBuilderController). L'état éphémère lié à l'île en cours
+    /// (cible de raid, Héraut de Guerre, Vendetta, épingles obsolètes) n'est volontairement pas repris.
+    /// </summary>
+    public void CopyEnabledTogglesFrom(AutomationSettings previous)
+    {
+        RoadAutomationEnabled = previous.RoadAutomationEnabled;
+        OutpostAutomationEnabled = previous.OutpostAutomationEnabled;
+        TownHallAutomationEnabled = previous.TownHallAutomationEnabled;
+        RoadAutomationEnabledUnderworld = previous.RoadAutomationEnabledUnderworld;
+        OutpostAutomationEnabledUnderworld = previous.OutpostAutomationEnabledUnderworld;
+        ProductionBuildingAutomationEnabled = previous.ProductionBuildingAutomationEnabled;
+        ArtisanBuildingAutomationEnabled = previous.ArtisanBuildingAutomationEnabled;
+        LibraryBuildingAutomationEnabled = previous.LibraryBuildingAutomationEnabled;
+        MarketBuildingAutomationEnabled = previous.MarketBuildingAutomationEnabled;
+        SeaportBuildingAutomationEnabled = previous.SeaportBuildingAutomationEnabled;
+        MilitaryBuildingAutomationEnabled = previous.MilitaryBuildingAutomationEnabled;
+        TempleAutomationEnabled = previous.TempleAutomationEnabled;
+        MithrilMineBuildingAutomationEnabled = previous.MithrilMineBuildingAutomationEnabled;
+        ArcaneTowerBuildingAutomationEnabled = previous.ArcaneTowerBuildingAutomationEnabled;
+        MilitaryReinforcementAutomationEnabled = previous.MilitaryReinforcementAutomationEnabled;
+        MilitaryVendettaAutomationEnabled = previous.MilitaryVendettaAutomationEnabled;
+        MonumentInvestmentAutomationEnabled = previous.MonumentInvestmentAutomationEnabled;
+        RestrictSoldierProductionToFreeSoldiersByLayer = new Dictionary<int, bool>(previous.RestrictSoldierProductionToFreeSoldiersByLayer);
+    }
 }

@@ -405,6 +405,9 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             mainGameState.PrestigeState.SelectedNextIslandTier = null;
             mainGameState.PrestigeState.WorldState = nextWorldState;
+
+            if (currentIsland != null)
+                nextWorldState.AutomationSettings.CopyEnabledTogglesFrom(currentIsland.AutomationSettings);
         }
     }
 
