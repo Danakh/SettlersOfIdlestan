@@ -554,7 +554,28 @@ public sealed class OverlayRenderer : IGameRenderer
         if (suppressNextPress) _suppressNextPress = true;
     }
 
-    public void SwitchToIslandTab() => _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
+    /// <summary>
+    /// S'assure qu'un onglet carte (Île/Inframonde/Abysse/Pandemonium) est actif avant d'entrer en
+    /// mode ciblage, sans quoi le clic sur la cible serait bloqué par <see cref="IsPointBlockedByUI"/>.
+    /// Rejoint la couche actuellement affichée plutôt que de forcer la Surface : sinon l'onglet mis
+    /// en évidence se désynchronisait de la couche réellement affichée — le joueur restait
+    /// visuellement dans l'Inframonde avec le bouton "Surface" en surbrillance.
+    /// </summary>
+    public void EnsureMapTabActiveForTargetSelection()
+    {
+        if (IsIslandTabActive) return;
+
+        int layer = _gameControllerService.CurrentWorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer;
+        int tab = layer switch
+        {
+            LayerState.UnderworldZ  => TabBarRenderer.TabUnderworld,
+            LayerState.AbyssZ       => TabBarRenderer.TabAbyss,
+            LayerState.PandemoniumZ => TabBarRenderer.TabPandemonium,
+            _                       => TabBarRenderer.TabIsland,
+        };
+        _tabBar.SetActiveTab(tab);
+        ApplyLayerForActiveTab();
+    }
 
     private void HandlePointerReleased(object? sender, PointerEventArgs e)
     {

@@ -1294,7 +1294,7 @@ public sealed class GameScreen : IDisposable
         var clock = _gameControllerService.CurrentGameState?.Clock;
         _speedBeforeTargetSelection = clock?.SpeedMultiplier ?? 1;
         clock?.Pause();
-        _overlayRenderer?.SwitchToIslandTab();
+        _overlayRenderer?.EnsureMapTabActiveForTargetSelection();
         _overlayRenderer?.Hide();
     }
 
