@@ -1499,6 +1499,7 @@
   "arsenal_max_soldiers_bonus": "+{0} max soldier capacity",
   "arsenal_armor_save_chance": "Steel Armor: {0}% chance to save a lost soldier (costs 1 Steel Armor)",
   "arsenal_armor_save_locked": "Steel Armor: research required",
+  "arsenal_production_cost": "Cost (steel): {0}/s ({1} soldiers every {2}s)",
   "building_weaponsmith_name": "Weapon Smith",
   "building_weaponsmith_desc": "Automatically produces Steel Weapons by consuming Steel.",
   "weaponsmith_production_cooldown": "Next weapon:",

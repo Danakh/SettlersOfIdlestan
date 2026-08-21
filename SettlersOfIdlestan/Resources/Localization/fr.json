@@ -1499,6 +1499,7 @@
   "arsenal_max_soldiers_bonus": "+{0} capacité max de soldats",
   "arsenal_armor_save_chance": "Armures d'Acier : {0}% de chance de sauver un soldat perdu (coûte 1 Armure d'Acier)",
   "arsenal_armor_save_locked": "Armures d'Acier : recherche requise",
+  "arsenal_production_cost": "Coût (acier) : {0}/s ({1} soldats toutes les {2}s)",
   "building_weaponsmith_name": "Forge d'Armes",
   "building_weaponsmith_desc": "Produit automatiquement des Armes en Acier en consommant de l'Acier.",
   "weaponsmith_production_cooldown": "Prochaine arme :",

@@ -245,6 +245,18 @@ public class CityBuildingService
     public bool IsSteelArmorUnlocked()
         => SelectedCivilization?.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_ARMOR) ?? false;
 
+    /// <summary>Vrai si le vertex de prestige Production Accélérée (production de soldats par l'Arsenal) est débloqué pour la civilisation sélectionnée.</summary>
+    public bool IsArsenalProductionUnlocked()
+        => SelectedCivilization?.ModifierAggregator.HasModifier(ECategory.UNLOCK_ARSENAL_PRODUCTION) ?? false;
+
+    /// <summary>Intervalle effectif de production de soldats par l'Arsenal de la civilisation sélectionnée (en ticks).</summary>
+    public long GetArsenalProductionIntervalTicks()
+    {
+        var civ = SelectedCivilization;
+        if (civ == null) return MilitaryController.SoldierProductionIntervalTicks;
+        return Math.Max(1L, (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed));
+    }
+
     /// <summary>Cooldown effectif de production de la Forge d'Armes de la ville sélectionnée.</summary>
     public long GetWeaponSmithEffectiveCooldown(int? atLevel = null)
     {

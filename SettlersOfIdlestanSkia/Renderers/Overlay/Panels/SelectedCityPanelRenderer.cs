@@ -370,6 +370,18 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                         tooltipLines.Add(_localization.GetFormated("arsenal_armor_save_chance", arsenal.ArmorSavePercent));
                     else
                         tooltipLines.Add(_localization.Get("arsenal_armor_save_locked"));
+
+                    if (_cityBuildingService.IsArsenalProductionUnlocked())
+                    {
+                        long prodInterval = _cityBuildingService.GetArsenalProductionIntervalTicks();
+                        double intervalSecs = prodInterval / 100.0;
+                        double steelPerSec = Arsenal.SteelInputPerCycle / intervalSecs;
+                        tooltipLines.Add(_localization.GetFormated("arsenal_production_cost",
+                            steelPerSec.ToString("G3"),
+                            Arsenal.SoldiersProducedPerCycle,
+                            intervalSecs.ToString("F1")));
+                    }
+
                     tooltipLines.Add("");
                 }
 

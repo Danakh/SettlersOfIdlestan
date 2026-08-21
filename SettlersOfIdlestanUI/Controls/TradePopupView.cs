@@ -6,6 +6,7 @@ using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia.Layout;
 using Avalonia.Media;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanUI.ViewModels;
 
 namespace SettlersOfIdlestanUI.Controls;
@@ -122,7 +123,14 @@ public sealed class TradePopupView : UserControl
         };
 
         // ── Pied : or disponible et multiplicateurs ──
-        var gold = new TextBlock
+        var goldIcon = new Image
+        {
+            Width = 18,
+            Height = 18,
+            VerticalAlignment = VerticalAlignment.Center,
+            Source = icons.GetResourceIcon(nameof(Resource.Gold), 18),
+        };
+        var goldText = new TextBlock
         {
             FontSize = 13,
             FontWeight = FontWeight.Bold,
@@ -130,6 +138,14 @@ public sealed class TradePopupView : UserControl
             VerticalAlignment = VerticalAlignment.Center,
             [!TextBlock.TextProperty] = new Binding(nameof(TradePopupViewModel.GoldLabel)),
         };
+        var gold = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 5,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        gold.Children.Add(goldIcon);
+        gold.Children.Add(goldText);
 
         var multipliers = new ItemsControl
         {
