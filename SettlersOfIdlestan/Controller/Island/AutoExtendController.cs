@@ -32,16 +32,14 @@ public class AutoExtendController
         TerrainType.CrystalCave,
     };
 
-    // Cap appliqué indépendamment à chaque couche auto-étendue (Inframonde, Abysse — voir
-    // CountCivilizationsOnLayer), pas au total toutes couches confondues : l'Abysse génère une
-    // civilisation à chaque île (déterministe), bien plus vite que le tirage à 10% par hexagone de
-    // l'Inframonde, donc un cap partagé avec les civs de surface + les deux couches vidait le
-    // budget de l'Inframonde dès l'ouverture de l'Abysse, empêchant toute apparition ultérieure.
+    // Cap appliqué indépendamment à chaque couche auto-étendue (voir CountCivilizationsOnLayer),
+    // pas au total toutes couches confondues : un cap partagé avec les civs de surface viderait le
+    // budget de l'Inframonde. L'Abysse ne génère plus de civilisation NPC (territoire exclusivement
+    // joueur — voir OnHexesRevealed/TrySpawnAggressiveCivilization), seule l'Inframonde est concernée.
     private const int MaxTotalCivilizations = 8;
     private const int AggressiveCivSpawnChancePercent = 10;
     private const int ExtraHexCount = 10;
     private const int AggressiveCivCityCount = 3;
-    private const int AbyssIslandCivCityCount = 1;
     private const int MinHexDistanceFromArrival = 2;
 
     // Génération de la rivière (suite d'hex Water, longueur infinie dans les deux sens, jamais
@@ -129,13 +127,13 @@ public class AutoExtendController
     }
 
     /// <summary>
-    /// Génère dynamiquement une nouvelle île de l'Abysse (avec sa propre civilisation NPC, voir
-    /// <see cref="SpawnAbyssIslandCivilization"/>) dès qu'un hex de Void devient visible pour le
-    /// joueur. Filtré aux révélations du joueur uniquement (comme <see cref="TryExtendMapAfterRoad"/>
-    /// pour l'Inframonde) pour éviter qu'une nouvelle civilisation NPC déclenche elle-même, via sa
-    /// propre vision, une réaction en chaîne de générations d'îles. N'a aucun effet tant que le layer
-    /// Abysse n'existe pas encore dans <see cref="WorldState.Layers"/> (pas de point d'entrée pour
-    /// l'instant) ni pour les autres couches (Surface, Outremonde).
+    /// Génère dynamiquement une nouvelle île de l'Abysse dès qu'un hex de Void devient visible pour
+    /// le joueur — jamais de civilisation NPC (contrairement à l'Inframonde) : l'Abysse reste un
+    /// territoire exclusivement joueur. Filtré aux révélations du joueur uniquement (comme
+    /// <see cref="TryExtendMapAfterRoad"/> pour l'Inframonde) pour éviter qu'une réaction en chaîne de
+    /// générations d'îles ne se déclenche via la vision d'une civilisation tierce. N'a aucun effet
+    /// tant que le layer Abysse n'existe pas encore dans <see cref="WorldState.Layers"/> (pas de point
+    /// d'entrée pour l'instant) ni pour les autres couches (Surface, Outremonde).
     /// </summary>
     private void OnHexesRevealed(int z, int civIndex, IReadOnlyList<HexCoord> newHexes)
     {
@@ -156,7 +154,6 @@ public class AutoExtendController
             foreach (var newTile in newTiles)
                 map.AddTile(newTile);
 
-            SpawnAbyssIslandCivilization(layerState, newTiles, z);
             PlaceDivineBones(newTiles);
             var tentacle = PlaceTentacle(newTiles);
             PlaceAbyssCorruption(newTiles);
@@ -520,6 +517,10 @@ public class AutoExtendController
     {
         if (_state == null) return;
 
+        // L'Abysse reste un territoire exclusivement joueur : jamais de civilisation NPC (voir
+        // OnHexesRevealed, qui n'en génère plus non plus pour les nouvelles îles).
+        if (z == LayerState.AbyssZ) return;
+
         // Cap de civilisations, propre à cette couche (voir CountCivilizationsOnLayer)
         if (CountCivilizationsOnLayer(z) >= MaxTotalCivilizations) return;
 
@@ -608,43 +609,7 @@ public class AutoExtendController
 
         _state.Civilizations.Add(npcCiv);
         // RecalculateFor (et non Recalculate) : ne recalcule que la nouvelle civ, pour ne pas
-        // re-diffuser la visibilité des autres civs (voir SpawnAbyssIslandCivilization).
-        _state.Visibility.RecalculateFor(npcCiv.Index);
-    }
-
-    /// <summary>
-    /// Place une nouvelle civilisation NPC sur une île de l'Abysse tout juste générée
-    /// (<see cref="Generator.AbyssIslandGenerator.GenerateIslandBeyondVoid"/>) : contrairement à
-    /// l'Inframonde (chance de <see cref="AggressiveCivSpawnChancePercent"/>), chaque île de
-    /// l'Abysse générée dynamiquement doit avoir sa propre civilisation. Base = stats d'une
-    /// civilisation de surface de Tier+2, plus 2× les bonus fixes de l'Inframonde.
-    /// </summary>
-    private void SpawnAbyssIslandCivilization(LayerState layerState, List<HexTile> newIslandTiles, int z)
-    {
-        if (_state == null) return;
-        if (CountCivilizationsOnLayer(z) >= MaxTotalCivilizations) return;
-
-        var map = layerState.Map;
-        var islandHexes = newIslandTiles.Where(t => t.TerrainType != TerrainType.Void).Select(t => t.Coord).ToList();
-        if (islandHexes.Count == 0) return;
-
-        var playerVisible = GetPlayerVisibleHexCoords(layerState);
-        var candidateVertices = FindCandidateCityVertices(islandHexes, map, playerVisible, z);
-        if (candidateVertices.Count == 0) return;
-
-        var npcCiv = CreateAggressiveCivilizationShell(BuildLayerCivModifiers(tierOffset: 2, fixedBonusMultiplier: 2));
-
-        int citiesPlaced = PlaceAggressiveCities(npcCiv, candidateVertices, map, z, AbyssIslandCivCityCount);
-        if (citiesPlaced == 0) return;
-
-        FillMaxResources(npcCiv);
-
-        _state.Civilizations.Add(npcCiv);
-        // RecalculateFor (et non Recalculate) : ne recalcule que la nouvelle civ. Un Recalculate()
-        // complet re-diffuserait aussi la visibilité du joueur contre un instantané antérieur à
-        // l'ajout des tuiles de la nouvelle île — si certaines tombent dans son rayon de vision,
-        // cela les ferait apparaître comme "nouvellement visibles" et déclencherait une réaction en
-        // chaîne (génération d'une île supplémentaire par Void ainsi révélé) en un seul appel.
+        // re-diffuser la visibilité des autres civs.
         _state.Visibility.RecalculateFor(npcCiv.Index);
     }
 

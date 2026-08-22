@@ -45,6 +45,16 @@ namespace SettlersOfIdlestan.Model.Prestige
         public int TotalDivineEssenceEarned { get; set; }
 
         /// <summary>
+        /// Essences divines garanties par le Reliquaire au début du run courant : figée à la valeur de
+        /// <see cref="DivineEssence"/> juste après le clamp du Reliquaire dans
+        /// PrestigeController.PerformPrestige (remise à zéro par l'Ascension, en même temps que
+        /// DivineEssence). Sert de plancher lorsque le joueur perd sa dernière ville dans les Abysses
+        /// (voir AbyssGateController.OnCityDestroyed) : les essences récoltées pendant le run sont
+        /// perdues, mais jamais celles déjà garanties par le Reliquaire avant que le run ne commence.
+        /// </summary>
+        public int DivineEssenceReliquaryFloor { get; set; }
+
+        /// <summary>
         /// Constructeur parameterless requis par certains sérialiseurs.
         /// </summary>
         public GodState() { }

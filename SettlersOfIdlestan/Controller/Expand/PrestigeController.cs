@@ -385,6 +385,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             // essences divines survivent au prestige au lieu d'être remises à zéro (voir GodState.DivineEssence).
             mainGameState.GodState.DivineEssence = Math.Min(
                 mainGameState.GodState.DivineEssence, _playerCivilization?.DivineEssenceKeptOnPrestige ?? 0);
+            // Fige ce plancher pour le run qui commence — voir GodState.DivineEssenceReliquaryFloor.
+            mainGameState.GodState.DivineEssenceReliquaryFloor = mainGameState.GodState.DivineEssence;
 
             mainGameState.PrestigeState.PrestigePoints += points;
             mainGameState.PrestigeState.TotalPrestigePointsEarned += points;

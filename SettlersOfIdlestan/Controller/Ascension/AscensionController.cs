@@ -431,6 +431,7 @@ public class AscensionController : IModifierProvider
         godState.GodPoints += godPointsGained;
         godState.TotalGodPointsEarned += godPointsGained;
         godState.DivineEssence = 0;
+        godState.DivineEssenceReliquaryFloor = 0;
         godState.AscensionState.AscensionsPerformed++;
 
         // La race qui accomplit l'Ascension marque l'histoire : son bâtiment racial devient un

@@ -396,7 +396,7 @@ namespace SettlersOfIdlestan.Controller
                 SurfaceBreachController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionSpireController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
-                AbyssGateController.Initialize(WorldState, Clock, HarvestController);
+                AbyssGateController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
                 PandemoniumGateController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState, CurrentMainState!.PRNG);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController, RoadController);
@@ -509,6 +509,7 @@ namespace SettlersOfIdlestan.Controller
             FeatureController.RefreshContestedTerritories();
             DeepestMineController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
             SurfaceBreachController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
+            AbyssGateController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
             HarvestController.InvalidateProductionCache(e.CivilizationIndex);
 
             if (civ != null && civ.IsNpc && civ.Cities.Count == 0)

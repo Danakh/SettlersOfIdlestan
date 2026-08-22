@@ -25,6 +25,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         private WorldState? _state;
         private GameClock? _clock;
         private HarvestController? _harvestController;
+        private GodState? _godState;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -33,7 +34,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         internal AbyssGateController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null, GodState? godState = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -41,6 +42,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             _state = state;
             _clock = clock;
             _harvestController = harvestController;
+            _godState = godState;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -120,6 +122,82 @@ namespace SettlersOfIdlestan.Controller.Expand
             var abyssLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv, LayerState.AbyssZ, surroundWithVoid: true);
             _state.AddLayer(LayerState.AbyssZ, abyssLayer);
             _state.Visibility.RecalculateFor(playerCiv.Index);
+        }
+
+        /// <summary>
+        /// À appeler lorsqu'une ville du joueur est détruite. Si c'était la dernière ville dans les
+        /// Abysses, c'est une perte totale — miroir de
+        /// <see cref="DeepestMineController.OnCityDestroyed"/> pour l'Inframonde : (1) les essences
+        /// divines récoltées pendant le run courant sont perdues, hormis ce qui est garanti par le
+        /// Reliquaire (GodState.DivineEssenceReliquaryFloor, figé au dernier prestige) ; (2) toute la
+        /// carte des Abysses est détruite — <b>y compris les routes du Vide</b>, qui ne survivent qu'à
+        /// une perte partielle (voir l'exclusion dans RoadController.OnCityDestroyed/RemoveDisconnectedRoads,
+        /// qui ne s'applique pas ici puisqu'on vide la carte entière plutôt que de retirer route par
+        /// route) ; (3) comme la Mine Profonde/la Percée de Surface, la Faille retombe à 50 %
+        /// d'investissement. <see cref="TryInitializeAbyss"/> ne génère une carte neuve qu'une fois la
+        /// Faille rebâtie (elle vérifie <see cref="HasAbyssGateBuilt"/>).
+        /// </summary>
+        public void OnCityDestroyed(Vertex cityVertex, int civilizationIndex)
+        {
+            if (_state == null || _godState == null) return;
+            var playerCiv = _state.PlayerCivilization;
+            if (civilizationIndex != playerCiv.Index) return;
+            if (cityVertex.Z != LayerState.AbyssZ) return;
+
+            // La ville a déjà été retirée : vérifie s'il en reste dans les Abysses
+            if (playerCiv.Cities.Any(c => c.Position.Z == LayerState.AbyssZ)) return;
+
+            int lost = Math.Max(0, _godState.DivineEssence - _godState.DivineEssenceReliquaryFloor);
+            if (lost > 0)
+            {
+                _godState.DivineEssence -= lost;
+                _state.EventLog.Add(GameEventType.AbyssLostDivineEssence, message: lost.ToString(), toast: true);
+            }
+
+            // La Faille (feature de surface/Inframonde, jamais elle-même sur le layer des Abysses)
+            // doit être retrouvée avant de vider la carte : les Os Divins qu'on va retirer ci-dessous
+            // sont, eux, bien positionnés sur ce layer.
+            var gate = _state.Features.OfType<AbyssGate>().FirstOrDefault(g => g.Built);
+
+            // Remplace la couche par une map vide sans la supprimer, comme l'Inframonde :
+            // les features dont Position.Z == AbyssZ restent valides pour GetMapFor, mais trouvent une
+            // carte sans tuiles (elles deviennent invisibles). Le Z doit être explicite : IslandMap(empty)
+            // defaulte à Z=0.
+            _state.AddLayer(LayerState.AbyssZ, new LayerState(new IslandMap(Array.Empty<HexTile>(), LayerState.AbyssZ)));
+
+            // Retire les features orphelines de l'ancienne couche (Os Divins, etc.)
+            foreach (var feature in _state.Features.Where(f => f.Position.Z == LayerState.AbyssZ).ToList())
+                _state.RemoveFeature(feature);
+
+            // Nettoie les routes des Abysses pour toutes les civilisations — y compris les routes du
+            // Vide, qui ne survivent qu'aux pertes partielles (voir résumé ci-dessus).
+            foreach (var civ in _state.Civilizations)
+                civ.RemoveAllRoads(r => r.Position.Z == LayerState.AbyssZ);
+
+            // Retire les civilisations NPC dont toutes les villes étaient dans les Abysses
+            _state.Civilizations.RemoveAll(c =>
+                c.Index != playerCiv.Index
+                && c.Cities.Count > 0
+                && c.Cities.All(city => city.Position.Z == LayerState.AbyssZ));
+
+            // Revient sur la surface si le joueur regardait les Abysses
+            if (_state.CurrentViewedLayer == LayerState.AbyssZ)
+                _state.CurrentViewedLayer = IslandMap.SurfaceLayer;
+
+            if (gate != null)
+            {
+                gate.Built = false;
+                gate.InvestmentEnabled.Clear();
+                gate.InvestedResources.Clear();
+                var cost = gate.GetInvestmentCost(playerCiv);
+                foreach (var kvp in cost)
+                    gate.InvestedResources[kvp.Key] = kvp.Value / 2;
+                if (_harvestController != null)
+                    MonumentInvestment.TryAutoStartInvestment(gate, cost, playerCiv, _harvestController, _state);
+            }
+
+            _state.EventLog.Add(GameEventType.AbyssGateLost, toast: true);
+            _state.Visibility.Recalculate();
         }
 
         /// <summary>

@@ -75,6 +75,20 @@ public enum GameEventType
     DemonGodDefeated,
     PandemoniumGatePlaced,
     PandemoniumGateBuilt,
+
+    /// <summary>
+    /// Le joueur a perdu sa dernière ville dans les Abysses : les essences divines récoltées pendant
+    /// le run sont perdues, hormis celles garanties par le Reliquaire (voir
+    /// AbyssGateController.OnCityDestroyed et GodState.DivineEssenceReliquaryFloor). Message = nombre
+    /// d'essences perdues.
+    /// </summary>
+    AbyssLostDivineEssence,
+
+    /// <summary>
+    /// Le joueur a perdu sa dernière ville dans les Abysses : la Faille retombe à 50 % d'investissement
+    /// (comme la Mine Profonde/la Percée de Surface) — voir AbyssGateController.OnCityDestroyed.
+    /// </summary>
+    AbyssGateLost,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

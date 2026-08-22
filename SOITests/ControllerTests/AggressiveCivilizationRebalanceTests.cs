@@ -70,7 +70,7 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void SpawnAbyssIslandCivilization_UsesTierPlusTwoBaseline_AndDoubledFixedBonus()
+        public void OnHexesRevealed_NeverSpawnsNpcCivilization_WhenNewAbyssIslandIsGenerated()
         {
             var arrival1 = new HexCoord(0, 0, LayerState.AbyssZ);
             var arrival2 = new HexCoord(1, 0, LayerState.AbyssZ);
@@ -101,22 +101,13 @@ namespace SOITests.ControllerTests
             var controller = new AutoExtendController();
             controller.Initialize(state, new GamePRNG(1), prestigeState: prestigeState);
 
+            // Révèle le hex de Void voisin de l'avant-poste : une nouvelle île de l'Abysse est
+            // générée au-delà, mais l'Abysse est un territoire exclusivement joueur — aucune
+            // civilisation NPC ne doit y apparaître (voir OnHexesRevealed).
             city.AddBuilding(new SettlersOfIdlestan.Model.Buildings.Watchtower { Level = 1 });
             state.Visibility.RecalculateFor(civ.Index);
 
-            var npcCiv = Assert.Single(state.Civilizations.Where(c => c.IsNpc));
-            Assert.Single(npcCiv.Cities);
-            Assert.Equal(NpcAggressivityLevel.Warlike, npcCiv.NpcParameters!.AggressivityLevel);
-            Assert.Equal(NpcEvolutionLevel.Strong, npcCiv.NpcParameters!.EvolutionLevel);
-
-            // La liste de modificateurs se termine exactement par le bonus fixe x2 (le reste de la
-            // liste est la base économique/tech de Tier+2, qui peut légitimement contribuer aussi à
-            // CITY_MAX_SOLDIERS_BONUS via une techno de bas tier, donc on ne teste pas la valeur
-            // agrégée finale mais la présence exacte de la queue attendue).
-            var expectedTail = Snapshot(AutoExtendController.BuildAggressiveModifiers(2));
-            var actualTail = Snapshot(npcCiv.NpcParameters!.ExtraModifiers!.TakeLast(4));
-            Assert.Equal(expectedTail, actualTail);
-            Assert.True(npcCiv.CityMaxSoldiersBonus >= 170);
+            Assert.Empty(state.Civilizations.Where(c => c.IsNpc));
         }
     }
 }

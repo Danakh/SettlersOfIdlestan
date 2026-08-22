@@ -501,7 +501,11 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public void OnCityDestroyed(Civilization civ, Vertex cityVertex)
         {
-            var toRemove = GetRoadsWithinDistanceOfVertex(civ.Roads, cityVertex, 2);
+            // Les routes du Vide (coûteuses en points de recherche — voir GetVoidRouteResearchCostFor)
+            // ne sont jamais détruites, y compris par la perte de la ville qui les reliait : voir aussi
+            // l'exclusion symétrique dans RemoveDisconnectedRoads.
+            var toRemove = GetRoadsWithinDistanceOfVertex(civ.Roads, cityVertex, 2)
+                .Where(r => !IsEdgeBetweenVoidHexes(r.Position));
             foreach (var road in toRemove)
                 civ.RemoveRoad(road);
 
@@ -555,9 +559,14 @@ namespace SettlersOfIdlestan.Controller.Island
             return result;
         }
 
-        private static void RemoveDisconnectedRoads(Civilization civ)
+        /// <summary>
+        /// Supprime les routes désormais déconnectées de toute ville — sauf les routes du Vide, jamais
+        /// détruites même déconnectées (voir <see cref="OnCityDestroyed"/>) : elles restent en place,
+        /// invisibles/inutilisables tant qu'aucune ville ne les reconnecte.
+        /// </summary>
+        private void RemoveDisconnectedRoads(Civilization civ)
         {
-            civ.RemoveAllRoads(r => r.DistanceToNearestCity == int.MaxValue);
+            civ.RemoveAllRoads(r => r.DistanceToNearestCity == int.MaxValue && !IsEdgeBetweenVoidHexes(r.Position));
         }
 
         private bool IsEdgeBuildableByCivilization(Edge edge, Civilization civ)

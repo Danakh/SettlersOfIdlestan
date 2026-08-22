@@ -372,6 +372,14 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Discovery,
             _localization.Get("event_divine_bones_purified_no_essence_title"),
             _localization.Get("event_divine_bones_purified_no_essence_body")),
+        GameEventType.AbyssLostDivineEssence => (
+            EventLogTone.Danger,
+            _localization.Get("event_abyss_lost_divine_essence_title"),
+            _localization.GetFormated("event_abyss_lost_divine_essence_body", entry.Message ?? "?")),
+        GameEventType.AbyssGateLost => (
+            EventLogTone.Danger,
+            _localization.Get("event_abyss_gate_lost_title"),
+            _localization.Get("event_abyss_gate_lost_body")),
         _ => (EventLogTone.Danger, "?", entry.Message ?? "")
     };
 

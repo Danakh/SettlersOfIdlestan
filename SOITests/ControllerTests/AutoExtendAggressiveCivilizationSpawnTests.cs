@@ -13,15 +13,13 @@ namespace SOITests.ControllerTests
     /// <summary>
     /// Apparition des civilisations NPC agressives de l'Inframonde (<see cref="AutoExtendController.TryExtendMapAfterRoad"/>
     /// → TrySpawnAggressiveCivilization), déclenchée par la construction de routes du joueur qui
-    /// révèlent de nouveaux hexagones à distance suffisante du point d'arrivée.
-    ///
-    /// Régression couverte : le cap de civilisations (8) était compté sur
-    /// <c>WorldState.Civilizations</c> dans son ensemble, partagé avec les civs de surface ET les
-    /// civs de l'Abysse. L'Abysse génère une civilisation à chaque île révélée (déterministe),
-    /// beaucoup plus vite que le tirage à 10% par hexagone de l'Inframonde, donc dès que l'Abysse
-    /// était ouvert et un peu exploré, le budget global était épuisé et l'Inframonde ne pouvait plus
-    /// jamais faire apparaître de nouvelle civilisation pour le reste de la partie. Le cap est
-    /// désormais compté séparément par couche (voir AutoExtendController.CountCivilizationsOnLayer).
+    /// révèlent de nouveaux hexagones à distance suffisante du point d'arrivée. L'Abysse ne génère
+    /// plus jamais de civilisation NPC (territoire exclusivement joueur — voir
+    /// AutoExtendController.OnHexesRevealed/TrySpawnAggressiveCivilization) : seul l'Inframonde est
+    /// concerné par ce mécanisme. Le cap de civilisations (MaxTotalCivilizations) reste néanmoins
+    /// compté séparément par couche plutôt que sur <c>WorldState.Civilizations</c> dans son ensemble
+    /// (voir AutoExtendController.CountCivilizationsOnLayer), pour ne jamais laisser les civs de
+    /// surface épuiser à elles seules le budget de l'Inframonde.
     /// </summary>
     public class AutoExtendAggressiveCivilizationSpawnTests
     {
@@ -107,47 +105,26 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void AggressiveCivilization_CanStillSpawn_AfterAbyssExhaustsTheOldSharedCap()
+        public void ExploringAbyss_NeverSpawnsNpcCivilization_EvenFarFromArrival()
         {
-            for (int seed = 0; seed < 300; seed++)
-            {
-                var prng = new GamePRNG(seed);
-                var surfaceMap = new IslandMap(new[] { new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain) });
-                var civ = new Civilization { Index = 0 };
-                var state = new WorldState(surfaceMap, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var prng = new GamePRNG(1);
+            var surfaceMap = new IslandMap(new[] { new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain) });
+            var civ = new Civilization { Index = 0 };
+            var state = new WorldState(surfaceMap, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
 
-                // 5 civs NPC déjà placées en surface (comme AtlasController au démarrage d'une île,
-                // 4-6 civs) : avec le joueur cela fait 6 civs, soit seulement 2 places restantes sur
-                // l'ancien cap global de 8 (MaxTotalCivilizations), avant même d'ouvrir l'Inframonde
-                // ou l'Abysse.
-                for (int i = 1; i <= 5; i++)
-                    state.Civilizations.Add(new Civilization { Index = i, IsNpc = true });
+            var abyssLayer = LayerState.EstablishOupostInNewAutoExpandLayer(civ, LayerState.AbyssZ, surroundWithVoid: true);
+            state.AddLayer(LayerState.AbyssZ, abyssLayer);
+            state.Visibility.RecalculateFor(civ.Index);
 
-                var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(civ, LayerState.UnderworldZ);
-                state.AddLayer(LayerState.UnderworldZ, underworldLayer);
+            var controller = new AutoExtendController();
+            controller.Initialize(state, prng, prestigeState: LateIslandPrestigeState());
 
-                var abyssLayer = LayerState.EstablishOupostInNewAutoExpandLayer(civ, LayerState.AbyssZ, surroundWithVoid: true);
-                state.AddLayer(LayerState.AbyssZ, abyssLayer);
-                state.Visibility.RecalculateFor(civ.Index);
+            // L'Abysse est un territoire exclusivement joueur : ni la révélation de Void (nouvelles
+            // îles) ni la construction de routes ne doivent jamais y faire apparaître de civilisation
+            // NPC (voir AutoExtendController.OnHexesRevealed/TrySpawnAggressiveCivilization).
+            ExploreOutward(state, civ, abyssLayer, controller, maxSteps: 30);
 
-                var controller = new AutoExtendController();
-                controller.Initialize(state, prng, prestigeState: LateIslandPrestigeState());
-
-                // Révèle le Void autour de l'avant-poste de l'Abysse en construisant des routes :
-                // chaque hex de Void révélé génère systématiquement une île + sa civ (voir
-                // SpawnAbyssIslandCivilization), ce qui épuisait autrefois le budget global de 8.
-                ExploreOutward(state, civ, abyssLayer, controller, maxSteps: 3);
-                if (state.Civilizations.Count < 8) continue; // graine sans assez de void révélé, essaie la suivante
-
-                ExploreOutward(state, civ, underworldLayer, controller, maxSteps: 30);
-
-                bool underworldCivSpawned = state.Civilizations.Any(c =>
-                    c.IsNpc && c.Cities.Any(city => city.Position.Z == LayerState.UnderworldZ));
-                if (underworldCivSpawned)
-                    return;
-            }
-
-            Assert.Fail("Aucune civilisation de l'Inframonde n'a pu apparaître après que l'Abysse a rempli l'ancien cap global de 8 : régression réintroduite.");
+            Assert.Empty(state.Civilizations.Where(c => c.IsNpc));
         }
     }
 }
