@@ -1192,6 +1192,14 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_pandemonium_gate_built_title"),
                 _localizationService.Get("event_pandemonium_gate_built_body"),
                 NotificationIcon.Achievement),
+            GameEventType.DivineBonesPurified => (
+                _localizationService.Get("event_divine_bones_purified_title"),
+                _localizationService.Get("event_divine_bones_purified_body"),
+                NotificationIcon.Achievement),
+            GameEventType.DivineBonesPurifiedNoEssence => (
+                _localizationService.Get("event_divine_bones_purified_no_essence_title"),
+                _localizationService.Get("event_divine_bones_purified_no_essence_body"),
+                NotificationIcon.Info),
             GameEventType.AbyssLostDivineEssence => (
                 _localizationService.Get("event_abyss_lost_divine_essence_title"),
                 _localizationService.GetFormated("event_abyss_lost_divine_essence_body", entry.Message ?? "?"),
