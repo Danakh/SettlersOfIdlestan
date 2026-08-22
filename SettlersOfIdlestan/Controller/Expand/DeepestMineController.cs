@@ -69,8 +69,7 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
-        /// Ouvre l'Inframonde si la Mine Profonde est creusée (feature) ou si une ancienne
-        /// sauvegarde contient le bâtiment legacy Mine Profonde.
+        /// Ouvre l'Inframonde si la Mine Profonde est creusée (feature).
         /// La couche peut déjà exister (vide) après une perte de l'Inframonde : on teste
         /// la présence d'un avant-poste joueur plutôt que l'existence de la couche.
         /// </summary>
@@ -84,10 +83,8 @@ namespace SettlersOfIdlestan.Controller.Island
             if (playerCiv.Cities.Any(c => c.Position.Z == LayerState.UnderworldZ)) return;
 
             bool hasDugMine = _state.Features.OfType<DeepestMine>().Any(m => m.Dug);
-            bool hasLegacyBuilding = playerCiv.Cities.Any(city =>
-                city.Buildings.Any(b => b.Type == Model.Buildings.BuildingType.DeepestMine && b.Level > 0));
 
-            if (!hasDugMine && !hasLegacyBuilding) return;
+            if (!hasDugMine) return;
 
             var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv);
             _state.AddLayer(LayerState.UnderworldZ, underworldLayer);

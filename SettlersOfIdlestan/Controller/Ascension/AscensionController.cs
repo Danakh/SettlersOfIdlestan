@@ -37,23 +37,29 @@ public class AscensionController : IModifierProvider
     public const int HornOfPlentyPassiveGenerationPerCycle = 20;
 
     /// <summary>
-    /// Bâtiments uniques toujours choisissables comme bâtiment permanent d'Ascension (voir
-    /// <see cref="SelectPermanentUniqueBuilding"/>) : un bâtiment accordé ainsi ne vit dans aucune
-    /// ville (voir Civilization.SetAscensionGrantedUniqueBuildings) — seule une instance existe,
-    /// enregistrée dans le cache Civilization._uniqueBuildingCache et créée au niveau max
-    /// (Civilization.RebuildUniqueBuildingCache). Éligible : tout bâtiment dont l'automatisation
+    /// Bâtiments uniques non-raciaux toujours choisissables comme bâtiment permanent d'Ascension
+    /// (voir <see cref="SelectPermanentUniqueBuilding"/>) : un bâtiment accordé ainsi ne vit dans
+    /// aucune ville (voir Civilization.SetAscensionGrantedUniqueBuildings) — seule une instance
+    /// existe, enregistrée dans le cache Civilization._uniqueBuildingCache et créée à son niveau max
+    /// absolu (voir Building.GetAbsoluteMaxLevel et Civilization.RebuildUniqueBuildingCache). Tous
+    /// les bâtiments uniques vivants sont éligibles, sans exception : leur automatisation
     /// éventuelle interroge déjà ce cache via Civilization.GetUniqueBuilding plutôt que de parcourir
-    /// les bâtiments physiques des villes (voir BuildingController/RoadController/CityBuilderController) —
-    /// sans quoi l'automatisation resterait inerte une fois accordée sans ville. S'y ajoutent les
-    /// bâtiments raciaux des races ayant déjà ascensionné — voir <see cref="PermanentUniqueBuildingChoices"/>.
+    /// les bâtiments physiques des villes (voir BuildingController/RoadController/CityBuilderController),
+    /// donc rien ne dépend d'une présence physique en ville. Seul le bâtiment legacy DeepestMine
+    /// (supprimé) faisait exception, faute d'effet de jeu. S'y ajoutent les bâtiments raciaux des
+    /// races ayant déjà ascensionné — voir <see cref="PermanentUniqueBuildingChoices"/>.
     /// </summary>
     private static readonly IReadOnlyList<BuildingType> BasePermanentUniqueBuildingChoices = new[]
     {
         BuildingType.Academy,
+        BuildingType.AdventurersGuild,
+        BuildingType.ArcaneTower,
         BuildingType.ArtisansGuild,
         BuildingType.BlastFurnace,
         BuildingType.BuildersGuild,
+        BuildingType.GrandTemple,
         BuildingType.HarvestersGuild,
+        BuildingType.ImperialPort,
         BuildingType.TraderGuild,
         BuildingType.VolcanicForge,
         BuildingType.WarRoom,

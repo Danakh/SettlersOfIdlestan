@@ -67,27 +67,41 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void PermanentUniqueBuildingChoices_AreAllUniqueIUniqueBuildingTypes()
+    public void PermanentUniqueBuildingChoices_AreAllValidUniqueBuildingTypes()
     {
+        // Contrairement à une exigence antérieure, tous les choix ne sont pas forcément
+        // IUniqueBuilding (BuildersGuild/ImperialPort/AdventurersGuild n'apportent pas de modifier
+        // civ-wide) : seul IsUnique + une factory valide sont garantis.
         foreach (var type in new AscensionController().PermanentUniqueBuildingChoices)
         {
             var prototype = BuildingController.CreateBuilding(type);
             Assert.NotNull(prototype);
             Assert.True(prototype!.IsUnique, $"{type} should be IsUnique to be a valid ascension choice");
-            Assert.IsAssignableFrom<IUniqueBuilding>(prototype);
         }
     }
 
+    /// <summary>
+    /// Tous les bâtiments uniques non-raciaux sont éligibles comme choix permanent, sans exception :
+    /// leur automatisation éventuelle interroge déjà Civilization.GetUniqueBuilding plutôt que de
+    /// parcourir les bâtiments physiques des villes, donc rien ne dépend d'une présence physique en
+    /// ville (voir le commentaire de BasePermanentUniqueBuildingChoices).
+    /// </summary>
     [Fact]
-    public void PermanentUniqueBuildingChoices_ExcludesBuildingsWithPhysicalSideEffects()
+    public void PermanentUniqueBuildingChoices_IncludesAllNonRacialUniqueBuildingsWithoutException()
     {
-        // Bâtiments IsUnique dont l'effet dépend d'une présence physique en ville (automatisation par
-        // tick, adjacence, comportement propre à l'instance) — volontairement exclus du choix.
         var choices = new AscensionController().PermanentUniqueBuildingChoices;
-        Assert.DoesNotContain(BuildingType.ImperialPort, choices);
-        Assert.DoesNotContain(BuildingType.BuildersGuild, choices);
-        Assert.DoesNotContain(BuildingType.AdventurersGuild, choices);
-        Assert.DoesNotContain(BuildingType.Garrison, choices);
+        Assert.Contains(BuildingType.Academy, choices);
+        Assert.Contains(BuildingType.AdventurersGuild, choices);
+        Assert.Contains(BuildingType.ArcaneTower, choices);
+        Assert.Contains(BuildingType.ArtisansGuild, choices);
+        Assert.Contains(BuildingType.BlastFurnace, choices);
+        Assert.Contains(BuildingType.BuildersGuild, choices);
+        Assert.Contains(BuildingType.GrandTemple, choices);
+        Assert.Contains(BuildingType.HarvestersGuild, choices);
+        Assert.Contains(BuildingType.ImperialPort, choices);
+        Assert.Contains(BuildingType.TraderGuild, choices);
+        Assert.Contains(BuildingType.VolcanicForge, choices);
+        Assert.Contains(BuildingType.WarRoom, choices);
     }
 
     [Fact]
@@ -277,10 +291,11 @@ public class AscensionControllerTests
 
         ascension.ApplyPermanentUniqueBuildingToCivilization();
 
-        // WarRoom : UNIT_PRODUCTION_SPEED +0.5 (base 1.0). Academy niveau 1 (accordé) :
-        // RESEARCH_PRODUCTION_SPEED +0.1*1 = +0.1 (base 1.0). Les deux doivent s'appliquer.
+        // WarRoom : UNIT_PRODUCTION_SPEED +0.5 (base 1.0). Academy accordée à son niveau max absolu
+        // (5, voir Academy.GetAbsoluteMaxLevel) : RESEARCH_PRODUCTION_SPEED +0.1*5 = +0.5 (base 1.0).
+        // Les deux doivent s'appliquer.
         Assert.Equal(1.5, civ.UnitProductionSpeed, precision: 5);
-        Assert.Equal(1.1, civ.ResearchProductionSpeed, precision: 5);
+        Assert.Equal(1.5, civ.ResearchProductionSpeed, precision: 5);
     }
 
     [Fact]

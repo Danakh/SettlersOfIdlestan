@@ -883,7 +883,6 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.Academy => new Academy(),
                 BuildingType.TraderGuild => new TraderGuild(),
                 BuildingType.Garrison => new Garrison(),
-                // BuildingType.DeepestMine : legacy — la Mine Profonde est désormais une IslandFeature
                 BuildingType.Smelter => new Smelter(),
                 BuildingType.BlastFurnace => new BlastFurnace(),
                 BuildingType.Arsenal => new Arsenal(),

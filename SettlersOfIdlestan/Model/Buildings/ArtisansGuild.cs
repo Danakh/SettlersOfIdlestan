@@ -17,6 +17,9 @@ public class ArtisansGuild : Building, IUniqueBuilding
     public override bool ProvidesAutomation => true;
     public override int GetDefaultMaxLevel() => 0;
 
+    // Prestige : Guilde des Artisans +1 (voir PrestigeMapFactory.cs).
+    public override int GetAbsoluteMaxLevel() => 1;
+
     public long GetAutoArtisanCooldownTicks() => 1000L;
 
     public override bool HasBuildPrerequisites(IBuildingContext city) =>

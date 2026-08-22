@@ -11,8 +11,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
-// Lève l'ambiguïté avec le bâtiment legacy Model.Buildings.DeepestMine
-using DeepestMine = SettlersOfIdlestan.Model.IslandFeatures.DeepestMine;
 
 namespace SOITests.ControllerTests
 {

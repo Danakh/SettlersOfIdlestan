@@ -17,6 +17,9 @@ public class Academy : Building, IUniqueBuilding
     public override bool ProvidesAutomation => true;
     public override int GetDefaultMaxLevel() => 0;
 
+    // Prestige : Académie +4 et +1 (voir PrestigeMapFactory.cs).
+    public override int GetAbsoluteMaxLevel() => 5;
+
     public long GetAutoLibraryCooldownTicks() => 1000L;
 
     public override bool HasBuildPrerequisites(IBuildingContext city) =>

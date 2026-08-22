@@ -33,6 +33,9 @@ public class GrandTemple : Building, IUniqueBuilding
     public override bool ProvidesAutomation => true;
     public override int GetDefaultMaxLevel() => 0;
 
+    // Recherche : Grand Temple +1 (voir TechnologyDefinitions.cs).
+    public override int GetAbsoluteMaxLevel() => 1;
+
     public long GetAutoTempleCooldownTicks() => 1000L;
 
     public override bool HasBuildPrerequisites(IBuildingContext city, WorldState state) =>

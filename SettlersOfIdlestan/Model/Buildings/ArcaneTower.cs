@@ -20,6 +20,9 @@ public class ArcaneTower : Building, IUniqueBuilding
     public override bool ProvidesAutomation => true;
     public override int GetDefaultMaxLevel() => 0;
 
+    // Prestige : Tour des Arcanes +1 (voir PrestigeMapFactory.cs).
+    public override int GetAbsoluteMaxLevel() => 1;
+
     public long GetAutoMagicCooldownTicks() => 1000L;
 
     public override bool HasBuildPrerequisites(IBuildingContext city) =>

@@ -431,10 +431,10 @@ public class Civilization
             if (_uniqueBuildingCache.ContainsKey(grantedType) || BuildingController.CreateBuilding(grantedType) is not { } granted)
                 continue;
 
-            // Certains uniques (BuildersGuild) échelonnent leur automatisation avec le niveau ; sans
-            // ville pour les faire monter de niveau, on les accorde d'emblée au niveau max (les autres
-            // uniques n'ont qu'un GetDefaultMaxLevel() de 0, donc Math.Max(1, ...) ne change rien pour eux).
-            granted.Level = Math.Max(1, granted.GetDefaultMaxLevel());
+            // Sans ville pour les faire monter de niveau via les modifiers dynamiques (recherche
+            // faite, vertex de prestige achetés, race actuellement jouée...), on les accorde
+            // d'emblée au niveau max absolu, en dur par bâtiment (voir Building.GetAbsoluteMaxLevel).
+            granted.Level = Math.Max(1, granted.GetAbsoluteMaxLevel());
             _uniqueBuildingCache[grantedType] = granted;
             if (!_uniqueBuildings.Contains(grantedType))
                 _uniqueBuildings.Add(grantedType);

@@ -69,7 +69,6 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.Academy => typeof(Academy),
                 BuildingType.TraderGuild => typeof(TraderGuild),
                 BuildingType.Garrison => typeof(Garrison),
-                BuildingType.DeepestMine => typeof(DeepestMine),
                 BuildingType.Smelter => typeof(Smelter),
                 BuildingType.BlastFurnace => typeof(BlastFurnace),
                 BuildingType.Arsenal => typeof(Arsenal),

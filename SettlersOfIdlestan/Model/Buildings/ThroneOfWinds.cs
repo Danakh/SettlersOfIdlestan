@@ -20,6 +20,9 @@ public class ThroneOfWinds : Building, IUniqueBuilding
     public override bool IsUnique => true;
     public override int GetDefaultMaxLevel() => 0;
 
+    // Race Garuda : +1 (voir RaceDefinitions.cs).
+    public override int GetAbsoluteMaxLevel() => 1;
+
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Wood,  100 },

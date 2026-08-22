@@ -22,6 +22,9 @@ public class AdventurersGuild : Building
 
     public override int GetDefaultMaxLevel() => 0;
 
+    // Prestige : Guilde des Aventuriers +1 (voir PrestigeMapFactory.cs).
+    public override int GetAbsoluteMaxLevel() => 1;
+
     public override bool IsAvailableInLayer(int z) => z != IslandMap.IslandMap.SurfaceLayer;
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)

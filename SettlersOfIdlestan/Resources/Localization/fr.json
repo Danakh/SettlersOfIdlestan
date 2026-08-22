@@ -1311,8 +1311,6 @@
   "hex_tooltip_surface_breach_dug": "🕳 Percée de Surface — l'accès à la surface est ouvert",
   "landing_site_name": "Site d'Arrivée",
   "landing_site_tooltip": "⛳ Site d'Arrivée — emplacement réservé à votre première ville de surface. Nul ne peut s'y installer, et rien ne peut l'attaquer.",
-  "building_deepestmine_name": "Mine Profonde",
-  "building_deepestmine_desc": "Creuse jusqu'à l'Inframonde et y ouvre un avant-poste souterrain.",
   "building_mushroomfarm_name": "Ferme fongique",
   "building_mushroomfarm_desc": "Récolte automatiquement de la Nourriture sur les Cavernes aux Champignons adjacentes.",
   "building_mithrilmine_name": "Mine de Mithril",
