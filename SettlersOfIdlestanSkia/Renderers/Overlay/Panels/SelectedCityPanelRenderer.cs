@@ -73,7 +73,8 @@ public class SelectedCityPanelRenderer : PanelRendererBase
             {
                 var buildingName = hoveredBuilding.Level == 0
                     ? _localization.GetFormated("tooltip_build_building", _localization.Get(hoveredBuilding.NameKey))
-                    : _localization.Get(hoveredBuilding.NameKey);
+                    : _localization.Get(hoveredBuilding.NameKey) + " (" +
+                      _localization.GetFormated("city_panel_level_format", hoveredBuilding.Level, _cityBuildingService.GetMaxLevel(hoveredBuilding)) + ")";
                 var levelDescriptionKey = hoveredBuilding.DescriptionKey + "_" + hoveredBuilding.Level;
                 var description = _localization.Get(levelDescriptionKey);
                 if (levelDescriptionKey == description)
