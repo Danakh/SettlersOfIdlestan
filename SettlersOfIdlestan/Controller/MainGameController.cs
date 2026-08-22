@@ -269,6 +269,41 @@ namespace SettlersOfIdlestan.Controller
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
         }
 
+        /// <summary>
+        /// Point d'entrée UI pour demander une Ascension : seule la phase 1 s'exécute immédiatement
+        /// (conversion essence -> points, archivage du cycle — voir
+        /// AscensionController.RequestAscension) ; l'île n'est régénérée qu'au choix de la race (voir
+        /// <see cref="ConfirmAscensionRace"/>), le jeu restant en pause entretemps — même quand le
+        /// choix de race n'est pas encore débloqué (Humains alors seule option proposée), pour que le
+        /// joueur valide explicitement la race avant que l'île ne soit recréée.
+        /// </summary>
+        public void RequestAscension()
+        {
+            if (CurrentMainState == null)
+                throw new InvalidOperationException("No main state available.");
+
+            TaskRecordController.RecordAscension(AscensionController.GetGodPointsGain(CurrentMainState.GodState));
+            AscensionController.RequestAscension(CurrentMainState);
+            CurrentMainState.Clock.Pause();
+        }
+
+        /// <summary>
+        /// Choisit la race du prochain cycle après un <see cref="RequestAscension"/> resté en
+        /// attente (voir AscensionController.IsAscensionPending) : régénère l'île et reprend le jeu.
+        /// </summary>
+        public void ConfirmAscensionRace(RaceId chosenRace)
+        {
+            if (CurrentMainState == null)
+                throw new InvalidOperationException("No main state available.");
+
+            var worldId = AtlasController.GetFirstWorldId();
+            var parameters = AtlasController.GetIslandParameters(worldId);
+            AscensionController.ConfirmAscensionRace(CurrentMainState, parameters, chosenRace);
+            InitializeControllersForCurrentIsland();
+            PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
+            CurrentMainState.Clock.Resume();
+        }
+
         public MainGameState? CreateNewGame()
         {
             int WorldId = AtlasController.GetFirstWorldId();

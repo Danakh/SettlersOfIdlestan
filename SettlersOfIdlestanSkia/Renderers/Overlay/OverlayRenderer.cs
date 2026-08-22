@@ -96,6 +96,15 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout, allowDebugMode);
 
+        // Une demande d'Ascension qui laisse un choix de race en attente (voir AscensionController.
+        // IsAscensionPending) bascule sur l'onglet Île, où RenderPendingRaceChoicePage prend le
+        // relais de la carte tant que la race n'est pas choisie.
+        _ascensionRenderer.AscensionRequested += () =>
+        {
+            _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
+            ApplyLayerForActiveTab();
+        };
+
         _playerCivPanel = new PlayerCivilizationPanelRenderer(
             gameControllerService,
             localization,
@@ -170,9 +179,14 @@ public sealed class OverlayRenderer : IGameRenderer
 
         // Les onglets encore dessinés en Skia sont ceux dont le contenu est une vue canvas :
         // graphe de recherche, carte de prestige, ascension, historique. Tous les autres sont
-        // des contrôles Avalonia posés au-dessus du canevas.
+        // des contrôles Avalonia posés au-dessus du canevas. L'onglet Île y ajoute un cas
+        // conditionnel : tant qu'une Ascension demandée attend son choix de race (voir
+        // AscensionController.IsAscensionPending), la page de choix remplace la carte.
         switch (activeTab)
         {
+            case TabBarRenderer.TabIsland when IsAscensionPending:
+                _ascensionRenderer.RenderPendingRaceChoicePage(canvas, context);
+                break;
             case TabBarRenderer.TabResearch:
                 _researchRenderer.Render(canvas, context);
                 break;
@@ -187,6 +201,12 @@ public sealed class OverlayRenderer : IGameRenderer
                 break;
         }
     }
+
+    /// <summary>Vrai entre une demande d'Ascension et le choix de race qui la conclut (voir
+    /// AscensionController.IsAscensionPending) : l'onglet Île affiche alors le choix de race plutôt
+    /// que la carte (voir RenderPendingRaceChoicePage), qui ne compte donc plus comme un onglet
+    /// carte (IsMapViewTab).</summary>
+    private bool IsAscensionPending => _gameControllerService.MainGameController.AscensionController.IsAscensionPending;
 
     /// <summary>
     /// Deuxième passe, dessinée par l'hôte au-dessus des contrôles de l'overlay : les infobulles.
@@ -463,9 +483,11 @@ public sealed class OverlayRenderer : IGameRenderer
     public bool IsIslandTabActive => IsMapViewTab(_tabBar.ActiveTab);
 
     /// True for the tabs that show the hex map (Island / Underworld / Abyss / Pandemonium) rather than a full-screen panel.
-    private static bool IsMapViewTab(int tabId) =>
-        tabId is TabBarRenderer.TabIsland or TabBarRenderer.TabUnderworld or TabBarRenderer.TabAbyss
-              or TabBarRenderer.TabPandemonium;
+    /// L'onglet Île n'y compte plus tant qu'une Ascension demandée attend son choix de race (voir
+    /// IsAscensionPending) : la carte cède alors la place à RenderPendingRaceChoicePage.
+    private bool IsMapViewTab(int tabId) =>
+        tabId is TabBarRenderer.TabUnderworld or TabBarRenderer.TabAbyss or TabBarRenderer.TabPandemonium
+        || (tabId == TabBarRenderer.TabIsland && !IsAscensionPending);
 
     /// Switches <see cref="WorldState.CurrentViewedLayer"/> to match a click on Island/Underworld/Abyss/Pandemonium.
     private void ApplyLayerForActiveTab()
@@ -516,6 +538,7 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerMoved(e.Position);
+        if (activeTab == TabBarRenderer.TabIsland && IsAscensionPending) _ascensionRenderer.HandlePendingRaceChoicePointerMoved(e.Position);
 
         _lastPointerPosition = e.Position;
     }
@@ -529,6 +552,7 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerPressed(e.Position);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerPressed(e.Position);
+        if (activeTab == TabBarRenderer.TabIsland && IsAscensionPending) _ascensionRenderer.HandlePendingRaceChoicePointerPressed(e.Position);
     }
 
     private void DeselectCityAndMonument()

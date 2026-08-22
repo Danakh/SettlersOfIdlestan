@@ -111,16 +111,20 @@ public class GameControllerService
         _cityBuildingService.ClearSelectedCity();
     }
 
-    public void PerformAscension()
+    /// <summary>Demande une Ascension (voir MainGameController.RequestAscension) : convertit
+    /// l'essence tout de suite, mais l'île n'est régénérée qu'au choix de race — voir
+    /// <see cref="ConfirmAscensionRace"/>.</summary>
+    public void RequestAscension()
     {
-        _controller.PerformAscension();
+        _controller.RequestAscension();
         _cityBuildingService.ClearSelectedCity();
     }
 
-    /// <summary>Ascension avec choix de la race du prochain cycle (voir AscensionController.GetSelectableRaces).</summary>
-    public void PerformAscension(SettlersOfIdlestan.Model.Races.RaceId chosenRace)
+    /// <summary>Choisit la race du prochain cycle après une Ascension demandée en attente (voir
+    /// MainGameController.ConfirmAscensionRace).</summary>
+    public void ConfirmAscensionRace(SettlersOfIdlestan.Model.Races.RaceId chosenRace)
     {
-        _controller.PerformAscension(chosenRace);
+        _controller.ConfirmAscensionRace(chosenRace);
         _cityBuildingService.ClearSelectedCity();
     }
 

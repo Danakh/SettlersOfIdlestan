@@ -388,6 +388,12 @@ public class AscensionController : IModifierProvider
     public bool CanAscend(GodState godState) => GetEffectiveDivineEssence(godState) >= MinDivineEssenceForAscension;
 
     /// <summary>
+    /// Vrai entre RequestAscension et ConfirmAscensionRace : l'essence a déjà été convertie en
+    /// points divins pour ce cycle, mais l'île n'a pas encore été régénérée faute de race choisie.
+    /// </summary>
+    public bool IsAscensionPending => _ascensionState?.IsAscensionPending ?? false;
+
+    /// <summary>
     /// Essence divine effective pour l'Ascension : la somme de GodState.DivineEssence (essences
     /// gagnées ce run) et de GodState.DivineEssenceReliquaryFloor (essences garanties par le
     /// Reliquaire). Les deux comptent identiquement pour le seuil d'Ascension (<see cref="CanAscend"/>)
@@ -472,8 +478,63 @@ public class AscensionController : IModifierProvider
         if (!GetSelectableRaces().Contains(chosenRace))
             throw new InvalidOperationException($"Race {chosenRace} is not selectable.");
 
+        CreditAscensionPointsAndArchiveCycle(mainGameState, godState);
+        FinishAscensionWithRace(mainGameState, godState, firstIslandParameters, chosenRace);
+    }
+
+    /// <summary>
+    /// Phase 1 d'une Ascension à choix de race différé : convertit l'essence divine en points et
+    /// archive le cycle qui se termine, exactement comme la première moitié de
+    /// <see cref="PerformAscension(MainGameState, IslandParameters, RaceId)"/> — mais NE régénère
+    /// PAS l'île tout de suite (<see cref="IsAscensionPending"/> reste vrai jusqu'à
+    /// <see cref="ConfirmAscensionRace"/>). Irréversible dès cet appel : les points sont crédités et
+    /// l'essence remise à zéro immédiatement, ce qui permet d'acheter d'autres pouvoirs divins avec
+    /// (voir <see cref="GetSelectableRaces"/>) avant même d'avoir choisi sa race — un pouvoir acheté
+    /// entretemps peut ainsi débloquer une race supplémentaire.
+    ///
+    /// <para>Utilisé même quand le choix de race n'est pas encore débloqué (<see cref="GetSelectableRaces"/>
+    /// ne propose alors que les Humains) : l'écran de choix de race s'affiche quand même, pour que
+    /// le joueur valide explicitement la race qui sera jouée plutôt que de la voir s'imposer sans
+    /// confirmation — voir MainGameController.RequestAscension/ConfirmAscensionRace.</para>
+    /// </summary>
+    public void RequestAscension(MainGameState mainGameState)
+    {
+        var godState = mainGameState.GodState;
+        if (!CanAscend(godState))
+            throw new InvalidOperationException("Ascension is not available.");
+
+        CreditAscensionPointsAndArchiveCycle(mainGameState, godState);
+        godState.AscensionState.IsAscensionPending = true;
+    }
+
+    /// <summary>
+    /// Phase 2 d'une Ascension à choix de race différé : choisit la race du prochain cycle et
+    /// régénère l'île — à appeler une fois <see cref="RequestAscension"/> passé, quand le joueur a
+    /// fait son choix (voir MainGameController.ConfirmAscensionRace).
+    /// </summary>
+    public void ConfirmAscensionRace(MainGameState mainGameState, IslandParameters firstIslandParameters, RaceId chosenRace)
+    {
+        var godState = mainGameState.GodState;
+        if (!godState.AscensionState.IsAscensionPending)
+            throw new InvalidOperationException("No ascension is pending.");
+        if (!GetSelectableRaces().Contains(chosenRace))
+            throw new InvalidOperationException($"Race {chosenRace} is not selectable.");
+
+        FinishAscensionWithRace(mainGameState, godState, firstIslandParameters, chosenRace);
+    }
+
+    /// <summary>
+    /// Convertit l'essence divine accumulée en points divins (voir <see cref="GetGodPointsGain"/>),
+    /// la remet à zéro et archive le cycle qui se termine (statistiques, meilleurs paliers de
+    /// recherches répétables) — la part de l'Ascension qui ne dépend pas de la race choisie.
+    /// Partagée par <see cref="PerformAscension(MainGameState, IslandParameters, RaceId)"/> (tout en
+    /// un) et <see cref="RequestAscension"/> (choix de race différé).
+    /// </summary>
+    private void CreditAscensionPointsAndArchiveCycle(MainGameState mainGameState, GodState godState)
+    {
         // La Nécropole de l'île courante majore la conversion (+15% par niveau) : elle doit donc être
-        // lue avant que l'île ne soit remplacée plus bas.
+        // lue avant que l'île ne soit remplacée (ou, choix de race différé, avant que le joueur n'ait
+        // la moindre chance de la perdre de vue).
         int godPointsGained = GetGodPointsGain(godState);
         godState.GodPoints += godPointsGained;
         godState.TotalGodPointsEarned += godPointsGained;
@@ -483,10 +544,9 @@ public class AscensionController : IModifierProvider
 
         // La race qui accomplit l'Ascension marque l'histoire : son bâtiment racial devient un
         // choix permanent pour tous les cycles futurs, quelle que soit la race jouée — sauf le tout
-        // premier cycle (voir commentaire de la méthode ci-dessus).
+        // premier cycle (voir commentaire de PerformAscension ci-dessus).
         if (IsRaceSelectionUnlocked)
             godState.AscensionState.AscendedRaces.Add(godState.AscensionState.SelectedRace);
-        godState.AscensionState.SelectedRace = chosenRace;
 
         RecordAscensionCycleStats(mainGameState, godState);
 
@@ -494,6 +554,17 @@ public class AscensionController : IModifierProvider
         // PrestigeState ne soit remplacé, c'est la mémoire sur laquelle s'appuie Mémoire de Dieu.
         if (godState.PrestigeState != null)
             RecordBestRepeatCounts(godState.AscensionState, godState.PrestigeState.TechnologyTree);
+    }
+
+    /// <summary>
+    /// Fixe la race du prochain cycle et régénère l'île : la moitié de l'Ascension qui dépend du
+    /// choix de race, commune à <see cref="PerformAscension(MainGameState, IslandParameters, RaceId)"/>
+    /// et <see cref="ConfirmAscensionRace"/>. Suppose <see cref="CreditAscensionPointsAndArchiveCycle"/>
+    /// déjà exécutée (essence déjà convertie, cycle déjà archivé).
+    /// </summary>
+    private void FinishAscensionWithRace(MainGameState mainGameState, GodState godState, IslandParameters firstIslandParameters, RaceId chosenRace)
+    {
+        godState.AscensionState.SelectedRace = chosenRace;
 
         var generator = new IslandMapGenerator(mainGameState.WorldPRNG);
         var worldState = generator.GenerateWorldState(
@@ -518,6 +589,7 @@ public class AscensionController : IModifierProvider
 
         godState.AscensionState.CycleStartTick = mainGameState.Clock.CurrentTick;
         godState.AscensionState.CycleStartResearchCompleted = mainGameState.GameRecord.TotalResearchCompleted;
+        godState.AscensionState.IsAscensionPending = false;
     }
 
     /// <summary>

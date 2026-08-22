@@ -71,6 +71,16 @@ public class AscensionState
     /// <summary>Historique des 5 derniers cycles d'Ascension terminés (le plus récent en dernier), voir AscensionController.PerformAscension.</summary>
     public List<AscensionRunStats> RunHistory { get; set; } = new();
 
+    /// <summary>
+    /// Vrai entre AscensionController.RequestAscension (essence déjà convertie en points, cycle
+    /// archivé) et AscensionController.ConfirmAscensionRace (île régénérée avec la race choisie) :
+    /// le joueur a demandé l'Ascension mais n'a pas encore choisi la race du prochain cycle. Le jeu
+    /// reste en pause tout ce temps (voir MainGameController.RequestAscension/ConfirmAscensionRace),
+    /// et la liste des races proposées (AscensionController.GetSelectableRaces) reste réévaluée en
+    /// direct : acheter un pouvoir divin pendant l'attente peut donc faire apparaître une nouvelle race.
+    /// </summary>
+    public bool IsAscensionPending { get; set; }
+
     /// <summary>Tier d'île maximum jamais atteint dans un cycle d'Ascension (cross-ascension, ne diminue jamais).</summary>
     public int MaxIslandTierReached { get; set; }
 
