@@ -71,9 +71,9 @@ namespace SOITests.ControllerTests
             var beyondVoid = voidHex.Neighbors().Where(n => !ArrivalSet.Contains(n));
             Assert.Contains(beyondVoid, n => map.HasTile(n) && map.GetTile(n)!.TerrainType != TerrainType.Void);
 
-            // Chaque île générée doit avoir sa propre civilisation NPC (une seule ici).
-            var npcCiv = Assert.Single(state.Civilizations.Where(c => c.IsNpc));
-            Assert.Single(npcCiv.Cities);
+            // L'Abysse reste un territoire exclusivement joueur (voir "Rework abysses") : aucune
+            // civilisation NPC n'est générée sur les nouvelles îles, contrairement à l'Inframonde.
+            Assert.Empty(state.Civilizations.Where(c => c.IsNpc));
         }
 
         [Fact]

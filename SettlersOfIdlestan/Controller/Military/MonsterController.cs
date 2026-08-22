@@ -155,10 +155,19 @@ public class MonsterFeatureController
                     // doit activement rentrer vers une ville au lieu de rester bloqué à attendre
                     // une découverte qui ne viendra jamais : contrairement aux monstres errants,
                     // qui restent volontairement cachés tant que le joueur n'explore pas.
-                    if (monster.AttacksOtherMonsters && currentTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
-                        ReturnToVisibleTerritory(monster, currentTick);
+                    if (monster.AttacksOtherMonsters)
+                    {
+                        // Ne jamais réassigner LastMovedTick tant que l'intervalle n'est pas écoulé :
+                        // sinon, avec des ticks d'horloge plus fins que MovementIntervalTicks (le cas
+                        // courant en jeu), l'écart repartirait de zéro à chaque passage et
+                        // n'atteindrait jamais le seuil — le chasseur resterait bloqué pour toujours.
+                        if (currentTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
+                            ReturnToVisibleTerritory(monster, currentTick);
+                    }
                     else
+                    {
                         monster.LastMovedTick = currentTick;
+                    }
 
                     monster.LastAttackTick = currentTick;
                 }

@@ -393,14 +393,16 @@ namespace SOITests.ControllerTests
 
             // First tick: the Adventurer is outside the visible map (SE) → it must retreat toward
             // the city instead of fighting the co-located Bandit.
-            clock.SimulateAdvance(100);
+            clock.SimulateAdvance(adventurer.MovementIntervalTicks);
 
             Assert.Equal(Center, adventurer.Position);
             Assert.Equal(bandit.MaxHp, bandit.Hp);
 
             // Further ticks: the Adventurer is now inside the visible map, but the Bandit sits on
             // SE, which stays out of sight forever here — still off-limits to the Adventurer.
-            for (int i = 0; i < 10; i++)
+            // Kept well under the Bandit's own MovementIntervalTicks (3_000L, unrelated to this
+            // test) so it never wanders off SE into the Adventurer's visible territory on its own.
+            for (int i = 0; i < 8; i++)
                 clock.SimulateAdvance(300);
 
             Assert.Equal(bandit.MaxHp, bandit.Hp);
@@ -438,7 +440,7 @@ namespace SOITests.ControllerTests
             var controller = new MonsterFeatureController();
             controller.Initialize(state, clock, new GamePRNG());
 
-            clock.SimulateAdvance(100);
+            clock.SimulateAdvance(adventurer.MovementIntervalTicks);
 
             Assert.Equal(Center, adventurer.Position);
         }
