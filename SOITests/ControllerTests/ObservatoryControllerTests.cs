@@ -197,10 +197,10 @@ namespace SOITests.ControllerTests
         // ── Effet sur le coût des routes du Vide ─────────────────────────────
 
         [Fact]
-        public void VoidRouteCostMultiplier_GoesFrom4To3AcrossLevels()
+        public void VoidRouteCostMultiplier_GoesFrom3To2AcrossLevels()
         {
-            Assert.Equal(4.0, Observatory.GetVoidRouteCostMultiplierForLevel(0), 6);
-            Assert.Equal(3.0, Observatory.GetVoidRouteCostMultiplierForLevel(Observatory.MaxLevel), 6);
+            Assert.Equal(3.0, Observatory.GetVoidRouteCostMultiplierForLevel(0), 6);
+            Assert.Equal(2.0, Observatory.GetVoidRouteCostMultiplierForLevel(Observatory.MaxLevel), 6);
 
             // Strictement décroissant d'un niveau au suivant
             for (int level = 1; level <= Observatory.MaxLevel; level++)
@@ -211,12 +211,12 @@ namespace SOITests.ControllerTests
         [Fact]
         public void VoidRouteResearchCost_UsesMultiplier()
         {
-            // Sans Observatoire : 1 000 000 × 4^n
+            // Sans Observatoire : 1 000 000 × 3^n
             Assert.Equal(1_000_000L, RoadController.GetVoidRouteResearchCost(0));
-            Assert.Equal(16_000_000L, RoadController.GetVoidRouteResearchCost(2));
+            Assert.Equal(9_000_000L, RoadController.GetVoidRouteResearchCost(2));
 
-            // Observatoire complet : 1 000 000 × 3^n
-            Assert.Equal(9_000_000L, RoadController.GetVoidRouteResearchCost(2, Observatory.CompletedVoidRouteCostMultiplier));
+            // Observatoire complet : 1 000 000 × 2^n
+            Assert.Equal(4_000_000L, RoadController.GetVoidRouteResearchCost(2, Observatory.CompletedVoidRouteCostMultiplier));
         }
 
         [Fact]

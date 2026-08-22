@@ -961,7 +961,7 @@
   "tech_sagesse_souterraine_name": "Sagesse Souterraine",
   "tech_sagesse_souterraine_desc": "Les savoirs tirés des profondeurs enrichissent votre civilisation. +10% de points de prestige gagnés par palier. Recherche répétable à l'infini : le coût double à chaque relance.",
   "tech_void_walking_name": "Marche dans le Vide",
-  "tech_void_walking_desc": "Permet de construire des routes entre deux hexagones de Vide, comme des routes maritimes. Chaque route du Vide coûte en plus des points de recherche, avec un coût croissant (×4 par route déjà construite).",
+  "tech_void_walking_desc": "Permet de construire des routes entre deux hexagones de Vide, comme des routes maritimes. Chaque route du Vide coûte en plus des points de recherche, avec un coût croissant (×3 par route déjà construite).",
   "tech_void_compass_name": "Boussole du Vide",
   "tech_void_compass_desc": "Révèle les Os Divins sur les îles des Abysses générées après la première — un vestige mystérieux qui mérite d'être investigué.",
   "tech_cartographie_souterraine_name": "Cartographie Souterraine",

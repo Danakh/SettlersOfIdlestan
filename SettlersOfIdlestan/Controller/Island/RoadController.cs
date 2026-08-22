@@ -748,7 +748,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Coût en points de recherche d'une route du Vide supplémentaire : 1 000 000 × m^n,
         /// n étant le nombre de routes du Vide déjà construites par la civilisation et m le
-        /// multiplicateur exponentiel (4 par défaut, abaissé jusqu'à 3 par l'Observatoire — voir
+        /// multiplicateur exponentiel (3 par défaut, abaissé jusqu'à 2 par l'Observatoire — voir
         /// <see cref="Observatory.GetVoidRouteCostMultiplierForLevel"/>).
         /// </summary>
         public static long GetVoidRouteResearchCost(int alreadyBuilt, double multiplier = Observatory.BaseVoidRouteCostMultiplier)

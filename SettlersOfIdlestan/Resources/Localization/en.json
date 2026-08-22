@@ -961,7 +961,7 @@
   "tech_sagesse_souterraine_name": "Underground Wisdom",
   "tech_sagesse_souterraine_desc": "Knowledge drawn from the depths enriches your civilization. +10% prestige points earned per rank. Infinitely repeatable: cost doubles with every relaunch.",
   "tech_void_walking_name": "Void Walking",
-  "tech_void_walking_desc": "Allows building routes between two Void hexes, like maritime routes. Each Void route also costs research points, with a cost that grows (×4 per route already built).",
+  "tech_void_walking_desc": "Allows building routes between two Void hexes, like maritime routes. Each Void route also costs research points, with a cost that grows (×3 per route already built).",
   "tech_void_compass_name": "Void Compass",
   "tech_void_compass_desc": "Reveals the Divine Bones on Abyss islands generated after the first one — a mysterious remnant worth investigating.",
   "tech_cartographie_souterraine_name": "Underground Cartography",
