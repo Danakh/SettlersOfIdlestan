@@ -459,7 +459,10 @@ public class AscensionController : IModifierProvider
     /// Comme <see cref="PerformAscension(MainGameState, IslandParameters)"/>, en choisissant la race
     /// du prochain cycle : la race jouée jusqu'ici rejoint AscendedRaces (débloquant définitivement
     /// son bâtiment racial dans les choix permanents), puis <paramref name="chosenRace"/> devient la
-    /// race active. Le choix doit figurer dans <see cref="GetSelectableRaces"/>.
+    /// race active. Le choix doit figurer dans <see cref="GetSelectableRaces"/>. Exception : le tout
+    /// premier cycle, joué avant que le choix de race soit débloqué, ne rejoint pas AscendedRaces —
+    /// SelectedRace n'y vaut Humains que par défaut (voir AscensionState.SelectedRace), sans que le
+    /// joueur ait rien choisi ; le compter débloquerait la Ziggourat sans un vrai choix de race.
     /// </summary>
     public void PerformAscension(MainGameState mainGameState, IslandParameters firstIslandParameters, RaceId chosenRace)
     {
@@ -479,8 +482,10 @@ public class AscensionController : IModifierProvider
         godState.AscensionState.AscensionsPerformed++;
 
         // La race qui accomplit l'Ascension marque l'histoire : son bâtiment racial devient un
-        // choix permanent pour tous les cycles futurs, quelle que soit la race jouée.
-        godState.AscensionState.AscendedRaces.Add(godState.AscensionState.SelectedRace);
+        // choix permanent pour tous les cycles futurs, quelle que soit la race jouée — sauf le tout
+        // premier cycle (voir commentaire de la méthode ci-dessus).
+        if (IsRaceSelectionUnlocked)
+            godState.AscensionState.AscendedRaces.Add(godState.AscensionState.SelectedRace);
         godState.AscensionState.SelectedRace = chosenRace;
 
         RecordAscensionCycleStats(mainGameState, godState);

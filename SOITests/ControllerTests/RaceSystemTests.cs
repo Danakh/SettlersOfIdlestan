@@ -282,10 +282,33 @@ public class RaceSystemTests
         controller.PerformAscension();
 
         Assert.Equal(RaceId.Human, godState.AscensionState.SelectedRace);
-        Assert.Contains(RaceId.Human, godState.AscensionState.AscendedRaces);
+        // Choix de race encore verrouillé : Humains n'est que la valeur par défaut, pas un choix du
+        // joueur — ne doit donc pas débloquer la Ziggourat via AscendedRaces.
+        Assert.DoesNotContain(RaceId.Human, godState.AscensionState.AscendedRaces);
         Assert.Equal(5, godState.GodPoints);
         // Sans Foi débloquée, aucun vertex de prestige n'est offert.
         Assert.Empty(controller.CurrentMainState.PrestigeState!.PurchasedVertices);
+    }
+
+    [Fact]
+    public void PerformAscension_SecondAscensionWithRaceUnlocked_AddsPlayedRaceToAscendedRaces()
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        var godState = controller.CurrentMainState!.GodState;
+        godState.DivineEssence = 5;
+
+        // Premier cycle : choix de race verrouillé, ne compte pas dans AscendedRaces.
+        controller.PerformAscension();
+        Assert.DoesNotContain(RaceId.Human, godState.AscensionState.AscendedRaces);
+
+        // Une fois débloqué, ascensionner (même en restant Humains) marque un vrai choix.
+        godState.GodPoints = 100;
+        UnlockFirstRow(controller.AscensionController);
+        godState.DivineEssence = 5;
+        controller.PerformAscension(RaceId.Human);
+
+        Assert.Contains(RaceId.Human, godState.AscensionState.AscendedRaces);
     }
 
     // ── Vertex de prestige offerts à l'Ascension ─────────────────────────────
