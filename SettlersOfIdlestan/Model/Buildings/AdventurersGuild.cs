@@ -3,12 +3,13 @@ using SettlersOfIdlestan.Model.IslandMap;
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
-/// Guilde des Aventuriers — bâtiment unique de l'Inframonde. Ne fait plus apparaître d'Aventurier
-/// elle-même : elle débloque le Relais des Aventuriers (<see cref="AdventurersWaypost"/>) et en
-/// accorde automatiquement un dans sa propre ville à la construction (voir
-/// BuildingController.BuildBuilding). Son niveau détermine la puissance des Aventuriers invoqués
-/// par tous les Relais de la civilisation ; la mécanique de réapparition vit désormais sur chaque
-/// Relais, pas sur la Guilde.
+/// Guilde des Aventuriers — bâtiment unique de l'Inframonde, plafonné à un seul niveau (niveau 0
+/// tant que le vertex de prestige ne la débloque pas, voir PrestigeMapFactory). Ne fait plus
+/// apparaître d'Aventurier elle-même : elle débloque le Relais des Aventuriers
+/// (<see cref="AdventurersWaypost"/>) et en accorde automatiquement un dans sa propre ville à la
+/// construction (voir BuildingController.BuildBuilding). La puissance des Aventuriers et la
+/// mécanique de réapparition vivent désormais sur chaque Relais, pas sur la Guilde — voir
+/// AdventurersWaypost.Level.
 /// </summary>
 public class AdventurersGuild : Building
 {
@@ -32,13 +33,5 @@ public class AdventurersGuild : Building
         { Resource.Stone, 200 },
         { Resource.Steel, 100 },
         { Resource.Food, 100 },
-    };
-
-    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
-    {
-        { Resource.Mithril, 100 * level },
-        { Resource.Stone, 200 * level },
-        { Resource.Steel, 100 * level },
-        { Resource.Food, 100 * level },
     };
 }

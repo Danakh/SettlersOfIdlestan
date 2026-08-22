@@ -10,7 +10,9 @@ namespace SettlersOfIdlestan.Model.Buildings;
 /// BuildingController.BuildBuilding) ; d'autres peuvent ensuite être bâtis dans n'importe quelle
 /// ville. Chaque Relais fait apparaître un Aventurier qui ne s'éloigne jamais de plus de
 /// <see cref="AdventurerRoamRadiusHexes"/> hexs de lui (voir MonsterFeatureController) ; toute la
-/// mécanique de réapparition — auparavant portée par la Guilde — vit ici.
+/// mécanique de réapparition — auparavant portée par la Guilde — vit ici. Le niveau du Relais
+/// (jusqu'à <see cref="GetDefaultMaxLevel"/>) détermine désormais la puissance de l'Aventurier
+/// qu'il invoque — auparavant porté par le niveau de la Guilde (voir MonsterController.UpdateAdventurerSpawns).
 /// </summary>
 public class AdventurersWaypost : Building
 {
@@ -34,7 +36,7 @@ public class AdventurersWaypost : Building
         AvailableAtLevel = 1;
     }
 
-    public override int GetDefaultMaxLevel() => 1;
+    public override int GetDefaultMaxLevel() => 4;
 
     public override bool IsAvailableInLayer(int z) => z != IslandMap.IslandMap.SurfaceLayer;
 
@@ -67,4 +69,12 @@ public class AdventurersWaypost : Building
             scaled.Add(resource, System.Math.Max(1, (int)System.Math.Round(amount * multiplier)));
         return scaled;
     }
+
+    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
+    {
+        { Resource.Mithril, 100 * level },
+        { Resource.Stone, 200 * level },
+        { Resource.Steel, 100 * level },
+        { Resource.Food, 100 * level },
+    };
 }

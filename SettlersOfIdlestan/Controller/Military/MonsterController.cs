@@ -193,8 +193,8 @@ public class MonsterFeatureController
     /// <summary>
     /// Fait apparaître un Aventurier près de chaque Relais des Aventuriers construit, tant qu'il n'en
     /// a pas déjà un en vie (un Relais = au plus un Aventurier à la fois). Le niveau de l'Aventurier
-    /// vient de la Guilde des Aventuriers de la civilisation (n'importe laquelle : elle est unique),
-    /// pas du Relais lui-même.
+    /// vient désormais du Relais lui-même (auparavant de la Guilde, quand elle seule était
+    /// niveautable) ; la Guilde ne fait plus que débloquer et gater le système.
     /// </summary>
     private void UpdateAdventurerSpawns(long currentTick)
     {
@@ -221,7 +221,7 @@ public class MonsterFeatureController
                 // position de ville (SpawnCityPosition), un seul Relais par ville (voir BuildBuilding).
                 if (_monsters.Any(m => m is Adventurer a && city.Position.Equals(a.SpawnCityPosition))) continue;
 
-                _state.AddFeature(new Adventurer(city.Position.GetHexes().First(), guildLevel) { SpawnCityPosition = city.Position });
+                _state.AddFeature(new Adventurer(city.Position.GetHexes().First(), waypost.Level) { SpawnCityPosition = city.Position });
             }
         }
     }
