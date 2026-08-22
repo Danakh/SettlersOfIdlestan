@@ -351,9 +351,10 @@ public class MonsterFeatureController
         var map = _state.GetMapFor(monster.Position);
         if (map == null) return;
 
+        // Un chasseur (Aventurier) marche librement sur les autres features (Monument, Os Divins, ...) :
+        // seul le terrain infranchissable l'arrête, jamais l'occupation de la case.
         var neighbors = monster.Position.Neighbors()
             .Where(n => map.HasTile(n) && CanEnterTerrain(monster, map.GetTile(n)!.TerrainType))
-            .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest))
             .ToList();
 
         // L'Aventurier ne s'éloigne jamais de plus de AdventurerRoamRadiusHexes de son Relais (voir TryMoveOneHex).
@@ -423,18 +424,31 @@ public class MonsterFeatureController
 
         if (neighbors.Count == 0) return false;
 
-        var noBlockingNoCooldown = neighbors
-            .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest) &&
-                        (!_state.PlunderCooldownUntil.TryGetValue(n, out var until) || currentTick >= until))
-            .ToList();
+        List<HexCoord> candidates;
+        if (monster.AttacksOtherMonsters)
+        {
+            // Un chasseur (Aventurier) marche librement sur les autres features (Monument, Os Divins, ...) ;
+            // seul le cooldown de pillage post-départ influence encore son choix de destination.
+            var noCooldown = neighbors
+                .Where(n => !_state.PlunderCooldownUntil.TryGetValue(n, out var until) || currentTick >= until)
+                .ToList();
+            candidates = noCooldown.Count > 0 ? noCooldown : neighbors;
+        }
+        else
+        {
+            var noBlockingNoCooldown = neighbors
+                .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest) &&
+                            (!_state.PlunderCooldownUntil.TryGetValue(n, out var until) || currentTick >= until))
+                .ToList();
 
-        var noBlocking = neighbors
-            .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest))
-            .ToList();
+            var noBlocking = neighbors
+                .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest))
+                .ToList();
 
-        var candidates = noBlockingNoCooldown.Count > 0 ? noBlockingNoCooldown
+            candidates = noBlockingNoCooldown.Count > 0 ? noBlockingNoCooldown
                        : noBlocking.Count > 0 ? noBlocking
                        : neighbors;
+        }
 
         var chosen = ChooseDestination(monster, candidates);
 
