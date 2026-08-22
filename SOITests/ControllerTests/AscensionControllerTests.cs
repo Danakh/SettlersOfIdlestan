@@ -374,7 +374,7 @@ public class AscensionControllerTests
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100);
 
-        // DivineInventory (colonne 0, coût 5) nécessite HandOfGod (colonne 0, coût 3) déjà débloqué,
+        // DivineInventory (colonne 0, coût 5) nécessite HandOfGod (colonne 0, coût 2) déjà débloqué,
         // même avec largement assez de points divins.
         Assert.False(ascension.CanPurchasePower(AscensionPowerId.DivineInventory));
 
@@ -383,7 +383,7 @@ public class AscensionControllerTests
 
         Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineInventory));
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.Equal(100 - 1 - 3 - 5, godState.GodPoints);
+        Assert.Equal(100 - 1 - 2 - 5, godState.GodPoints);
     }
 
     /// <summary>Pose un Dominion sur un hex de l'île de test — Marche de Dieu ne cible que les hexs sous Dominion de niveau 2+.</summary>

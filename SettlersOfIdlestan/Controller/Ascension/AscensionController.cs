@@ -28,7 +28,7 @@ namespace SettlersOfIdlestan.Controller.Ascension;
 public class AscensionController : IModifierProvider
 {
     /// <summary>Nombre minimum d'essences divines requis pour pouvoir déclencher une Ascension.</summary>
-    public const int MinDivineEssenceForAscension = 4;
+    public const int MinDivineEssenceForAscension = 5;
 
     /// <summary>
     /// Manne versée par Corne d'Abondance, pour chaque ressource de base et par cycle de génération
