@@ -28,7 +28,6 @@ public class Adventurer : MonsterFeature
 
     public override bool CanMove => true;
     public override long MovementIntervalTicks => 300L;
-    public override long DepartureCooldownTicks => 1_000L;
     public override bool CanCrossWater => Level >= AdventurerWaterCrossingMinLevel;
 
     public override double HpRegenAmount => AdventurerHpRegenBase + AdventurerHpRegenPerLevel * Level;
