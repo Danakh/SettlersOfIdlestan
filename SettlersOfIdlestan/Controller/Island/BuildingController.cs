@@ -418,8 +418,8 @@ namespace SettlersOfIdlestan.Controller.Island
             return null;
         }
 
-        /// <summary>Nombre de Relais des Aventuriers déjà construits (niveau &gt; 0) dans la civilisation, pour le coût progressif d'<see cref="AdventurersWaypost"/>.</summary>
-        private static int CountAdventurersWayposts(Model.Civilization.Civilization civ)
+        /// <summary>Nombre de Relais des Aventuriers déjà construits (niveau &gt; 0) dans la civilisation, pour le coût progressif d'<see cref="AdventurersWaypost"/> et l'affichage sur la Guilde des Aventuriers.</summary>
+        public static int CountAdventurersWayposts(Model.Civilization.Civilization civ)
         {
             int count = 0;
             var cities = civ.Cities;

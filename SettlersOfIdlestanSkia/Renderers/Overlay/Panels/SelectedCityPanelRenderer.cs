@@ -214,6 +214,12 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     tooltipLines.Add("");
                 }
 
+                if (hoveredBuilding is AdventurersGuild adventurersGuild && adventurersGuild.Level > 0)
+                {
+                    tooltipLines.Add(_localization.GetFormated("adventurersguild_waypost_count", _cityBuildingService.CountAdventurersWayposts()));
+                    tooltipLines.Add("");
+                }
+
                 if (hoveredBuilding is AdventurersWaypost adventurersWaypost && adventurersWaypost.Level > 0 && _cityBuildingService.SelectedCity != null)
                 {
                     var activeAdventurer = _cityBuildingService.GetActiveAdventurerForCity(_cityBuildingService.SelectedCity);

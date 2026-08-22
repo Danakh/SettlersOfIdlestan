@@ -215,14 +215,17 @@ public class CityBuildingService
         return Math.Max(1L, (long)(MilitaryController.SoldierProductionIntervalTicks / civ.UnitProductionSpeed));
     }
 
-    /// <summary>N'importe quel Aventurier actuellement en vie, toutes civilisations et tous Relais confondus (pour centrer la caméra sur "le héros" — voir DoLocateHero).</summary>
-    public SettlersOfIdlestan.Model.Monsters.Adventurer? GetActiveAdventurer() =>
-        State.Features.OfType<SettlersOfIdlestan.Model.Monsters.Adventurer>().FirstOrDefault();
-
     /// <summary>Aventurier actuellement en vie invoqué par le Relais de la ville donnée, ou null si aucun.</summary>
     public SettlersOfIdlestan.Model.Monsters.Adventurer? GetActiveAdventurerForCity(City city) =>
         State.Features.OfType<SettlersOfIdlestan.Model.Monsters.Adventurer>()
             .FirstOrDefault(a => city.Position.Equals(a.SpawnCityPosition));
+
+    /// <summary>Nombre de Relais des Aventuriers déjà construits dans la civilisation sélectionnée, pour l'affichage sur la Guilde des Aventuriers.</summary>
+    public int CountAdventurersWayposts()
+    {
+        var civ = SelectedCivilization;
+        return civ == null ? 0 : BuildingController.CountAdventurersWayposts(civ);
+    }
 
     /// <summary>Cooldown effectif du cycle de la Fonderie de la civilisation sélectionnée.</summary>
     public long GetSmelterEffectiveCooldown()

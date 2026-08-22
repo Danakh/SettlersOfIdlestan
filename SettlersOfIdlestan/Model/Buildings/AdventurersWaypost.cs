@@ -19,7 +19,7 @@ public class AdventurersWaypost : Building
     public const long AdventurerRespawnCooldownTicks = 2_000L;
 
     /// <summary>Distance maximale (en hexs) que l'Aventurier invoqué par ce Relais peut s'en éloigner.</summary>
-    public const int AdventurerRoamRadiusHexes = 2;
+    public const int AdventurerRoamRadiusHexes = 1;
 
     /// <summary>Tick de la mort du dernier Aventurier invoqué par ce Relais, pour le délai de réapparition.</summary>
     public long LastAdventurerDeathTick { get; set; }

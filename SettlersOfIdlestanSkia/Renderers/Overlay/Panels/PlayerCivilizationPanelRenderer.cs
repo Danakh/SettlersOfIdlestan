@@ -239,25 +239,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 TargetSelectionTheme.Friendly);
     }
 
-    /// <summary>Recentre la caméra sur l'aventurier en vadrouille, ou à défaut sur sa guilde.</summary>
-    private void DoLocateHero()
-    {
-        var playerCiv = _gameControllerService.PlayerCivilization;
-        var guildCity = playerCiv != null ? GetAdventurersGuildCity(playerCiv) : null;
-        if (guildCity == null) return;
-
-        var activeAdventurer = _gameControllerService.CityBuildingService?.GetActiveAdventurer();
-        if (activeAdventurer != null)
-        {
-            var (ax, ay) = HexToWorld(activeAdventurer.Position);
-            _centerCameraOnMapPosition(activeAdventurer.Position.Z, ax, ay);
-            return;
-        }
-
-        var (wx, wy) = VertexToWorld(guildCity.Position);
-        _centerCameraOnMapPosition(guildCity.Position.Z, wx, wy);
-    }
-
     private void DoRelocation()
     {
         if (!RelocationEnabled || _targetSelectionService == null) return;
@@ -618,9 +599,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         catch { return false; }
     }
 
-    private static City? GetAdventurersGuildCity(Civilization civ)
-        => civ.Cities.FirstOrDefault(c => c.Buildings.OfType<AdventurersGuild>().Any(b => b.Level > 0));
-
     private static (float x, float y) HexToWorld(HexCoord hex)
     {
         float sqrt3 = MathF.Sqrt(3f);
@@ -733,12 +711,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 CivPanelSnapshot.KeyWarHerald, _localization.Get("warherald_action_short"), true, false,
                 IconName: "Resources.icons.military.defense.svg", Glyph: null,
                 TooltipLines: [_localization.Get("warherald_action_short"), _localization.Get("tooltip_warherald")]));
-
-        if (GetAdventurersGuildCity(civ) != null)
-            iconActions.Add(new CivActionSnapshot(
-                CivPanelSnapshot.KeyLocateHero, _localization.Get("locate_hero_action"), true, false,
-                IconName: "Resources.icons.military.hero-armor.svg", Glyph: null,
-                TooltipLines: [_localization.Get("locate_hero_action"), _localization.Get("tooltip_locate_hero")]));
 
         // ── Grille d'actions, dans l'ordre du rendu Skia ──
 
@@ -909,7 +881,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case CivPanelSnapshot.KeySpire:           DoSpire();           break;
             case CivPanelSnapshot.KeyRaid:            DoRaid();            break;
             case CivPanelSnapshot.KeyWarHerald:       DoWarHerald();       break;
-            case CivPanelSnapshot.KeyLocateHero:      DoLocateHero();      break;
             case CivPanelSnapshot.KeyRelocation:      DoRelocation();      break;
             case CivPanelSnapshot.KeyWalkOfGod:       DoWalkOfGod();       break;
             case CivPanelSnapshot.KeyPresenceOfGod:   DoPresenceOfGod();   break;

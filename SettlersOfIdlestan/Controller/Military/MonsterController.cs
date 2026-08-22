@@ -20,6 +20,7 @@ public class MonsterFeatureController
     private GameClock? _clock;
     private GamePRNG? _prng;
     private CityBuilderController? _cityBuilderController;
+    private BuildingController? _buildingController;
     private WarFleetController? _warFleetController;
     private MobileCampController? _mobileCampController;
     private PrestigeState? _prestigeState;
@@ -32,7 +33,7 @@ public class MonsterFeatureController
     /// <summary>Un consommable (Armure d'Acier, Potion de Soin) a été détruit pour sauver un soldat lors d'une attaque de monstre.</summary>
     public event EventHandler<ConsumableConsumedEventArgs>? ConsumableConsumed;
 
-    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null, PrestigeState? prestigeState = null, WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null)
+    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null, PrestigeState? prestigeState = null, WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null, BuildingController? buildingController = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -46,10 +47,14 @@ public class MonsterFeatureController
         if (_cityBuilderController != null)
             _cityBuilderController.OnCityDestroyed -= OnCityDestroyed;
 
+        if (_buildingController != null)
+            _buildingController.OnBuildingBuilt -= OnBuildingBuilt;
+
         _state = state;
         _clock = clock;
         if (prng != null) _prng = prng;
         _cityBuilderController = cityBuilderController;
+        _buildingController = buildingController;
         _warFleetController = warFleetController;
         _mobileCampController = mobileCampController;
         _prestigeState = prestigeState;
@@ -67,6 +72,26 @@ public class MonsterFeatureController
 
         if (_cityBuilderController != null)
             _cityBuilderController.OnCityDestroyed += OnCityDestroyed;
+
+        if (_buildingController != null)
+            _buildingController.OnBuildingBuilt += OnBuildingBuilt;
+    }
+
+    /// <summary>
+    /// Un Relais des Aventuriers amélioré doit se répercuter instantanément sur l'Aventurier déjà en
+    /// vie qu'il a invoqué — sinon celui-ci resterait à l'ancien niveau jusqu'à sa mort et son
+    /// remplacement (voir UpdateAdventurerSpawns), ce qui rendrait l'amélioration invisible tant que
+    /// l'Aventurier survit. Soigné à son nouveau MaxHp, comme un Aventurier qui viendrait d'apparaître.
+    /// </summary>
+    private void OnBuildingBuilt(object? sender, BuildingBuiltEventArgs e)
+    {
+        if (e.BuildingType != BuildingType.AdventurersWaypost || e.IsNewBuilding) return;
+
+        var adventurer = _monsters.OfType<Adventurer>().FirstOrDefault(a => e.City.Position.Equals(a.SpawnCityPosition));
+        if (adventurer == null) return;
+
+        adventurer.Level = e.Level;
+        adventurer.Hp = adventurer.MaxHp;
     }
 
     /// <summary>
@@ -331,7 +356,7 @@ public class MonsterFeatureController
             .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest))
             .ToList();
 
-        // L'Aventurier ne s'éloigne jamais de plus de 2 hexs de son Relais (voir TryMoveOneHex).
+        // L'Aventurier ne s'éloigne jamais de plus de AdventurerRoamRadiusHexes de son Relais (voir TryMoveOneHex).
         if (monster is Adventurer adventurerReturning && adventurerReturning.SpawnCityPosition is { } returnSpawn)
             neighbors = neighbors.Where(n => DistanceToCity(n, returnSpawn) <= AdventurersWaypost.AdventurerRoamRadiusHexes).ToList();
 
@@ -392,7 +417,7 @@ public class MonsterFeatureController
             neighbors = neighbors.Where(n => visibleMap.HasTile(n)).ToList();
         }
 
-        // L'Aventurier ne s'éloigne jamais de plus de 2 hexs de son Relais (voir AdventurersWaypost).
+        // L'Aventurier ne s'éloigne jamais de plus de AdventurerRoamRadiusHexes de son Relais (voir AdventurersWaypost).
         if (monster is Adventurer adventurer && adventurer.SpawnCityPosition is { } spawnVertex)
             neighbors = neighbors.Where(n => DistanceToCity(n, spawnVertex) <= AdventurersWaypost.AdventurerRoamRadiusHexes).ToList();
 
