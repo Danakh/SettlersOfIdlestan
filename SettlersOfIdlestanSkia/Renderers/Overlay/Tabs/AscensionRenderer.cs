@@ -510,23 +510,23 @@ public sealed class AscensionRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, _localization.Get(race.NameKey), centerX, y + 18f, SKTextAlign.Center, _nameFont,
             selectable ? _namePaint : _mutedPaint);
 
-        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(race.DescKey), width - 12f, _descFont);
-        DrawCenteredTextLayout(canvas, descLayout, centerX, y + 34f, _descFont, selectable ? _descPaint : _mutedPaint);
-
         if (!selectable)
         {
-            // Races avancées : verrouillées tant que la seconde rangée de pouvoirs n'est pas
-            // complète ; un éventuel stub (sans bâtiment racial) : simple aperçu « bientôt ».
-            // Replié sur 2 lignes au besoin : le libellé complet déborde la largeur d'une carte.
-            string lockKey = race.IsImplemented ? "ascension_race_advanced_locked_label" : "ascension_race_coming_soon_label";
-            var lockLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(lockKey), width - 8f, _buttonFont);
-            DrawCenteredTextLayout(canvas, lockLayout, centerX,
-                y + RaceCardHeight - lockLayout.Lines.Count * _buttonFont.Spacing - 4f, _buttonFont, _mutedPaint);
+            // Verrouillée : n'affiche que les éléments de déblocage (les infos de jeu de la race
+            // n'ont de sens qu'une fois celle-ci jouable — voir GetRaceLockRequirementText).
+            var lockLayout = SkiaTextUtils.MeasureWrappedText(GetRaceLockRequirementText(race), width - 12f, _buttonFont);
+            DrawCenteredTextLayout(canvas, lockLayout, centerX, y + 34f, _buttonFont, _mutedPaint);
         }
-        else if (ascension.AscendedRaces.Contains(race.Id))
+        else
         {
-            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_race_ascended_label"),
-                centerX, y + RaceCardHeight - 8f, SKTextAlign.Center, _buttonFont, _accentPaint);
+            var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(race.DescKey), width - 12f, _descFont);
+            DrawCenteredTextLayout(canvas, descLayout, centerX, y + 34f, _descFont, _descPaint);
+
+            if (ascension.AscendedRaces.Contains(race.Id))
+            {
+                SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_race_ascended_label"),
+                    centerX, y + RaceCardHeight - 8f, SKTextAlign.Center, _buttonFont, _accentPaint);
+            }
         }
 
         canvas.Restore();
@@ -861,6 +861,25 @@ public sealed class AscensionRenderer : IDisposable
         if (!ascension.ArePrerequisitesMet(def.Id))
             return _localization.Get("ascension_power_locked_tooltip");
         return _localization.GetFormated("ascension_power_insufficient_points_tooltip", def.GodPointCost);
+    }
+
+    /// <summary>
+    /// Texte affiché sur une carte de race verrouillée (voir DrawPendingRaceCard) : la combinaison de
+    /// pouvoirs divins requise pour une race de base (RaceDefinition.RequiredPowers), un prérequis par
+    /// ligne (voir "ascension_race_requires_label") ; le rappel de la seconde rangée pour une race
+    /// avancée, ou « bientôt disponible » pour un éventuel stub.
+    /// </summary>
+    private string GetRaceLockRequirementText(RaceDefinition race)
+    {
+        if (!race.IsImplemented)
+            return _localization.Get("ascension_race_coming_soon_label");
+
+        if (race.RequiredPowers.Count == 0)
+            return _localization.Get("ascension_race_advanced_locked_label");
+
+        string powerNames = string.Join("\n", race.RequiredPowers
+            .Select(id => _localization.Get(AscensionPowerDefinitions.Get(id)!.NameKey)));
+        return _localization.GetFormated("ascension_race_requires_label", powerNames);
     }
 
     private static void DrawCenteredTextLayout(SKCanvas canvas, WrappedTextLayout layout, float centerX, float y, SKFont font, SKPaint paint)

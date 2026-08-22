@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -13,11 +14,12 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Model.Races;
 
 /// <summary>
-/// Liste des races jouables (voir <see cref="RaceDefinition"/>). Les races Base deviennent
-/// sélectionnables à l'Ascension une fois la première rangée de pouvoirs divins complète ; les
-/// races Advanced une fois la seconde rangée complète. Les stubs éventuels
-/// (<see cref="RaceDefinition.IsImplemented"/> faux) sont déclarés pour l'UI et la sérialisation
-/// mais n'apparaissent jamais dans AscensionController.GetSelectableRaces.
+/// Liste des races jouables (voir <see cref="RaceDefinition"/>). Chaque race Base (hors Humains,
+/// toujours sélectionnables) devient sélectionnable individuellement une fois sa propre combinaison
+/// de 3 pouvoirs divins acquise (<see cref="RaceDefinition.RequiredPowers"/>) ; les races Advanced
+/// une fois la seconde rangée complète (voir AscensionController.AreAdvancedRacesUnlocked). Les
+/// stubs éventuels (<see cref="RaceDefinition.IsImplemented"/> faux) sont déclarés pour l'UI et la
+/// sérialisation mais n'apparaissent jamais dans AscensionController.GetSelectableRaces.
 /// </summary>
 public static class RaceDefinitions
 {
@@ -70,7 +72,7 @@ public static class RaceDefinitions
             }),
 
         // Elfes : nouvelles villes uniquement adjacentes à une Forêt ; en échange, scieries et
-        // recherche accélérées.
+        // recherche accélérées. Déblocage : Marche de Dieu, Ascension Prestigieuse, Œil de Dieu.
         new RaceDefinition(RaceId.Elf, RaceTier.Base,
             requiredAdjacentTerrain: TerrainType.Forest,
             racialBuilding: BuildingType.HeartTree,
@@ -80,10 +82,11 @@ public static class RaceDefinitions
                 new Modifier(ECategory.HARVEST_SPEED, nameof(BuildingType.Sawmill), EType.ADDITIVE, 0.5),
                 new Modifier(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.HeartTree), EType.ADDITIVE, 1),
-            }),
+            },
+            requiredPowers: new[] { AscensionPowerId.WalkOfGod, AscensionPowerId.PrestigiousAscension, AscensionPowerId.EyeOfGod }),
 
         // Nains : nouvelles villes uniquement adjacentes à une Montagne ; maîtres de la forge et
-        // de la mine, et solides défenseurs.
+        // de la mine, et solides défenseurs. Déblocage : Héritage Divin, Bras de Dieu, Marche de Dieu.
         new RaceDefinition(RaceId.Dwarf, RaceTier.Base,
             requiredAdjacentTerrain: TerrainType.Mountain,
             racialBuilding: BuildingType.RunicForge,
@@ -94,11 +97,12 @@ public static class RaceDefinitions
                 new Modifier(ECategory.MINE_GOLD_CHANCE_PERCENT, EType.ADDITIVE, 10),
                 new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, 3),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.RunicForge), EType.ADDITIVE, 1),
-            }),
+            },
+            requiredPowers: new[] { AscensionPowerId.DivineLegacy, AscensionPowerId.ArmOfGod, AscensionPowerId.WalkOfGod }),
 
         // Gobelins : villes à distance 2 au lieu de 3 (expansion dense), mais « quantité plutôt
         // que qualité » — niveau max -1 sur les bâtiments standards, défense affaiblie et points
-        // de prestige réduits de 25 %.
+        // de prestige réduits de 25 %. Déblocage : Ascension Prestigieuse, Main de Dieu, Héritage Divin.
         new RaceDefinition(RaceId.Goblin, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.GreatBurrow,
@@ -107,12 +111,13 @@ public static class RaceDefinitions
                 .Append(new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3))
                 .Append(new Modifier(ECategory.PRESTIGE_GAIN_RACE, EType.ADDITIVE, -0.25))
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.GreatBurrow), EType.ADDITIVE, 1))
-                .ToArray()),
+                .ToArray(),
+            requiredPowers: new[] { AscensionPowerId.PrestigiousAscension, AscensionPowerId.HandOfGod, AscensionPowerId.DivineLegacy }),
 
         // Orcs : pillards sans terrain de prédilection — tout misé sur l'attaque et le raid plutôt
         // que sur l'économie ou la recherche. UNLOCK_RAID offert gratuitement (normalement un vertex
         // de prestige mi-parcours) ; en échange, recherche ralentie et Bibliothèque/Laboratoire
-        // plafonnent 1 niveau plus bas.
+        // plafonnent 1 niveau plus bas. Déblocage : Œil de Dieu, Main de Dieu, Bras de Dieu.
         new RaceDefinition(RaceId.Orc, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.SkullPit,
@@ -127,8 +132,9 @@ public static class RaceDefinitions
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Library), EType.ADDITIVE, -1),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Laboratory), EType.ADDITIVE, -1),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.SkullPit), EType.ADDITIVE, 1),
-            }),
-        
+            },
+            requiredPowers: new[] { AscensionPowerId.EyeOfGod, AscensionPowerId.HandOfGod, AscensionPowerId.ArmOfGod }),
+
         // Géants : l'inverse des gobelins — villes à distance 4 minimum (rares), mais bâtiments
         // standards à niveau max +2 et récolte accélérée.
         new RaceDefinition(RaceId.Giant, RaceTier.Advanced,

@@ -273,51 +273,62 @@ public class AscensionController : IModifierProvider
         (IReadOnlyCollection<RaceId>?)_ascensionState?.AscendedRaces ?? Array.Empty<RaceId>();
 
     /// <summary>
-    /// Colonnes de pouvoirs divins qui conditionnent le déblocage des races : les 4 premières
-    /// (Main/Oeil/Marche/Bras de Dieu). Volontairement figé plutôt qu'aligné sur
+    /// Colonnes de pouvoirs divins qui conditionnent le déblocage des races avancées : les 4
+    /// premières (Main/Oeil/Marche/Bras de Dieu). Volontairement figé plutôt qu'aligné sur
     /// AscensionPowerDefinitions.ColumnCount : une colonne ajoutée après coup reverrouillerait le
     /// choix de race des joueurs qui l'ont déjà acquis.
     /// </summary>
-    private const int RaceUnlockColumnCount = 4;
+    private const int AdvancedRaceUnlockColumnCount = 4;
 
     /// <summary>
-    /// Vrai si le choix de race est débloqué : toute la première rangée de pouvoirs divins achetée,
-    /// c'est-à-dire le premier pouvoir de chacune des <see cref="RaceUnlockColumnCount"/> colonnes
-    /// d'origine (Main/Oeil/Marche/Bras de Dieu).
+    /// Vrai si <paramref name="race"/> est actuellement sélectionnable à l'Ascension. Humains :
+    /// toujours. Races de base (Elfes, Nains, Gobelins, Orcs) : chacune sa propre combinaison de 3
+    /// pouvoirs divins (voir <see cref="RaceDefinition.RequiredPowers"/>), indépendante des autres —
+    /// deux races de base peuvent donc se débloquer à des moments différents. Races avancées : toute
+    /// la seconde rangée de pouvoirs divins complète (voir <see cref="AreAdvancedRacesUnlocked"/>).
+    /// </summary>
+    public bool IsRaceUnlocked(RaceId race)
+    {
+        if (race == RaceId.Human) return true;
+
+        var def = RaceDefinitions.Get(race);
+        if (def.Tier == RaceTier.Advanced) return AreAdvancedRacesUnlocked;
+
+        return def.RequiredPowers.Count > 0 && def.RequiredPowers.All(IsPowerUnlocked);
+    }
+
+    /// <summary>
+    /// Vrai si le choix de race est débloqué : au moins une race de base autre qu'Humains est
+    /// actuellement sélectionnable (voir <see cref="IsRaceUnlocked"/>). Conditionne l'apparition de
+    /// l'écran de choix de race, les vertex de prestige offerts (voir
+    /// <see cref="GrantFreePrestigeVertices"/>) et le décompte des races ascensionnées.
     /// </summary>
     public bool IsRaceSelectionUnlocked =>
-        Enumerable.Range(0, RaceUnlockColumnCount).All(col =>
-        {
-            var column = AscensionPowerDefinitions.GetColumn(col);
-            return column.Count > 0 && IsPowerUnlocked(column[0].Id);
-        });
+        RaceDefinitions.All.Any(r => r.Tier == RaceTier.Base && r.Id != RaceId.Human && IsRaceUnlocked(r.Id));
 
     /// <summary>
     /// Vrai si les races avancées (Géants, Garudas, Sirènes, Elfes noirs) sont débloquées : toute la
-    /// seconde rangée de pouvoirs divins achetée (le deuxième pouvoir de chacune de ces colonnes).
+    /// seconde rangée de pouvoirs divins achetée (le deuxième pouvoir de chacune des
+    /// <see cref="AdvancedRaceUnlockColumnCount"/> colonnes d'origine — Main/Oeil/Marche/Bras de Dieu).
     /// </summary>
     public bool AreAdvancedRacesUnlocked =>
-        IsRaceSelectionUnlocked &&
-        Enumerable.Range(0, RaceUnlockColumnCount).All(col =>
+        Enumerable.Range(0, AdvancedRaceUnlockColumnCount).All(col =>
         {
             var column = AscensionPowerDefinitions.GetColumn(col);
-            return column.Count < 2 || IsPowerUnlocked(column[1].Id);
+            return column.Count > 0 && IsPowerUnlocked(column[0].Id) &&
+                   (column.Count < 2 || IsPowerUnlocked(column[1].Id));
         });
 
     /// <summary>
-    /// Races choisissables à la prochaine Ascension : Humains toujours ; les races de base une fois
-    /// la première rangée de pouvoirs divins complète ; les races avancées une fois la seconde rangée
-    /// complète. Toutes les races déclarées sont aujourd'hui implémentées ; un éventuel stub
-    /// (RaceDefinition.IsImplemented faux, c'est-à-dire sans bâtiment racial) n'apparaîtrait jamais ici.
+    /// Races choisissables à la prochaine Ascension : Humains toujours, plus toute race pour
+    /// laquelle <see cref="IsRaceUnlocked"/> est vrai. Toutes les races déclarées sont aujourd'hui
+    /// implémentées ; un éventuel stub (RaceDefinition.IsImplemented faux, c'est-à-dire sans
+    /// bâtiment racial) n'apparaîtrait jamais ici.
     /// </summary>
     public IReadOnlyList<RaceId> GetSelectableRaces()
     {
-        if (!IsRaceSelectionUnlocked)
-            return new[] { RaceId.Human };
-
-        bool advancedUnlocked = AreAdvancedRacesUnlocked;
         return RaceDefinitions.All
-            .Where(r => r.IsImplemented && (r.Tier == RaceTier.Base || advancedUnlocked))
+            .Where(r => r.IsImplemented && IsRaceUnlocked(r.Id))
             .Select(r => r.Id)
             .ToList();
     }

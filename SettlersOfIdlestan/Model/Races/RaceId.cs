@@ -24,8 +24,9 @@ public enum RaceId
 }
 
 /// <summary>
-/// Palier de déblocage d'une race : Base = première rangée de pouvoirs divins complète,
-/// Advanced = seconde rangée complète (voir AscensionController.IsRaceSelectionUnlocked /
+/// Palier de déblocage d'une race : Base = sa propre combinaison de 3 pouvoirs divins
+/// (RaceDefinition.RequiredPowers, Humains exceptés — toujours sélectionnables), Advanced =
+/// seconde rangée de pouvoirs divins complète (voir AscensionController.IsRaceUnlocked /
 /// AreAdvancedRacesUnlocked).
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<RaceTier>))]

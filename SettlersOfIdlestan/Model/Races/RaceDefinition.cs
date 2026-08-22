@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -72,6 +73,15 @@ public class RaceDefinition
     public IReadOnlyList<Modifier> Modifiers { get; }
 
     /// <summary>
+    /// Pouvoirs divins dont la possession simultanée débloque cette race à l'Ascension (voir
+    /// AscensionController.IsRaceUnlocked) — vide pour les Humains (toujours sélectionnables) et pour
+    /// les races avancées, dont le déblocage reste collectif (seconde rangée complète, voir
+    /// AscensionController.AreAdvancedRacesUnlocked). Chaque race de base a sa propre combinaison de 3
+    /// pouvoirs, indépendante des autres : elles peuvent donc se débloquer à des moments différents.
+    /// </summary>
+    public IReadOnlyList<AscensionPowerId> RequiredPowers { get; }
+
+    /// <summary>
     /// Vrai si la race est jouable. Toutes les races déclarées le sont aujourd'hui ; une race
     /// ajoutée en aperçu, sans bâtiment racial, resterait non sélectionnable
     /// (voir AscensionController.GetSelectableRaces).
@@ -84,6 +94,7 @@ public class RaceDefinition
         TerrainType? requiredAdjacentTerrain,
         BuildingType? racialBuilding,
         Modifier[] modifiers,
+        AscensionPowerId[]? requiredPowers = null,
         bool startsInUnderworld = false,
         TerrainType[]? underworldStartTerrains = null,
         Vertex[]? freePrestigeVertices = null)
@@ -93,6 +104,7 @@ public class RaceDefinition
         RequiredAdjacentTerrain = requiredAdjacentTerrain;
         RacialBuilding = racialBuilding;
         Modifiers = modifiers;
+        RequiredPowers = requiredPowers ?? Array.Empty<AscensionPowerId>();
         StartsInUnderworld = startsInUnderworld;
         UnderworldStartTerrains = underworldStartTerrains ?? Array.Empty<TerrainType>();
         FreePrestigeVertices = freePrestigeVertices ?? Array.Empty<Vertex>();

@@ -148,6 +148,8 @@ public class DarkElfRaceTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
 
         controller.PerformAscension(RaceId.Dwarf);
 
@@ -194,6 +196,8 @@ public class DarkElfRaceTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
 
         controller.PerformAscension(RaceId.Elf);
 

@@ -1397,6 +1397,7 @@
   "ascension_race_choice_title": "Choisissez la race de votre prochain peuple",
   "ascension_race_pending_hint": "La partie est en pause. Vous pouvez encore acheter des pouvoirs divins dans l'onglet Ascension avant de valider votre choix — un nouveau pouvoir peut débloquer une race supplémentaire.",
   "ascension_race_advanced_locked_label": "Seconde rangée de pouvoirs requise",
+  "ascension_race_requires_label": "Nécessite :\n{0}",
   "ascension_race_coming_soon_label": "Bientôt disponible",
   "ascension_race_ascended_label": "A déjà ascensionné",
   "ascension_pending_choose_race_hint": "Ascension en cours : choisissez la race de votre prochain peuple sur l'écran Île.",

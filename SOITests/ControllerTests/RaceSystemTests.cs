@@ -24,16 +24,17 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SOITests.ControllerTests;
 
 /// <summary>
-/// Système de races (choix à l'Ascension) : déblocage par rangées de pouvoirs divins
-/// (AscensionController.IsRaceSelectionUnlocked / AreAdvancedRacesUnlocked / GetSelectableRaces),
-/// enregistrement des races ayant ascensionné et bâtiments raciaux permanents, restrictions de
-/// placement (CITY_MIN_DISTANCE, CITY_PLACEMENT_REQUIRES_TERRAIN, CITY_PLACEMENT_FLYING),
-/// réduction de coût de ville (NEW_CITY_COST_REDUCTION) et effet Ziggourat (production
-/// instantanée de Dominion des Temples).
+/// Système de races (choix à l'Ascension) : déblocage individuel des races de base par combinaison
+/// de 3 pouvoirs divins propre à chacune, déblocage collectif des races avancées par rangée
+/// (AscensionController.IsRaceUnlocked / IsRaceSelectionUnlocked / AreAdvancedRacesUnlocked /
+/// GetSelectableRaces), enregistrement des races ayant ascensionné et bâtiments raciaux permanents,
+/// restrictions de placement (CITY_MIN_DISTANCE, CITY_PLACEMENT_REQUIRES_TERRAIN,
+/// CITY_PLACEMENT_FLYING), réduction de coût de ville (NEW_CITY_COST_REDUCTION) et effet Ziggourat
+/// (production instantanée de Dominion des Temples).
 /// </summary>
 public class RaceSystemTests
 {
-    // ── Déblocage des races par les rangées de pouvoirs divins ──────────────
+    // ── Déblocage des races par combinaison de pouvoirs divins ──────────────
 
     private static AscensionController CreateAscension(out GodState godState, int godPoints = 100)
     {
@@ -44,6 +45,11 @@ public class RaceSystemTests
         return ascension;
     }
 
+    /// <summary>
+    /// Achète les 6 pouvoirs divins de premier niveau (un par colonne 0 à 5) : l'union des
+    /// combinaisons requises par chacune des 4 races de base (voir RaceDefinitions.All), donc les
+    /// débloque toutes simultanément.
+    /// </summary>
     private static void UnlockFirstRow(AscensionController ascension)
     {
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
@@ -51,6 +57,8 @@ public class RaceSystemTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
     }
 
     /// <summary>Seconde rangée complète (un pouvoir par colonne qui en possède un) : races avancées.</summary>
@@ -62,8 +70,13 @@ public class RaceSystemTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
     }
 
+    /// <summary>
+    /// Hand+Eye+Walk+Arm complète exactement la combinaison des Orcs (Œil, Main, Bras — Marche est
+    /// en trop mais ne gêne pas) : IsRaceSelectionUnlocked (vraie dès qu'une race de base autre
+    /// qu'Humains devient sélectionnable) ne bascule donc qu'au dernier des 4 pouvoirs.
+    /// </summary>
     [Fact]
-    public void IsRaceSelectionUnlocked_RequiresAllFourFirstRowPowers()
+    public void IsRaceSelectionUnlocked_TogglesOnceAnyBaseRaceCombinationIsComplete()
     {
         var ascension = CreateAscension(out _);
 
@@ -77,6 +90,30 @@ public class RaceSystemTests
 
         ascension.PurchasePower(AscensionPowerId.ArmOfGod);
         Assert.True(ascension.IsRaceSelectionUnlocked);
+        Assert.Contains(RaceId.Orc, ascension.GetSelectableRaces());
+    }
+
+    /// <summary>
+    /// Chaque race de base a sa propre combinaison de 3 pouvoirs (RaceDefinition.RequiredPowers),
+    /// indépendante des autres : acheter uniquement celle des Orcs (Œil, Main, Bras) ne débloque ni
+    /// les Elfes, ni les Nains, ni les Gobelins.
+    /// </summary>
+    [Fact]
+    public void IsRaceUnlocked_EachBaseRaceHasItsOwnIndependentCombination()
+    {
+        var ascension = CreateAscension(out _);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+
+        Assert.True(ascension.IsRaceUnlocked(RaceId.Orc));
+        Assert.False(ascension.IsRaceUnlocked(RaceId.Elf));
+        Assert.False(ascension.IsRaceUnlocked(RaceId.Dwarf));
+        Assert.False(ascension.IsRaceUnlocked(RaceId.Goblin));
+
+        var races = ascension.GetSelectableRaces();
+        Assert.Equal(new[] { RaceId.Human, RaceId.Orc }, races);
     }
 
     [Fact]
