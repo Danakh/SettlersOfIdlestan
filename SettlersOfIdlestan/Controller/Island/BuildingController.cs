@@ -404,10 +404,33 @@ namespace SettlersOfIdlestan.Controller.Island
                     ? prototype.IsBuildingAvailableForCity(map, city, civ)
                     : prototype.IsBuildingAvailableForCity(map, city);
                 if (available)
-                    return CreateBuilding(bt); // instance neuve : l'appelant peut la conserver/muter
+                {
+                    var fresh = CreateBuilding(bt); // instance neuve : l'appelant peut la conserver/muter
+                    // Coût affiché dépendant du nombre de Relais déjà construits (voir BuildBuilding) :
+                    // renseigné ici aussi pour que l'aperçu de coût de l'UI corresponde à celui appliqué
+                    // au moment de l'achat.
+                    if (fresh is AdventurersWaypost waypost && civ != null)
+                        waypost.PriorWaypostCount = CountAdventurersWayposts(civ);
+                    return fresh;
+                }
             }
 
             return null;
+        }
+
+        /// <summary>Nombre de Relais des Aventuriers déjà construits (niveau &gt; 0) dans la civilisation, pour le coût progressif d'<see cref="AdventurersWaypost"/>.</summary>
+        private static int CountAdventurersWayposts(Model.Civilization.Civilization civ)
+        {
+            int count = 0;
+            var cities = civ.Cities;
+            for (int i = 0; i < cities.Count; i++)
+            {
+                var buildings = cities[i].Buildings;
+                for (int j = 0; j < buildings.Count; j++)
+                    if (buildings[j].Type == BuildingType.AdventurersWaypost && buildings[j].Level > 0)
+                        count++;
+            }
+            return count;
         }
 
         /// <summary>
@@ -459,6 +482,11 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 if (prototype.IsUnique && city.Buildings.Any(b => b.IsUnique))
                     return false;
+
+                // Coût progressif : renseigné juste avant l'appel à GetBuildCost() (voir
+                // AdventurersWaypost.GetBuildCost), sur le même modèle que GetBuildingOrBuildableEntry.
+                if (prototype is AdventurersWaypost waypost)
+                    waypost.PriorWaypostCount = CountAdventurersWayposts(civ);
 
                 cost = prototype.GetBuildCost();
                 resultBuilding = prototype;
@@ -516,6 +544,11 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
                 if (resultBuilding is IUniqueBuilding)
                     civ.RebuildUniqueBuildingsModifiers();
+
+                // La Guilde des Aventuriers accorde automatiquement un Relais dans sa propre ville :
+                // ajout direct (bâtiment gratuit), même patron que PrestigeMapController.GrantBuildingToCity.
+                if (type == BuildingType.AdventurersGuild && !city.Buildings.Any(b => b.Type == BuildingType.AdventurersWaypost))
+                    city.AddBuilding(new AdventurersWaypost { Level = 1 });
             }
             else
             {
@@ -862,6 +895,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 BuildingType.WeaponSmith => new WeaponSmith(),
                 BuildingType.ArmorSmith => new ArmorSmith(),
                 BuildingType.AdventurersGuild => new AdventurersGuild(),
+                BuildingType.AdventurersWaypost => new AdventurersWaypost(),
                 BuildingType.VolcanicForge => new VolcanicForge(),
                 BuildingType.Ziggurat => new Ziggurat(),
                 BuildingType.HeartTree => new HeartTree(),

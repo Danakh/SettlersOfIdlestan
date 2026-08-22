@@ -213,20 +213,20 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     tooltipLines.Add("");
                 }
 
-                if (hoveredBuilding is AdventurersGuild adventurersGuild && adventurersGuild.Level > 0)
+                if (hoveredBuilding is AdventurersWaypost adventurersWaypost && adventurersWaypost.Level > 0 && _cityBuildingService.SelectedCity != null)
                 {
-                    var activeAdventurer = _cityBuildingService.GetActiveAdventurer();
+                    var activeAdventurer = _cityBuildingService.GetActiveAdventurerForCity(_cityBuildingService.SelectedCity);
                     if (activeAdventurer != null)
                     {
-                        tooltipLines.Add(_localization.GetFormated("adventurersguild_current_hp",
+                        tooltipLines.Add(_localization.GetFormated("adventurerswaypost_current_hp",
                             activeAdventurer.Hp, activeAdventurer.MaxHp));
                     }
                     else
                     {
                         long currentTick = _cityBuildingService.GetCurrentTick();
-                        long elapsed = adventurersGuild.LastAdventurerDeathTick == 0 ? long.MaxValue : currentTick - adventurersGuild.LastAdventurerDeathTick;
-                        long remaining = Math.Max(0, AdventurersGuild.AdventurerRespawnCooldownTicks - elapsed);
-                        tooltipLines.Add(_localization.Get("adventurersguild_respawn_cooldown") + $" {remaining / 100.0:0.0}s");
+                        long elapsed = adventurersWaypost.LastAdventurerDeathTick == 0 ? long.MaxValue : currentTick - adventurersWaypost.LastAdventurerDeathTick;
+                        long remaining = Math.Max(0, AdventurersWaypost.AdventurerRespawnCooldownTicks - elapsed);
+                        tooltipLines.Add(_localization.Get("adventurerswaypost_respawn_cooldown") + $" {remaining / 100.0:0.0}s");
                     }
                     tooltipLines.Add("");
                 }

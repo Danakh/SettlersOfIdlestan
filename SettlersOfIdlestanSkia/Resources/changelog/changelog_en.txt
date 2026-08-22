@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.15
+• Adventurers' Waypost: new building, buildable once the Adventurers' Guild is built (in any city). Each Waypost sends out its own Adventurer, who never strays more than 2 hexes from it — the Guild grants one automatically in its own city and unlocks building more elsewhere
 • Tentacles: from corruption level 6 on, every new Abyss island may grow a tentacle — as tough as a major demon, but rooted to its hex
 • Pandemonium: killing a tentacle opens a Pandemonium Gate (same price as the Abyss Gate). Once built, it gives access to a single island ringed by the Void, guarded by a demon god at its centre and eight tentacles — the player lands on the edge
 • Horn of Plenty: new divine power (follow-up to Divine Inventory) granting +100% yield to every automatic harvest — stacking with the other yield bonuses — and 20 units of each basic resource every second

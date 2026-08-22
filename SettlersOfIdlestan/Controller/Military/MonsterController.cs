@@ -70,10 +70,10 @@ public class MonsterFeatureController
     }
 
     /// <summary>
-    /// La Guilde des Aventuriers ne survit jamais à la destruction de sa ville : l'Aventurier
-    /// qu'elle a invoqué meurt donc instantanément avec elle, au lieu d'errer indéfiniment sans
-    /// guilde à laquelle rentrer ou attendre un respawn qui ne sera jamais programmé (le cooldown
-    /// de réapparition vit sur la Guilde elle-même, détruite avec la ville).
+    /// Un Relais des Aventuriers ne survit jamais à la destruction de sa ville : l'Aventurier qu'il
+    /// a invoqué meurt donc instantanément avec elle, au lieu d'errer indéfiniment sans relais
+    /// auquel rentrer ou attendre un respawn qui ne sera jamais programmé (le cooldown de
+    /// réapparition vit sur le Relais lui-même, détruit avec la ville).
     /// </summary>
     private void OnCityDestroyed(object? sender, CityDestroyedEventArgs e)
     {
@@ -191,32 +191,37 @@ public class MonsterFeatureController
     }
 
     /// <summary>
-    /// Fait apparaître un Aventurier près de chaque Guilde des Aventuriers construite, tant
-    /// qu'aucun n'est déjà en vie (bâtiment unique : au plus un Aventurier à la fois).
+    /// Fait apparaître un Aventurier près de chaque Relais des Aventuriers construit, tant qu'il n'en
+    /// a pas déjà un en vie (un Relais = au plus un Aventurier à la fois). Le niveau de l'Aventurier
+    /// vient de la Guilde des Aventuriers de la civilisation (n'importe laquelle : elle est unique),
+    /// pas du Relais lui-même.
     /// </summary>
     private void UpdateAdventurerSpawns(long currentTick)
     {
         if (_state == null) return;
-        if (_monsters.Any(m => m is Adventurer)) return;
 
         var civilizations = _state.Civilizations;
         for (int c = 0; c < civilizations.Count; c++)
         {
             var civ = civilizations[c];
+            int guildLevel = civ.GetUniqueBuilding(BuildingType.AdventurersGuild)?.Level ?? 0;
+            if (guildLevel <= 0) continue;
+
             var cities = civ.Cities;
             for (int i = 0; i < cities.Count; i++)
             {
                 var city = cities[i];
-                // FindBuilding (indexé par type) plutôt que OfType<T>().FirstOrDefault() : tant
-                // qu'aucun Aventurier n'est vivant, cette méthode parcourt toutes les villes de la
-                // carte à chaque événement d'horloge, et la chaîne LINQ y allouait un itérateur, un
-                // énumérateur boxé et une fermeture par ville.
-                var guild = city.FindBuilding<AdventurersGuild>(BuildingType.AdventurersGuild) is { Level: > 0 } g ? g : null;
-                if (guild == null) continue;
-                if (currentTick - guild.LastAdventurerDeathTick < AdventurersGuild.AdventurerRespawnCooldownTicks) continue;
+                // FindBuilding (indexé par type) plutôt que OfType<T>().FirstOrDefault() : cette
+                // méthode parcourt toutes les villes de la carte à chaque événement d'horloge.
+                var waypost = city.FindBuilding<AdventurersWaypost>(BuildingType.AdventurersWaypost) is { Level: > 0 } w ? w : null;
+                if (waypost == null) continue;
+                if (currentTick - waypost.LastAdventurerDeathTick < AdventurersWaypost.AdventurerRespawnCooldownTicks) continue;
 
-                _state.AddFeature(new Adventurer(city.Position.GetHexes().First(), guild.Level) { SpawnCityPosition = city.Position });
-                return;
+                // Un Relais donné n'a jamais plus d'un Aventurier vivant à la fois : identifié par sa
+                // position de ville (SpawnCityPosition), un seul Relais par ville (voir BuildBuilding).
+                if (_monsters.Any(m => m is Adventurer a && city.Position.Equals(a.SpawnCityPosition))) continue;
+
+                _state.AddFeature(new Adventurer(city.Position.GetHexes().First(), guildLevel) { SpawnCityPosition = city.Position });
             }
         }
     }
@@ -267,7 +272,7 @@ public class MonsterFeatureController
         }
     }
 
-    /// <summary>Démarre le cooldown de réapparition de la Guilde des Aventuriers ayant invoqué cet Aventurier, à sa mort.</summary>
+    /// <summary>Démarre le cooldown de réapparition du Relais des Aventuriers ayant invoqué cet Aventurier, à sa mort.</summary>
     private void StartAdventurerRespawnCooldown(Adventurer deadAdventurer, long currentTick)
     {
         if (_state == null || deadAdventurer.SpawnCityPosition == null) return;
@@ -275,9 +280,9 @@ public class MonsterFeatureController
         var city = _state.Civilizations
             .SelectMany(c => c.Cities)
             .FirstOrDefault(c => c.Position.Equals(deadAdventurer.SpawnCityPosition));
-        var guild = city?.Buildings.OfType<AdventurersGuild>().FirstOrDefault();
-        if (guild != null)
-            guild.LastAdventurerDeathTick = currentTick;
+        var waypost = city?.Buildings.OfType<AdventurersWaypost>().FirstOrDefault();
+        if (waypost != null)
+            waypost.LastAdventurerDeathTick = currentTick;
     }
 
     // ── Régénération de PV ───────────────────────────────────────────────────
@@ -325,6 +330,11 @@ public class MonsterFeatureController
             .Where(n => map.HasTile(n) && CanEnterTerrain(monster, map.GetTile(n)!.TerrainType))
             .Where(n => !_state.GetFeaturesAt(n).Any(f => f.BlocksHarvest))
             .ToList();
+
+        // L'Aventurier ne s'éloigne jamais de plus de 2 hexs de son Relais (voir TryMoveOneHex).
+        if (monster is Adventurer adventurerReturning && adventurerReturning.SpawnCityPosition is { } returnSpawn)
+            neighbors = neighbors.Where(n => DistanceToCity(n, returnSpawn) <= AdventurersWaypost.AdventurerRoamRadiusHexes).ToList();
+
         if (neighbors.Count == 0) return;
 
         var nearestCity = _state.PlayerCivilization.Cities
@@ -381,6 +391,10 @@ public class MonsterFeatureController
         {
             neighbors = neighbors.Where(n => visibleMap.HasTile(n)).ToList();
         }
+
+        // L'Aventurier ne s'éloigne jamais de plus de 2 hexs de son Relais (voir AdventurersWaypost).
+        if (monster is Adventurer adventurer && adventurer.SpawnCityPosition is { } spawnVertex)
+            neighbors = neighbors.Where(n => DistanceToCity(n, spawnVertex) <= AdventurersWaypost.AdventurerRoamRadiusHexes).ToList();
 
         if (neighbors.Count == 0) return false;
 

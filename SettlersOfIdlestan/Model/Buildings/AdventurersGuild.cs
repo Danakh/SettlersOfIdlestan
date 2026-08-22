@@ -3,17 +3,15 @@ using SettlersOfIdlestan.Model.IslandMap;
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
-/// Guilde des Aventuriers — bâtiment unique de l'Inframonde. Fait apparaître un Aventurier qui
-/// patrouille et combat les monstres errants (jamais les villes) ; quand il meurt, un autre prend
-/// sa place après un court délai.
+/// Guilde des Aventuriers — bâtiment unique de l'Inframonde. Ne fait plus apparaître d'Aventurier
+/// elle-même : elle débloque le Relais des Aventuriers (<see cref="AdventurersWaypost"/>) et en
+/// accorde automatiquement un dans sa propre ville à la construction (voir
+/// BuildingController.BuildBuilding). Son niveau détermine la puissance des Aventuriers invoqués
+/// par tous les Relais de la civilisation ; la mécanique de réapparition vit désormais sur chaque
+/// Relais, pas sur la Guilde.
 /// </summary>
 public class AdventurersGuild : Building
 {
-    public const long AdventurerRespawnCooldownTicks = 2_000L;
-
-    /// <summary>Tick de la mort du dernier Aventurier invoqué par cette Guilde, pour le délai de réapparition.</summary>
-    public long LastAdventurerDeathTick { get; set; }
-
     public AdventurersGuild() : base(BuildingType.AdventurersGuild)
     {
         AvailableAtLevel = 1;

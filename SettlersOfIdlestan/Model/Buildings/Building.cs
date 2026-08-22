@@ -169,10 +169,18 @@ public enum BuildingType
     /// </summary>
     ArmorSmith,
     /// <summary>
-    /// Guilde des Aventuriers - Bâtiment unique de l'Inframonde. Fait apparaître un Aventurier qui
-    /// combat les monstres errants ; un autre prend sa place à sa mort.
+    /// Guilde des Aventuriers - Bâtiment unique de l'Inframonde. Débloque les Relais des Aventuriers
+    /// et en accorde automatiquement un dans sa propre ville ; son niveau détermine la puissance des
+    /// Aventuriers invoqués par tous les Relais de la civilisation.
     /// </summary>
     AdventurersGuild,
+    /// <summary>
+    /// Relais des Aventuriers - Constructible une fois la Guilde des Aventuriers bâtie (dans
+    /// n'importe quelle ville de la civilisation). Fait apparaître un Aventurier qui combat les
+    /// monstres errants sans jamais s'éloigner de plus de 2 hexs de son Relais ; un autre prend sa
+    /// place à sa mort. Coût croissant avec le nombre de Relais déjà construits.
+    /// </summary>
+    AdventurersWaypost,
     /// <summary>
     /// Forge Volcanique - Bâtiment unique. Génère du Verre passivement, augmente la production
     /// de Minerai, d'Acier et de Mithril de la civilisation, et automatise la construction des

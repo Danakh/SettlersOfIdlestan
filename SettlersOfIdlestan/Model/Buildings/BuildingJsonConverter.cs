@@ -81,6 +81,7 @@ namespace SettlersOfIdlestan.Model.Buildings
                 BuildingType.WeaponSmith => typeof(WeaponSmith),
                 BuildingType.ArmorSmith => typeof(ArmorSmith),
                 BuildingType.AdventurersGuild => typeof(AdventurersGuild),
+                BuildingType.AdventurersWaypost => typeof(AdventurersWaypost),
                 BuildingType.VolcanicForge => typeof(VolcanicForge),
                 BuildingType.Ziggurat => typeof(Ziggurat),
                 BuildingType.HeartTree => typeof(HeartTree),
