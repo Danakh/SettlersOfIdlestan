@@ -321,7 +321,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         /// <summary>Nombre d'essences divines qui seraient perdues par un prestige immédiat (voir clamp appliqué dans PerformPrestige).</summary>
         public int GetDivineEssenceLoss(GodState godState)
-            => Math.Max(0, godState.DivineEssence - (_playerCivilization?.DivineEssenceKeptOnPrestige ?? 0));
+            => Math.Max(0, godState.DivineEssence + godState.DivineEssenceReliquaryFloor - (_playerCivilization?.DivineEssenceKeptOnPrestige ?? 0));
 
         public void PerformPrestige(MainGameState mainGameState, IslandParameters nextIslandParameters)
             => PerformPrestige(mainGameState, nextIslandParameters, corrupted: false);
@@ -382,11 +382,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             }
 
             // Reliquaire Sacré / Reliquaire Renforcé (DIVINE_ESSENCE_KEPT_ON_PRESTIGE) : jusqu'à N
-            // essences divines survivent au prestige au lieu d'être remises à zéro (voir GodState.DivineEssence).
-            mainGameState.GodState.DivineEssence = Math.Min(
-                mainGameState.GodState.DivineEssence, _playerCivilization?.DivineEssenceKeptOnPrestige ?? 0);
-            // Fige ce plancher pour le run qui commence — voir GodState.DivineEssenceReliquaryFloor.
-            mainGameState.GodState.DivineEssenceReliquaryFloor = mainGameState.GodState.DivineEssence;
+            // essences divines (parmi celles du run qui s'achève + celles déjà dans le Reliquaire)
+            // survivent au prestige dans le Reliquaire — voir GodState.DivineEssenceReliquaryFloor.
+            // DivineEssence (les essences du run, hors Reliquaire) repart, elle, toujours de zéro.
+            int totalEssenceBeforePrestige = mainGameState.GodState.DivineEssence + mainGameState.GodState.DivineEssenceReliquaryFloor;
+            mainGameState.GodState.DivineEssenceReliquaryFloor = Math.Min(
+                totalEssenceBeforePrestige, _playerCivilization?.DivineEssenceKeptOnPrestige ?? 0);
+            mainGameState.GodState.DivineEssence = 0;
 
             mainGameState.PrestigeState.PrestigePoints += points;
             mainGameState.PrestigeState.TotalPrestigePointsEarned += points;

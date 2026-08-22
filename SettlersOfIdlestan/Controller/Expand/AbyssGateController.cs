@@ -128,8 +128,9 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// À appeler lorsqu'une ville du joueur est détruite. Si c'était la dernière ville dans les
         /// Abysses, c'est une perte totale — miroir de
         /// <see cref="DeepestMineController.OnCityDestroyed"/> pour l'Inframonde : (1) les essences
-        /// divines récoltées pendant le run courant sont perdues, hormis ce qui est garanti par le
-        /// Reliquaire (GodState.DivineEssenceReliquaryFloor, figé au dernier prestige) ; (2) toute la
+        /// divines récoltées pendant le run courant sont perdues (GodState.DivineEssence, remise à
+        /// zéro), mais jamais celles déjà garanties par le Reliquaire (GodState.DivineEssenceReliquaryFloor,
+        /// qui n'en fait déjà pas partie) ; (2) toute la
         /// carte des Abysses est détruite — <b>y compris les routes du Vide</b>, qui ne survivent qu'à
         /// une perte partielle (voir l'exclusion dans RoadController.OnCityDestroyed/RemoveDisconnectedRoads,
         /// qui ne s'applique pas ici puisqu'on vide la carte entière plutôt que de retirer route par
@@ -147,10 +148,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             // La ville a déjà été retirée : vérifie s'il en reste dans les Abysses
             if (playerCiv.Cities.Any(c => c.Position.Z == LayerState.AbyssZ)) return;
 
-            int lost = Math.Max(0, _godState.DivineEssence - _godState.DivineEssenceReliquaryFloor);
+            int lost = _godState.DivineEssence;
             if (lost > 0)
             {
-                _godState.DivineEssence -= lost;
+                _godState.DivineEssence = 0;
                 _state.EventLog.Add(GameEventType.AbyssLostDivineEssence, message: lost.ToString(), toast: true);
             }
 

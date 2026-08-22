@@ -375,7 +375,40 @@ public class AscensionController : IModifierProvider
             chosen.Remove(chosen.Last());
     }
 
-    public bool CanAscend(GodState godState) => godState.DivineEssence >= MinDivineEssenceForAscension;
+    public bool CanAscend(GodState godState) => GetEffectiveDivineEssence(godState) >= MinDivineEssenceForAscension;
+
+    /// <summary>
+    /// Essence divine effective pour l'Ascension : la somme de GodState.DivineEssence (essences
+    /// gagnées ce run) et de GodState.DivineEssenceReliquaryFloor (essences garanties par le
+    /// Reliquaire). Les deux comptent identiquement pour le seuil d'Ascension (<see cref="CanAscend"/>)
+    /// et les points divins gagnés (<see cref="GetGodPointsGain"/>) — c'est uniquement pour le
+    /// plafond de corruption (<see cref="GetDivineEssenceCap"/>) et le coût de Purification des Os
+    /// Divins que les essences du Reliquaire ne comptent pas (voir GodState.DivineEssence).
+    /// </summary>
+    public int GetEffectiveDivineEssence(GodState godState) => godState.DivineEssence + godState.DivineEssenceReliquaryFloor;
+
+    /// <summary>
+    /// Plafond d'essence divine gagnable ce cycle-ci en purifiant de nouveaux Os Divins
+    /// (GodState.DivineEssence uniquement — voir <see cref="GetEffectiveDivineEssence"/>) : le niveau
+    /// de corruption actuel de l'île (voir DivineBones.GetEssenceCap, PrestigeState.CurrentCorruptionLevel
+    /// — chaque Os Divins fige ce niveau à sa génération, ce plafond est donc celui d'un Os Divins
+    /// fraîchement apparu). Pour l'obtenir plus haut, il faut prestige pour augmenter la corruption.
+    /// </summary>
+    public int GetDivineEssenceCap() => Math.Max(0, _godState?.PrestigeState?.CurrentCorruptionLevel ?? 0);
+
+    /// <summary>
+    /// Vrai si le Reliquaire (Reliquaire Sacré/Renforcé) est débloqué, c'est-à-dire si la
+    /// civilisation conserve au moins 1 essence divine au prestige — sert à n'afficher la réserve du
+    /// Reliquaire sur l'écran Ascension que lorsqu'elle a un sens.
+    /// </summary>
+    public bool HasDivineEssenceReliquary => (_state?.PlayerCivilization.DivineEssenceKeptOnPrestige ?? 0) > 0;
+
+    /// <summary>
+    /// Essences divines actuellement garanties par le Reliquaire (voir GodState.DivineEssenceReliquaryFloor) :
+    /// survivent à la perte de la dernière ville dans les Abysses, et ne comptent ni dans
+    /// <see cref="GetDivineEssenceCap"/> ni dans le coût de Purification des Os Divins suivants.
+    /// </summary>
+    public int GetDivineEssenceReliquaryAmount(GodState godState) => godState.DivineEssenceReliquaryFloor;
 
     /// <summary>
     /// Niveau de la Nécropole bâtie sur l'île courante (0 s'il n'y en a pas) — chaque niveau majore
@@ -390,13 +423,14 @@ public class AscensionController : IModifierProvider
     public double GetNecropolisAscensionBonus() => Necropolis.GetAscensionGainBonusForLevel(GetNecropolisLevel());
 
     /// <summary>
-    /// Points divins qu'une Ascension immédiate rapporterait : 1 par essence divine détenue, majorés
-    /// de 15% par niveau de la Nécropole bâtie sur l'île courante (arrondi à l'entier inférieur, voir
-    /// <see cref="Necropolis"/>). Utilisé par <see cref="PerformAscension"/> et par l'écran Ascension,
-    /// qui doivent afficher et créditer exactement le même nombre.
+    /// Points divins qu'une Ascension immédiate rapporterait : 1 par essence divine effective détenue
+    /// (<see cref="GetEffectiveDivineEssence"/>, Reliquaire inclus), majorés de 15% par niveau de la
+    /// Nécropole bâtie sur l'île courante (arrondi à l'entier inférieur, voir <see cref="Necropolis"/>).
+    /// Utilisé par <see cref="PerformAscension"/> et par l'écran Ascension, qui doivent afficher et
+    /// créditer exactement le même nombre.
     /// </summary>
     public int GetGodPointsGain(GodState godState)
-        => (int)Math.Floor(godState.DivineEssence * Necropolis.GetAscensionGainMultiplierForLevel(GetNecropolisLevel()));
+        => (int)Math.Floor(GetEffectiveDivineEssence(godState) * Necropolis.GetAscensionGainMultiplierForLevel(GetNecropolisLevel()));
 
     /// <summary>
     /// Convertit toute l'essence divine accumulée en points divins (1 pour 1, majoré par la Nécropole

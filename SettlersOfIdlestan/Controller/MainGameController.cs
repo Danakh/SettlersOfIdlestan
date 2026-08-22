@@ -263,7 +263,7 @@ namespace SettlersOfIdlestan.Controller
 
             var worldId = AtlasController.GetFirstWorldId();
             var parameters = AtlasController.GetIslandParameters(worldId);
-            TaskRecordController.RecordAscension(CurrentMainState.GodState.DivineEssence);
+            TaskRecordController.RecordAscension(AscensionController.GetGodPointsGain(CurrentMainState.GodState));
             AscensionController.PerformAscension(CurrentMainState, parameters, chosenRace);
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);

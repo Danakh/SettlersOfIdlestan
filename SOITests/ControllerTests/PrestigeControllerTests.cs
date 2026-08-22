@@ -303,6 +303,7 @@ namespace SOITests.ControllerTests
             controller.PerformPrestige();
 
             Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
         }
 
         [Fact]
@@ -319,7 +320,10 @@ namespace SOITests.ControllerTests
 
             controller.PerformPrestige();
 
-            Assert.Equal(1, controller.CurrentMainState.GodState.DivineEssence);
+            // DivineEssence (les essences du run) repart toujours de zéro — ce que garde le
+            // Reliquaire est désormais suivi séparément dans DivineEssenceReliquaryFloor.
+            Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal(1, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
         }
 
         [Fact]
@@ -337,7 +341,8 @@ namespace SOITests.ControllerTests
 
             controller.PerformPrestige();
 
-            Assert.Equal(2, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal(2, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
         }
 
         [Fact]
@@ -355,7 +360,8 @@ namespace SOITests.ControllerTests
 
             controller.PerformPrestige();
 
-            Assert.Equal(1, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal(1, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
         }
 
         // ── Bonus de nettoyage de la Corruption (Spire de Corruption / Dominion) ─────
