@@ -496,6 +496,13 @@ public class AscensionController : IModifierProvider
     /// ne propose alors que les Humains) : l'écran de choix de race s'affiche quand même, pour que
     /// le joueur valide explicitement la race qui sera jouée plutôt que de la voir s'imposer sans
     /// confirmation — voir MainGameController.RequestAscension/ConfirmAscensionRace.</para>
+    ///
+    /// <para>Détruit aussi l'île et le PrestigeState en cours (GodState.PrestigeState devient null) :
+    /// la partie qui vient de se terminer n'a plus lieu d'exister pendant l'attente du choix de
+    /// race. MainGameController.InitializeControllersForCurrentIsland gère déjà un WorldState nul
+    /// (elle ne fait rien tant qu'aucune île n'est active), et TabBarRenderer masque explicitement
+    /// tout ce qui en dépendrait (Recherche, Rituels, Prestige, Stats, Inframonde...) tant qu'une
+    /// Ascension est en attente — seuls Île et Ascension restent visibles.</para>
     /// </summary>
     public void RequestAscension(MainGameState mainGameState)
     {
@@ -504,6 +511,7 @@ public class AscensionController : IModifierProvider
             throw new InvalidOperationException("Ascension is not available.");
 
         CreditAscensionPointsAndArchiveCycle(mainGameState, godState);
+        godState.PrestigeState = null;
         godState.AscensionState.IsAscensionPending = true;
     }
 

@@ -96,15 +96,6 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _tabBar          = new TabBarRenderer(localization, gameControllerService, uiLayout, allowDebugMode);
 
-        // Une demande d'Ascension qui laisse un choix de race en attente (voir AscensionController.
-        // IsAscensionPending) bascule sur l'onglet Île, où RenderPendingRaceChoicePage prend le
-        // relais de la carte tant que la race n'est pas choisie.
-        _ascensionRenderer.AscensionRequested += () =>
-        {
-            _tabBar.SetActiveTab(TabBarRenderer.TabIsland);
-            ApplyLayerForActiveTab();
-        };
-
         _playerCivPanel = new PlayerCivilizationPanelRenderer(
             gameControllerService,
             localization,
@@ -620,6 +611,7 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerReleased(e.Position, isClick);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerReleased(e.Position, isClick);
+        if (activeTab == TabBarRenderer.TabIsland && IsAscensionPending) _ascensionRenderer.HandlePendingRaceChoicePointerReleased();
     }
 
     private void HandleZoomChanged(object? sender, ZoomEventArgs e)
@@ -629,6 +621,7 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandleZoom(e);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandleZoom(e);
+        if (activeTab == TabBarRenderer.TabIsland && IsAscensionPending) _ascensionRenderer.HandlePendingRaceChoiceZoom(e);
     }
 
     /// Les deux onglets concernés sont des cartes hexagonales : chacune décide elle-même si le

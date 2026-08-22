@@ -611,6 +611,13 @@ public sealed class GameScreen : IDisposable
     /// <summary>Vrai quand la vue courante est une carte hex (île/inframonde/abysse).</summary>
     public bool IsMapViewActive => _overlayRenderer?.IsIslandTabActive ?? false;
 
+    /// <summary>Vrai entre une demande d'Ascension et le choix de race qui la conclut (voir
+    /// AscensionController.IsAscensionPending) : l'île et PlayerCivilization sont détruites dès la
+    /// demande, avant que le choix de race ne les recrée — voir GameView.SyncFromGameState, qui
+    /// s'appuie là-dessus pour garder la barre du haut affichée malgré l'absence de civilisation.</summary>
+    public bool IsAscensionPending =>
+        _gameControllerService.MainGameController.AscensionController.IsAscensionPending;
+
     /// <summary>Définit l'échelle UI automatique détectée par la plateforme hôte (densité d'écran, grande résolution…).</summary>
     public void SetUiScale(float scale)
     {

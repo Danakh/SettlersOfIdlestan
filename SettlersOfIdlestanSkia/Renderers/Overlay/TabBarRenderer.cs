@@ -87,16 +87,25 @@ public sealed class TabBarRenderer : IDisposable
     /// Update visibility/rect state.
     public void Update(GameRenderContext context)
     {
-        bool showPrestigeTabs = HasPrestigePoints(context);
-        _hasResearchTab   = IsResearchUnlocked();
-        _hasAutomationTab = HasAnyAutomation();
-        _hasRitualsTab    = IsMagicUnlocked();
+        // Ascension demandée, race pas encore choisie (voir AscensionController.IsAscensionPending) :
+        // l'île et le PrestigeState du cycle qui vient de se terminer sont déjà détruits (voir
+        // AscensionController.RequestAscension), mais les contrôleurs (Recherche, Magie, Automatisation...)
+        // gardent chacun leur propre référence captée à leur dernière Initialize et continueraient
+        // sinon de rapporter un onglet disponible sur la foi de cet état périmé. On les masque donc
+        // explicitement ici plutôt que de compter sur eux pour s'en apercevoir — seuls Île et
+        // Ascension doivent rester, le temps que le joueur choisisse sa race.
+        bool ascensionPending = _gameControllerService.MainGameController.AscensionController.IsAscensionPending;
+
+        bool showPrestigeTabs = !ascensionPending && HasPrestigePoints(context);
+        _hasResearchTab   = !ascensionPending && IsResearchUnlocked();
+        _hasAutomationTab = !ascensionPending && HasAnyAutomation();
+        _hasRitualsTab    = !ascensionPending && IsMagicUnlocked();
         _hasAscensionTab  = HasGodPoints(context);
-        _hasUnderworldTab = IsLayerAccessible(LayerState.UnderworldZ);
+        _hasUnderworldTab = !ascensionPending && IsLayerAccessible(LayerState.UnderworldZ);
         _underworldGlowing = _hasUnderworldTab && !(_gameControllerService.CurrentWorldState?.HasVisitedUnderworld ?? true);
-        _hasAbyssTab      = IsLayerAccessible(LayerState.AbyssZ);
-        _hasPandemoniumTab = IsLayerAccessible(LayerState.PandemoniumZ);
-        bool showEventsTab = showPrestigeTabs || HasEventLogEntries();
+        _hasAbyssTab      = !ascensionPending && IsLayerAccessible(LayerState.AbyssZ);
+        _hasPandemoniumTab = !ascensionPending && IsLayerAccessible(LayerState.PandemoniumZ);
+        bool showEventsTab = !ascensionPending && (showPrestigeTabs || HasEventLogEntries());
 
         if (!_hasResearchTab   && _activeTab == TabResearch)   _activeTab = TabIsland;
         if (!showPrestigeTabs  && _activeTab is TabPrestige or TabStats) _activeTab = TabIsland;
@@ -121,7 +130,7 @@ public sealed class TabBarRenderer : IDisposable
         if (showPrestigeTabs)  _activeTabs.Add((TabStats, default));
         if (showEventsTab)     _activeTabs.Add((TabEvents, default));
         if (_hasAutomationTab) _activeTabs.Add((TabAutomation, default));
-        if (_allowDebugMode)   _activeTabs.Add((TabHistory, default));
+        if (_allowDebugMode && !ascensionPending) _activeTabs.Add((TabHistory, default));
 
         float uiScale = _uiLayout.UiScale;
 

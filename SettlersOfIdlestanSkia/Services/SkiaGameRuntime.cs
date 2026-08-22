@@ -240,6 +240,10 @@ public sealed class SkiaGameRuntime : IDisposable
     /// <summary>Vrai quand une partie est en cours et affiche une carte hex (pas l'écran titre ni un onglet plein écran).</summary>
     public bool IsMapViewActive => !_onTitleScreen && (_gameScreen?.IsMapViewActive ?? false);
 
+    /// <summary>Vrai entre une demande d'Ascension et le choix de race qui la conclut (voir
+    /// GameScreen.IsAscensionPending) : jamais vrai sur l'écran-titre.</summary>
+    public bool IsAscensionPending => !_onTitleScreen && (_gameScreen?.IsAscensionPending ?? false);
+
     public void ZoomIn()  => _gameScreen?.ZoomIn();
     public void ZoomOut() => _gameScreen?.ZoomOut();
 

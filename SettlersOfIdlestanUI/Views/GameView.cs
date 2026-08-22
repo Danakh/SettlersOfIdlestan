@@ -359,8 +359,12 @@ public sealed class GameView : Panel, IDisposable
         _zoomControl.IsVisible = _host.IsMapViewActive;
 
         // La barre du haut suit la presence d'une partie, pas la vue courante : elle reste
-        // affichee sur les onglets plein ecran.
-        _topBar.IsVisible = _resources.IsAvailable;
+        // affichee sur les onglets plein ecran. IsAvailable sert de proxy a "une partie tourne"
+        // (PlayerCivilization existe) - sauf pendant le choix de race differe d'une Ascension, ou
+        // l'ile et la civilisation sont detruites avant meme que la race suivante soit choisie :
+        // sans cet OR, la barre entiere (onglets compris) disparaitrait juste au moment ou le
+        // joueur doit justement cliquer sur l'onglet Ile pour choisir sa race.
+        _topBar.IsVisible = _resources.IsAvailable || _host.IsAscensionPending;
 
         return true;
     }

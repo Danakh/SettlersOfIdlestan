@@ -142,6 +142,11 @@ public sealed class GameRuntimeHost : IDisposable
 
     public bool IsMapViewActive => Read(r => r.IsMapViewActive);
 
+    /// <summary>Vrai entre une demande d'Ascension et le choix de race qui la conclut : l'île et
+    /// la civilisation du joueur sont détruites dès la demande (voir SkiaGameRuntime.IsAscensionPending)
+    /// — la barre du haut doit rester affichée malgré l'absence de civilisation, voir GameView.</summary>
+    public bool IsAscensionPending => Read(r => r.IsAscensionPending);
+
     public void ZoomIn() => Invoke(r => r.ZoomIn());
 
     public void ZoomOut() => Invoke(r => r.ZoomOut());

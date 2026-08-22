@@ -271,11 +271,12 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Point d'entrée UI pour demander une Ascension : seule la phase 1 s'exécute immédiatement
-        /// (conversion essence -> points, archivage du cycle — voir
-        /// AscensionController.RequestAscension) ; l'île n'est régénérée qu'au choix de la race (voir
-        /// <see cref="ConfirmAscensionRace"/>), le jeu restant en pause entretemps — même quand le
-        /// choix de race n'est pas encore débloqué (Humains alors seule option proposée), pour que le
-        /// joueur valide explicitement la race avant que l'île ne soit recréée.
+        /// (conversion essence -> points, archivage du cycle, destruction de l'île et du PrestigeState
+        /// en cours — voir AscensionController.RequestAscension) ; l'île suivante n'est créée qu'au
+        /// choix de la race (voir <see cref="ConfirmAscensionRace"/>), le jeu restant en pause
+        /// entretemps — même quand le choix de race n'est pas encore débloqué (Humains alors seule
+        /// option proposée), pour que le joueur valide explicitement la race avant que l'île ne soit
+        /// recréée.
         /// </summary>
         public void RequestAscension()
         {
@@ -284,6 +285,10 @@ namespace SettlersOfIdlestan.Controller
 
             TaskRecordController.RecordAscension(AscensionController.GetGodPointsGain(CurrentMainState.GodState));
             AscensionController.RequestAscension(CurrentMainState);
+            // PrestigeState/WorldState viennent d'être détruits : ce passage est un no-op (voir la
+            // garde `if (WorldState != null)`), mais reste la façon normale de signaler la
+            // transition — cohérent avec tous les autres points d'entrée qui changent d'île.
+            InitializeControllersForCurrentIsland();
             CurrentMainState.Clock.Pause();
         }
 
