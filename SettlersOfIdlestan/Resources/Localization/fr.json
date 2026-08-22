@@ -1338,7 +1338,7 @@
   "adventurersguild_respawn_cooldown": "Prochain aventurier :",
   "alchimisthut_potion_cooldown": "Prochaine potion :",
   "alchimisthut_potion_costs": "Coût : {0} Verre + {1} Cristal ► 1 Potion de Soin par cycle",
-  "tab_rituals": "Rituels",
+  "tab_rituals": "Magie",
   "tab_ascension": "Ascension",
   "ascension_divine_essence_label": "Essence divine : {0}",
   "ascension_divine_essence_necropolis_label": "Essence divine : {0} → {1} points divins (Nécropole niv. {2} : +{3}%)",

@@ -1338,7 +1338,7 @@
   "adventurersguild_respawn_cooldown": "Next Adventurer:",
   "alchimisthut_potion_cooldown": "Next potion:",
   "alchimisthut_potion_costs": "Cost: {0} Glass + {1} Crystal ► 1 Healing Potion per cycle",
-  "tab_rituals": "Rituals",
+  "tab_rituals": "Magic",
   "tab_ascension": "Ascension",
   "ascension_divine_essence_label": "Divine Essence: {0}",
   "ascension_divine_essence_necropolis_label": "Divine Essence: {0} → {1} Divine Points (Necropolis lvl {2}: +{3}%)",
