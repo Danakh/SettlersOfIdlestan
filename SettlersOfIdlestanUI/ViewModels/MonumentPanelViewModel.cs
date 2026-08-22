@@ -11,6 +11,8 @@ public sealed class InvestmentRowViewModel : ViewModelBase
     private bool _isEnabled;
     private bool _isDone;
     private string _label;
+    private string _investedLabel;
+    private string _requiredLabel;
 
     public InvestmentRowViewModel(SkiaLayer.InvestmentRowSnapshot snapshot)
     {
@@ -21,6 +23,8 @@ public sealed class InvestmentRowViewModel : ViewModelBase
         _required = snapshot.Required;
         _isEnabled = snapshot.IsEnabled;
         _isDone = snapshot.IsDone;
+        _investedLabel = snapshot.InvestedLabel;
+        _requiredLabel = snapshot.RequiredLabel;
     }
 
     public string Key { get; }
@@ -47,7 +51,12 @@ public sealed class InvestmentRowViewModel : ViewModelBase
     /// Investissement complet : la case n'est plus decochable.
     public bool IsDone { get => _isDone; private set => SetProperty(ref _isDone, value); }
 
-    public string AmountLabel => $"{Invested}/{Required}";
+    /// Libelle deja formate cote jeu (k/M... ou notation scientifique/ingenieur selon le
+    /// reglage joueur) : ne pas reformater <see cref="Invested"/>/<see cref="Required"/> ici.
+    private string InvestedLabel { get => _investedLabel; set { if (SetProperty(ref _investedLabel, value)) RaiseDerived(); } }
+    private string RequiredLabel { get => _requiredLabel; set { if (SetProperty(ref _requiredLabel, value)) RaiseDerived(); } }
+
+    public string AmountLabel => $"{InvestedLabel}/{RequiredLabel}";
 
     /// Progression dans [0,1], saturee a 1 une fois la ligne complete.
     public double Progress => IsDone ? 1d : Required > 0 ? Math.Min(1d, (double)Invested / Required) : 0d;
@@ -59,6 +68,8 @@ public sealed class InvestmentRowViewModel : ViewModelBase
         Required = snapshot.Required;
         IsEnabled = snapshot.IsEnabled;
         IsDone = snapshot.IsDone;
+        InvestedLabel = snapshot.InvestedLabel;
+        RequiredLabel = snapshot.RequiredLabel;
     }
 
     private void RaiseDerived()

@@ -25,7 +25,8 @@ public class InvestmentRowViewModelTests
     public void La_progression_est_bornee(long invested, long required, bool done, double expected)
     {
         var row = new InvestmentRowViewModel(
-            new SkiaLayer.InvestmentRowSnapshot("Wood", "Wood", "Bois", invested, required, true, done));
+            new SkiaLayer.InvestmentRowSnapshot("Wood", "Wood", "Bois", invested, required, true, done,
+                invested.ToString(), required.ToString()));
 
         Assert.Equal(expected, row.Progress, 5);
         Assert.Equal($"{invested}/{required}", row.AmountLabel);
@@ -35,12 +36,12 @@ public class InvestmentRowViewModelTests
     public void Mettre_a_jour_une_ligne_notifie_les_proprietes_derivees()
     {
         var row = new InvestmentRowViewModel(
-            new SkiaLayer.InvestmentRowSnapshot("Wood", "Wood", "Bois", 0, 100, true, false));
+            new SkiaLayer.InvestmentRowSnapshot("Wood", "Wood", "Bois", 0, 100, true, false, "0", "100"));
 
         var changed = new List<string?>();
         row.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
 
-        row.Apply(new SkiaLayer.InvestmentRowSnapshot("Wood", "Wood", "Bois", 50, 100, true, false));
+        row.Apply(new SkiaLayer.InvestmentRowSnapshot("Wood", "Wood", "Bois", 50, 100, true, false, "50", "100"));
 
         Assert.Contains(nameof(InvestmentRowViewModel.AmountLabel), changed);
         Assert.Contains(nameof(InvestmentRowViewModel.Progress), changed);

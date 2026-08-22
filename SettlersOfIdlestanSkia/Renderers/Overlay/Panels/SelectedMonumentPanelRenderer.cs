@@ -222,7 +222,9 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                     Invested: invested,
                     Required: kvp.Value,
                     IsEnabled: monument.InvestmentEnabled.Contains(kvp.Key),
-                    IsDone: invested >= kvp.Value));
+                    IsDone: invested >= kvp.Value,
+                    InvestedLabel: SkiaTextUtils.FormatNumber(invested),
+                    RequiredLabel: SkiaTextUtils.FormatNumber(kvp.Value)));
             }
         }
 
@@ -236,7 +238,9 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                 Invested: monument.InvestedResearch,
                 Required: required,
                 IsEnabled: monument.ResearchInvestmentEnabled,
-                IsDone: monument.InvestedResearch >= required));
+                IsDone: monument.InvestedResearch >= required,
+                InvestedLabel: SkiaTextUtils.FormatNumber(monument.InvestedResearch),
+                RequiredLabel: SkiaTextUtils.FormatNumber(required)));
         }
 
         string title = _localization.Get(monument.PanelTitleKey)

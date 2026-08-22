@@ -82,6 +82,10 @@ public sealed record ResourceBarSnapshot(bool IsAvailable, IReadOnlyList<Resourc
 /// ligne de recherche, qui utilise un glyphe.</param>
 /// <param name="IsDone">Investissement complet : la case n'est plus decochable. Etat distinct
 /// de <paramref name="IsEnabled"/> pour ne pas laisser croire qu'elle est bloquee sans raison.</param>
+/// <param name="InvestedLabel">Libelle deja formate (k/M... ou notation scientifique/ingenieur
+/// selon le reglage joueur) de <paramref name="Invested"/>, coherent avec la barre de ressources.</param>
+/// <param name="RequiredLabel">Meme formatage que <paramref name="InvestedLabel"/> pour
+/// <paramref name="Required"/>.</param>
 public sealed record InvestmentRowSnapshot(
     string Key,
     string? IconName,
@@ -89,7 +93,9 @@ public sealed record InvestmentRowSnapshot(
     long Invested,
     long Required,
     bool IsEnabled,
-    bool IsDone)
+    bool IsDone,
+    string InvestedLabel,
+    string RequiredLabel)
 {
     public const string ResearchKey = "__research__";
 }
