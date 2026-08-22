@@ -186,11 +186,18 @@ public class NpcGameController
         var z = npcCiv.Cities.FirstOrDefault()?.Position.Z ?? IslandMap.SurfaceLayer;
         if (!_state.Visibility.GetForZ(z).TryGetValue(npcCiv.Index, out var visibleMap)) return null;
 
+        // Restreint aux villes de la même couche z : EdgeDistanceTo lève si on compare des vertex de
+        // couches différentes, et une civ peut avoir des villes sur plusieurs couches (surface +
+        // Inframonde/Abysse).
+        var npcCitiesOnZ = npcCiv.Cities.Where(nc => nc.Position.Z == z).ToList();
+        if (npcCitiesOnZ.Count == 0) return null;
+
         return _state.Civilizations
-            .Where(c => c.Index != npcCiv.Index && c.Cities.Count > 0)
-            .Where(c => c.Cities.Any(city => visibleMap.IsVertexVisible(city.Position)))
-            .OrderBy(c => npcCiv.Cities.Min(nc =>
-                c.Cities.Min(ec => nc.Position.EdgeDistanceTo(ec.Position))))
+            .Where(c => c.Index != npcCiv.Index)
+            .Select(c => (Civ: c, VisibleCities: c.Cities.Where(city => city.Position.Z == z && visibleMap.IsVertexVisible(city.Position)).ToList()))
+            .Where(x => x.VisibleCities.Count > 0)
+            .OrderBy(x => npcCitiesOnZ.Min(nc => x.VisibleCities.Min(ec => nc.Position.EdgeDistanceTo(ec.Position))))
+            .Select(x => x.Civ)
             .FirstOrDefault();
     }
 
