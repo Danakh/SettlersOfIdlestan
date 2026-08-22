@@ -1270,6 +1270,11 @@ public sealed class GameScreen : IDisposable
         var prevCiv = _gameControllerService.PlayerCivilization;
         _gameControllerService.ImportMainState(saveJson);
 
+        // La couche affichée au moment de la sauvegarde (Inframonde/Abysse) n'a plus de sens une
+        // fois la partie rechargée : on revient systématiquement sur la Surface, bouton d'onglet
+        // surligné inclus, plutôt que de laisser l'overlay désynchronisé de la couche restaurée.
+        _overlayRenderer?.SetActiveTabFromHost(TabBarRenderer.TabIsland);
+
         if (_playerResourcesOverlayRenderer != null && _gameControllerService.PlayerCivilization != null)
             _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);
         _gameControllerService.CityBuildingService.ClearSelectedCity();
