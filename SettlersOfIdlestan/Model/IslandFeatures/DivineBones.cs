@@ -9,8 +9,8 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// <summary>
 /// Os Divins — Monument généré sur chaque île des Abysses créée après la première (voir
 /// AutoExtendController.OnHexesRevealed), révélé une fois la recherche Boussole du Vide acquise
-/// (ECategory.UNLOCK_DIVINE_BONES). Investissement "Purification" à coût double (Cristal + points
-/// de recherche), comme une Merveille de niveau 0 à objectif unique. Une fois purifié, la feature est
+/// (ECategory.UNLOCK_DIVINE_BONES). Investissement "Purification" en Cristal, Mithril et Acier,
+/// comme une Merveille de niveau 0 à objectif unique. Une fois purifié, la feature est
 /// retirée de la carte (voir DivineBonesController.ProcessInvestment) — Purified/EssenceGranted ne
 /// sont donc observables que de manière transitoire, avant suppression. La Purification octroie
 /// directement 1 essence divine (GodState.DivineEssence),
@@ -60,7 +60,12 @@ public class DivineBones : Monument
     public int EssenceAlreadyCollected { get; set; } = 0;
 
     public const long BaseCrystalCost = 500;
-    public const long BaseResearchCost = 500_000;
+
+    /// <summary>Coût en Mithril, égal au coût en Cristal.</summary>
+    public const long BaseMithrilCost = BaseCrystalCost;
+
+    /// <summary>Coût en Acier, égal au double du coût en Cristal.</summary>
+    public const long BaseSteelCost = 2 * BaseCrystalCost;
 
     /// <summary>
     /// Nombre maximum d'essences divines que le joueur peut détenir (GodState.DivineEssence) au
@@ -81,26 +86,24 @@ public class DivineBones : Monument
     /// </summary>
     public int GetCorruptionCap() => Math.Max(1, CorruptionCapMultiplier * CorruptionLevel);
 
-    /// <summary>(niveau de corruption + 2) ^ N, N = nombre d'essences divines détenues depuis la dernière Ascension.</summary>
+    /// <summary>(niveau de corruption + 2) ^ (1 + N / 2), N = nombre d'essences divines détenues depuis la dernière Ascension.</summary>
     public static long GetCostMultiplier(int corruptionLevel, int essenceAlreadyCollected)
     {
-        double multiplier = Math.Pow(corruptionLevel + 2, essenceAlreadyCollected);
+        double multiplier = Math.Pow(corruptionLevel + 2, 1.0 + essenceAlreadyCollected / 2.0);
         return (long)Math.Min(multiplier, 1e15);
     }
 
-    /// <summary>La Purification consomme des points de recherche tant qu'elle n'est pas terminée.</summary>
-    [JsonIgnore]
-    public override bool UsesResearchInvestment => !Purified;
-
-    /// <summary>Coût en points de recherche, après DivineBonesCostReduction de la civilisation (hex de prestige Ossuaire).</summary>
-    public override long GetRequiredResearch(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) =>
-        ApplyCostReduction(BaseResearchCost * GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected), playerCiv);
-
-    /// <summary>Coût en Cristal, après DivineBonesCostReduction de la civilisation (hex de prestige Ossuaire).</summary>
-    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => new()
+    /// <summary>Coût en Cristal, Mithril et Acier, après DivineBonesCostReduction de la civilisation (hex de prestige Ossuaire).</summary>
+    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
     {
-        { Resource.Crystal, (int)Math.Min(int.MaxValue, ApplyCostReduction(BaseCrystalCost * GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected), playerCiv)) },
-    };
+        long multiplier = GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected);
+        return new()
+        {
+            { Resource.Crystal, (int)Math.Min(int.MaxValue, ApplyCostReduction(BaseCrystalCost * multiplier, playerCiv)) },
+            { Resource.Mithril, (int)Math.Min(int.MaxValue, ApplyCostReduction(BaseMithrilCost * multiplier, playerCiv)) },
+            { Resource.Steel, (int)Math.Min(int.MaxValue, ApplyCostReduction(BaseSteelCost * multiplier, playerCiv)) },
+        };
+    }
 
     private static long ApplyCostReduction(long baseCost, SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
     {

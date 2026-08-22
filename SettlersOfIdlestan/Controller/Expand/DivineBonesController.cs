@@ -10,9 +10,8 @@ using System.Linq;
 namespace SettlersOfIdlestan.Controller.Island
 {
     /// <summary>
-    /// Gère la Purification des Os Divins : investissement double (Cristal via le mécanisme
-    /// Monument standard + points de recherche via un pool séparé, voir DivineBones.InvestedResearch),
-    /// à coût croissant avec le nombre d'essences divines détenues depuis la dernière Ascension
+    /// Gère la Purification des Os Divins : investissement en Cristal, Mithril et Acier via le
+    /// mécanisme Monument standard, à coût croissant avec le nombre d'essences divines détenues depuis la dernière Ascension
     /// (GodState.DivineEssence) — l'Ascension, en convertissant les essences en points divins,
     /// réinitialise donc le coût de Purification.
     /// Une Purification terminée octroie directement 1 essence divine (GodState.DivineEssence),
@@ -76,15 +75,13 @@ namespace SettlersOfIdlestan.Controller.Island
                 // — ou qu'une Ascension l'a remis à zéro.
                 bones.EssenceAlreadyCollected = _godState.DivineEssence;
 
-                var crystalCost = bones.GetInvestmentCost(playerCiv);
-                bool crystalDone = MonumentInvestment.ProcessTick(bones, crystalCost, playerCiv, now);
-                bool researchDone = MonumentInvestment.ProcessResearchTick(bones, bones.GetRequiredResearch(playerCiv), playerCiv, now);
+                var investmentCost = bones.GetInvestmentCost(playerCiv);
+                bool investmentDone = MonumentInvestment.ProcessTick(bones, investmentCost, playerCiv, now);
 
-                if (!crystalDone || !researchDone) continue;
+                if (!investmentDone) continue;
 
                 bones.Purified = true;
                 bones.InvestmentEnabled.Clear();
-                bones.ResearchInvestmentEnabled = false;
 
                 // Chaque Purification octroie directement 1 essence divine, seulement si le plafond
                 // (une essence par niveau de corruption à partir du niveau 4) n'est pas déjà atteint —
