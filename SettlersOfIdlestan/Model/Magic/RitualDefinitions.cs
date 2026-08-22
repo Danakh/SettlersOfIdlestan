@@ -48,16 +48,6 @@ public static class RitualDefinitions
             {
                 new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.MULTIPLICATIVE, 0.15),
             }),
-
-        // Inframonde — récoltes souterraines et dégâts aux monstres autour des Temples
-        new(RitualId.DeepLight,
-            baseLaunchCost: 20, baseUpkeepCost: 4,
-            modifiersPerPower: new Modifier[]
-            {
-                new(ECategory.HARVEST_SPEED, "MushroomFarm", EType.MULTIPLICATIVE, 0.15),
-                new(ECategory.HARVEST_SPEED, "MithrilMine",  EType.MULTIPLICATIVE, 0.15),
-                new(ECategory.TEMPLE_MONSTER_DAMAGE_PER_SECOND, EType.ADDITIVE, 1),
-            }),
     };
 
     public static RitualDefinition? Get(RitualId id) => All.FirstOrDefault(r => r.Id == id);

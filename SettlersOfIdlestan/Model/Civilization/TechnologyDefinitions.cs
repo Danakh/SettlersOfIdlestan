@@ -519,13 +519,6 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "ArcaneShield", EType.ADDITIVE, 1) },
             tier: 8, line: 10),
 
-        new(TechnologyId.DeepLightRitual,
-            "tech_deep_light_ritual_name", "tech_deep_light_ritual_desc",
-            cost: 24000000,
-            prerequisites: new[] { TechnologyId.MartialBlessingRitual },
-            modifiers: new Modifier[] { new(ECategory.UNLOCK_RITUAL, "DeepLight", EType.ADDITIVE, 1) },
-            tier: 9, line: 9),
-
         // === Branche des Sorts Instantanés (débloquée par le vertex de prestige Invocations) ===
         // Chaque recherche débloque un sort à lancer depuis l'écran Rituels.
 
@@ -671,7 +664,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.MagieDuVide,
             "tech_magie_du_vide_name", "tech_magie_du_vide_desc",
             cost: 106250000,
-            prerequisites: new[] { TechnologyId.DeepLightRitual, TechnologyId.ArcaneShieldRitual },
+            prerequisites: new[] { TechnologyId.MartialBlessingRitual, TechnologyId.ArcaneShieldRitual },
             modifiers: new Modifier[]
             {
                 new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.25),

@@ -1,4 +1,6 @@
 using SettlersOfIdlestan.Model.GameplayModifier;
+using System;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Magic;
@@ -6,7 +8,7 @@ namespace SettlersOfIdlestan.Model.Magic;
 /// <summary>
 /// Identifiant d'un rituel. Sérialisé en string dans les sauvegardes.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(RitualIdJsonConverter))]
 public enum RitualId
 {
     /// <summary>Croissance — accélère toutes les récoltes.</summary>
@@ -19,8 +21,43 @@ public enum RitualId
     ArcaneShield,
     /// <summary>Clairvoyance — vitesse de recherche.</summary>
     Clairvoyance,
-    /// <summary>Lumière des Profondeurs — bonus dédiés à l'Inframonde.</summary>
-    DeepLight,
+
+    /// <summary>
+    /// Valeur de repli utilisée par RitualIdJsonConverter pour tout rituel supprimé lu depuis une
+    /// ancienne sauvegarde. Absente de RitualDefinitions.All, donc RitualDefinitions.Get y renvoie
+    /// null comme pour n'importe quel id inconnu — déjà géré partout où Get est appelé.
+    /// </summary>
+    Removed,
+}
+
+/// <summary>
+/// Désérialise RitualId par nom, avec repli sur <see cref="RitualId.Removed"/> pour toute valeur
+/// non reconnue (rituel supprimé) au lieu de faire échouer tout le chargement de la sauvegarde.
+/// Chaque suppression doit être documentée ici avec la version qui l'a introduite.
+/// </summary>
+public sealed class RitualIdJsonConverter : JsonConverter<RitualId>
+{
+    public override RitualId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => Parse(reader.GetString());
+
+    public override void Write(Utf8JsonWriter writer, RitualId value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value.ToString());
+
+    // Pas de Dictionary<RitualId, ...> aujourd'hui, mais un JsonConverter<T> qui ne gère pas les clés
+    // de dictionnaire lève une NotSupportedException dès qu'on essaie — voir TechnologyIdJsonConverter,
+    // qui a cassé le chargement des sauvegardes ayant des recherches répétables en dictionnaire.
+    public override RitualId ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => Parse(reader.GetString());
+
+    public override void WriteAsPropertyName(Utf8JsonWriter writer, RitualId value, JsonSerializerOptions options)
+        => writer.WritePropertyName(value.ToString());
+
+    private static RitualId Parse(string? s)
+    {
+        // [Legacy remap v0.15] "DeepLight" supprimé avec la recherche Lumière des Profondeurs.
+        if (Enum.TryParse<RitualId>(s, out var value)) return value;
+        return RitualId.Removed;
+    }
 }
 
 /// <summary>

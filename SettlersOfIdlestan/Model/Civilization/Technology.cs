@@ -1,11 +1,13 @@
 using SettlersOfIdlestan.Model.GameplayModifier;
+using System;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
 // Sérialisé par nom (et non par entier) afin que l'ajout ou la suppression d'une recherche
 // ne décale jamais les valeurs des autres recherches dans les sauvegardes existantes.
-[JsonConverter(typeof(JsonStringEnumConverter<TechnologyId>))]
+[JsonConverter(typeof(TechnologyIdJsonConverter))]
 public enum TechnologyId
 {
     // Tier 0
@@ -112,7 +114,6 @@ public enum TechnologyId
     ClairvoyanceRitual,
     MartialBlessingRitual,
     ArcaneShieldRitual,
-    DeepLightRitual,
     // Branche des Sorts Instantanés (débloquée par le vertex de prestige Invocations)
     Invocation,
     TroopSummoning,
@@ -179,6 +180,40 @@ public enum TechnologyId
     Evangelisation,
     TerreConsacree,
     BastionConsacre,
+
+    // Valeur de repli utilisée par TechnologyIdJsonConverter pour toute recherche supprimée lue
+    // depuis une ancienne sauvegarde. Absente de TechnologyDefinitions.All, donc TechnologyDefinitions.Get
+    // y renvoie null comme pour n'importe quel id inconnu — déjà géré partout où Get est appelé.
+    Removed,
+}
+
+/// <summary>
+/// Désérialise TechnologyId par nom, avec repli sur <see cref="TechnologyId.Removed"/> pour toute
+/// valeur non reconnue (recherche supprimée) au lieu de faire échouer tout le chargement de la
+/// sauvegarde. Chaque suppression doit être documentée ici avec la version qui l'a introduite.
+/// </summary>
+public sealed class TechnologyIdJsonConverter : JsonConverter<TechnologyId>
+{
+    public override TechnologyId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => Parse(reader.GetString());
+
+    public override void Write(Utf8JsonWriter writer, TechnologyId value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value.ToString());
+
+    // RepeatCounts (TechnologyTree) et BestRepeatCounts (AscensionState) sont des Dictionary<TechnologyId, int> :
+    // les clés d'un dictionnaire passent par ReadAsPropertyName/WriteAsPropertyName, pas par Read/Write.
+    public override TechnologyId ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => Parse(reader.GetString());
+
+    public override void WriteAsPropertyName(Utf8JsonWriter writer, TechnologyId value, JsonSerializerOptions options)
+        => writer.WritePropertyName(value.ToString());
+
+    private static TechnologyId Parse(string? s)
+    {
+        // [Legacy remap v0.15] "DeepLightRitual" supprimée avec le rituel Lumière des Profondeurs.
+        if (Enum.TryParse<TechnologyId>(s, out var value)) return value;
+        return TechnologyId.Removed;
+    }
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<TechnologyStatus>))]
