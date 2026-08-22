@@ -243,7 +243,7 @@ public class RaceSystemTests
         controller.CreateNewGame();
         var godState = controller.CurrentMainState!.GodState;
         godState.GodPoints = 100;
-        godState.DivineEssence = 4;
+        godState.DivineEssence = 5;
         UnlockFirstRow(controller.AscensionController);
 
         controller.PerformAscension(RaceId.Elf);
@@ -263,12 +263,12 @@ public class RaceSystemTests
         var controller = new MainGameController();
         controller.CreateNewGame();
         var godState = controller.CurrentMainState!.GodState;
-        godState.DivineEssence = 4;
+        godState.DivineEssence = 5;
 
         // Choix de race non débloqué : seule Human est acceptée.
         Assert.Throws<InvalidOperationException>(() => controller.PerformAscension(RaceId.Elf));
         // L'échec ne doit rien avoir consommé.
-        Assert.Equal(4, godState.DivineEssence);
+        Assert.Equal(5, godState.DivineEssence);
     }
 
     [Fact]
@@ -277,13 +277,13 @@ public class RaceSystemTests
         var controller = new MainGameController();
         controller.CreateNewGame();
         var godState = controller.CurrentMainState!.GodState;
-        godState.DivineEssence = 4;
+        godState.DivineEssence = 5;
 
         controller.PerformAscension();
 
         Assert.Equal(RaceId.Human, godState.AscensionState.SelectedRace);
         Assert.Contains(RaceId.Human, godState.AscensionState.AscendedRaces);
-        Assert.Equal(4, godState.GodPoints);
+        Assert.Equal(5, godState.GodPoints);
         // Sans Foi débloquée, aucun vertex de prestige n'est offert.
         Assert.Empty(controller.CurrentMainState.PrestigeState!.PurchasedVertices);
     }
@@ -297,7 +297,7 @@ public class RaceSystemTests
         controller.CreateNewGame();
         var godState = controller.CurrentMainState!.GodState;
         godState.GodPoints = 100;
-        godState.DivineEssence = 4;
+        godState.DivineEssence = 5;
         Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.Faith));
 
         controller.PerformAscension();
@@ -314,7 +314,7 @@ public class RaceSystemTests
         controller.CreateNewGame();
         var godState = controller.CurrentMainState!.GodState;
         godState.GodPoints = 100;
-        godState.DivineEssence = 4;
+        godState.DivineEssence = 5;
         UnlockFirstRow(controller.AscensionController);
 
         controller.PerformAscension(RaceId.Dwarf);
@@ -342,7 +342,7 @@ public class RaceSystemTests
         controller.CreateNewGame();
         var godState = controller.CurrentMainState!.GodState;
         godState.GodPoints = 100;
-        godState.DivineEssence = 4;
+        godState.DivineEssence = 5;
         UnlockFirstRow(controller.AscensionController);
 
         controller.PerformAscension(RaceId.Dwarf);
@@ -599,7 +599,7 @@ public class RaceSystemTests
         controller.CreateNewGame();
         var godState = controller.CurrentMainState!.GodState;
         godState.GodPoints = 100;
-        godState.DivineEssence = 4;
+        godState.DivineEssence = 5;
         UnlockFirstRow(controller.AscensionController);
         UnlockSecondRow(controller.AscensionController);
 
@@ -657,7 +657,7 @@ public class RaceSystemTests
         controller.CreateNewGame();
         var godState = controller.CurrentMainState!.GodState;
         godState.GodPoints = 100;
-        godState.DivineEssence = 4;
+        godState.DivineEssence = 5;
         UnlockFirstRow(controller.AscensionController);
         UnlockSecondRow(controller.AscensionController);
 
