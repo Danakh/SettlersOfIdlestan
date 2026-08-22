@@ -30,7 +30,8 @@ public sealed class CivPanelView : UserControl
     private static readonly SolidColorBrush SectionTitle = new(Color.FromRgb(160, 160, 175));
     private static readonly SolidColorBrush Separator = new(Color.FromRgb(60, 60, 80));
 
-    private const int IconButtonSize = 24;
+    private const int IconButtonSize = 28;
+    private const int IconGlyphSize = 18;
 
     private readonly GamePanelView _panel;
     private readonly CivPanelViewModel _viewModel;
@@ -148,8 +149,21 @@ public sealed class CivPanelView : UserControl
     {
         private readonly CivPanelViewModel _owner;
         private readonly SvgIconCache _icons;
-        private readonly Image _icon = new() { Width = 14, Height = 14 };
-        private readonly TextBlock _glyph = new() { FontSize = 13, IsVisible = false };
+        private readonly Image _icon = new() { Width = IconGlyphSize, Height = IconGlyphSize };
+        // Sans ces alignements le TextBlock s'etire sur le panneau et son texte se dessine
+        // colle en haut. Meme centre, le glyphe emoji (seule policee utilisee ici, pour "trade")
+        // reste visuellement plus haut que les icones SVG voisines : la police emoji a un ascent
+        // bien plus grand que son descent, donc son encre ne remplit pas symetriquement la boite
+        // de ligne centree. La marge du haut ci-dessous pousse le glyphe vers le bas pour
+        // compenser (specifique a ce glyphe : les icones SVG n'en ont pas besoin).
+        private readonly TextBlock _glyph = new()
+        {
+            FontSize = IconGlyphSize - 1,
+            IsVisible = false,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 6, 0, 0),
+        };
         private CivActionViewModel? _action;
 
         public IconActionButton(CivPanelViewModel owner, SvgIconCache icons)
@@ -190,7 +204,7 @@ public sealed class CivPanelView : UserControl
             _glyph.IsVisible = _action.HasGlyph;
             _icon.IsVisible = !_action.HasGlyph;
             _icon.Source = _action.IconName != null
-                ? _icons.Get(_action.IconName, 14, SKColors.White)
+                ? _icons.Get(_action.IconName, IconGlyphSize, SKColors.White)
                 : null;
         }
     }
