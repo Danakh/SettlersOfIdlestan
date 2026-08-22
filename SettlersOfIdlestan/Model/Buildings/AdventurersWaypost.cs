@@ -31,6 +31,15 @@ public class AdventurersWaypost : Building
     /// </summary>
     public int PriorWaypostCount { get; set; }
 
+    /// <summary>
+    /// Multiplicateur de coût figé au moment de la construction du niveau 1 (voir GetBuildCost),
+    /// réappliqué à l'amélioration (voir GetUpgradeCost) pour que le coût d'un Relais tardif — plus
+    /// cher à construire — reste proportionnellement plus cher à améliorer. Valeur par défaut
+    /// (0,5, cas PriorWaypostCount = 0) pour le Relais gratuit accordé avec la Guilde, qui ne passe
+    /// jamais par GetBuildCost (voir BuildingController.BuildBuilding).
+    /// </summary>
+    public double BuildCostMultiplier { get; set; } = 0.5;
+
     public AdventurersWaypost() : base(BuildingType.AdventurersWaypost)
     {
         AvailableAtLevel = 1;
@@ -58,23 +67,36 @@ public class AdventurersWaypost : Building
     public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state)
         => HasBuildPrerequisites(city, state) ? null : "tooltip_requires_adventurersguild";
 
-    /// <summary>Coût = coût de base de la Guilde des Aventuriers × (0,5 + 0,5 × PriorWaypostCount).</summary>
+    /// <summary>
+    /// Coût = coût de base de la Guilde des Aventuriers × (0,5 + 0,5 × PriorWaypostCount). Le
+    /// multiplicateur est figé dans <see cref="BuildCostMultiplier"/> pour être réappliqué à
+    /// l'amélioration (voir GetUpgradeCost).
+    /// </summary>
     public override ResourceSet GetBuildCost()
     {
         var guildCost = new AdventurersGuild().GetBuildCost();
-        double multiplier = 0.5 + 0.5 * PriorWaypostCount;
+        BuildCostMultiplier = 0.5 + 0.5 * PriorWaypostCount;
 
         var scaled = new ResourceSet();
         foreach (var (resource, amount) in guildCost)
-            scaled.Add(resource, System.Math.Max(1, (int)System.Math.Round(amount * multiplier)));
+            scaled.Add(resource, System.Math.Max(1, (int)System.Math.Round(amount * BuildCostMultiplier)));
         return scaled;
     }
 
-    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
+    /// <summary>Coût de base scalé par <see cref="BuildCostMultiplier"/>, figé à la construction du niveau 1.</summary>
+    public override ResourceSet GetUpgradeCost(int level)
     {
-        { Resource.Mithril, 100 * level },
-        { Resource.Stone, 200 * level },
-        { Resource.Steel, 100 * level },
-        { Resource.Food, 100 * level },
-    };
+        var baseCost = new ResourceSet
+        {
+            { Resource.Mithril, 100 * level },
+            { Resource.Stone, 200 * level },
+            { Resource.Steel, 100 * level },
+            { Resource.Food, 100 * level },
+        };
+
+        var scaled = new ResourceSet();
+        foreach (var (resource, amount) in baseCost)
+            scaled.Add(resource, System.Math.Max(1, (int)System.Math.Round(amount * BuildCostMultiplier)));
+        return scaled;
+    }
 }
