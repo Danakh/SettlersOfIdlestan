@@ -59,13 +59,13 @@ public class DivineBones : Monument
     /// </summary>
     public int EssenceAlreadyCollected { get; set; } = 0;
 
-    public const long BaseCrystalCost = 500;
+    public const long BaseCrystalCost = 250;
 
-    /// <summary>Coût en Mithril, égal au coût en Cristal.</summary>
-    public const long BaseMithrilCost = BaseCrystalCost;
+    /// <summary>Coût en Mithril (indépendant du coût en Cristal depuis sa réduction de moitié).</summary>
+    public const long BaseMithrilCost = 500;
 
-    /// <summary>Coût en Acier, égal au double du coût en Cristal.</summary>
-    public const long BaseSteelCost = 2 * BaseCrystalCost;
+    /// <summary>Coût en Acier, égal au double du coût en Mithril.</summary>
+    public const long BaseSteelCost = 2 * BaseMithrilCost;
 
     /// <summary>
     /// Nombre maximum d'essences divines que le joueur peut détenir (GodState.DivineEssence) au
