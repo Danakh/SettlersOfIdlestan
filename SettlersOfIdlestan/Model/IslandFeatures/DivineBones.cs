@@ -62,16 +62,13 @@ public class DivineBones : Monument
     public const long BaseCrystalCost = 500;
     public const long BaseResearchCost = 500_000;
 
-    /// <summary>Le plafond d'essences divines détenues démarre au niveau de corruption 4 (plafond de 1), voir <see cref="GetEssenceCap"/>.</summary>
-    public const int EssenceCapCorruptionLevelOffset = 3;
-
     /// <summary>
     /// Nombre maximum d'essences divines que le joueur peut détenir (GodState.DivineEssence) au
-    /// niveau de corruption de cette feature : une seule par niveau de corruption à partir du
-    /// niveau 4 (0 en dessous). Pour en obtenir davantage, il faut prestige afin d'augmenter le
-    /// niveau de corruption (voir PrestigeState.CurrentCorruptionLevel).
+    /// niveau de corruption de cette feature : égal au niveau de corruption lui-même. Pour en
+    /// obtenir davantage, il faut prestige afin d'augmenter le niveau de corruption (voir
+    /// PrestigeState.CurrentCorruptionLevel).
     /// </summary>
-    public int GetEssenceCap() => Math.Max(0, CorruptionLevel - EssenceCapCorruptionLevelOffset);
+    public int GetEssenceCap() => Math.Max(0, CorruptionLevel);
 
     /// <summary>Multiplicateur appliqué au niveau de corruption de l'île pour obtenir le plafond de génération.</summary>
     public const int CorruptionCapMultiplier = 2;

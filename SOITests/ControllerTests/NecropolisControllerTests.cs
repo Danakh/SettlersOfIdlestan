@@ -174,7 +174,7 @@ namespace SOITests.ControllerTests
 
         // ── Purification Supérieure ──────────────────────────────────────────
 
-        /// <summary>Les Os Divins de test portent un niveau de corruption 5, soit un plafond de 2 essences.</summary>
+        /// <summary>Les Os Divins de test portent un niveau de corruption 5, soit un plafond de 5 essences.</summary>
         [Fact]
         public void PlaceNecropolis_WithGreaterPurification_HarvestsDivineEssence()
         {
@@ -194,13 +194,13 @@ namespace SOITests.ControllerTests
         [Fact]
         public void PlaceNecropolis_WithGreaterPurificationAtEssenceCap_GrantsNothing()
         {
-            var godState = CreateGodState(greaterPurification: true, divineEssence: 2);
+            var godState = CreateGodState(greaterPurification: true, divineEssence: 5);
             var (state, _, controller) = CreateSetup(godState);
             AddBones(state, CityHex);
 
             Assert.NotNull(controller.PlaceNecropolis(CityHex));
 
-            Assert.Equal(2, godState.DivineEssence);
+            Assert.Equal(5, godState.DivineEssence);
             Assert.Equal(0, godState.TotalDivineEssenceEarned);
             Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.DivineBonesPurifiedNoEssence);
         }
