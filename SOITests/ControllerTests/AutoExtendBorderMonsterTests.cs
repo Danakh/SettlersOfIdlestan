@@ -233,6 +233,25 @@ namespace SOITests.ControllerTests
             Assert.Equal(AbyssBorderHex, monster.Position);
         }
 
+        /// <summary>
+        /// La chance de tirage de bordure (5%) est doublée dans l'Abysse : une graine dont le premier
+        /// tirage tombe entre 5% (inclus) et 10% (exclu) — donc raté sur l'Inframonde mais réussi sur
+        /// l'Abysse — doit produire un monstre sur l'Abysse et aucun sur l'Inframonde.
+        /// </summary>
+        [Fact]
+        public void BorderMonsterSpawnChance_IsDoubled_OnAbyss()
+        {
+            int seed = FindSeed(rng => rng.Next(100) is >= 5 and < 10);
+
+            var (underworldState, underworldClock, _) = CreateSetup(new GamePRNG(seed), LateIslandPrestigeState());
+            underworldClock.SimulateAdvance(6_000);
+            Assert.Empty(underworldState.Features.OfType<MonsterFeature>());
+
+            var (abyssState, abyssClock, _) = CreateAbyssSetup(new GamePRNG(seed), corruptionLevelOnBorderHex: 1);
+            abyssClock.SimulateAdvance(6_000);
+            Assert.Single(abyssState.Features.OfType<MonsterFeature>());
+        }
+
         [Fact]
         public void NeverSpawnsTrollOrOgre_OnAbyss()
         {

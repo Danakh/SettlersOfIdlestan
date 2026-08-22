@@ -89,6 +89,9 @@ public class AutoExtendController
     // 6000), puis toujours plus fréquent à mesure que la corruption augmente.
     private const long BorderMonsterCheckBaseIntervalTicks = 3_000L;
     private const int BorderMonsterSpawnChancePercent = 5;
+    // Dans l'Abysse, le territoire est déjà systématiquement corrompu (voir PlaceAbyssCorruption) :
+    // la chance de tirage de bordure y est doublée par rapport aux autres couches auto-étendues.
+    private const int AbyssBorderMonsterSpawnChanceMultiplier = 2;
     private const int BorderMonsterTrollChancePercent = 65;
 
     // Démon majeur (Abysse uniquement) : chance à partir du niveau de corruption de l'hex, croissante ensuite.
@@ -156,6 +159,7 @@ public class AutoExtendController
 
             PlaceDivineBones(newTiles);
             var tentacle = PlaceTentacle(newTiles);
+            PlaceMinorDemon(newTiles);
             PlaceAbyssCorruption(newTiles);
             // Après PlaceAbyssCorruption, qui pose une Corruption sur chaque hex de l'île sans
             // regarder l'existant : semer avant lui laisserait deux Corruption sur le même hex.
@@ -213,6 +217,30 @@ public class AutoExtendController
         return tentacle;
     }
 
+    /// <summary>Chance qu'une île de l'Abysse nouvellement générée porte un Démon mineur — voir <see cref="PlaceMinorDemon"/>.</summary>
+    private const int AbyssIslandMinorDemonChancePercent = 50;
+
+    /// <summary>
+    /// Fait apparaître au plus un Démon mineur sur une île de l'Abysse nouvellement générée, avec
+    /// <see cref="AbyssIslandMinorDemonChancePercent"/>% de chance — indépendamment du niveau de
+    /// corruption, contrairement à <see cref="PlaceTentacle"/>. Ne concerne jamais l'île d'arrivée du
+    /// joueur, posée par AbyssGateController.TryInitializeAbyss qui ne passe pas par ce chemin.
+    /// Appelé avant <see cref="PlaceAbyssCorruption"/> (comme <see cref="PlaceDivineBones"/> et
+    /// <see cref="PlaceTentacle"/>) car il exige un hex encore libre de toute feature.
+    /// </summary>
+    private void PlaceMinorDemon(List<HexTile> newTiles)
+    {
+        if (_state == null || _prng == null) return;
+        if (_prng.Next(100) >= AbyssIslandMinorDemonChancePercent) return;
+
+        var landTiles = newTiles.Where(t => t.TerrainType != TerrainType.Void && !_state.HasFeaturesAt(t.Coord)).ToList();
+        if (landTiles.Count == 0) return;
+
+        var hex = landTiles[_prng.Next(landTiles.Count)].Coord;
+        int level = Model.Monsters.MonsterLeveling.UndergroundLevel(_prestigeState?.Tier ?? 1, _prestigeState?.CurrentCorruptionLevel ?? 1);
+        _state.AddFeature(new Model.Monsters.MinorDemon(hex, level));
+    }
+
     // Étendue aléatoire au-dessus du niveau de corruption max de l'Inframonde pour l'Abysse
     private const int AbyssCorruptionLevelSpread = 2;
 
@@ -243,7 +271,8 @@ public class AutoExtendController
     /// ticks (allongé dans l'Outremonde et l'Abysse par les recherches Veille Souterraine et
     /// Démonologie, voir <see cref="ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL"/>), sur chaque carte gérée par
     /// AutoExtendController, tente de faire apparaître un monstre en bordure de la zone explorée
-    /// (<see cref="BorderMonsterSpawnChancePercent"/> de chance). Le type tiré dépend de la couche
+    /// (<see cref="BorderMonsterSpawnChancePercent"/> de chance, doublée dans l'Abysse — voir
+    /// <see cref="AbyssBorderMonsterSpawnChanceMultiplier"/>). Le type tiré dépend de la couche
     /// (voir <see cref="RollBorderMonster"/>) : dans l'Abysse, uniquement des démons mineurs/majeurs
     /// (<see cref="RollAbyssDemon"/>) ; ailleurs, (niveau de corruption global - 1)% de chance d'un
     /// démon mineur, sinon 65 % troll / 35 % ogre.
@@ -268,7 +297,10 @@ public class AutoExtendController
             if (currentTick - layerState.LastBorderMonsterSpawnTick < interval) continue;
             layerState.LastBorderMonsterSpawnTick = currentTick;
 
-            if (_prng.Next(100) >= BorderMonsterSpawnChancePercent) continue;
+            int spawnChancePercent = layerState.Map.Z == LayerState.AbyssZ
+                ? BorderMonsterSpawnChancePercent * AbyssBorderMonsterSpawnChanceMultiplier
+                : BorderMonsterSpawnChancePercent;
+            if (_prng.Next(100) >= spawnChancePercent) continue;
 
             // Anneau sûr des premières îles (Inframonde uniquement — l'Abysse ne se visite pas avant
             // d'avoir une civilisation debout, voir UnderworldSafeRadiusBonusByIsland).
