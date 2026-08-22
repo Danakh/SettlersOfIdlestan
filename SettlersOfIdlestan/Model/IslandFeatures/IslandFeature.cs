@@ -67,6 +67,13 @@ public abstract class IslandFeature
     public virtual bool BlocksHarvestFor(SettlersOfIdlestan.Model.Civilization.Civilization civ) => BlocksHarvest;
 
     /// <summary>
+    /// True si cette feature empêche de bâtir un monument (Merveille, Phare, Observatoire, Mine
+    /// Profonde…) sur son hex. Par défaut identique aux autres features occupant l'hex ; Corruption
+    /// et Dominion se superposent au terrain sans l'occuper et lèvent ce blocage.
+    /// </summary>
+    public virtual bool BlocksMonumentPlacement => true;
+
+    /// <summary>
     /// Multiplicateur appliqué au temps de récolte effectif sur l'hex portant cette feature
     /// (1.0 = neutre, &gt;1 ralentit, &lt;1 accélère). Le civ est fourni pour permettre l'accès aux
     /// modificateurs de prestige/technologie (ex. Corruption, Dominion).

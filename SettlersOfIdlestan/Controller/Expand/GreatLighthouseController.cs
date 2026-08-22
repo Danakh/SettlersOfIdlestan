@@ -132,7 +132,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool isCoastal = hex.Neighbors().Any(n => map.GetTile(n)?.TerrainType.IsWater() == true);
                 if (!isCoastal) continue;
                 if (enemyZone.Contains(hex)) continue;
-                if (_state.HasFeaturesAt(hex)) continue;
+                if (_state.HasMonumentBlockingFeaturesAt(hex)) continue;
                 result.Add(hex);
             }
 

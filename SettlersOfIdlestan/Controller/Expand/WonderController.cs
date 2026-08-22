@@ -109,7 +109,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (tile == null) continue;
                 if (tile.TerrainType == TerrainType.Water) continue;
                 if (enemyZone.Contains(hex)) continue;
-                if (_state.HasFeaturesAt(hex)) continue;
+                if (_state.HasMonumentBlockingFeaturesAt(hex)) continue;
                 result.Add(hex);
             }
 

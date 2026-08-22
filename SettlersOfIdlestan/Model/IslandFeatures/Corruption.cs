@@ -21,6 +21,7 @@ public class Corruption : IslandFeature
     public override bool BlocksHarvest => false;
     public override bool IsDiscoverable => false;
     public override bool ShouldRenderIcon => false; // cercle violet rendu par le renderer, pas une icône
+    public override bool BlocksMonumentPlacement => false;
 
     public override GameEventType DiscoveredEventType => GameEventType.NoEvent;
     public override GameEventType RemovedEventType => GameEventType.NoEvent;

@@ -209,6 +209,14 @@ public class WorldState : IJsonOnDeserialized
     /// <summary>Retourne true si au moins une feature est présente sur cet hex.</summary>
     public bool HasFeaturesAt(HexCoord hex) => _featuresByHex.ContainsKey(hex);
 
+    /// <summary>
+    /// Retourne true si au moins une feature de cet hex empêche d'y bâtir un monument (voir
+    /// <see cref="IslandFeature.BlocksMonumentPlacement"/>). Contrairement à <see cref="HasFeaturesAt"/>,
+    /// ignore Corruption et Dominion qui se superposent au terrain sans l'occuper.
+    /// </summary>
+    public bool HasMonumentBlockingFeaturesAt(HexCoord hex)
+        => GetFeaturesAt(hex).Any(f => f.BlocksMonumentPlacement);
+
     /// <summary>Déclenché quand une feature est ajoutée via AddFeature.</summary>
     public event EventHandler<IslandFeature>? FeatureAdded;
 
