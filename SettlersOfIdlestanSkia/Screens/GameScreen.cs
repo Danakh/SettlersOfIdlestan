@@ -319,7 +319,13 @@ public sealed class GameScreen : IDisposable
             onLoadGame: json => RunSynchronized(() => HandleLoadGame(json)));
 
         _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer();
-        _playerResourcesOverlayRenderer.ConnectLowStock(null, _gameControllerService.PlayerCivilization!);
+        // PlayerCivilization est nul pendant l'attente de choix de race d'une Ascension (voir
+        // AscensionController.IsAscensionPending) : un chargement à froid peut donc tomber
+        // directement dans cet état (SkiaGameRuntime.OnContinueRequested après un redémarrage
+        // complet). Sans cette garde, ConnectLowStock levait une NullReferenceException ici, que le
+        // catch générique du constructeur prenait à tort pour une sauvegarde corrompue.
+        if (_gameControllerService.PlayerCivilization is { } playerCiv)
+            _playerResourcesOverlayRenderer.ConnectLowStock(null, playerCiv);
 
         var tradeRenderer           = new TradePopupRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);
         var prestigeRenderer        = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige, tooltipRenderer);

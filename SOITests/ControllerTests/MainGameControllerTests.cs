@@ -144,5 +144,50 @@ namespace SOITests.ControllerTests
             Assert.Equal(SettlersOfIdlestan.Model.Civilization.NpcAggressivityLevel.Warlike, roundNpc.NpcParameters!.AggressivityLevel);
             Assert.Contains(0, roundNpc.WarEnemyCivIndices);
         }
+
+        /// <summary>
+        /// Couvre l'intervalle entre RequestAscension et ConfirmAscensionRace (voir
+        /// AscensionController.RequestAscension) : PrestigeState/WorldState viennent d'être détruits
+        /// et le choix de race n'a pas encore été fait — la partie doit malgré tout pouvoir être
+        /// sauvegardée puis reprise à ce stade précis (régression potentielle : ExportMainState/
+        /// ImportMainState ne doivent pas supposer un WorldState présent).
+        /// </summary>
+        [Fact]
+        public void ExportMainState_DuringAscensionPending_SurvivesSaveAndReloadThenResumes()
+        {
+            var controller = SaveUtils.LoadSave("specifics", "before_first_ascension");
+            var godState = controller.CurrentMainState!.GodState;
+            Assert.True(controller.AscensionController.CanAscend(godState),
+                "La sauvegarde de test doit contenir assez d'essence divine pour déclencher l'Ascension.");
+            int expectedGodPoints = godState.GodPoints + controller.AscensionController.GetGodPointsGain(godState);
+
+            controller.RequestAscension();
+
+            Assert.True(controller.AscensionController.IsAscensionPending);
+            Assert.Null(controller.CurrentMainState!.PrestigeState);
+            Assert.Null(controller.CurrentMainState!.CurrentWorldState);
+            Assert.Null(controller.PlayerCivilization);
+            Assert.Equal(expectedGodPoints, controller.CurrentMainState!.GodState.GodPoints);
+
+            var exported = controller.ExportMainState();
+
+            var reloadedController = new MainGameController();
+            var reloaded = reloadedController.ImportMainState(exported);
+
+            // L'état "en attente de race" doit survivre au round-trip de sauvegarde tel quel.
+            Assert.True(reloadedController.AscensionController.IsAscensionPending);
+            Assert.Null(reloaded.PrestigeState);
+            Assert.Null(reloaded.CurrentWorldState);
+            Assert.Null(reloadedController.PlayerCivilization);
+            Assert.Equal(expectedGodPoints, reloaded.GodState.GodPoints);
+
+            // La partie doit pouvoir reprendre normalement depuis cet état rechargé.
+            reloadedController.ConfirmAscensionRace(SettlersOfIdlestan.Model.Races.RaceId.Human);
+
+            Assert.False(reloadedController.AscensionController.IsAscensionPending);
+            Assert.NotNull(reloadedController.CurrentMainState!.PrestigeState);
+            Assert.NotNull(reloadedController.CurrentMainState!.CurrentWorldState);
+            Assert.NotNull(reloadedController.PlayerCivilization);
+        }
     }
 }

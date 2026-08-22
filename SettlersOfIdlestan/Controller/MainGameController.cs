@@ -371,6 +371,15 @@ namespace SettlersOfIdlestan.Controller
         {
             var WorldState = CurrentMainState?.CurrentWorldState;
 
+            // Câblé inconditionnellement, même sans île active : c'est ce contrôleur qui expose
+            // IsAscensionPending à toute l'UI (TabBarRenderer, OverlayRenderer...). Entre
+            // RequestAscension et ConfirmAscensionRace, GodState.PrestigeState (et donc WorldState)
+            // vaut null — sans ce câblage hors du bloc ci-dessous, recharger une sauvegarde faite
+            // pendant cette attente laisserait AscensionController non initialisé et
+            // IsAscensionPending retomberait à faux, perdant la trace du choix de race en cours.
+            AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState,
+                CityBuilderController);
+
             if (WorldState != null)
             {
                 // Bind the player's TechnologyTree to the persistent prestige tree so research
@@ -393,10 +402,6 @@ namespace SettlersOfIdlestan.Controller
                 // est recréé avec le WorldState.
                 WorldState.AutomationSettings.Bind(CurrentMainState!.Settings);
 
-                // Initialisé avant SetupModifierAggregators() : ce contrôleur sert lui-même de
-                // IModifierProvider et doit avoir purgé ses anciens abonnés avant d'être ré-enregistré.
-                AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState,
-                    CityBuilderController);
                 AscensionController.ApplyPermanentUniqueBuildingToCivilization();
 
                 SetupModifierAggregators();

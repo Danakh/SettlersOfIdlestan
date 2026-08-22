@@ -98,12 +98,21 @@ public class AscensionController : IModifierProvider
 
     public event Action? OnModifiersChanged;
 
+    /// <param name="state">
+    /// Nullable : pendant l'intervalle entre RequestAscension et ConfirmAscensionRace, aucune île
+    /// n'existe (GodState.PrestigeState vaut null — voir AscensionController.RequestAscension). Ce
+    /// contrôleur doit malgré tout être câblé sur le GodState/AscensionState courant dans cet
+    /// intervalle : c'est lui qui expose <see cref="IsAscensionPending"/> à toute l'UI (TabBarRenderer,
+    /// OverlayRenderer...), y compris juste après le rechargement d'une sauvegarde faite pendant
+    /// cette attente (voir MainGameController.InitializeControllersForCurrentIsland, qui appelle
+    /// Initialize inconditionnellement).
+    /// </param>
     /// <param name="cityBuilderController">
     /// Optionnel : requis uniquement pour que Marche de Dieu puisse détruire les villes que le terrain
     /// transformé ne permet plus d'occuper (voir <see cref="ApplyWalkOfGod"/>). Omis, la marche
     /// transforme le terrain sans jamais rien détruire.
     /// </param>
-    public void Initialize(WorldState state, GameClock? clock, GamePRNG prng, HarvestController harvestController, GodState godState,
+    public void Initialize(WorldState? state, GameClock? clock, GamePRNG prng, HarvestController harvestController, GodState godState,
         CityBuilderController? cityBuilderController = null)
     {
         if (_clock != null)
