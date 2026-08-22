@@ -12,7 +12,7 @@ public static class RitualDefinitions
             baseLaunchCost: 10, baseUpkeepCost: 2,
             modifiersPerPower: new Modifier[]
             {
-                new(ECategory.HARVEST_SPEED, EType.ADDITIVE, 0.10),
+                new(ECategory.HARVEST_SPEED, EType.MULTIPLICATIVE, 0.10),
             }),
 
         // Production — chance de doubler les récoltes automatiques
@@ -29,7 +29,7 @@ public static class RitualDefinitions
             modifiersPerPower: new Modifier[]
             {
                 new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 3),
-                new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.15),
+                new(ECategory.UNIT_PRODUCTION_SPEED, EType.MULTIPLICATIVE, 0.15),
             }),
 
         // Militaire — défense des villes et régénération
@@ -38,7 +38,7 @@ public static class RitualDefinitions
             modifiersPerPower: new Modifier[]
             {
                 new(ECategory.CITY_DEFENSE, EType.ADDITIVE, 2),
-                new(ECategory.CITY_DEFENSE_REGEN_SPEED, EType.ADDITIVE, 0.15),
+                new(ECategory.CITY_DEFENSE_REGEN_SPEED, EType.MULTIPLICATIVE, 0.15),
             }),
 
         // Utilitaire — vitesse de recherche
@@ -46,7 +46,7 @@ public static class RitualDefinitions
             baseLaunchCost: 10, baseUpkeepCost: 2,
             modifiersPerPower: new Modifier[]
             {
-                new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.15),
+                new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.MULTIPLICATIVE, 0.15),
             }),
 
         // Inframonde — récoltes souterraines et dégâts aux monstres autour des Temples
@@ -54,8 +54,8 @@ public static class RitualDefinitions
             baseLaunchCost: 20, baseUpkeepCost: 4,
             modifiersPerPower: new Modifier[]
             {
-                new(ECategory.HARVEST_SPEED, "MushroomFarm", EType.ADDITIVE, 0.15),
-                new(ECategory.HARVEST_SPEED, "MithrilMine",  EType.ADDITIVE, 0.15),
+                new(ECategory.HARVEST_SPEED, "MushroomFarm", EType.MULTIPLICATIVE, 0.15),
+                new(ECategory.HARVEST_SPEED, "MithrilMine",  EType.MULTIPLICATIVE, 0.15),
                 new(ECategory.TEMPLE_MONSTER_DAMAGE_PER_SECOND, EType.ADDITIVE, 1),
             }),
     };
