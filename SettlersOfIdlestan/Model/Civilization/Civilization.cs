@@ -74,6 +74,11 @@ public class Civilization
         city.BuildingsChanged += OnCityBuildingsChanged;
         InvalidateVertexCaches();
         InvalidateBuildingDerivedCaches();
+        // La ville peut déjà porter des bâtiments (villes de départ, PNJ...) ajoutés avant cet appel,
+        // donc avant l'abonnement à BuildingsChanged ci-dessus : sans ce rebuild explicite, un bâtiment
+        // unique posé avant AddCity resterait invisible de GetUniqueBuilding.
+        RebuildUniqueBuildingCache();
+        RebuildUniqueBuildingsModifiers();
         BuildingController.RecalculateStorageCapacity(this);
     }
 
@@ -93,7 +98,12 @@ public class Civilization
     /// les caches dérivés des bâtiments fiables, quel que soit le chemin de construction emprunté —
     /// y compris ceux qui n'appellent pas <see cref="BuildingController.BuildBuilding"/>.
     /// </summary>
-    private void OnCityBuildingsChanged(object? sender, EventArgs e) => InvalidateBuildingDerivedCaches();
+    private void OnCityBuildingsChanged(object? sender, EventArgs e)
+    {
+        InvalidateBuildingDerivedCaches();
+        RebuildUniqueBuildingCache();
+        RebuildUniqueBuildingsModifiers();
+    }
 
     private List<Road> _roads = new();
 
@@ -383,9 +393,10 @@ public class Civilization
     /// <summary>
     /// Retourne l'instance du bâtiment unique de ce type construit dans une ville de la civilisation,
     /// ou null s'il n'existe pas. Sert à éviter de parcourir toutes les villes/bâtiments à chaque appel
-    /// (ex: automatisations des guildes). Le cache n'est mis à jour qu'à la construction d'un bâtiment
-    /// unique ou à la destruction d'une ville — voir <see cref="RegisterUniqueBuildingInCache"/> et
-    /// <see cref="RebuildUniqueBuildingCache"/>.
+    /// (ex: automatisations des guildes). Le cache est reconstruit à chaque <see cref="City.BuildingsChanged"/>
+    /// (voir <see cref="OnCityBuildingsChanged"/>) et à l'ajout d'une ville (voir <see cref="AddCity"/>),
+    /// quel que soit le chemin d'ajout du bâtiment — <see cref="RegisterUniqueBuildingInCache"/> reste un
+    /// raccourci ponctuel utilisé par <see cref="BuildingController.BuildBuilding"/>.
     /// </summary>
     public Building? GetUniqueBuilding(BuildingType type)
         => _uniqueBuildingCache.TryGetValue(type, out var building) ? building : null;
