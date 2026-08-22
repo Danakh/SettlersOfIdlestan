@@ -38,17 +38,21 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Bâtiments uniques toujours choisissables comme bâtiment permanent d'Ascension (voir
-    /// <see cref="SelectPermanentUniqueBuilding"/>) : uniquement des IUniqueBuilding dont l'intégralité
-    /// de l'effet est capturé par GetUniqueBuildingModifiers (pas d'automatisation liée à une
-    /// présence physique en ville, pas de comportement par tick propre à l'instance).
-    /// S'y ajoutent les bâtiments raciaux des races ayant déjà ascensionné — voir
-    /// <see cref="PermanentUniqueBuildingChoices"/>.
+    /// <see cref="SelectPermanentUniqueBuilding"/>) : un bâtiment accordé ainsi ne vit dans aucune
+    /// ville (voir Civilization.SetAscensionGrantedUniqueBuildings) — seule une instance existe,
+    /// enregistrée dans le cache Civilization._uniqueBuildingCache et créée au niveau max
+    /// (Civilization.RebuildUniqueBuildingCache). Éligible : tout bâtiment dont l'automatisation
+    /// éventuelle interroge déjà ce cache via Civilization.GetUniqueBuilding plutôt que de parcourir
+    /// les bâtiments physiques des villes (voir BuildingController/RoadController/CityBuilderController) —
+    /// sans quoi l'automatisation resterait inerte une fois accordée sans ville. S'y ajoutent les
+    /// bâtiments raciaux des races ayant déjà ascensionné — voir <see cref="PermanentUniqueBuildingChoices"/>.
     /// </summary>
     private static readonly IReadOnlyList<BuildingType> BasePermanentUniqueBuildingChoices = new[]
     {
         BuildingType.Academy,
         BuildingType.ArtisansGuild,
         BuildingType.BlastFurnace,
+        BuildingType.BuildersGuild,
         BuildingType.HarvestersGuild,
         BuildingType.TraderGuild,
         BuildingType.VolcanicForge,

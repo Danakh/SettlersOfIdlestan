@@ -95,14 +95,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                BuildersGuild? guild = null;
-                foreach (var city in civ.Cities)
-                {
-                    guild = city.FindBuilding<BuildersGuild>(BuildingType.BuildersGuild);
-                    if (guild != null) break;
-                }
-
-                if (guild == null || guild.Level == 0) continue;
+                if (civ.GetUniqueBuilding(BuildingType.BuildersGuild) is not BuildersGuild guild || guild.Level == 0) continue;
 
                 // Keep timer running when disabled to avoid burst on re-enable (player only)
                 bool isPlayerCiv = civ.Index == _state.PlayerCivilization.Index;
@@ -786,12 +779,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private static int GetGuildRoadCostReduction(Civilization civ)
         {
-            foreach (var city in civ.Cities)
-            {
-                var guild = city.FindBuilding<BuildersGuild>(BuildingType.BuildersGuild);
-                if (guild != null && guild.Level > 0)
-                    return guild.RoadCostReduction;
-            }
+            if (civ.GetUniqueBuilding(BuildingType.BuildersGuild) is BuildersGuild { Level: > 0 } guild)
+                return guild.RoadCostReduction;
             return 0;
         }
 

@@ -114,14 +114,7 @@ namespace SettlersOfIdlestan.Controller.Island
             long now = _clock.CurrentTick;
             var civ = _state.PlayerCivilization;
 
-            BuildersGuild? guild = null;
-            foreach (var city in civ.Cities)
-            {
-                guild = city.FindBuilding<BuildersGuild>(BuildingType.BuildersGuild);
-                if (guild != null) break;
-            }
-
-            if (guild == null || guild.Level < 4) return;
+            if (civ.GetUniqueBuilding(BuildingType.BuildersGuild) is not BuildersGuild guild || guild.Level < 4) return;
 
             bool underworldUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
             bool surfaceEnabled = _state.AutomationSettings.IsOutpostAutomationActive;
@@ -844,12 +837,7 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         private static bool HasActiveBuildersGuild(Civilization civ)
-        {
-            foreach (var city in civ.Cities)
-                if (city.Buildings.OfType<BuildersGuild>().Any(b => b.Level > 0))
-                    return true;
-            return false;
-        }
+            => civ.GetUniqueBuilding(BuildingType.BuildersGuild) is BuildersGuild { Level: > 0 };
 
         public int MinDistanceBetweenCities => 2;
         public int MinDistanceBetweenCivilizationCities => 3;

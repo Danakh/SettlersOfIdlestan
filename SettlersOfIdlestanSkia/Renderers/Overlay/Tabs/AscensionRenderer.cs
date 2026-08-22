@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Races;
+using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
@@ -69,7 +70,13 @@ public sealed class AscensionRenderer : IDisposable
     private SKRect _hoveredLockedRect = SKRect.Empty;
     private string? _hoveredLockedTooltip;
 
+    // Confirmation d'Ascension : deux formes selon que le choix de race est débloqué.
+    // - Débloqué : panneau Skia dédié (grille de races), voir DrawRaceSelectionOverlayIfNeeded,
+    //   gardé par _confirmingAscension.
+    // - Sinon : simple avertissement + Confirmer/Annuler, porté par une modale de l'hôte Avalonia
+    //   comme les autres popups du jeu (voir AscensionConfirmPopupRenderer).
     private bool _confirmingAscension;
+    private readonly AscensionConfirmPopupRenderer _confirmPopup;
     private SKRect _ascendButtonRect  = SKRect.Empty;
     private SKRect _ascendConfirmRect = SKRect.Empty;
     private SKRect _ascendCancelRect  = SKRect.Empty;
@@ -103,6 +110,17 @@ public sealed class AscensionRenderer : IDisposable
     private SKRect _tabPermanentBuildingRect = SKRect.Empty;
     private readonly List<(BuildingType type, SKRect rect)> _permanentBuildingRects = new();
 
+    // Défilement de la grille de bâtiments permanents (voir DrawPermanentBuildingTab) : même principe
+    // que RitualsRenderer, mais borné à cette seule section — la barre d'onglets internes reste fixe.
+    private float _buildingTabScrollOffsetPx   = 0f;
+    private float _buildingTabTotalContentH    = 0f;
+    private SKRect _buildingTabViewportRect    = SKRect.Empty;
+    private bool _isDraggingBuildingScrollbar;
+    private float _buildingScrollDragStartY;
+    private float _buildingScrollDragStartOffset;
+    private SKRect _buildingScrollTrackRect = SKRect.Empty;
+    private SKRect _buildingScrollThumbRect = SKRect.Empty;
+
     private readonly SKPaint _bgPaint           = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint         = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardLockedPaint   = new() { Color = new SKColor(22, 22, 28, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -125,6 +143,8 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _warningTextPaint  = new() { Color = new SKColor(220, 70, 70), IsAntialias = true };
     private readonly SKPaint _overlayDimPaint   = new() { Color = new SKColor(0, 0, 0, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _overlayPanelPaint = new() { Color = new SKColor(24, 24, 32, 250), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _scrollTrackPaint  = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _scrollThumbPaint  = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
     private readonly SKFont _headerFont   = new() { Size = 17, Typeface = SkiaFonts.Bold };
     private readonly SKFont _nameFont     = new() { Size = 14, Typeface = SkiaFonts.Bold };
@@ -138,16 +158,27 @@ public sealed class AscensionRenderer : IDisposable
         _localization = localization;
         _tooltipRenderer = tooltipRenderer;
         _uiLayout = uiLayout;
+        _confirmPopup = new AscensionConfirmPopupRenderer(localization, onConfirm: () => _gameControllerService.PerformAscension());
     }
 
     public void Initialize(SKSize canvasSize)
     {
         _canvasSize = canvasSize;
+        _confirmPopup.Initialize(canvasSize);
         // La carte est recentrée au premier rendu, une fois la hauteur de l'en-tête connue.
         _zoom = 1f;
         _mapCentered = false;
         _pointerDown = false;
         _isPanning = false;
+    }
+
+    /// <summary>Instantané de la confirmation d'Ascension (hors choix de race) pour la vue de l'hôte.</summary>
+    public ModalPopupSnapshot GetOverlayModalSnapshot() => _confirmPopup.GetSnapshot();
+
+    public void InvokeOverlayModalButtonFromHost(string popupId, string key)
+    {
+        if (popupId == ModalPopupSnapshot.IdAscensionConfirm)
+            _confirmPopup.InvokeButton(key);
     }
 
     public void RenderAscensionPage(SKCanvas canvas, GameRenderContext context)
@@ -163,6 +194,9 @@ public sealed class AscensionRenderer : IDisposable
         _hoveredLockedRect = SKRect.Empty;
         _hoveredLockedTooltip = null;
         _mapViewportRect = SKRect.Empty;
+        _buildingTabViewportRect = SKRect.Empty;
+        _buildingScrollTrackRect = SKRect.Empty;
+        _buildingScrollThumbRect = SKRect.Empty;
 
         float topBar = _uiLayout.SecondRowBottom;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
@@ -232,15 +266,32 @@ public sealed class AscensionRenderer : IDisposable
             return;
         }
 
+        // L'onglet Bâtiments permanents n'a de sens qu'une fois Héritage Divin acheté (voir
+        // AscensionController.PermanentUniqueBuildingSlotsPerAscension) : sans lui, aucun emplacement
+        // ne sera jamais disponible, donc pas de barre d'onglets internes à afficher du tout.
+        bool permanentBuildingUnlocked = ascension.IsPowerUnlocked(AscensionPowerId.DivineLegacy);
+        if (!permanentBuildingUnlocked) _showPermanentBuildingTab = false;
+
         float tabY = ascendSectionY + AscendButtonHeight + 16f;
-        DrawInnerTabBar(canvas, x, tabY, contentWidth);
+        float mapTop;
+        if (permanentBuildingUnlocked)
+        {
+            DrawInnerTabBar(canvas, x, tabY, contentWidth);
+            mapTop = tabY + InnerTabHeight + Padding;
+        }
+        else
+        {
+            _tabPowersRect = SKRect.Empty;
+            _tabPermanentBuildingRect = SKRect.Empty;
+            mapTop = tabY;
+        }
 
         if (_showPermanentBuildingTab)
         {
-            DrawPermanentBuildingTab(canvas, x, tabY + InnerTabHeight + Padding, contentWidth, ascension);
+            DrawPermanentBuildingTab(canvas, x, mapTop, contentWidth, ascension);
             DrawRaceSelectionOverlayIfNeeded(canvas, ascension);
             if (_hoveredLockedTooltip != null)
-                _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
+                _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top - _buildingTabScrollOffsetPx));
             return;
         }
 
@@ -248,7 +299,6 @@ public sealed class AscensionRenderer : IDisposable
         // propre direction. Seuls les pouvoirs dont le prérequis est déjà rempli (Foi acquise, puis
         // pouvoir précédent de la branche) sont placés — un pouvoir plus loin dans sa branche reste
         // invisible tant qu'il n'est pas atteignable, plutôt que grisé indéfiniment.
-        float mapTop = tabY + InnerTabHeight + Padding;
         _mapViewportRect = new SKRect(0, mapTop, _canvasSize.Width, _canvasSize.Height);
         if (!_mapCentered || Math.Abs(mapTop - _lastMapTop) > 0.5f)
         {
@@ -417,22 +467,46 @@ public sealed class AscensionRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_tab_permanent_building"), _tabPermanentBuildingRect.MidX, _tabPermanentBuildingRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
     }
 
+    /// <summary>
+    /// Grille des bâtiments permanents choisissables : peut dépasser la hauteur visible une fois les
+    /// bâtiments raciaux ajoutés (voir AscensionController.PermanentUniqueBuildingChoices), d'où le
+    /// viewport défilant ci-dessous — même principe que RitualsRenderer, mais borné à cette seule
+    /// section (la barre d'onglets internes au-dessus reste fixe).
+    /// </summary>
     private void DrawPermanentBuildingTab(SKCanvas canvas, float x, float y, float contentWidth, AscensionController ascension)
     {
         var noteLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_permanent_building_note"), contentWidth, _descFont);
-        DrawCenteredTextLayout(canvas, noteLayout, x + contentWidth / 2f, y, _descFont, _mutedPaint);
 
         var chosen = ascension.PermanentUniqueBuildings;
         int slots = ascension.PermanentUniqueBuildingSlots;
         float slotsY = y + noteLayout.Lines.Count * _descFont.Spacing + 6f;
-        string slotsText = _localization.GetFormated("ascension_permanent_building_slots_label", chosen.Count, slots);
-        SkiaTextUtils.DrawText(canvas, slotsText, x + contentWidth / 2f, slotsY, SKTextAlign.Center, _nameFont, _accentPaint);
 
         float gridTop = slotsY + 20f;
         float cardGap = 12f;
         float cardWidth = (contentWidth - cardGap * (BuildingCardColumns - 1)) / BuildingCardColumns;
 
         var choices = ascension.PermanentUniqueBuildingChoices;
+        int rows = (choices.Count + BuildingCardColumns - 1) / BuildingCardColumns;
+        float contentBottom = gridTop + rows * (BuildingCardHeight + cardGap);
+
+        _buildingTabViewportRect = new SKRect(0, y, _canvasSize.Width, _canvasSize.Height);
+        _buildingTabTotalContentH = contentBottom - y;
+        float maxScroll = Math.Max(0f, _buildingTabTotalContentH - _buildingTabViewportRect.Height);
+        _buildingTabScrollOffsetPx = Math.Clamp(_buildingTabScrollOffsetPx, 0f, maxScroll);
+        bool needsScroll = _buildingTabTotalContentH > _buildingTabViewportRect.Height + 1f;
+
+        canvas.Save();
+        canvas.ClipRect(_buildingTabViewportRect);
+        canvas.Translate(0, -_buildingTabScrollOffsetPx);
+
+        DrawCenteredTextLayout(canvas, noteLayout, x + contentWidth / 2f, y, _descFont, _mutedPaint);
+        string slotsText = _localization.GetFormated("ascension_permanent_building_slots_label", chosen.Count, slots);
+        SkiaTextUtils.DrawText(canvas, slotsText, x + contentWidth / 2f, slotsY, SKTextAlign.Center, _nameFont, _accentPaint);
+
+        // Comparaisons de survol en espace contenu (avant défilement) : voir HandlePointerMoved.
+        var savedHover = _hoverPosition;
+        _hoverPosition = new SKPoint(savedHover.X, savedHover.Y + _buildingTabScrollOffsetPx);
+
         for (int i = 0; i < choices.Count; i++)
         {
             var type = choices[i];
@@ -449,6 +523,30 @@ public sealed class AscensionRenderer : IDisposable
                 : "ascension_permanent_building_no_slots_tooltip";
             DrawPermanentBuildingCard(canvas, cardX, cardY, cardWidth, type, selected, full, fullTooltipKey);
         }
+
+        _hoverPosition = savedHover;
+
+        canvas.Restore();
+
+        if (needsScroll)
+            DrawBuildingTabScrollbar(canvas, y, _buildingTabViewportRect.Height);
+    }
+
+    private void DrawBuildingTabScrollbar(SKCanvas canvas, float trackTop, float trackH)
+    {
+        const float scrollW = 6f;
+        const float scrollMargin = 4f;
+        float trackX = _canvasSize.Width - scrollW - scrollMargin;
+
+        _buildingScrollTrackRect = new SKRect(trackX, trackTop, trackX + scrollW, trackTop + trackH);
+        canvas.DrawRoundRect(_buildingScrollTrackRect, 3, 3, _scrollTrackPaint);
+
+        float thumbRatio = _buildingTabViewportRect.Height / _buildingTabTotalContentH;
+        float thumbH = Math.Max(24f, thumbRatio * trackH);
+        float maxScroll = Math.Max(1f, _buildingTabTotalContentH - _buildingTabViewportRect.Height);
+        float thumbTop = trackTop + (_buildingTabScrollOffsetPx / maxScroll) * (trackH - thumbH);
+        _buildingScrollThumbRect = new SKRect(trackX, thumbTop, trackX + scrollW, thumbTop + thumbH);
+        canvas.DrawRoundRect(_buildingScrollThumbRect, 3, 3, _scrollThumbPaint);
     }
 
     private void DrawPermanentBuildingCard(SKCanvas canvas, float x, float y, float width, BuildingType type, bool selected, bool full, string fullTooltipKey)
@@ -488,67 +586,49 @@ public sealed class AscensionRenderer : IDisposable
         bool canAscend = ascension.CanAscend(godState);
         if (_confirmingAscension && !canAscend)
             _confirmingAscension = false;
+        if (_confirmPopup.IsOpen && !canAscend)
+            _confirmPopup.Close();
 
         float btnX = x + width / 2f - AscendButtonWidth / 2f;
 
+        // Choix de race débloqué : la confirmation se fait dans le panneau modal de sélection de
+        // race (voir DrawRaceSelectionOverlayIfNeeded), pas ici.
         if (_confirmingAscension)
         {
             _ascendButtonRect = SKRect.Empty;
-
-            // Choix de race débloqué : la confirmation se fait dans le panneau modal de sélection
-            // de race (voir DrawRaceSelectionOverlayIfNeeded), pas ici.
-            if (ascension.IsRaceSelectionUnlocked)
-            {
-                _ascendCancelRect = SKRect.Empty;
-                _ascendConfirmRect = SKRect.Empty;
-                return;
-            }
-
-            float halfWidth = (AscendButtonWidth - 8f) / 2f;
-            _ascendCancelRect  = new SKRect(btnX, y, btnX + halfWidth, y + AscendButtonHeight);
-            _ascendConfirmRect = new SKRect(btnX + halfWidth + 8f, y, btnX + halfWidth + 8f + halfWidth, y + AscendButtonHeight);
-
-            bool cancelHovered  = _ascendCancelRect.Contains(_hoverPosition.X, _hoverPosition.Y);
-            bool confirmHovered = _ascendConfirmRect.Contains(_hoverPosition.X, _hoverPosition.Y);
-
-            canvas.DrawRoundRect(_ascendCancelRect, 5, 5, cancelHovered ? _unlockHoverPaint : _cancelBtnPaint);
-            canvas.DrawRoundRect(_ascendCancelRect, 5, 5, _buttonBorderPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_cancel_button"), _ascendCancelRect.MidX, _ascendCancelRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
-
-            canvas.DrawRoundRect(_ascendConfirmRect, 5, 5, confirmHovered ? _confirmHoverPaint : _confirmPaint);
-            canvas.DrawRoundRect(_ascendConfirmRect, 5, 5, _buttonBorderPaint);
-            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_confirm_button"), _ascendConfirmRect.MidX, _ascendConfirmRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
-
-            var warnLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_confirm_warning"), width - 40f, _descFont);
-            DrawCenteredTextLayout(canvas, warnLayout, x + width / 2f, y + AscendButtonHeight + 16f, _descFont, _warningTextPaint);
+            return;
         }
-        else
+
+        // Sinon, l'avertissement + Confirmer/Annuler sont portés par une modale de l'hôte Avalonia
+        // (voir _confirmPopup, comme les autres popups du jeu) : le bouton Ascension reste
+        // simplement masqué tant qu'elle est ouverte.
+        if (_confirmPopup.IsOpen)
         {
-            _ascendCancelRect = SKRect.Empty;
-            _ascendConfirmRect = SKRect.Empty;
+            _ascendButtonRect = SKRect.Empty;
+            return;
+        }
 
-            var rect = new SKRect(btnX, y, btnX + AscendButtonWidth, y + AscendButtonHeight);
-            _ascendButtonRect = rect;
-            bool hovered = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
+        var rect = new SKRect(btnX, y, btnX + AscendButtonWidth, y + AscendButtonHeight);
+        _ascendButtonRect = rect;
+        bool hovered = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
 
-            var bg = !canAscend ? _disabledPaint : (hovered ? _unlockHoverPaint : _unlockPaint);
-            canvas.DrawRoundRect(rect, 6, 6, bg);
-            canvas.DrawRoundRect(rect, 6, 6, _buttonBorderPaint);
+        var bg = !canAscend ? _disabledPaint : (hovered ? _unlockHoverPaint : _unlockPaint);
+        canvas.DrawRoundRect(rect, 6, 6, bg);
+        canvas.DrawRoundRect(rect, 6, 6, _buttonBorderPaint);
 
-            // Le bouton affiche toujours l'essence effective totale (essences du cycle + Reliquaire,
-            // voir AscensionController.GetEffectiveDivineEssence) — sous forme de progression tant que
-            // le seuil n'est pas atteint, puis à côté du libellé une fois l'Ascension possible.
-            int effectiveEssence = ascension.GetEffectiveDivineEssence(godState);
-            string label = effectiveEssence < AscensionController.MinDivineEssenceForAscension
-                ? _localization.GetFormated("ascension_action_button_progress", effectiveEssence, AscensionController.MinDivineEssenceForAscension)
-                : _localization.GetFormated("ascension_action_button_with_total", effectiveEssence);
-            SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5f, SKTextAlign.Center, _buttonFont, canAscend ? _buttonTextPaint : _mutedPaint);
+        // Le bouton affiche toujours l'essence effective totale (essences du cycle + Reliquaire,
+        // voir AscensionController.GetEffectiveDivineEssence) — sous forme de progression tant que
+        // le seuil n'est pas atteint, puis à côté du libellé une fois l'Ascension possible.
+        int effectiveEssence = ascension.GetEffectiveDivineEssence(godState);
+        string label = effectiveEssence < AscensionController.MinDivineEssenceForAscension
+            ? _localization.GetFormated("ascension_action_button_progress", effectiveEssence, AscensionController.MinDivineEssenceForAscension)
+            : _localization.GetFormated("ascension_action_button_with_total", effectiveEssence);
+        SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5f, SKTextAlign.Center, _buttonFont, canAscend ? _buttonTextPaint : _mutedPaint);
 
-            if (!canAscend && hovered)
-            {
-                _hoveredLockedRect = rect;
-                _hoveredLockedTooltip = _localization.GetFormated("ascension_action_requires_essence_tooltip", AscensionController.MinDivineEssenceForAscension);
-            }
+        if (!canAscend && hovered)
+        {
+            _hoveredLockedRect = rect;
+            _hoveredLockedTooltip = _localization.GetFormated("ascension_action_requires_essence_tooltip", AscensionController.MinDivineEssenceForAscension);
         }
     }
 
@@ -633,6 +713,17 @@ public sealed class AscensionRenderer : IDisposable
     public void HandlePointerMoved(SKPoint position)
     {
         _hoverPosition = position;
+
+        if (_isDraggingBuildingScrollbar)
+        {
+            float dragDy     = position.Y - _buildingScrollDragStartY;
+            float thumbRange = _buildingScrollTrackRect.Height - _buildingScrollThumbRect.Height;
+            float maxScroll  = Math.Max(0f, _buildingTabTotalContentH - _buildingTabViewportRect.Height);
+            float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
+            _buildingTabScrollOffsetPx = Math.Clamp(_buildingScrollDragStartOffset + dragDy * scrollPerPx, 0f, maxScroll);
+            return;
+        }
+
         if (!_pointerDown) return;
 
         float dx = position.X - _pressPosition.X;
@@ -655,6 +746,8 @@ public sealed class AscensionRenderer : IDisposable
     /// </param>
     public void HandlePointerReleased(SKPoint position, bool isClick = true)
     {
+        _isDraggingBuildingScrollbar = false;
+
         bool wasPanning = _isPanning;
         bool pressedOnMap = _pointerDown;
         _pointerDown = false;
@@ -677,8 +770,23 @@ public sealed class AscensionRenderer : IDisposable
 
     public void HandleZoom(ZoomEventArgs e)
     {
+        // Sur l'onglet Bâtiments permanents, la molette fait défiler la grille plutôt que zoomer :
+        // il n'y a pas de carte à zoomer tant que cet onglet est affiché.
+        if (_showPermanentBuildingTab)
+        {
+            if (!_buildingTabViewportRect.IsEmpty && _buildingTabViewportRect.Contains(e.Center.X, e.Center.Y))
+                ScrollBuildingTab(e.ZoomDelta > 0 ? -60f : 60f);
+            return;
+        }
+
         if (!IsMapInteractive(e.Center)) return;
         ApplyZoom(e.ZoomDelta > 0 ? ZoomStep : 1f / ZoomStep, e.Center);
+    }
+
+    private void ScrollBuildingTab(float deltaPx)
+    {
+        float maxScroll = Math.Max(0f, _buildingTabTotalContentH - _buildingTabViewportRect.Height);
+        _buildingTabScrollOffsetPx = Math.Clamp(_buildingTabScrollOffsetPx + deltaPx, 0f, maxScroll);
     }
 
     /// <summary>Pincement à deux doigts : même zoom que la molette, au rapport continu du geste,
@@ -698,6 +806,7 @@ public sealed class AscensionRenderer : IDisposable
         !_showPermanentBuildingTab
         && !_raceOverlayVisible
         && !_confirmingAscension
+        && !_confirmPopup.IsOpen
         && !_mapViewportRect.IsEmpty
         && _mapViewportRect.Contains(position.X, position.Y);
 
@@ -793,6 +902,10 @@ public sealed class AscensionRenderer : IDisposable
 
     public bool HandlePointerPressed(SKPoint position)
     {
+        // Confirmation portée par la modale de l'hôte : elle intercepte déjà les clics, mais la
+        // garde reste ici — c'est ce renderer qui détient l'état d'ouverture.
+        if (_confirmPopup.IsOpen) return true;
+
         if (_confirmingAscension)
         {
             if (_ascendCancelRect.Contains(position.X, position.Y))
@@ -831,11 +944,18 @@ public sealed class AscensionRenderer : IDisposable
             var ascensionController = _gameControllerService.MainGameController.AscensionController;
             if (godState != null && ascensionController.CanAscend(godState))
             {
-                _confirmingAscension = true;
-                // Pré-sélectionne la race jouée actuellement (toujours sélectionnable).
-                _selectedRaceForAscension = ascensionController.GetSelectableRaces().Contains(ascensionController.SelectedRace)
-                    ? ascensionController.SelectedRace
-                    : RaceId.Human;
+                if (ascensionController.IsRaceSelectionUnlocked)
+                {
+                    _confirmingAscension = true;
+                    // Pré-sélectionne la race jouée actuellement (toujours sélectionnable).
+                    _selectedRaceForAscension = ascensionController.GetSelectableRaces().Contains(ascensionController.SelectedRace)
+                        ? ascensionController.SelectedRace
+                        : RaceId.Human;
+                }
+                else
+                {
+                    _confirmPopup.Open();
+                }
             }
             return true;
         }
@@ -851,11 +971,27 @@ public sealed class AscensionRenderer : IDisposable
             return true;
         }
 
+        if (!_buildingScrollThumbRect.IsEmpty && _buildingScrollThumbRect.Contains(position.X, position.Y))
+        {
+            _isDraggingBuildingScrollbar   = true;
+            _buildingScrollDragStartY      = position.Y;
+            _buildingScrollDragStartOffset = _buildingTabScrollOffsetPx;
+            return true;
+        }
+        if (!_buildingScrollTrackRect.IsEmpty && _buildingScrollTrackRect.Contains(position.X, position.Y))
+        {
+            float relY      = position.Y - _buildingScrollTrackRect.Top;
+            float maxScroll = Math.Max(0f, _buildingTabTotalContentH - _buildingTabViewportRect.Height);
+            _buildingTabScrollOffsetPx = Math.Clamp(relY / _buildingScrollTrackRect.Height * maxScroll, 0f, maxScroll);
+            return true;
+        }
+
         var ascension = _gameControllerService.MainGameController.AscensionController;
 
+        var buildingClickPosition = new SKPoint(position.X, position.Y + _buildingTabScrollOffsetPx);
         foreach (var (type, rect) in _permanentBuildingRects)
         {
-            if (rect.Contains(position.X, position.Y))
+            if (rect.Contains(buildingClickPosition.X, buildingClickPosition.Y))
             {
                 if (ascension.PermanentUniqueBuildings.Contains(type))
                     ascension.DeselectPermanentUniqueBuilding(type);
@@ -882,6 +1018,7 @@ public sealed class AscensionRenderer : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
+        _confirmPopup.Dispose();
         _bgPaint.Dispose();
         _cardPaint.Dispose();
         _cardLockedPaint.Dispose();
@@ -898,6 +1035,8 @@ public sealed class AscensionRenderer : IDisposable
         _warningTextPaint.Dispose();
         _overlayDimPaint.Dispose();
         _overlayPanelPaint.Dispose();
+        _scrollTrackPaint.Dispose();
+        _scrollThumbPaint.Dispose();
         _buttonBorderPaint.Dispose();
         _buttonTextPaint.Dispose();
         _namePaint.Dispose();

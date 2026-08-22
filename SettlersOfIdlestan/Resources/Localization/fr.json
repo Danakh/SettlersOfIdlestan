@@ -1347,6 +1347,7 @@
   "ascension_action_button_with_total": "Ascension ({0})",
   "ascension_action_button_progress": "Ascension {0}/{1}",
   "ascension_action_requires_essence_tooltip": "Nécessite au moins {0} essence(s) divine(s)",
+  "ascension_confirm_title": "⚠ Ascension",
   "ascension_confirm_button": "Confirmer",
   "ascension_cancel_button": "Annuler",
   "ascension_confirm_warning": "Toute l'essence divine sera convertie en points divins (1 pour 1). Votre île et votre progression de prestige actuelles seront définitivement effacées — vous recommencerez une nouvelle partie du début avec uniquement vos points divins.",

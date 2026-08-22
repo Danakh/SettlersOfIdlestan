@@ -666,6 +666,10 @@ public sealed record ModalPopupSnapshot(
     /// Ascension. Portee par le popup Prestige, comme la precedente.
     public const string IdPrestigeCorruptionWarning = "prestigeCorruptionWarning";
 
+    /// Confirmation d'une Ascension (hors choix de race, qui a son propre panneau). Portee par
+    /// l'onglet Ascension, meme forme que les precedentes.
+    public const string IdAscensionConfirm = "ascensionConfirm";
+
     /// Cle conventionnelle de la croix de fermeture, commune a toutes les modales.
     public const string KeyClose = "__close__";
 }

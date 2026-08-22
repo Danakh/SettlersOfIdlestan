@@ -385,13 +385,21 @@ public sealed class OverlayRenderer : IGameRenderer
 
     /// <summary>
     /// Modale portée par l'overlay plutôt que par GameScreen : les confirmations du popup de
-    /// prestige (montée de corruption avant la première Ascension, puis perte d'essences).
-    /// Même forme, donc même vue.
+    /// prestige (montée de corruption avant la première Ascension, puis perte d'essences), et la
+    /// confirmation d'Ascension (hors choix de race). Même forme, donc même vue.
     /// </summary>
-    public ModalPopupSnapshot GetOverlayModalSnapshot() => _prestigeRenderer.GetOverlayModalSnapshot();
+    public ModalPopupSnapshot GetOverlayModalSnapshot()
+    {
+        var prestigeModal = _prestigeRenderer.GetOverlayModalSnapshot();
+        if (prestigeModal.IsOpen) return prestigeModal;
+        return _ascensionRenderer.GetOverlayModalSnapshot();
+    }
 
     public void InvokeOverlayModalButtonFromHost(string popupId, string key)
-        => _prestigeRenderer.InvokeOverlayModalButtonFromHost(popupId, key);
+    {
+        _prestigeRenderer.InvokeOverlayModalButtonFromHost(popupId, key);
+        _ascensionRenderer.InvokeOverlayModalButtonFromHost(popupId, key);
+    }
     public void InvokePrestigeActionFromHost(string key) => _prestigeRenderer.InvokeActionFromHost(key);
     public void PrestigeSkipWonderTimeFromHost() => _prestigeRenderer.SkipWonderTimeFromHost();
     public void PrestigeChangeTierFromHost(bool increase) => _prestigeRenderer.ChangeTierChoiceFromHost(increase);

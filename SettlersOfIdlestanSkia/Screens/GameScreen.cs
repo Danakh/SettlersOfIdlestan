@@ -433,6 +433,7 @@ public sealed class GameScreen : IDisposable
             case ModalPopupSnapshot.IdDemoEnd:     _demoEndPopup?.InvokeButton(buttonKey);     break;
             case ModalPopupSnapshot.IdPrestigeEssenceLoss:
             case ModalPopupSnapshot.IdPrestigeCorruptionWarning:
+            case ModalPopupSnapshot.IdAscensionConfirm:
                 _overlayRenderer?.InvokeOverlayModalButtonFromHost(popupId, buttonKey);
                 break;
         }
