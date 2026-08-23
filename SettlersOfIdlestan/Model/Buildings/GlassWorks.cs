@@ -37,7 +37,11 @@ public class GlassWorks : Building
         { Resource.Brick, 20 }
     };
 
-    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet();
+    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
+    {
+        { Resource.Stone, 20 * (Level + 1) },
+        { Resource.Brick, 20 * (Level + 1) }
+    };
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
     {
