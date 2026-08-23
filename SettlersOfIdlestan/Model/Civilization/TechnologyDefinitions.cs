@@ -307,7 +307,7 @@ public static class TechnologyDefinitions
             cost: 6000000,
             prerequisites: new[] { TechnologyId.AdvancedGuilds },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "GrandTemple", EType.ADDITIVE, 1) },
-            tier: 8, line: 6),
+            tier: 8, line: 5),
 
         // === Branche de l'Acier (débloquée par les vertex de prestige du nord-est) ===
 
