@@ -38,12 +38,14 @@ public sealed class AscensionRenderer : IDisposable
     private const float InnerTabWidth      = 160f;
     private const int   BuildingCardColumns = 4;
     private const float BuildingCardHeight  = 120f;
-    // Cartes de race (voir RenderPendingRaceChoicePage) : plus hautes que les cartes de bâtiment,
-    // certaines descriptions (Orcs, Sirènes...) dépassant largement 120px une fois repliées sur 4
-    // colonnes. Doublée d'un défilement et d'un clip par carte (voir DrawPendingRaceCard) en
-    // filet de sécurité si une description future dépasse encore cette hauteur.
+    // Cartes de race (voir RenderPendingRaceChoicePage) : nom + un court texte d'ambiance de 2-3
+    // lignes (RaceDefinition.DescKey) ou, verrouillée, nom + jusqu'à 3 prérequis (voir
+    // DrawRaceLockRequirement) — les infos de gameplay (bonus/malus, bâtiment racial) passent en
+    // tooltip au survol plutôt que sur la carte (RaceDefinition.InfoKey). Doublée d'un défilement et
+    // d'un clip par carte (voir DrawPendingRaceCard) en filet de sécurité si un texte futur dépasse
+    // quand même cette hauteur.
     private const int   RaceCardColumns     = 4;
-    private const float RaceCardHeight      = 200f;
+    private const float RaceCardHeight      = 96f;
 
     // Carte des pouvoirs : hexagones pointe en haut, légèrement espacés pour que les branches
     // restent lisibles (les hexagones voisins ne se touchent pas tout à fait).
@@ -114,6 +116,13 @@ public sealed class AscensionRenderer : IDisposable
     private readonly List<(RaceId id, SKRect rect, bool selectable)> _pendingRaceCardRects = new();
     private SKRect _pendingConfirmRect = SKRect.Empty;
 
+    // Infos de gameplay d'une race sélectionnable, en tooltip au survol de sa carte (voir
+    // DrawPendingRaceCard et RaceDefinition.InfoKey) — la description sur la carte elle-même reste un
+    // court texte d'ambiance. Même patron que _hoveredLockedRect/_hoveredLockedTooltip côté bâtiments,
+    // mais un champ dédié : cette page (RenderPendingRaceChoicePage) est distincte de RenderAscensionPage.
+    private SKRect _hoveredRaceCardRect = SKRect.Empty;
+    private string? _hoveredRaceCardTooltip;
+
     // Défilement de la grille de choix de race (voir RenderPendingRaceChoicePage) : avec 9 races
     // et des descriptions parfois longues, la grille peut dépasser la hauteur visible — même
     // principe que DrawPermanentBuildingTab, viewport dédié pour ne pas interférer avec son état.
@@ -148,6 +157,9 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _cardActivePaint   = new() { Color = new SKColor(55, 45, 20, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardBorderPaint   = new() { Color = new SKColor(60, 60, 80), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _cardActiveBorder  = new() { Color = SKColors.Gold, StrokeWidth = 1.4f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    // Race déjà ascensionnée par le joueur (AscensionController.AscendedRaces) : cadre vert plutôt
+    // qu'un libellé texte, pour rester lisible dans la hauteur de carte réduite (voir RaceCardHeight).
+    private readonly SKPaint _ascendedBorderPaint = new() { Color = new SKColor(90, 200, 110), StrokeWidth = 1.4f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     private readonly SKPaint _connectorPaint    = new() { Color = new SKColor(90, 90, 110), StrokeWidth = 2f, IsAntialias = true };
     private readonly SKPaint _unlockPaint       = new() { Color = new SKColor(150, 110, 30), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _unlockHoverPaint  = new() { Color = new SKColor(185, 140, 45), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -158,6 +170,7 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _descPaint         = new() { Color = new SKColor(150, 150, 165), IsAntialias = true };
     private readonly SKPaint _mutedPaint        = new() { Color = new SKColor(100, 100, 112), IsAntialias = true };
     private readonly SKPaint _accentPaint       = new() { Color = new SKColor(230, 190, 90), IsAntialias = true };
+    private readonly SKPaint _metPrereqPaint    = new() { Color = new SKColor(90, 200, 110), IsAntialias = true };
     private readonly SKPaint _confirmPaint      = new() { Color = new SKColor(140, 40, 40), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _confirmHoverPaint = new() { Color = new SKColor(180, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cancelBtnPaint    = new() { Color = new SKColor(55, 55, 65), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -383,6 +396,8 @@ public sealed class AscensionRenderer : IDisposable
         var ascension = _gameControllerService.MainGameController.AscensionController;
         _pendingRaceCardRects.Clear();
         _pendingConfirmRect = SKRect.Empty;
+        _hoveredRaceCardRect = SKRect.Empty;
+        _hoveredRaceCardTooltip = null;
         _pendingRaceScrollTrackRect = SKRect.Empty;
         _pendingRaceScrollThumbRect = SKRect.Empty;
 
@@ -470,6 +485,10 @@ public sealed class AscensionRenderer : IDisposable
 
         if (needsScroll)
             DrawPendingRaceScrollbar(canvas, scrollTop, _pendingRaceViewportRect.Height);
+
+        if (_hoveredRaceCardTooltip != null)
+            _tooltipRenderer.SetTooltip(_hoveredRaceCardTooltip,
+                new SKPoint(_hoveredRaceCardRect.Right, _hoveredRaceCardRect.Top - _pendingRaceScrollOffsetPx));
     }
 
     private void DrawPendingRaceScrollbar(SKCanvas canvas, float trackTop, float trackH)
@@ -490,18 +509,22 @@ public sealed class AscensionRenderer : IDisposable
     }
 
     /// <summary>Une carte de race est repliée sur elle-même (voir RenderPendingRaceChoicePage) :
-    /// certaines descriptions (Orcs, Sirènes...) dépassent la hauteur nominale même agrandie à
-    /// <see cref="RaceCardHeight"/> — le clip évite qu'un tel débordement n'empiète visuellement
-    /// sur la carte suivante, comme cela arrivait avant (texte de la rangée du dessus recouvrant
-    /// la rangée suivante).</summary>
+    /// nom + jusqu'à 3 lignes de contenu (texte d'ambiance ou prérequis, voir DrawRaceLockRequirement)
+    /// tiennent dans <see cref="RaceCardHeight"/> ; le clip reste un filet de sécurité si un texte
+    /// futur déborde quand même, pour ne pas empiéter sur la rangée suivante. Les infos de gameplay
+    /// (bonus/malus, bâtiment racial — RaceDefinition.InfoKey) ne s'affichent qu'en tooltip au survol
+    /// d'une carte sélectionnable (_hoveredRaceCardTooltip, consommé par RenderPendingRaceChoicePage).
+    /// Le cadre passe en vert (_ascendedBorderPaint) pour une race déjà ascensionnée par le joueur
+    /// (AscensionController.AscendedRaces), sauf si elle est la sélection courante (le cadre doré prime).</summary>
     private void DrawPendingRaceCard(SKCanvas canvas, float x, float y, float width, RaceDefinition race, AscensionController ascension, bool selectable)
     {
         var rect = new SKRect(x, y, x + width, y + RaceCardHeight);
         bool hovered  = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
         bool selected = selectable && race.Id == _pendingSelectedRace;
+        bool ascended = ascension.AscendedRaces.Contains(race.Id);
 
         canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActivePaint : (selectable && hovered ? _cardPaint : _cardLockedPaint));
-        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActiveBorder : _cardBorderPaint);
+        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActiveBorder : (ascended ? _ascendedBorderPaint : _cardBorderPaint));
 
         canvas.Save();
         canvas.ClipRect(rect);
@@ -513,19 +536,18 @@ public sealed class AscensionRenderer : IDisposable
         if (!selectable)
         {
             // Verrouillée : n'affiche que les éléments de déblocage (les infos de jeu de la race
-            // n'ont de sens qu'une fois celle-ci jouable — voir GetRaceLockRequirementText).
-            var lockLayout = SkiaTextUtils.MeasureWrappedText(GetRaceLockRequirementText(race), width - 12f, _buttonFont);
-            DrawCenteredTextLayout(canvas, lockLayout, centerX, y + 34f, _buttonFont, _mutedPaint);
+            // n'ont de sens qu'une fois celle-ci jouable — voir DrawRaceLockRequirement).
+            DrawRaceLockRequirement(canvas, race, ascension, centerX, y + 34f, width - 12f);
         }
         else
         {
             var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(race.DescKey), width - 12f, _descFont);
             DrawCenteredTextLayout(canvas, descLayout, centerX, y + 34f, _descFont, _descPaint);
 
-            if (ascension.AscendedRaces.Contains(race.Id))
+            if (hovered)
             {
-                SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_race_ascended_label"),
-                    centerX, y + RaceCardHeight - 8f, SKTextAlign.Center, _buttonFont, _accentPaint);
+                _hoveredRaceCardRect = rect;
+                _hoveredRaceCardTooltip = _localization.Get(race.InfoKey);
             }
         }
 
@@ -864,22 +886,40 @@ public sealed class AscensionRenderer : IDisposable
     }
 
     /// <summary>
-    /// Texte affiché sur une carte de race verrouillée (voir DrawPendingRaceCard) : la combinaison de
-    /// pouvoirs divins requise pour une race de base (RaceDefinition.RequiredPowers), un prérequis par
-    /// ligne (voir "ascension_race_requires_label") ; le rappel de la seconde rangée pour une race
-    /// avancée, ou « bientôt disponible » pour un éventuel stub.
+    /// Dessine les éléments de déblocage sur une carte de race verrouillée (voir DrawPendingRaceCard) :
+    /// la combinaison de pouvoirs divins requise pour une race de base (RaceDefinition.RequiredPowers),
+    /// un prérequis par ligne (sans libellé d'en-tête, pour tenir dans <see cref="RaceCardHeight"/> —
+    /// le cadre grisé de la carte suffit à signaler qu'il s'agit de prérequis), chacun en vert
+    /// (_metPrereqPaint) dès qu'il est déjà débloqué (voir AscensionController.IsPowerUnlocked) pour
+    /// que le joueur voie sa progression vers le déblocage de la race plutôt qu'une simple liste
+    /// statique ; le rappel de la seconde rangée pour une race avancée, ou « bientôt disponible » pour
+    /// un éventuel stub.
     /// </summary>
-    private string GetRaceLockRequirementText(RaceDefinition race)
+    private void DrawRaceLockRequirement(SKCanvas canvas, RaceDefinition race, AscensionController ascension, float centerX, float y, float maxWidth)
     {
         if (!race.IsImplemented)
-            return _localization.Get("ascension_race_coming_soon_label");
+        {
+            var comingSoonLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_race_coming_soon_label"), maxWidth, _buttonFont);
+            DrawCenteredTextLayout(canvas, comingSoonLayout, centerX, y, _buttonFont, _mutedPaint);
+            return;
+        }
 
         if (race.RequiredPowers.Count == 0)
-            return _localization.Get("ascension_race_advanced_locked_label");
+        {
+            var advancedLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_race_advanced_locked_label"), maxWidth, _buttonFont);
+            DrawCenteredTextLayout(canvas, advancedLayout, centerX, y, _buttonFont, _mutedPaint);
+            return;
+        }
 
-        string powerNames = string.Join("\n", race.RequiredPowers
-            .Select(id => _localization.Get(AscensionPowerDefinitions.Get(id)!.NameKey)));
-        return _localization.GetFormated("ascension_race_requires_label", powerNames);
+        float lineY = y;
+        foreach (var powerId in race.RequiredPowers)
+        {
+            var powerName = _localization.Get(AscensionPowerDefinitions.Get(powerId)!.NameKey);
+            var powerLayout = SkiaTextUtils.MeasureWrappedText(powerName, maxWidth, _buttonFont);
+            DrawCenteredTextLayout(canvas, powerLayout, centerX, lineY, _buttonFont,
+                ascension.IsPowerUnlocked(powerId) ? _metPrereqPaint : _mutedPaint);
+            lineY += powerLayout.Lines.Count * _buttonFont.Spacing;
+        }
     }
 
     private static void DrawCenteredTextLayout(SKCanvas canvas, WrappedTextLayout layout, float centerX, float y, SKFont font, SKPaint paint)
@@ -1161,6 +1201,7 @@ public sealed class AscensionRenderer : IDisposable
         _cardActivePaint.Dispose();
         _cardBorderPaint.Dispose();
         _cardActiveBorder.Dispose();
+        _ascendedBorderPaint.Dispose();
         _connectorPaint.Dispose();
         _unlockPaint.Dispose();
         _unlockHoverPaint.Dispose();
@@ -1179,6 +1220,7 @@ public sealed class AscensionRenderer : IDisposable
         _descPaint.Dispose();
         _mutedPaint.Dispose();
         _accentPaint.Dispose();
+        _metPrereqPaint.Dispose();
         _headerFont.Dispose();
         _nameFont.Dispose();
         _faithFont.Dispose();

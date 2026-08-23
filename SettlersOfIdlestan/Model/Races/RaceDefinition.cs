@@ -19,6 +19,15 @@ public class RaceDefinition
     public RaceId Id { get; }
     public string NameKey { get; }
     public string DescKey { get; }
+
+    /// <summary>
+    /// Clé des informations de gameplay (bonus/malus, bâtiment racial) affichées en tooltip au survol
+    /// d'une carte de race sélectionnable — une information par ligne (séparateur "\n" dans la valeur
+    /// de localisation), voir AscensionRenderer.DrawPendingRaceCard. Distincte de <see cref="DescKey"/>,
+    /// qui reste un court texte d'ambiance affiché directement sur la carte.
+    /// </summary>
+    public string InfoKey { get; }
+
     public RaceTier Tier { get; }
 
     /// <summary>
@@ -110,5 +119,6 @@ public class RaceDefinition
         FreePrestigeVertices = freePrestigeVertices ?? Array.Empty<Vertex>();
         NameKey = $"race_{id.ToString().ToLowerInvariant()}_name";
         DescKey = $"race_{id.ToString().ToLowerInvariant()}_desc";
+        InfoKey = $"race_{id.ToString().ToLowerInvariant()}_info";
     }
 }
