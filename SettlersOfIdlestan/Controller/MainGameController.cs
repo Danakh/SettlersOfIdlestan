@@ -577,10 +577,19 @@ namespace SettlersOfIdlestan.Controller
                     civ.AddCustomAggregator(npcModifiers);
             }
 
-            _prestigeModifierProvider?.Dispose();
+            // Remplace en place quand la civilisation joueur est la même qu'à l'appel précédent (ex.
+            // SetGame/SetGameFromSave rappelé sur le même WorldState sans régénération d'île) : un
+            // simple AddCustomAggregator doublerait les modifiers de prestige, l'ancien Provider restant
+            // dans la liste (Dispose() ne fait que se désabonner de VertexPurchased, GetModifiers()
+            // continue de rendre son cache). Sur une nouvelle île/civilisation, Replace ne trouve pas
+            // l'ancienne instance et on retombe sur Add.
+            var oldPrestigeModifierProvider = _prestigeModifierProvider;
             _prestigeModifierProvider = new PrestigeModifierProvider(prestigeState, PrestigeMapController.DefaultMap);
             var playerCiv = WorldState.PlayerCivilization;
-            playerCiv.AddCustomAggregator(_prestigeModifierProvider);
+            if (oldPrestigeModifierProvider == null ||
+                !playerCiv.ModifierAggregator.Replace(oldPrestigeModifierProvider, _prestigeModifierProvider))
+                playerCiv.AddCustomAggregator(_prestigeModifierProvider);
+            oldPrestigeModifierProvider?.Dispose();
             playerCiv.AddCustomAggregator(AscensionController);
         }
     }

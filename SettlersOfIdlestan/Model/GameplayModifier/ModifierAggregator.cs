@@ -16,21 +16,34 @@ public class ModifierAggregator
     /// </summary>
     public event Action? Changed;
 
+    /// <summary>
+    /// Enregistre un provider. Idempotent pour la même instance : un appelant réinvoqué sur une
+    /// civilisation déjà initialisée (ex. MainGameController.SetupModifierAggregators rappelé sur le
+    /// même WorldState via SetGame/SetGameFromSave sans régénération d'île) ne doit pas compter ses
+    /// modifiers deux fois — un second Register(AscensionController) silencieux ignoré plutôt qu'un
+    /// doublon qui fausserait tous les modifiers additifs qu'il fournit (ex. BUILDING_MAX_LEVEL
+    /// Ziggurat de la race Humaine, passé de 1 à 2).
+    /// </summary>
     public void Register(IModifierProvider provider)
     {
+        if (_providers.Contains(provider)) return;
         _providers.Add(provider);
         provider.OnModifiersChanged += Invalidate;
         Invalidate();
     }
 
-    public void Replace(IModifierProvider old, IModifierProvider newProvider)
+    /// <summary>Retourne vrai si <paramref name="old"/> a été trouvé et remplacé, faux sinon (l'appelant
+    /// doit alors se rabattre sur <see cref="Register"/> — cas d'une nouvelle civilisation où
+    /// l'ancienne instance n'était jamais enregistrée ici).</summary>
+    public bool Replace(IModifierProvider old, IModifierProvider newProvider)
     {
         int idx = _providers.IndexOf(old);
-        if (idx < 0) return;
+        if (idx < 0) return false;
         old.OnModifiersChanged -= Invalidate;
         _providers[idx] = newProvider;
         newProvider.OnModifiersChanged += Invalidate;
         Invalidate();
+        return true;
     }
 
     private void Invalidate()

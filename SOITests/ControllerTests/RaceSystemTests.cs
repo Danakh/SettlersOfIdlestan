@@ -327,6 +327,39 @@ public class RaceSystemTests
         Assert.Empty(controller.CurrentMainState.PrestigeState!.PurchasedVertices);
     }
 
+    /// <summary>
+    /// Régression : MainGameController.SetupModifierAggregators réenregistre AscensionController sur
+    /// la même Civilization chaque fois qu'InitializeControllersForCurrentIsland est rappelé sans
+    /// régénérer l'île (ex. SetGame/SetGameFromSave rappelé sur le même WorldState après une reprise de
+    /// partie). Avant correctif, ModifierAggregator.Register n'était pas idempotent : un second
+    /// enregistrement doublait tous les modifiers additifs fournis par la race jouée. Symptôme
+    /// observable : le bonus racial Humain BUILDING_MAX_LEVEL Ziggurat +1 passait à +2, rendant la
+    /// Ziggourat améliorable au niveau 2 alors que son maximum doit rester 1 en Humain (0 pour toute
+    /// autre race). Reproduit ici directement au niveau ModifierAggregator/Civilization, sans passer
+    /// par MainGameController, pour ne pas dépendre de PrestigeMapController.DefaultMap (carte statique
+    /// partagée entre tests, source d'instabilité si on la sollicite plusieurs fois par test).
+    /// </summary>
+    [Fact]
+    public void RegisteringSameAscensionControllerTwice_DoesNotDoubleRaceModifiers()
+    {
+        var ascension = CreateAscension(out var godState);
+        Assert.Equal(RaceId.Human, godState.AscensionState.SelectedRace);
+
+        var civ = new Civilization();
+        civ.AddCustomAggregator(ascension);
+
+        int maxLevelBefore = civ.ModifierAggregator.ApplyModifiers(
+            ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Ziggurat), new Ziggurat().GetDefaultMaxLevel());
+        Assert.Equal(1, maxLevelBefore);
+
+        // Simule SetupModifierAggregators rappelé sur la même civilisation (même instance d'AscensionController).
+        civ.AddCustomAggregator(ascension);
+
+        int maxLevelAfter = civ.ModifierAggregator.ApplyModifiers(
+            ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Ziggurat), new Ziggurat().GetDefaultMaxLevel());
+        Assert.Equal(1, maxLevelAfter);
+    }
+
     [Fact]
     public void PerformAscension_SecondAscensionWithRaceUnlocked_AddsPlayedRaceToAscendedRaces()
     {
