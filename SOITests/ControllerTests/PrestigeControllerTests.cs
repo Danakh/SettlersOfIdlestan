@@ -590,5 +590,57 @@ namespace SOITests.ControllerTests
             // Pas de Spire construite → le niveau de corruption ne bouge pas
             Assert.Equal(1, mainController.CurrentMainState.PrestigeState!.CurrentCorruptionLevel);
         }
+
+        // ── Ascension Prestigieuse : bonus d'essence divine à chaque prestige ─
+
+        [Fact]
+        public void Prestige_DivineEssenceBonus_ZeroWithoutPrestigiousAscension()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var godState = new SettlersOfIdlestan.Model.Prestige.GodState { TotalDivineEssenceEarned = 42 };
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, godState: godState);
+
+            Assert.Equal(0, controller.GetDivineEssenceBonus());
+            Assert.DoesNotContain(controller.GetPrestigePointSources(), s => s.LabelKey == "prestige_divine_essence_bonus");
+        }
+
+        [Fact]
+        public void Prestige_DivineEssenceBonus_OnePerDivineEssenceEverEarnedWithPrestigiousAscension()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var godState = new SettlersOfIdlestan.Model.Prestige.GodState { TotalDivineEssenceEarned = 42 };
+            godState.AscensionState.UnlockedPowers.Add(SettlersOfIdlestan.Model.Ascension.AscensionPowerId.PrestigiousAscension);
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state, godState: godState);
+
+            Assert.Equal(42, controller.GetDivineEssenceBonus());
+            Assert.Contains(controller.GetPrestigePointSources(), s => s.LabelKey == "prestige_divine_essence_bonus" && s.Points == 42);
+            // ×1.2 : pas de monstres en surface sur une île de test fraîchement générée.
+            Assert.Equal(50, controller.CalculatePrestigePoints());
+        }
+
+        [Fact]
+        public void PerformPrestige_WithPrestigiousAscension_AddsDivineEssenceBonusToPrestigePointsGained()
+        {
+            var mainController = new MainGameController();
+            mainController.CreateNewGame();
+            var mainState = mainController.CurrentMainState!;
+            var civ = mainState.CurrentWorldState!.PlayerCivilization;
+            civ.AddUniqueBuilding(BuildingType.ImperialPort);
+            for (int i = 0; i < 20; i++)
+                civ.Cities[0].AddBuilding(new Temple());
+
+            mainState.GodState.TotalDivineEssenceEarned = 5;
+            mainState.GodState.AscensionState.UnlockedPowers.Add(SettlersOfIdlestan.Model.Ascension.AscensionPowerId.PrestigiousAscension);
+
+            int expectedPoints = mainController.PrestigeController.CalculatePrestigePoints();
+            Assert.Contains(mainController.PrestigeController.GetPrestigePointSources(),
+                s => s.LabelKey == "prestige_divine_essence_bonus" && s.Points == 5);
+
+            mainController.PerformPrestige(corrupted: false);
+
+            Assert.Equal(expectedPoints, mainState.PrestigeState!.PrestigePoints);
+        }
     }
 }

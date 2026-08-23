@@ -432,7 +432,7 @@ namespace SettlersOfIdlestan.Controller
                 HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
                 BuildingController.Initialize(WorldState, Clock);
                 AtlasController.Initialize(CurrentMainState!.WorldPRNG);
-                PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock, CurrentMainState?.PrestigeState);
+                PrestigeController.Initialize(WorldState.PlayerCivilization, WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.GodState);
                 WonderController.Initialize(WorldState, Clock, HarvestController);
                 GreatLighthouseController.Initialize(WorldState, Clock, HarvestController);
                 ObservatoryController.Initialize(WorldState, Clock, HarvestController);

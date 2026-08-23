@@ -8,6 +8,7 @@ using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Races;
+using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Controller.Generator;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
@@ -19,18 +20,20 @@ namespace SettlersOfIdlestan.Controller.Expand
         private WorldState? _islandState;
         private GameClock? _clock;
         private PrestigeState? _prestigeState;
+        private GodState? _godState;
 
         internal PrestigeController()
         {
             // no op
         }
 
-        internal void Initialize(Civilization playerCivilization, WorldState? WorldState = null, GameClock? clock = null, PrestigeState? prestigeState = null)
+        internal void Initialize(Civilization playerCivilization, WorldState? WorldState = null, GameClock? clock = null, PrestigeState? prestigeState = null, GodState? godState = null)
         {
             _playerCivilization = playerCivilization;
             _islandState = WorldState;
             _clock = clock;
             _prestigeState = prestigeState;
+            _godState = godState;
         }
 
         private long GetCurrentTick() => _clock?.CurrentTick ?? 0;
@@ -112,6 +115,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (_islandState == null) return 0;
             return _islandState.RunRecord.TreasuresTroveClaimed;
         }
+
+        public bool HasPrestigiousAscension()
+            => _godState?.AscensionState.UnlockedPowers.Contains(AscensionPowerId.PrestigiousAscension) == true;
+
+        /// <summary>Ascension Prestigieuse : 1 point de prestige par essence divine gagnée depuis le début de la partie, versé à chaque prestige (voir aussi AscensionController.GrantPrestigiousAscensionPoints qui amorce chaque nouveau cycle d'Ascension).</summary>
+        public int GetDivineEssenceBonus()
+            => HasPrestigiousAscension() ? (_godState?.TotalDivineEssenceEarned ?? 0) : 0;
 
         public double GetPrestigeGainBonus()
             => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0) ?? 0.0;
@@ -283,6 +293,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             {
                 sources["prestige_treasure_trove_bonus"] = troveBonus;
                 tooltipKeys["prestige_treasure_trove_bonus"] = "prestige_tooltip_treasure_trove_bonus";
+            }
+
+            int divineEssenceBonus = GetDivineEssenceBonus();
+            if (divineEssenceBonus > 0)
+            {
+                sources["prestige_divine_essence_bonus"] = divineEssenceBonus;
+                tooltipKeys["prestige_divine_essence_bonus"] = "prestige_tooltip_divine_essence_bonus";
             }
 
             return sources
