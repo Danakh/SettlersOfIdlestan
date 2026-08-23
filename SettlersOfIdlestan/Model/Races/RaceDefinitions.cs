@@ -72,7 +72,7 @@ public static class RaceDefinitions
             }),
 
         // Elfes : nouvelles villes uniquement adjacentes à une Forêt ; en échange, scieries et
-        // recherche accélérées. Déblocage : Marche de Dieu, Ascension Prestigieuse, Œil de Dieu.
+        // recherche accélérées. Déblocage : Marche de Dieu, Ascension Prestigieuse, Mémoire de Dieu.
         new RaceDefinition(RaceId.Elf, RaceTier.Base,
             requiredAdjacentTerrain: TerrainType.Forest,
             racialBuilding: BuildingType.HeartTree,
@@ -83,7 +83,7 @@ public static class RaceDefinitions
                 new Modifier(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.HeartTree), EType.ADDITIVE, 1),
             },
-            requiredPowers: new[] { AscensionPowerId.WalkOfGod, AscensionPowerId.PrestigiousAscension, AscensionPowerId.EyeOfGod }),
+            requiredPowers: new[] { AscensionPowerId.WalkOfGod, AscensionPowerId.PrestigiousAscension, AscensionPowerId.MemoryOfGod }),
 
         // Nains : nouvelles villes uniquement adjacentes à une Montagne ; maîtres de la forge et
         // de la mine, et solides défenseurs. Déblocage : Héritage Divin, Bras de Dieu, Marche de Dieu.
@@ -117,7 +117,7 @@ public static class RaceDefinitions
         // Orcs : pillards sans terrain de prédilection — tout misé sur l'attaque et le raid plutôt
         // que sur l'économie ou la recherche. UNLOCK_RAID offert gratuitement (normalement un vertex
         // de prestige mi-parcours) ; en échange, recherche ralentie et Bibliothèque/Laboratoire
-        // plafonnent 1 niveau plus bas. Déblocage : Œil de Dieu, Main de Dieu, Bras de Dieu.
+        // plafonnent 1 niveau plus bas. Déblocage : Mémoire de Dieu, Main de Dieu, Bras de Dieu.
         new RaceDefinition(RaceId.Orc, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.SkullPit,
@@ -133,7 +133,7 @@ public static class RaceDefinitions
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Laboratory), EType.ADDITIVE, -1),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.SkullPit), EType.ADDITIVE, 1),
             },
-            requiredPowers: new[] { AscensionPowerId.EyeOfGod, AscensionPowerId.HandOfGod, AscensionPowerId.ArmOfGod }),
+            requiredPowers: new[] { AscensionPowerId.MemoryOfGod, AscensionPowerId.HandOfGod, AscensionPowerId.ArmOfGod }),
 
         // Géants : l'inverse des gobelins — villes à distance 4 minimum (rares), mais bâtiments
         // standards à niveau max +2 et récolte accélérée.

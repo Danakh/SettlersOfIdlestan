@@ -41,11 +41,11 @@ public class DarkElfRaceTests
         var ascension = controller.AscensionController;
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
         Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
 
@@ -145,7 +145,7 @@ public class DarkElfRaceTests
         var ascension = controller.AscensionController;
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
         Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
@@ -193,7 +193,7 @@ public class DarkElfRaceTests
         var ascension = controller.AscensionController;
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
         Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));

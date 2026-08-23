@@ -1131,20 +1131,19 @@ public class AscensionControllerTests
     private static void UnlockMemoryOfGod(AscensionController ascension)
     {
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
     }
 
     [Fact]
-    public void MemoryOfGod_RequiresEyeOfGodFirstInColumn()
+    public void EyeOfGod_RequiresMemoryOfGodFirstInColumn()
     {
         var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
 
-        Assert.False(ascension.CanPurchasePower(AscensionPowerId.MemoryOfGod));
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.EyeOfGod));
 
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
-        Assert.True(ascension.CanPurchasePower(AscensionPowerId.MemoryOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.EyeOfGod));
     }
 
     [Fact]
@@ -1152,7 +1151,6 @@ public class AscensionControllerTests
     {
         var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
 
         Assert.DoesNotContain(ascension.GetModifiers(),
             m => m.Category == Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION);
@@ -1225,7 +1223,6 @@ public class AscensionControllerTests
         var controller = CreateAscendableGame(out var godState);
         var ascension = controller.AscensionController;
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
 
         var tree = controller.CurrentMainState!.PrestigeState!.TechnologyTree;

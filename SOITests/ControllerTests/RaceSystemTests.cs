@@ -54,7 +54,7 @@ public class RaceSystemTests
     {
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
         Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
@@ -65,14 +65,14 @@ public class RaceSystemTests
     private static void UnlockSecondRow(AscensionController ascension)
     {
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
     }
 
     /// <summary>
-    /// Hand+Eye+Walk+Arm complète exactement la combinaison des Orcs (Œil, Main, Bras — Marche est
-    /// en trop mais ne gêne pas) : IsRaceSelectionUnlocked (vraie dès qu'une race de base autre
+    /// Hand+Memory+Walk+Arm complète exactement la combinaison des Orcs (Mémoire, Main, Bras — Marche
+    /// est en trop mais ne gêne pas) : IsRaceSelectionUnlocked (vraie dès qu'une race de base autre
     /// qu'Humains devient sélectionnable) ne bascule donc qu'au dernier des 4 pouvoirs.
     /// </summary>
     [Fact]
@@ -84,7 +84,7 @@ public class RaceSystemTests
 
         ascension.PurchasePower(AscensionPowerId.Faith);
         ascension.PurchasePower(AscensionPowerId.HandOfGod);
-        ascension.PurchasePower(AscensionPowerId.EyeOfGod);
+        ascension.PurchasePower(AscensionPowerId.MemoryOfGod);
         ascension.PurchasePower(AscensionPowerId.WalkOfGod);
         Assert.False(ascension.IsRaceSelectionUnlocked);
 
@@ -95,7 +95,7 @@ public class RaceSystemTests
 
     /// <summary>
     /// Chaque race de base a sa propre combinaison de 3 pouvoirs (RaceDefinition.RequiredPowers),
-    /// indépendante des autres : acheter uniquement celle des Orcs (Œil, Main, Bras) ne débloque ni
+    /// indépendante des autres : acheter uniquement celle des Orcs (Mémoire, Main, Bras) ne débloque ni
     /// les Elfes, ni les Nains, ni les Gobelins.
     /// </summary>
     [Fact]
@@ -103,7 +103,7 @@ public class RaceSystemTests
     {
         var ascension = CreateAscension(out _);
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
 
@@ -127,7 +127,7 @@ public class RaceSystemTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
         Assert.False(ascension.AreAdvancedRacesUnlocked);
 
-        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.False(ascension.AreAdvancedRacesUnlocked);
 
         Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
