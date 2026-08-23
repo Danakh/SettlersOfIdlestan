@@ -529,6 +529,13 @@ namespace SettlersOfIdlestan.Controller
             FeatureController.RefreshContestedTerritories();
             HarvestController.InvalidateProductionCache(e.CivilizationIndex);
             MobileCampController.DestroyCampsNear(e.Position, e.CivilizationIndex);
+
+            // Une nouvelle ville — même celle d'une civilisation ennemie — peut retirer un bord
+            // auparavant constructible du cache d'une AUTRE civilisation (le bord touche désormais un
+            // vertex avec une ville ennemie, voir RoadController.IsEdgeBuildableByCivilization). La clé
+            // de cache ne suit que le nombre de villes/balises de sa propre civilisation, donc sans cet
+            // appel le cache des autres civs resterait obsolète jusqu'à leur prochaine route posée.
+            RoadController.InvalidateBuildableRoadsCacheForLayer(e.Position.Z);
         }
 
         /// <summary>Relocating a city onto (or near) a Camp Mobile of the same civilization must destroy

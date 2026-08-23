@@ -46,7 +46,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// civilisations (enemyProtectedEdges, HasEnemyCityAt) : un changement de routes/ville chez une
         /// seule civilisation peut donc rendre le cache d'une autre civilisation obsolète sur ce layer.
         /// </summary>
-        private void InvalidateBuildableRoadsCacheForLayer(int layer)
+        internal void InvalidateBuildableRoadsCacheForLayer(int layer)
         {
             foreach (var key in _buildableRoadsCache.Keys.Where(k => k.Layer == layer).ToList())
                 _buildableRoadsCache.Remove(key);
@@ -93,8 +93,15 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null || _clock == null) return;
             long now = _clock.CurrentTick;
 
-            foreach (var civ in _state.Civilizations)
+            // Boucle indexée (et non foreach) car OnAutoRoadBuilt ci-dessous peut, via
+            // AutoExtendController.TryExtendMapAfterRoad → SpawnAggressiveCivilization, ajouter
+            // une civilisation PNJ à _state.Civilizations pendant cette même itération : un foreach
+            // lèverait "Collection was modified" dès l'appel MoveNext suivant. Recalculer Count à
+            // chaque tour tolère l'ajout (la nouvelle civ est simplement traitée ce tick, sans effet
+            // puisqu'elle n'a pas encore de BuildersGuild).
+            for (int i = 0; i < _state.Civilizations.Count; i++)
             {
+                var civ = _state.Civilizations[i];
                 if (civ.GetUniqueBuilding(BuildingType.BuildersGuild) is not BuildersGuild guild || guild.Level == 0) continue;
 
                 // Keep timer running when disabled to avoid burst on re-enable (player only)
