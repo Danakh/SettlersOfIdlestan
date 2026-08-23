@@ -37,7 +37,7 @@ public sealed class AscensionRenderer : IDisposable
     private const float InnerTabHeight     = 28f;
     private const float InnerTabWidth      = 160f;
     private const int   BuildingCardColumns = 4;
-    private const float BuildingCardHeight  = 120f;
+    private const float BuildingCardHeight  = 64f;
     // Cartes de race (voir RenderPendingRaceChoicePage) : nom + un court texte d'ambiance de 2-3
     // lignes (RaceDefinition.DescKey) ou, verrouillée, nom + jusqu'à 3 prérequis (voir
     // DrawRaceLockRequirement) — les infos de gameplay (bonus/malus, bâtiment racial) passent en
@@ -88,6 +88,11 @@ public sealed class AscensionRenderer : IDisposable
     // convertit l'essence tout de suite, mais l'île n'est régénérée qu'une fois la race choisie.
     private readonly AscensionConfirmPopupRenderer _confirmPopup;
     private SKRect _ascendButtonRect  = SKRect.Empty;
+
+    // Choix d'un bâtiment unique permanent (voir DrawPermanentBuildingTab) : définitif une fois
+    // confirmé, d'où cette modale — même patron que _confirmPopup, mais paramétrée par le bâtiment
+    // sur lequel le joueur vient de cliquer.
+    private readonly PermanentBuildingConfirmPopupRenderer _permanentBuildingConfirmPopup;
 
     // Vue de la carte des pouvoirs. Les hexagones sont dessinés en coordonnées locales dans un
     // canvas translaté/mis à l'échelle ; _mapViewportRect délimite la zone où la carte reçoit les
@@ -160,6 +165,10 @@ public sealed class AscensionRenderer : IDisposable
     // Race déjà ascensionnée par le joueur (AscensionController.AscendedRaces) : cadre vert plutôt
     // qu'un libellé texte, pour rester lisible dans la hauteur de carte réduite (voir RaceCardHeight).
     private readonly SKPaint _ascendedBorderPaint = new() { Color = new SKColor(90, 200, 110), StrokeWidth = 1.4f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    // Bâtiment unique permanent déjà choisi (voir DrawPermanentBuildingCard) : fond vert plutôt que
+    // le fond doré générique de _cardActivePaint, le choix étant définitif contrairement aux autres
+    // usages de ce dernier (survol/sélection courante réversible).
+    private readonly SKPaint _cardSelectedPaint = new() { Color = new SKColor(25, 65, 35, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _connectorPaint    = new() { Color = new SKColor(90, 90, 110), StrokeWidth = 2f, IsAntialias = true };
     private readonly SKPaint _unlockPaint       = new() { Color = new SKColor(150, 110, 30), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _unlockHoverPaint  = new() { Color = new SKColor(185, 140, 45), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -198,12 +207,15 @@ public sealed class AscensionRenderer : IDisposable
         // confirmation : rien ne bascule automatiquement sur l'onglet Île, pour qu'il puisse
         // continuer à dépenser ses points divins avant d'aller choisir sa race.
         _confirmPopup = new AscensionConfirmPopupRenderer(localization, onConfirm: () => _gameControllerService.RequestAscension());
+        _permanentBuildingConfirmPopup = new PermanentBuildingConfirmPopupRenderer(localization,
+            onConfirm: type => _gameControllerService.MainGameController.AscensionController.SelectPermanentUniqueBuilding(type));
     }
 
     public void Initialize(SKSize canvasSize)
     {
         _canvasSize = canvasSize;
         _confirmPopup.Initialize(canvasSize);
+        _permanentBuildingConfirmPopup.Initialize(canvasSize);
         // La carte est recentrée au premier rendu, une fois la hauteur de l'en-tête connue.
         _zoom = 1f;
         _mapCentered = false;
@@ -211,13 +223,20 @@ public sealed class AscensionRenderer : IDisposable
         _isPanning = false;
     }
 
-    /// <summary>Instantané de la confirmation d'Ascension (hors choix de race) pour la vue de l'hôte.</summary>
-    public ModalPopupSnapshot GetOverlayModalSnapshot() => _confirmPopup.GetSnapshot();
+    /// <summary>
+    /// Instantané de la confirmation ouverte pour la vue de l'hôte, s'il y en a une (Ascension hors
+    /// choix de race, ou choix d'un bâtiment unique permanent) : les deux s'excluent, aucune des
+    /// deux n'étant accessible tant que l'autre est ouverte (voir HandlePointerPressed).
+    /// </summary>
+    public ModalPopupSnapshot GetOverlayModalSnapshot() =>
+        _permanentBuildingConfirmPopup.IsOpen ? _permanentBuildingConfirmPopup.GetSnapshot() : _confirmPopup.GetSnapshot();
 
     public void InvokeOverlayModalButtonFromHost(string popupId, string key)
     {
         if (popupId == ModalPopupSnapshot.IdAscensionConfirm)
             _confirmPopup.InvokeButton(key);
+        else if (popupId == ModalPopupSnapshot.IdPermanentBuildingConfirm)
+            _permanentBuildingConfirmPopup.InvokeButton(key);
     }
 
     public void RenderAscensionPage(SKCanvas canvas, GameRenderContext context)
@@ -657,9 +676,15 @@ public sealed class AscensionRenderer : IDisposable
     {
         var noteLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_permanent_building_note"), contentWidth, _descFont);
 
+        // Le texte se dessine par sa ligne de base : la première ligne d'un bloc défilant ne peut
+        // pas partir exactement au bord haut du viewport, sans quoi le clip tranche son ascendante
+        // (glyphes coupés en haut) — même correctif que RenderPendingRaceChoicePage/
+        // _pendingRaceScrollOffsetPx, absent à tort ici jusqu'ici.
+        float noteTop = y + _descFont.Size;
+
         var chosen = ascension.PermanentUniqueBuildings;
         int slots = ascension.PermanentUniqueBuildingSlots;
-        float slotsY = y + noteLayout.Lines.Count * _descFont.Spacing + 6f;
+        float slotsY = noteTop + noteLayout.Lines.Count * _descFont.Spacing + 6f;
 
         float gridTop = slotsY + 20f;
         float cardGap = 12f;
@@ -679,7 +704,7 @@ public sealed class AscensionRenderer : IDisposable
         canvas.ClipRect(_buildingTabViewportRect);
         canvas.Translate(0, -_buildingTabScrollOffsetPx);
 
-        DrawCenteredTextLayout(canvas, noteLayout, x + contentWidth / 2f, y, _descFont, _mutedPaint);
+        DrawCenteredTextLayout(canvas, noteLayout, x + contentWidth / 2f, noteTop, _descFont, _mutedPaint);
         string slotsText = _localization.GetFormated("ascension_permanent_building_slots_label", chosen.Count, slots);
         SkiaTextUtils.DrawText(canvas, slotsText, x + contentWidth / 2f, slotsY, SKTextAlign.Center, _nameFont, _accentPaint);
 
@@ -701,7 +726,7 @@ public sealed class AscensionRenderer : IDisposable
             string fullTooltipKey = slots <= 0
                 ? "ascension_permanent_building_locked_tooltip"
                 : "ascension_permanent_building_no_slots_tooltip";
-            DrawPermanentBuildingCard(canvas, cardX, cardY, cardWidth, type, selected, full, fullTooltipKey);
+            DrawPermanentBuildingCard(canvas, cardX, cardY, cardWidth, type, selected, full, fullTooltipKey, ascension);
         }
 
         _hoverPosition = savedHover;
@@ -729,13 +754,22 @@ public sealed class AscensionRenderer : IDisposable
         canvas.DrawRoundRect(_buildingScrollThumbRect, 3, 3, _scrollThumbPaint);
     }
 
-    private void DrawPermanentBuildingCard(SKCanvas canvas, float x, float y, float width, BuildingType type, bool selected, bool full, string fullTooltipKey)
+    /// <summary>
+    /// Une carte de bâtiment permanent : nom + niveau auquel il sera créé (voir
+    /// AscensionController.GetPermanentUniqueBuildingLevel), sa description passant en tooltip au
+    /// survol (voir <see cref="descKey"/> ci-dessous) pour tenir dans <see cref="BuildingCardHeight"/>
+    /// réduite. Déjà choisi (voir DrawPermanentBuildingTab) : fond et bordure verts
+    /// (<see cref="_cardSelectedPaint"/>/<see cref="_ascendedBorderPaint"/>) plutôt qu'un libellé
+    /// texte — le choix étant définitif (voir _permanentBuildingConfirmPopup), aucune interaction ne
+    /// reste possible dessus.
+    /// </summary>
+    private void DrawPermanentBuildingCard(SKCanvas canvas, float x, float y, float width, BuildingType type, bool selected, bool full, string fullTooltipKey, AscensionController ascension)
     {
         var rect = new SKRect(x, y, x + width, y + BuildingCardHeight);
         bool hovered = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
 
-        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActivePaint : (full ? _cardLockedPaint : (hovered ? _cardPaint : _cardLockedPaint)));
-        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActiveBorder : _cardBorderPaint);
+        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardSelectedPaint : (full ? _cardLockedPaint : (hovered ? _cardPaint : _cardLockedPaint)));
+        canvas.DrawRoundRect(rect, 8, 8, selected ? _ascendedBorderPaint : _cardBorderPaint);
 
         canvas.Save();
         canvas.ClipRect(rect);
@@ -747,17 +781,14 @@ public sealed class AscensionRenderer : IDisposable
         var namePaint = selected ? _accentPaint : (full ? _mutedPaint : _namePaint);
         SkiaTextUtils.DrawText(canvas, _localization.Get(nameKey), centerX, y + 20f, SKTextAlign.Center, _nameFont, namePaint);
 
-        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(descKey), width - 16f, _descFont);
-        DrawCenteredTextLayout(canvas, descLayout, centerX, y + 38f, _descFont, full ? _mutedPaint : _descPaint);
+        int level = ascension.GetPermanentUniqueBuildingLevel(type);
+        string levelText = _localization.GetFormated("ascension_permanent_building_level_label", level);
+        SkiaTextUtils.DrawText(canvas, levelText, centerX, y + 40f, SKTextAlign.Center, _descFont, full ? _mutedPaint : _descPaint);
 
-        if (selected)
-        {
-            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_permanent_building_selected_label"), centerX, y + BuildingCardHeight - 10f, SKTextAlign.Center, _buttonFont, _accentPaint);
-        }
-        else if (full && hovered)
+        if (hovered)
         {
             _hoveredLockedRect = rect;
-            _hoveredLockedTooltip = _localization.Get(fullTooltipKey);
+            _hoveredLockedTooltip = full ? _localization.Get(fullTooltipKey) : _localization.Get(descKey);
         }
 
         canvas.Restore();
@@ -1125,7 +1156,7 @@ public sealed class AscensionRenderer : IDisposable
     {
         // Confirmation portée par la modale de l'hôte : elle intercepte déjà les clics, mais la
         // garde reste ici — c'est ce renderer qui détient l'état d'ouverture.
-        if (_confirmPopup.IsOpen) return true;
+        if (_confirmPopup.IsOpen || _permanentBuildingConfirmPopup.IsOpen) return true;
 
         if (!_ascendButtonRect.IsEmpty && _ascendButtonRect.Contains(position.X, position.Y))
         {
@@ -1164,15 +1195,15 @@ public sealed class AscensionRenderer : IDisposable
 
         var ascension = _gameControllerService.MainGameController.AscensionController;
 
+        // Choix définitif (voir _permanentBuildingConfirmPopup) : cliquer sur un bâtiment déjà
+        // choisi ne fait plus rien, aucune interface ne permettant de revenir dessus.
         var buildingClickPosition = new SKPoint(position.X, position.Y + _buildingTabScrollOffsetPx);
         foreach (var (type, rect) in _permanentBuildingRects)
         {
             if (rect.Contains(buildingClickPosition.X, buildingClickPosition.Y))
             {
-                if (ascension.PermanentUniqueBuildings.Contains(type))
-                    ascension.DeselectPermanentUniqueBuilding(type);
-                else
-                    ascension.SelectPermanentUniqueBuilding(type);
+                if (!ascension.PermanentUniqueBuildings.Contains(type))
+                    _permanentBuildingConfirmPopup.Open(type);
                 return true;
             }
         }
@@ -1195,6 +1226,7 @@ public sealed class AscensionRenderer : IDisposable
     {
         if (_disposed) return;
         _confirmPopup.Dispose();
+        _permanentBuildingConfirmPopup.Dispose();
         _bgPaint.Dispose();
         _cardPaint.Dispose();
         _cardLockedPaint.Dispose();
@@ -1202,6 +1234,7 @@ public sealed class AscensionRenderer : IDisposable
         _cardBorderPaint.Dispose();
         _cardActiveBorder.Dispose();
         _ascendedBorderPaint.Dispose();
+        _cardSelectedPaint.Dispose();
         _connectorPaint.Dispose();
         _unlockPaint.Dispose();
         _unlockHoverPaint.Dispose();

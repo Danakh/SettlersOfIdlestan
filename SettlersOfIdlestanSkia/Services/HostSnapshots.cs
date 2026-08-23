@@ -670,6 +670,10 @@ public sealed record ModalPopupSnapshot(
     /// l'onglet Ascension, meme forme que les precedentes.
     public const string IdAscensionConfirm = "ascensionConfirm";
 
+    /// Confirmation d'un choix de bâtiment unique permanent d'Ascension, définitif une fois
+    /// valide. Portee par l'onglet Ascension, meme forme que les precedentes.
+    public const string IdPermanentBuildingConfirm = "permanentBuildingConfirm";
+
     /// Cle conventionnelle de la croix de fermeture, commune a toutes les modales.
     public const string KeyClose = "__close__";
 }

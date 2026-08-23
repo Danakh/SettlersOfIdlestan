@@ -377,6 +377,15 @@ public class AscensionController : IModifierProvider
         => _ascensionState?.PermanentUniqueBuildings.Remove(type) ?? false;
 
     /// <summary>
+    /// Niveau auquel un bâtiment unique permanent d'Ascension sera créé s'il est choisi : son
+    /// niveau max absolu (voir Building.GetAbsoluteMaxLevel et Civilization.RebuildUniqueBuildingCache),
+    /// jamais son niveau de construction habituel. Affiché sur sa carte de choix
+    /// (AscensionRenderer.DrawPermanentBuildingCard) à la place de sa description, reléguée en tooltip.
+    /// </summary>
+    public int GetPermanentUniqueBuildingLevel(BuildingType type) =>
+        Math.Max(1, BuildingController.CreateBuilding(type)?.GetAbsoluteMaxLevel() ?? 1);
+
+    /// <summary>
     /// Applique à la civilisation du joueur de l'île courante les bâtiments uniques permanents
     /// choisis (voir SelectPermanentUniqueBuilding). À appeler à chaque début d'île (nouvelle partie,
     /// prestige, ascension, redémarrage) — voir MainGameController.InitializeControllersForCurrentIsland.
