@@ -3,6 +3,10 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.16
+
+---
+
 v0.15
 • Added the boss
 • Added post-ascension races
