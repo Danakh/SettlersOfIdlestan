@@ -146,14 +146,19 @@ public class CorruptionController
         }
 
         var dominion = _state.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault();
-        // Dogme de l'Emprise (TEMPLE_DOMINION_CAP) relève le plafond par niveau de Temple.
-        int capPerLevel = TempleDominionCapPerLevel
-            + civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.TEMPLE_DOMINION_CAP, "", 0);
-        int cap = capPerLevel * temple.Level;
+        int cap = GetTempleDominionCap(civ, temple.Level);
         if (dominion == null)
             _state.AddFeature(new Dominion(hex, level: 1));
         else if (dominion.Level < cap)
             dominion.Level++;
+    }
+
+    /// <summary>Plafond de Dominion par hex qu'un Temple de ce niveau peut atteindre pour cette civilisation (Dogme de l'Emprise / TEMPLE_DOMINION_CAP relève le plafond par niveau de Temple). Utilisé par <see cref="ApplyTempleActionOnHex"/> et par le tooltip du panneau ville.</summary>
+    public static int GetTempleDominionCap(Civilization civ, int templeLevel)
+    {
+        int capPerLevel = TempleDominionCapPerLevel
+            + civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.TEMPLE_DOMINION_CAP, "", 0);
+        return capPerLevel * templeLevel;
     }
 
     /// <summary>

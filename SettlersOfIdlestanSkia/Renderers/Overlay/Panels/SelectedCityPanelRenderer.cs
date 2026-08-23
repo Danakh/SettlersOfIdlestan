@@ -248,6 +248,22 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     }
                 }
 
+                if (hoveredBuilding is Temple temple && temple.Level >= 2)
+                {
+                    int cap = _cityBuildingService.GetTempleDominionCap(temple);
+                    int harvestBonusPercent = (int)Math.Round(_cityBuildingService.GetDominionHarvestBonusPerLevel() * 100);
+                    tooltipLines.Add(_localization.Get("temple_dominion_header"));
+                    tooltipLines.Add(_localization.GetFormated("temple_dominion_generation", cap));
+                    tooltipLines.Add(_localization.GetFormated("temple_dominion_harvest_bonus", harvestBonusPercent));
+                    if (!_cityBuildingService.IsAtMaxLevel(temple))
+                    {
+                        int nextCap = _cityBuildingService.GetTempleDominionCap(temple, temple.Level + 1);
+                        if (nextCap != cap)
+                            tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next") + " " + _localization.GetFormated("temple_dominion_generation", nextCap));
+                    }
+                    tooltipLines.Add("");
+                }
+
                 if (hoveredBuilding is Palisade palisade && palisade.Level > 0)
                 {
                     int defenseBonus = palisade.GetDefenseBonusAtLevel(palisade.Level);
