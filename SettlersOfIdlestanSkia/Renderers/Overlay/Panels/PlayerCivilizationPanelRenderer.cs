@@ -359,11 +359,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private static bool IsRestrictSoldierProductionByLayer(AutomationSettings settings, int layerZ)
         => settings.RestrictSoldierProductionToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v;
 
-    private static bool IsKeyShowable(string key, Civilization civ,
+    private static bool IsKeyShowable(string key,
         SettlersOfIdlestan.Model.IslandMap.WorldState? worldState,
         bool hasBarracks, bool hasArsenal, bool hasLabs, bool hasSmelters,
-        bool hasWeaponSmiths, bool hasArmorSmiths, bool hasAlchimistHuts)
+        bool hasWeaponSmiths, bool hasArmorSmiths, bool hasAlchimistHuts,
+        IReadOnlyDictionary<string, bool> structuralUnlocks, int freePerCitySoldierQuota)
     {
+        if (worldState == null) return false;
+
         return key switch
         {
             AutomationRenderer.PinKeyBarracks     => hasBarracks,
@@ -373,7 +376,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeyWeaponSmith  => hasWeaponSmiths,
             AutomationRenderer.PinKeyArmorSmith   => hasArmorSmiths,
             AutomationRenderer.PinKeyAlchimistHut => hasAlchimistHuts,
-            _ => worldState != null, // automation keys: always show if world state available
+            AutomationRenderer.PinKeyRestrictSoldierProduction or
+            AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld or
+            AutomationRenderer.PinKeyRestrictSoldierProductionAbyss or
+            AutomationRenderer.PinKeyRestrictSoldierProductionPandemonium =>
+                freePerCitySoldierQuota > 0 && (hasBarracks || hasArsenal),
+            // Bascules structurelles (guildes, techs...) : masquees si le deblocage a ete perdu.
+            _ => structuralUnlocks.GetValueOrDefault(key, true),
         };
     }
 
@@ -829,11 +838,17 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool hasArmorSmiths   = HasBuilt<ArmorSmith>(civ);
         bool hasAlchimistHuts = HasBuilt<AlchimistHut>(civ);
 
+        // Meme table que l'onglet Automatisation (AutomationRenderer.ComputeStructuralUnlocks) :
+        // une bascule epinglee dont le deblocage a ete perdu (guilde retombee sous le niveau
+        // requis apres une Ascension, par ex.) ne doit pas rester affichee ici.
+        var structuralUnlocks = AutomationRenderer.ComputeStructuralUnlocks(civ);
+        int freePerCitySoldierQuota = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+
         var toggles = new List<CivToggleSnapshot>();
         foreach (var key in pinned)
         {
-            if (!IsKeyShowable(key, civ, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters,
-                    hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts))
+            if (!IsKeyShowable(key, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters,
+                    hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts, structuralUnlocks, freePerCitySoldierQuota))
                 continue;
 
             var (value, nameKey, tooltipKey) = ResolvePinnedToggle(key, civ, worldState);

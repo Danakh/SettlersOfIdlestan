@@ -303,10 +303,17 @@ public sealed class AutomationRenderer : IDisposable
 
     private IReadOnlySet<string> _pinnedKeys = new HashSet<string>();
 
-    private (List<SectionModel> Left, List<SectionModel> Right) BuildColumns(Civilization civ, WorldState worldState)
+    /// <summary>
+    /// Deblocage de chaque bascule "structurelle" (bacs batiments/comportements) — tout sauf les
+    /// controles bati-par-bati et les restrictions de production de soldats, qui se determinent
+    /// par existence de batiment. Unique source de verite entre <see cref="BuildColumns"/> (onglet
+    /// plein ecran) et PlayerCivilizationPanelRenderer (bascules epinglees) : sans elle, une
+    /// bascule dont le deblocage a ete perdu (guilde retombee a un niveau insuffisant apres une
+    /// Ascension, par exemple) continuait de s'afficher — et de rester actionnable — dans le
+    /// panneau civilisation alors que l'onglet Automatisation la montre verrouillee.
+    /// </summary>
+    internal static Dictionary<string, bool> ComputeStructuralUnlocks(Civilization civ)
     {
-        var settings = worldState.AutomationSettings;
-
         BuildersGuild? buildersGuild = null;
         HarvestersGuild? harvestersGuild = null;
         ArtisansGuild? artisansGuild = null;
@@ -339,6 +346,33 @@ public sealed class AutomationRenderer : IDisposable
         bool roadUnlocked = buildersGuild != null && buildersGuild.Level >= 1;
         bool outpostUnlocked = buildersGuild != null && buildersGuild.Level >= 4;
 
+        return new Dictionary<string, bool>
+        {
+            [PinKeyRoad] = roadUnlocked,
+            [PinKeyRoadUnderworld] = roadUnlocked && hasBuildersGuildUnderworld,
+            [PinKeyOutpost] = outpostUnlocked,
+            [PinKeyOutpostUnderworld] = outpostUnlocked && hasBuildersGuildUnderworld,
+            [PinKeyTownHall] = roadUnlocked,
+            [PinKeyProduction] = harvestersGuild is { Level: >= 1 },
+            [PinKeyArtisan] = artisansGuild is { Level: >= 1 },
+            [PinKeyLibrary] = academy is { Level: >= 1 },
+            [PinKeyMarket] = traderGuild is { Level: >= 1 },
+            [PinKeySeaport] = hasSeaportAutomation && imperialPort != null,
+            [PinKeyMilBuildings] = warRoom is { Level: >= 1 },
+            [PinKeyGrandTemple] = grandTemple is { Level: >= 1 },
+            [PinKeyMithrilMine] = volcanicForge is { Level: >= 1 },
+            [PinKeyArcaneTower] = arcaneTower is { Level: >= 1 },
+            [PinKeyMilReinforce] = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics),
+            [PinKeyMilVendetta] = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.Vendetta),
+            [PinKeyMonumentInvestment] = true,
+        };
+    }
+
+    private (List<SectionModel> Left, List<SectionModel> Right) BuildColumns(Civilization civ, WorldState worldState)
+    {
+        var settings = worldState.AutomationSettings;
+        var unlocks = ComputeStructuralUnlocks(civ);
+
         // Categorie deduite de la cle plutot que passee en parametre : PinKeyCategories est deja
         // la table de reference (partagee avec le panneau civilisation), la dedoubler ici ne
         // pourrait que diverger.
@@ -354,30 +388,30 @@ public sealed class AutomationRenderer : IDisposable
 
         var buildings = new List<RowModel>
         {
-            Row(PinKeyRoad, "automation_road", roadUnlocked, settings.RoadAutomationEnabled),
-            Row(PinKeyRoadUnderworld, "automation_road_underworld", roadUnlocked && hasBuildersGuildUnderworld, settings.RoadAutomationEnabledUnderworld),
-            Row(PinKeyOutpost, "automation_outpost", outpostUnlocked, settings.OutpostAutomationEnabled),
-            Row(PinKeyOutpostUnderworld, "automation_outpost_underworld", outpostUnlocked && hasBuildersGuildUnderworld, settings.OutpostAutomationEnabledUnderworld),
-            Row(PinKeyTownHall, "automation_townhall", roadUnlocked, settings.TownHallAutomationEnabled, TownHallTypes),
-            Row(PinKeyProduction, "automation_production", harvestersGuild is { Level: >= 1 }, settings.ProductionBuildingAutomationEnabled, ProductionTypes),
-            Row(PinKeyArtisan, "automation_artisan", artisansGuild is { Level: >= 1 }, settings.ArtisanBuildingAutomationEnabled, ArtisanTypes),
-            Row(PinKeyLibrary, "automation_library", academy is { Level: >= 1 }, settings.LibraryBuildingAutomationEnabled, LibraryTypes),
-            Row(PinKeyMarket, "automation_market", traderGuild is { Level: >= 1 }, settings.MarketBuildingAutomationEnabled, MarketTypes),
+            Row(PinKeyRoad, "automation_road", unlocks[PinKeyRoad], settings.RoadAutomationEnabled),
+            Row(PinKeyRoadUnderworld, "automation_road_underworld", unlocks[PinKeyRoadUnderworld], settings.RoadAutomationEnabledUnderworld),
+            Row(PinKeyOutpost, "automation_outpost", unlocks[PinKeyOutpost], settings.OutpostAutomationEnabled),
+            Row(PinKeyOutpostUnderworld, "automation_outpost_underworld", unlocks[PinKeyOutpostUnderworld], settings.OutpostAutomationEnabledUnderworld),
+            Row(PinKeyTownHall, "automation_townhall", unlocks[PinKeyTownHall], settings.TownHallAutomationEnabled, TownHallTypes),
+            Row(PinKeyProduction, "automation_production", unlocks[PinKeyProduction], settings.ProductionBuildingAutomationEnabled, ProductionTypes),
+            Row(PinKeyArtisan, "automation_artisan", unlocks[PinKeyArtisan], settings.ArtisanBuildingAutomationEnabled, ArtisanTypes),
+            Row(PinKeyLibrary, "automation_library", unlocks[PinKeyLibrary], settings.LibraryBuildingAutomationEnabled, LibraryTypes),
+            Row(PinKeyMarket, "automation_market", unlocks[PinKeyMarket], settings.MarketBuildingAutomationEnabled, MarketTypes),
             // Seule ligne sans note explicative.
-            Row(PinKeySeaport, "automation_seaport", hasSeaportAutomation && imperialPort != null, settings.SeaportBuildingAutomationEnabled, SeaportTypes, hasNote: false),
-            Row(PinKeyMilBuildings, "automation_military_buildings", warRoom is { Level: >= 1 }, settings.MilitaryBuildingAutomationEnabled, MilitaryTypes),
-            Row(PinKeyGrandTemple, "automation_grandtemple", grandTemple is { Level: >= 1 }, settings.TempleAutomationEnabled, GrandTempleTypes),
-            Row(PinKeyMithrilMine, "automation_mithrilmine", volcanicForge is { Level: >= 1 }, settings.MithrilMineBuildingAutomationEnabled, MithrilMineTypes),
-            Row(PinKeyArcaneTower, "automation_arcanetower", arcaneTower is { Level: >= 1 }, settings.ArcaneTowerBuildingAutomationEnabled, ArcaneTowerTypes),
+            Row(PinKeySeaport, "automation_seaport", unlocks[PinKeySeaport], settings.SeaportBuildingAutomationEnabled, SeaportTypes, hasNote: false),
+            Row(PinKeyMilBuildings, "automation_military_buildings", unlocks[PinKeyMilBuildings], settings.MilitaryBuildingAutomationEnabled, MilitaryTypes),
+            Row(PinKeyGrandTemple, "automation_grandtemple", unlocks[PinKeyGrandTemple], settings.TempleAutomationEnabled, GrandTempleTypes),
+            Row(PinKeyMithrilMine, "automation_mithrilmine", unlocks[PinKeyMithrilMine], settings.MithrilMineBuildingAutomationEnabled, MithrilMineTypes),
+            Row(PinKeyArcaneTower, "automation_arcanetower", unlocks[PinKeyArcaneTower], settings.ArcaneTowerBuildingAutomationEnabled, ArcaneTowerTypes),
         };
 
         var behaviors = new List<RowModel>
         {
             Row(PinKeyMilReinforce, "automation_military_reinforcement",
-                civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics), settings.MilitaryReinforcementAutomationEnabled),
+                unlocks[PinKeyMilReinforce], settings.MilitaryReinforcementAutomationEnabled),
             Row(PinKeyMilVendetta, "automation_military_vendetta",
-                civ.TechnologyTree.CompletedTechnologies.Contains(TechId.Vendetta), settings.MilitaryVendettaAutomationEnabled),
-            Row(PinKeyMonumentInvestment, "automation_monument_investment", true, settings.MonumentInvestmentAutomationEnabled),
+                unlocks[PinKeyMilVendetta], settings.MilitaryVendettaAutomationEnabled),
+            Row(PinKeyMonumentInvestment, "automation_monument_investment", unlocks[PinKeyMonumentInvestment], settings.MonumentInvestmentAutomationEnabled),
         };
 
         var right = new List<SectionModel> { new("automation_header_behaviors", behaviors) };
