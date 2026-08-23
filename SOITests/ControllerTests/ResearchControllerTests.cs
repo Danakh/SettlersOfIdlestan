@@ -476,4 +476,115 @@ public class ResearchControllerTests
         Assert.Equal(2, ctrl.GetRepeatCount(TechnologyId.MasterHarvest));
         Assert.Equal(investedBeforeSecondCompletion + tech.Cost * 2, ctrl.TotalResearchPointsInvested);
     }
+
+    /// <summary>
+    /// VolcanicMetallurgy n'a qu'un seul effet : débloquer la Forge Volcanique (BUILDING_MAX_LEVEL).
+    /// Une fois ce bâtiment unique choisi comme bâtiment permanent d'Ascension (il fonctionne alors
+    /// déjà pleinement sans la recherche, voir Civilization.SetAscensionGrantedUniqueBuildings), la
+    /// recherche doit être accordée gratuitement : Completed sans investissement, plus rien à faire.
+    /// </summary>
+    [Fact]
+    public void FreeUniqueBuildingGrant_MarksResearchCompleted_WithoutInvestment()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        var godState = new GodState(prestigeState);
+        godState.AscensionState.PermanentUniqueBuildings.Add(BuildingType.VolcanicForge);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState, settings: null, godState: godState);
+
+        Assert.Equal(TechnologyStatus.Completed, ctrl.GetStatus(TechnologyId.VolcanicMetallurgy));
+        var (consumed, total) = ctrl.GetResearchProgress(TechnologyId.VolcanicMetallurgy);
+        Assert.Equal(total, consumed);
+        Assert.False(ctrl.StartResearch(TechnologyId.VolcanicMetallurgy));
+        Assert.DoesNotContain(TechnologyId.VolcanicMetallurgy, prestigeState.TechnologyTree.CompletedTechnologies);
+    }
+
+    /// <summary>
+    /// Une recherche accordée gratuitement par un bâtiment unique permanent (ici VolcanicMetallurgy,
+    /// via la Forge Volcanique) ne doit compter comme prérequis rempli pour une autre recherche
+    /// (AcierAbyssal) que si son propre prérequis (Volcanologie) est lui-même satisfait — sinon le
+    /// choix du bâtiment permanent permettrait de sauter toute la branche Volcanologie.
+    /// </summary>
+    [Fact]
+    public void FreeUniqueBuildingGrant_DoesNotSatisfyDownstreamPrerequisite_UntilOwnPrerequisiteIsMet()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        var godState = new GodState(prestigeState);
+        godState.AscensionState.PermanentUniqueBuildings.Add(BuildingType.VolcanicForge);
+
+        // Second prérequis d'AcierAbyssal, complété directement (sans passer par sa propre chaîne :
+        // seule la gestion de VolcanicMetallurgy est sous test ici).
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.SteelArmor);
+
+        // AcierAbyssal est aussi gatée par un vertex de prestige (IsPrestigeRequirementMet) :
+        // non pertinent pour ce test, on l'accorde directement.
+        civ.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.UNLOCK_RESEARCH, nameof(TechnologyId.AcierAbyssal), Modifier.EType.ADDITIVE, 1),
+        }));
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState, settings: null, godState: godState);
+
+        // Volcanologie (prérequis de VolcanicMetallurgy) n'est pas complétée : AcierAbyssal doit
+        // rester inaccessible malgré la gratuité de VolcanicMetallurgy.
+        Assert.Equal(TechnologyStatus.Completed, ctrl.GetStatus(TechnologyId.VolcanicMetallurgy));
+        Assert.Equal(TechnologyStatus.Inactive, ctrl.GetStatus(TechnologyId.AcierAbyssal));
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Volcanologie);
+
+        Assert.Equal(TechnologyStatus.Available, ctrl.GetStatus(TechnologyId.AcierAbyssal));
+    }
+
+    /// <summary>
+    /// Une recherche répétable restaurée gratuitement par Mémoire de Dieu (AscensionState.
+    /// BestRepeatCounts, voir AscensionController.RestoreRepeatableResearchToBest) ne doit pas non
+    /// plus compter comme prérequis rempli pour une autre recherche (ResearchMethods dépend
+    /// d'Archivage) tant que son propre prérequis (Architecture) n'est pas satisfait.
+    /// </summary>
+    [Fact]
+    public void FreeRepeatableGrant_DoesNotSatisfyDownstreamPrerequisite_UntilOwnPrerequisiteIsMet()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        var godState = new GodState(prestigeState);
+
+        // Simule la restauration de Mémoire de Dieu au début d'un nouveau cycle d'Ascension
+        // (AscensionController.RestoreRepeatableResearchToBest) : Archivage complétée gratuitement,
+        // sans qu'Architecture (son propre prérequis) le soit dans ce cycle.
+        prestigeState.TechnologyTree.RepeatCounts[TechnologyId.Archivage] = 1;
+        prestigeState.TechnologyTree.CompletedTechnologies.Add(TechnologyId.Archivage);
+        godState.AscensionState.BestRepeatCounts[TechnologyId.Archivage] = 1;
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState, settings: null, godState: godState);
+
+        Assert.Equal(TechnologyStatus.Completed, ctrl.GetStatus(TechnologyId.Archivage));
+        Assert.Equal(TechnologyStatus.Inactive, ctrl.GetStatus(TechnologyId.ResearchMethods));
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Architecture);
+
+        Assert.Equal(TechnologyStatus.Available, ctrl.GetStatus(TechnologyId.ResearchMethods));
+    }
 }

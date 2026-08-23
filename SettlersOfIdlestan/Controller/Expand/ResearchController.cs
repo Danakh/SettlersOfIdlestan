@@ -16,6 +16,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         private GameClock? _clock;
         private PrestigeState? _prestigeState;
         private GameSettings? _settings;
+        private GodState? _godState;
 
         public const long ResearchConsumptionCooldownTicks = 100L;
 
@@ -41,7 +42,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         internal ResearchController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock, PrestigeState? prestigeState, GameSettings? settings = null)
+        internal void Initialize(WorldState? state, GameClock? clock, PrestigeState? prestigeState, GameSettings? settings = null, GodState? godState = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -50,6 +51,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             _clock = clock;
             _prestigeState = prestigeState;
             _settings = settings;
+            _godState = godState;
 
             _totalBaseResearchCostCompleted = 0;
             if (prestigeState != null)
@@ -259,6 +261,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null) return false;
 
+            // Déjà accordée gratuitement par le bâtiment unique permanent correspondant (voir
+            // IsFreeUniqueBuildingGrant) : rien à (re)chercher.
+            if (IsFreeUniqueBuildingGrant(id)) return false;
+
             bool alreadyCompleted = tree.CompletedTechnologies.Contains(id);
             if (alreadyCompleted && !tech.Repeatable) return false;
             if (tree.ActiveResearch == id) return false;
@@ -372,6 +378,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             var tree = Tree;
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null) return false;
+            if (IsFreeUniqueBuildingGrant(id)) return false;
             if (tree.CompletedTechnologies.Contains(id) && !tech.Repeatable) return false;
             if (tree.ActiveResearch == id) return false;
             if (!IsPrestigeRequirementMet(id)) return false;
@@ -379,14 +386,14 @@ namespace SettlersOfIdlestan.Controller.Expand
             return ArePrerequisitesMet(tree, tech) || WillBeAvailableAfterActiveResearch(tree, tech);
         }
 
-        private static bool WillBeAvailableAfterActiveResearch(TechnologyTree tree, Technology tech)
+        private bool WillBeAvailableAfterActiveResearch(TechnologyTree tree, Technology tech)
         {
             if (tree.ActiveResearch == null) return false;
             var activeId = tree.ActiveResearch.Value;
             if (!tech.Prerequisites.Contains(activeId)) return false;
             foreach (var prereq in tech.Prerequisites)
             {
-                if (!tree.CompletedTechnologies.Contains(prereq) && prereq != activeId)
+                if (prereq != activeId && !IsPrerequisiteSatisfied(tree, prereq))
                     return false;
             }
             return true;
@@ -402,6 +409,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             // "déjà complétée" (CompletedTechnologies) et "en cours" — c'est ce second état qui doit primer.
             if (tree.ActiveResearch == id) return TechnologyStatus.InProgress;
             if (tree.CompletedTechnologies.Contains(id)) return TechnologyStatus.Completed;
+            if (IsFreeUniqueBuildingGrant(id)) return TechnologyStatus.Completed;
 
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null || !ArePrerequisitesMet(tree, tech) || !IsPrestigeRequirementMet(id)
@@ -420,7 +428,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             long cost = GetEffectiveCost(tech);
             if (tree.ActiveResearch == id)
                 return (tree.ActiveResearchConsumed, cost);
-            if (tree.CompletedTechnologies.Contains(id))
+            if (tree.CompletedTechnologies.Contains(id) || IsFreeUniqueBuildingGrant(id))
                 return (cost, cost);
             return (0, cost);
         }
@@ -494,6 +502,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             if (tree.CompletedTechnologies.Contains(id)) return true;
             if (tree.ActiveResearch == id) return true;
+            if (IsFreeUniqueBuildingGrant(id)) return true;
 
             // En mode démo : affiche les nœuds tier 4+ seulement si tous leurs prérequis sont tier < 4
             // (une seule rangée de cadenas visible, les tiers suivants restent cachés)
@@ -554,12 +563,84 @@ namespace SettlersOfIdlestan.Controller.Expand
             return Math.Pow(1.0 + (1.0 - reduction), repeats);
         }
 
-        private static bool ArePrerequisitesMet(TechnologyTree tree, Technology tech)
+        private bool ArePrerequisitesMet(TechnologyTree tree, Technology tech)
         {
             foreach (var prereq in tech.Prerequisites)
-                if (!tree.CompletedTechnologies.Contains(prereq))
+                if (!IsPrerequisiteSatisfied(tree, prereq))
                     return false;
             return true;
+        }
+
+        /// <summary>
+        /// Vrai si <paramref name="id"/> compte comme rempli en tant que prérequis d'une autre recherche.
+        /// Pour une recherche normalement terminée (financée par des points de recherche), toujours vrai.
+        /// Pour une recherche accordée gratuitement — <see cref="IsFreeUniqueBuildingGrant"/> (bâtiment
+        /// unique déjà rendu permanent par un choix d'Héritage divin) ou <see cref="IsFreeRepeatableGrant"/>
+        /// (recherche répétable dont la complétion actuelle ne dépasse pas le palier restauré gratuitement
+        /// par Mémoire de Dieu, voir AscensionController.RestoreRepeatableResearchToBest) — ne compte
+        /// que si ses propres prérequis sont eux-mêmes remplis (récursivement) : une recherche gratuite
+        /// ne doit jamais permettre de sauter la partie de l'arbre qu'elle est censée sanctionner.
+        /// </summary>
+        private bool IsPrerequisiteSatisfied(TechnologyTree tree, TechnologyId id)
+        {
+            bool completed = tree.CompletedTechnologies.Contains(id);
+            bool freeUnique = !completed && IsFreeUniqueBuildingGrant(id);
+            if (!completed && !freeUnique) return false;
+
+            bool freeGrant = freeUnique || (completed && IsFreeRepeatableGrant(tree, id));
+            if (!freeGrant) return true;
+
+            var tech = TechnologyDefinitions.Get(id);
+            if (tech == null) return true;
+            foreach (var prereq in tech.Prerequisites)
+                if (!IsPrerequisiteSatisfied(tree, prereq))
+                    return false;
+            return true;
+        }
+
+        /// <summary>
+        /// Vrai si le seul effet de la recherche <paramref name="id"/> est de débloquer (BUILDING_MAX_LEVEL)
+        /// un bâtiment unique actuellement choisi comme bâtiment permanent d'Ascension (voir
+        /// AscensionController.PermanentUniqueBuildings/SelectPermanentUniqueBuilding) : le bâtiment
+        /// fonctionne déjà pleinement sans que la recherche soit terminée (Civilization.
+        /// SetAscensionGrantedUniqueBuildings l'ignore), donc la recherche elle-même n'apporte plus rien
+        /// et est accordée gratuitement (voir GetStatus/StartResearch). Calculé en direct plutôt que
+        /// persisté dans CompletedTechnologies : la sélection du bâtiment permanent étant réversible
+        /// (DeselectPermanentUniqueBuilding), la gratuité de la recherche doit l'être tout autant.
+        /// </summary>
+        private bool IsFreeUniqueBuildingGrant(TechnologyId id)
+        {
+            if (_godState == null) return false;
+            var tech = TechnologyDefinitions.Get(id);
+            if (tech == null || tech.Repeatable || tech.Modifiers.Count != 1) return false;
+
+            var modifier = tech.Modifiers[0];
+            if (modifier.Category != Modifier.ECategory.BUILDING_MAX_LEVEL) return false;
+            if (!Enum.TryParse<BuildingType>(modifier.SubCategory, out var buildingType)) return false;
+
+            return _godState.AscensionState.PermanentUniqueBuildings.Contains(buildingType);
+        }
+
+        /// <summary>
+        /// Vrai si la recherche répétable <paramref name="id"/> (déjà dans CompletedTechnologies) ne
+        /// doit sa complétion actuelle qu'à la restauration de Mémoire de Dieu (AscensionState.
+        /// BestRepeatCounts, voir AscensionController.RestoreRepeatableResearchToBest) et non à une
+        /// relance effectivement financée ce cycle-ci : le palier courant ne dépasse pas le palier
+        /// restauré gratuitement. Dès qu'une relance réelle porte le palier au-delà, StartResearch
+        /// avait déjà vérifié ses prérequis à ce moment-là — la recherche redevient donc un prérequis
+        /// valide sans condition.
+        /// </summary>
+        private bool IsFreeRepeatableGrant(TechnologyTree tree, TechnologyId id)
+        {
+            if (_godState == null) return false;
+            var tech = TechnologyDefinitions.Get(id);
+            if (tech == null || !tech.Repeatable) return false;
+
+            int best = _godState.AscensionState.BestRepeatCounts.TryGetValue(id, out var b) ? b : 0;
+            if (best <= 0) return false;
+
+            int current = tree.RepeatCounts.TryGetValue(id, out var c) ? c : 0;
+            return current <= best;
         }
     }
 }

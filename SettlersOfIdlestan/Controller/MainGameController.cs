@@ -445,7 +445,7 @@ namespace SettlersOfIdlestan.Controller
                 PandemoniumGateController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState, CurrentMainState!.PRNG);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController, RoadController);
-                ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings);
+                ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings, CurrentMainState?.GodState);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);
 
                 // Invalide le cache de production dès qu'un bâtiment est construit/amélioré ou une ville créée
