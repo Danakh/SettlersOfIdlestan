@@ -61,7 +61,7 @@ public class AscensionPendingTopBarVisibilityTests
         godState.GodPoints = 100;
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
         Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
         godState.DivineEssence = 10;
