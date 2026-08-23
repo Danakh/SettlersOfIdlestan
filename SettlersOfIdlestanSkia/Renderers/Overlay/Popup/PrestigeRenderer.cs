@@ -168,13 +168,16 @@ public sealed class PrestigeRenderer : PopupRendererBase
         if (controller.WondersUnlocked())
         {
             var (wonderLevel, timeFactor, runTicks) = controller.GetWonderBonusDetails();
-            wonderRow = new PrestigeRowSnapshot(
-                _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, FormatRunDuration(runTicks)),
-                $"×{Math.Max(1, wonderLevel * timeFactor)}", false,
-                [_localization.Get("prestige_tooltip_wonder_bonus")]);
-            canSkipWonderTime = controller.CanSkipToNextWonderMultiplier();
-            wonderSkipTooltip.Add(_localization.Get(
-                canSkipWonderTime ? "tooltip_wonder_skip_time" : "tooltip_wonder_skip_time_disabled"));
+            if (wonderLevel >= 1)
+            {
+                wonderRow = new PrestigeRowSnapshot(
+                    _localization.GetFormated("prestige_wonder_bonus", wonderLevel, timeFactor, FormatRunDuration(runTicks)),
+                    $"×{Math.Max(1, wonderLevel * timeFactor)}", false,
+                    [_localization.Get("prestige_tooltip_wonder_bonus")]);
+                canSkipWonderTime = controller.CanSkipToNextWonderMultiplier();
+                wonderSkipTooltip.Add(_localization.Get(
+                    canSkipWonderTime ? "tooltip_wonder_skip_time" : "tooltip_wonder_skip_time_disabled"));
+            }
         }
 
         // Choix du palier de la prochaine ile : debloque par le Grand Phare niveau 3.
