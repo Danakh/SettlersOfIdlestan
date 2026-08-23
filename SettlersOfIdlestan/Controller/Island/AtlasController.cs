@@ -173,10 +173,22 @@ namespace SettlersOfIdlestan.Controller.Island
             return 1;
         }
 
+        /// <summary>
+        /// Île de départ d'un nouveau cycle d'Ascension : île 1 pour le tout premier cycle, puis une île
+        /// de plus par Ascension déjà accomplie (<paramref name="ascensionsPerformed"/> doit déjà
+        /// compter l'Ascension en cours) — l'île 1 est sautée après la première Ascension, l'île 1 et 2
+        /// après la seconde, etc. Un joueur qui recommence de zéro (GodState.AscensionState.AscensionsPerformed
+        /// == 0) reprend donc normalement à l'île 1.
+        /// </summary>
+        public int GetAscensionStartingWorldId(int ascensionsPerformed)
+        {
+            return GetFirstWorldId() + Math.Min(2, ascensionsPerformed);
+        }
+
         public int GetNextWorldId(MainGameState gameState)
         {
             WorldState? state = gameState.CurrentWorldState;
-            return state?.WorldId + 1 ?? GetFirstWorldId();
+            return (state != null) ? state.WorldId + 1 : GetFirstWorldId();
         }
     }
 }

@@ -267,7 +267,13 @@ public sealed class TabBarRenderer : IDisposable
     private bool HasPrestigePoints(GameRenderContext context)
     {
         if (context.GameState is not MainGameState mgs) return false;
-        return (mgs.PrestigeState?.TotalPrestigePointsEarned ?? 0) > 0;
+        var prestigeState = mgs.PrestigeState;
+        if (prestigeState == null) return false;
+
+        // Les vertex offerts gratuitement à l'Ascension (voir AscensionController.GrantFreePrestigeVertices)
+        // sont déjà achetés dès le début du cycle, avant tout gain de prestige — sans ce cas,
+        // l'onglet Prestige resterait caché et le joueur ne pourrait pas voir ce qu'il possède déjà.
+        return prestigeState.TotalPrestigePointsEarned > 0 || prestigeState.PurchasedVertices.Count > 0;
     }
 
     private bool HasGodPoints(GameRenderContext context)

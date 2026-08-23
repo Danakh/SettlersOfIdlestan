@@ -261,7 +261,7 @@ namespace SettlersOfIdlestan.Controller
             if (CurrentMainState == null)
                 throw new InvalidOperationException("No main state available.");
 
-            var worldId = AtlasController.GetFirstWorldId();
+            var worldId = AtlasController.GetAscensionStartingWorldId(CurrentMainState.GodState.AscensionState.AscensionsPerformed);
             var parameters = AtlasController.GetIslandParameters(worldId);
             TaskRecordController.RecordAscension(AscensionController.GetGodPointsGain(CurrentMainState.GodState));
             AscensionController.PerformAscension(CurrentMainState, parameters, chosenRace);
@@ -301,7 +301,7 @@ namespace SettlersOfIdlestan.Controller
             if (CurrentMainState == null)
                 throw new InvalidOperationException("No main state available.");
 
-            var worldId = AtlasController.GetFirstWorldId();
+            var worldId = AtlasController.GetAscensionStartingWorldId(CurrentMainState.GodState.AscensionState.AscensionsPerformed);
             var parameters = AtlasController.GetIslandParameters(worldId);
             AscensionController.ConfirmAscensionRace(CurrentMainState, parameters, chosenRace);
             InitializeControllersForCurrentIsland();
