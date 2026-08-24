@@ -249,6 +249,8 @@ public sealed record SettingsPanelSnapshot(IReadOnlyList<SettingRowSnapshot> Row
     public const string KeyPauseAfterPrestige  = "pauseAfterPrestige";
     public const string KeyHarvestParticles    = "harvestParticles";
     public const string KeyMilitaryStats       = "militaryStats";
+    public const string KeyHarvestCooldown     = "harvestCooldown";
+    public const string KeyCorruptionDominion  = "corruptionDominion";
     public const string KeyUiScale             = "uiScale";
     public const string KeyCloudSave           = "cloudSave";
     public const string KeyNumberFormat        = "numberFormat";

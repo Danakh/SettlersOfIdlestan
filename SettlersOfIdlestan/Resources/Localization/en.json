@@ -5,6 +5,8 @@
   "settings_pause_after_prestige": "Pause after prestige",
   "settings_harvest_particles": "Harvest particles",
   "settings_show_military_stats": "City military stats",
+  "settings_harvest_cooldown": "Harvest cooldown indicators",
+  "settings_corruption_dominion": "Corruption and dominion",
   "settings_fullscreen": "Fullscreen",
   "settings_force_menu_position": "Menu at bottom",
   "settings_ui_scale": "UI scale",

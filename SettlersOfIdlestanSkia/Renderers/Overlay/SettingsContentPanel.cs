@@ -75,6 +75,8 @@ public sealed class SettingsContentPanel
             Toggle(SettingsPanelSnapshot.KeyPauseAfterPrestige, localization.Get("settings_pause_after_prestige"), settings.PauseAfterPrestige),
             Toggle(SettingsPanelSnapshot.KeyHarvestParticles, localization.Get("settings_harvest_particles"), settings.ShowHarvestParticles),
             Toggle(SettingsPanelSnapshot.KeyMilitaryStats, localization.Get("settings_show_military_stats"), settings.ShowCityMilitaryStats),
+            Toggle(SettingsPanelSnapshot.KeyHarvestCooldown, localization.Get("settings_harvest_cooldown"), settings.ShowHarvestCooldown),
+            Toggle(SettingsPanelSnapshot.KeyCorruptionDominion, localization.Get("settings_corruption_dominion"), settings.ShowCorruptionDominion),
             new(SettingsPanelSnapshot.KeyUiScale, localization.Get("settings_ui_scale"), SettingRowKind.Slider,
                 IsEnabled: true, ToggleValue: false, Choices: [],
                 SliderValue: uiScale, SliderMin: UiScaleMin, SliderMax: UiScaleMax,
@@ -129,6 +131,12 @@ public sealed class SettingsContentPanel
                 break;
             case SettingsPanelSnapshot.KeyMilitaryStats:
                 settings.ShowCityMilitaryStats = !settings.ShowCityMilitaryStats;
+                break;
+            case SettingsPanelSnapshot.KeyHarvestCooldown:
+                settings.ShowHarvestCooldown = !settings.ShowHarvestCooldown;
+                break;
+            case SettingsPanelSnapshot.KeyCorruptionDominion:
+                settings.ShowCorruptionDominion = !settings.ShowCorruptionDominion;
                 break;
             // Sans store connecte, la sauvegarde cloud n'a pas d'objet : la ligne est grisee et
             // le clic reste sans effet, comme dans le rendu Skia.

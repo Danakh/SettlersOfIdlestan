@@ -179,7 +179,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .Where(f => f.ShouldRenderIconFor(worldState.PlayerCivilization) && (f.SvgIconResourceName != null || f.TextIcon != null))
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, harvestBlockers, uwFeaturesByPosition, uwCorruption, uwDominion, uwAbyssGate, context.TotalTime);
+                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, harvestBlockers, uwFeaturesByPosition, uwCorruption, uwDominion, uwAbyssGate, context.TotalTime,
+                        mainGameState.Settings.ShowHarvestCooldown, mainGameState.Settings.ShowCorruptionDominion);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
                     if (selectedInvestable != null && selectedInvestable.Position.Z == LayerState.UnderworldZ && _selectedMonumentPaint != null)
@@ -225,7 +226,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                         .GroupBy(f => f.Position)
                         .ToDictionary(g => g.Key, g => g.Max(d => d.Level));
                     var abyssGateByHex = BuildPortalsByHex(worldState);
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockers, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, context.TotalTime);
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockers, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, context.TotalTime,
+                        mgs.Settings.ShowHarvestCooldown, mgs.Settings.ShowCorruptionDominion);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
                     if (selectedInvestable != null && _selectedMonumentPaint != null)
@@ -264,12 +266,14 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, int>? corruptionByHex = null,
         Dictionary<HexCoord, int>? dominionByHex = null,
         Dictionary<HexCoord, bool>? abyssGateByHex = null,
-        float totalTime = 0f)
+        float totalTime = 0f,
+        bool showHarvestCooldown = true,
+        bool showCorruptionDominion = true)
     {
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockers, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, totalTime);
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockers, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, totalTime, showHarvestCooldown, showCorruptionDominion);
         }
     }
 
@@ -299,7 +303,9 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, int>? corruptionByHex = null,
         Dictionary<HexCoord, int>? dominionByHex = null,
         Dictionary<HexCoord, bool>? abyssGateByHex = null,
-        float totalTime = 0f)
+        float totalTime = 0f,
+        bool showHarvestCooldown = true,
+        bool showCorruptionDominion = true)
     {
         if (tile.TerrainType == TerrainType.Void) return;
 
@@ -317,16 +323,16 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_hexBorderPaint != null)
             canvas.DrawPath(path, _hexBorderPaint);
 
-        if (corruptionByHex?.TryGetValue(coord, out int corruptLevel) == true && corruptLevel > 0)
+        if (showCorruptionDominion && corruptionByHex?.TryGetValue(coord, out int corruptLevel) == true && corruptLevel > 0)
             DrawCorruptionCircle(canvas, centerX, centerY, corruptLevel);
 
-        if (dominionByHex?.TryGetValue(coord, out int dominionLevel) == true && dominionLevel > 0)
+        if (showCorruptionDominion && dominionByHex?.TryGetValue(coord, out int dominionLevel) == true && dominionLevel > 0)
             DrawDominionCircle(canvas, centerX, centerY, dominionLevel);
 
         if (abyssGateByHex?.TryGetValue(coord, out bool gateBuilt) == true)
             DrawAbyssGatePortal(canvas, centerX, centerY, gateBuilt, totalTime);
 
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockers);
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockers, showHarvestCooldown);
 
         if (featuresByPosition?.TryGetValue(coord, out var features) == true)
             foreach (var feature in features)
@@ -459,7 +465,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? manualTimes,
         IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
-        HashSet<IslandFeature>? harvestBlockers)
+        HashSet<IslandFeature>? harvestBlockers,
+        bool showHarvestCooldown = true)
     {
         if (_ringBgPaint == null || _ringProgressPaint == null)
             return;
@@ -483,15 +490,18 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
         // Arcs de cooldown automatique au vertex de la ville (un arc par bâtiment).
         // Le rayon s'incrémente uniquement pour plusieurs bâtiments de la MÊME ville sur le même hex.
-        var autoInfo = _harvestController.GetAutoHarvestInfoForHex(playerIdx, tile.Coord);
-        var arcIndexByVertex = new Dictionary<Vertex, int>();
-        foreach (var (cityVertex, _, _, lastTick, cooldown) in autoInfo)
+        if (showHarvestCooldown)
         {
-            arcIndexByVertex.TryGetValue(cityVertex, out int arcIdx);
-            arcIndexByVertex[cityVertex] = arcIdx + 1;
-            var vp = VertexToIsland(cityVertex);
-            float radius = AutoArcBaseRadius + arcIdx * AutoArcGap;
-            DrawAutoHarvestCornerArc(canvas, vp.X, vp.Y, cx, cy, radius, AutoArcStroke, lastTick, cooldown, currentTick);
+            var autoInfo = _harvestController.GetAutoHarvestInfoForHex(playerIdx, tile.Coord);
+            var arcIndexByVertex = new Dictionary<Vertex, int>();
+            foreach (var (cityVertex, _, _, lastTick, cooldown) in autoInfo)
+            {
+                arcIndexByVertex.TryGetValue(cityVertex, out int arcIdx);
+                arcIndexByVertex[cityVertex] = arcIdx + 1;
+                var vp = VertexToIsland(cityVertex);
+                float radius = AutoArcBaseRadius + arcIdx * AutoArcGap;
+                DrawAutoHarvestCornerArc(canvas, vp.X, vp.Y, cx, cy, radius, AutoArcStroke, lastTick, cooldown, currentTick);
+            }
         }
 
         var manualResources = _harvestController.GetManualHarvestableResources(playerIdx, tile.Coord);
