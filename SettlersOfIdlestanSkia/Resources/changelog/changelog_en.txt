@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.16
+• New Auto tab in the Trade window: configure per-resource auto-sell thresholds and the gold kept before auto-buy
 
 ---
 

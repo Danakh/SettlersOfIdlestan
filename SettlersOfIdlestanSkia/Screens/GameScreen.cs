@@ -505,6 +505,9 @@ public sealed class GameScreen : IDisposable
     public void TradeBuyFromHost(string key) => _overlayRenderer?.TradeBuyFromHost(key);
     public void TradeSetMultiplierFromHost(int m) => _overlayRenderer?.TradeSetMultiplierFromHost(m);
     public void TradeSetHistoryTabFromHost(bool h) => _overlayRenderer?.TradeSetHistoryTabFromHost(h);
+    public void TradeSetAutoTabFromHost() => _overlayRenderer?.TradeSetAutoTabFromHost();
+    public void TradeSetAutoSellThresholdFromHost(string key, int percent) => _overlayRenderer?.TradeSetAutoSellThresholdFromHost(key, percent);
+    public void TradeSetAutoGoldKeepPercentFromHost(int percent) => _overlayRenderer?.TradeSetAutoGoldKeepPercentFromHost(percent);
     public void CloseTradePopupFromHost() => _overlayRenderer?.CloseTradePopupFromHost();
 
     /// <summary>Instantané du popup de prestige pour une vue portée par l'hôte.</summary>

@@ -4,6 +4,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.16
+• Nouvel onglet Auto dans la fenêtre de Commerce : réglage des seuils de vente automatique par ressource et de l'or conservé avant achat automatique
 
 ---
 

@@ -313,6 +313,9 @@ public sealed class SkiaGameRuntime : IDisposable
     public void TradeBuy(string key) => _gameScreen?.TradeBuyFromHost(key);
     public void TradeSetMultiplier(int m) => _gameScreen?.TradeSetMultiplierFromHost(m);
     public void TradeSetHistoryTab(bool h) => _gameScreen?.TradeSetHistoryTabFromHost(h);
+    public void TradeSetAutoTab() => _gameScreen?.TradeSetAutoTabFromHost();
+    public void TradeSetAutoSellThreshold(string key, int percent) => _gameScreen?.TradeSetAutoSellThresholdFromHost(key, percent);
+    public void TradeSetAutoGoldKeepPercent(int percent) => _gameScreen?.TradeSetAutoGoldKeepPercentFromHost(percent);
     public void CloseTradePopup() => _gameScreen?.CloseTradePopupFromHost();
 
     /// <summary>Instantané du popup de prestige pour une vue portée par l'hôte.</summary>

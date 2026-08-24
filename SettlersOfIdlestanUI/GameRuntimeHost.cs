@@ -203,6 +203,9 @@ public sealed class GameRuntimeHost : IDisposable
     public void TradeBuy(string key) => Invoke(r => r.TradeBuy(key));
     public void TradeSetMultiplier(int m) => Invoke(r => r.TradeSetMultiplier(m));
     public void TradeSetHistoryTab(bool h) => Invoke(r => r.TradeSetHistoryTab(h));
+    public void TradeSetAutoTab() => Invoke(r => r.TradeSetAutoTab());
+    public void TradeSetAutoSellThreshold(string key, int percent) => Invoke(r => r.TradeSetAutoSellThreshold(key, percent));
+    public void TradeSetAutoGoldKeepPercent(int percent) => Invoke(r => r.TradeSetAutoGoldKeepPercent(percent));
     public void CloseTradePopup() => Invoke(r => r.CloseTradePopup());
 
     public SkiaLayer.PrestigePopupSnapshot GetPrestigePopupSnapshot() =>

@@ -84,6 +84,35 @@ public class AutomationSettings
     public bool MonumentInvestmentAutomationEnabled { get; set; } = false;
     [JsonIgnore] public bool IsMonumentInvestmentAutomationActive => Active(MonumentInvestmentAutomationEnabled);
 
+    /// <summary>Seuil de stock (en % du max) par ressource à partir duquel la vente automatique du
+    /// surplus se déclenche (recherche Marché Automatique, voir HarvestController.TryAutoTradeOnOverflow).
+    /// Une ressource absente du dictionnaire vaut AutoSellThresholdDefaultPercent. Borné à
+    /// [AutoSellThresholdMinPercent, AutoSellThresholdMaxPercent] par SetAutoSellThresholdPercent, seul
+    /// point d'écriture censé être utilisé (le setter public reste nécessaire à la désérialisation JSON).</summary>
+    public Dictionary<Resource, int> AutoSellThresholdPercentByResource { get; set; } = new();
+
+    public const int AutoSellThresholdMinPercent = 50;
+    public const int AutoSellThresholdMaxPercent = 99;
+    public const int AutoSellThresholdDefaultPercent = 99;
+
+    public int GetAutoSellThresholdPercent(Resource resource) =>
+        AutoSellThresholdPercentByResource.TryGetValue(resource, out var percent) ? percent : AutoSellThresholdDefaultPercent;
+
+    public void SetAutoSellThresholdPercent(Resource resource, int percent) =>
+        AutoSellThresholdPercentByResource[resource] = Math.Clamp(percent, AutoSellThresholdMinPercent, AutoSellThresholdMaxPercent);
+
+    /// <summary>Part de l'or (en % du max) conservée avant que l'Achat Automatique (vertex de prestige)
+    /// ne dépense l'excédent, voir TradeController.TryAutoBuyOnGoldOverflow. Borné à
+    /// [0, AutoBuyGoldKeepMaxPercent] par SetAutoBuyGoldKeepPercent, seul point d'écriture censé être
+    /// utilisé (le setter public reste nécessaire à la désérialisation JSON).</summary>
+    public int AutoBuyGoldKeepPercent { get; set; } = AutoBuyGoldKeepDefaultPercent;
+
+    public const int AutoBuyGoldKeepMaxPercent = 99;
+    public const int AutoBuyGoldKeepDefaultPercent = 99;
+
+    public void SetAutoBuyGoldKeepPercent(int percent) =>
+        AutoBuyGoldKeepPercent = Math.Clamp(percent, 0, AutoBuyGoldKeepMaxPercent);
+
     /// <summary>
     /// Restreint la production de soldats (Casernes ET Arsenaux) du layer indexé (Z de LayerState —
     /// 0 = surface, LayerState.UnderworldZ, LayerState.AbyssZ) au quota de soldats nourris gratuitement
@@ -166,5 +195,7 @@ public class AutomationSettings
         MilitaryVendettaAutomationEnabled = previous.MilitaryVendettaAutomationEnabled;
         MonumentInvestmentAutomationEnabled = previous.MonumentInvestmentAutomationEnabled;
         RestrictSoldierProductionToFreeSoldiersByLayer = new Dictionary<int, bool>(previous.RestrictSoldierProductionToFreeSoldiersByLayer);
+        AutoSellThresholdPercentByResource = new Dictionary<Resource, int>(previous.AutoSellThresholdPercentByResource);
+        AutoBuyGoldKeepPercent = previous.AutoBuyGoldKeepPercent;
     }
 }

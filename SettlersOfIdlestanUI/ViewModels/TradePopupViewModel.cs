@@ -37,6 +37,31 @@ public sealed class TradeRowViewModel : ViewModelBase
     }
 }
 
+/// <summary>Une ligne de l'onglet Auto : le seuil de declenchement de la vente automatique du
+/// surplus d'une ressource, en % du stock max.</summary>
+public sealed class TradeAutoRowViewModel : ViewModelBase
+{
+    private SkiaLayer.TradeAutoResourceRowSnapshot _snapshot;
+
+    public TradeAutoRowViewModel(SkiaLayer.TradeAutoResourceRowSnapshot snapshot) => _snapshot = snapshot;
+
+    /// Nom d'enum de la ressource : identifiant stable, sert au routage.
+    public string Key => _snapshot.Key;
+
+    public string IconName => _snapshot.IconName;
+    public string Name => _snapshot.Name;
+    public int ThresholdPercent => _snapshot.ThresholdPercent;
+
+    internal void Apply(SkiaLayer.TradeAutoResourceRowSnapshot snapshot)
+    {
+        if (_snapshot == snapshot) return;
+        var previous = _snapshot;
+        _snapshot = snapshot;
+
+        if (previous.ThresholdPercent != snapshot.ThresholdPercent) RaisePropertyChanged(nameof(ThresholdPercent));
+    }
+}
+
 /// <summary>Un multiplicateur de paquet.</summary>
 public sealed class TradeMultiplierViewModel : ViewModelBase
 {
@@ -97,10 +122,18 @@ public sealed class TradePopupViewModel : ViewModelBase
     private string _title = "";
     private string _tradeTabLabel = "";
     private string _historyTabLabel = "";
+    private string _autoTabLabel = "";
     private bool _showingHistory;
+    private bool _showingAuto;
+    private bool _autoTabUnlocked;
     private string _sellHeader = "";
     private string _buyHeader = "";
+    private string _autoSellHeader = "";
+    private string _autoGoldHeader = "";
+    private string _autoNote = "";
     private string _goldLabel = "";
+    private int _autoGoldKeepPercent = -1;
+    private bool _hasAutoSellRows;
     private string? _historyEmptyMessage;
     private IReadOnlyList<SkiaLayer.TradeHistoryEntrySnapshot> _lastHistory = [];
 
@@ -110,14 +143,34 @@ public sealed class TradePopupViewModel : ViewModelBase
     public ObservableCollection<TradeRowViewModel> BuyRows { get; } = [];
     public ObservableCollection<TradeMultiplierViewModel> Multipliers { get; } = [];
     public ObservableCollection<TradeHistoryEntryViewModel> HistoryEntries { get; } = [];
+    public ObservableCollection<TradeAutoRowViewModel> AutoSellRows { get; } = [];
 
     public bool IsOpen { get => _isOpen; private set => SetProperty(ref _isOpen, value); }
     public string Title { get => _title; private set => SetProperty(ref _title, value); }
     public string TradeTabLabel { get => _tradeTabLabel; private set => SetProperty(ref _tradeTabLabel, value); }
     public string HistoryTabLabel { get => _historyTabLabel; private set => SetProperty(ref _historyTabLabel, value); }
+    public string AutoTabLabel { get => _autoTabLabel; private set => SetProperty(ref _autoTabLabel, value); }
+    public bool AutoTabUnlocked { get => _autoTabUnlocked; private set => SetProperty(ref _autoTabUnlocked, value); }
     public string SellHeader { get => _sellHeader; private set => SetProperty(ref _sellHeader, value); }
     public string BuyHeader { get => _buyHeader; private set => SetProperty(ref _buyHeader, value); }
+    public string AutoSellHeader { get => _autoSellHeader; private set => SetProperty(ref _autoSellHeader, value); }
+    public string AutoGoldHeader { get => _autoGoldHeader; private set => SetProperty(ref _autoGoldHeader, value); }
+    public string AutoNote { get => _autoNote; private set => SetProperty(ref _autoNote, value); }
     public string GoldLabel { get => _goldLabel; private set => SetProperty(ref _goldLabel, value); }
+
+    /// -1 tant que l'achat automatique n'est pas debloque : le slider correspondant reste masque.
+    public int AutoGoldKeepPercent
+    {
+        get => _autoGoldKeepPercent;
+        private set
+        {
+            if (SetProperty(ref _autoGoldKeepPercent, value)) RaisePropertyChanged(nameof(AutoGoldKeepUnlocked));
+        }
+    }
+
+    public bool AutoGoldKeepUnlocked => _autoGoldKeepPercent >= 0;
+
+    public bool HasAutoSellRows { get => _hasAutoSellRows; private set => SetProperty(ref _hasAutoSellRows, value); }
 
     public bool ShowingHistory
     {
@@ -128,8 +181,17 @@ public sealed class TradePopupViewModel : ViewModelBase
         }
     }
 
-    /// Les deux onglets s'excluent : l'un des deux est toujours affiche.
-    public bool ShowingTrade => !_showingHistory;
+    public bool ShowingAuto
+    {
+        get => _showingAuto;
+        private set
+        {
+            if (SetProperty(ref _showingAuto, value)) RaisePropertyChanged(nameof(ShowingTrade));
+        }
+    }
+
+    /// Les trois onglets s'excluent : un seul est affiche a la fois.
+    public bool ShowingTrade => !_showingHistory && !_showingAuto;
 
     public string? HistoryEmptyMessage
     {
@@ -150,16 +212,25 @@ public sealed class TradePopupViewModel : ViewModelBase
         Title = snapshot.Title;
         TradeTabLabel = snapshot.TradeTabLabel;
         HistoryTabLabel = snapshot.HistoryTabLabel;
+        AutoTabLabel = snapshot.AutoTabLabel;
+        AutoTabUnlocked = snapshot.AutoTabUnlocked;
         ShowingHistory = snapshot.ShowingHistory;
+        ShowingAuto = snapshot.ShowingAuto;
         SellHeader = snapshot.SellHeader;
         BuyHeader = snapshot.BuyHeader;
+        AutoSellHeader = snapshot.AutoSellHeader;
+        AutoGoldHeader = snapshot.AutoGoldHeader;
+        AutoNote = snapshot.AutoNote;
         GoldLabel = snapshot.GoldLabel;
+        AutoGoldKeepPercent = snapshot.AutoGoldKeepPercent;
+        HasAutoSellRows = snapshot.AutoSellRows.Count > 0;
         HistoryEmptyMessage = snapshot.HistoryEmptyMessage;
 
         SyncRows(SellRows, snapshot.SellRows);
         SyncRows(BuyRows, snapshot.BuyRows);
         SyncMultipliers(snapshot.Multipliers);
         SyncHistory(snapshot.HistoryEntries);
+        SyncAutoRows(snapshot.AutoSellRows);
     }
 
     /// La composition ne change qu'au deblocage d'une ressource ; les prix et la solvabilite
@@ -193,6 +264,23 @@ public sealed class TradePopupViewModel : ViewModelBase
 
         Multipliers.Clear();
         foreach (var m in incoming) Multipliers.Add(new TradeMultiplierViewModel(m));
+    }
+
+    /// Meme raisonnement que SyncRows : la composition ne change qu'au deblocage d'une ressource.
+    private void SyncAutoRows(IReadOnlyList<SkiaLayer.TradeAutoResourceRowSnapshot> incoming)
+    {
+        bool sameKeys = incoming.Count == AutoSellRows.Count;
+        for (int i = 0; i < incoming.Count && sameKeys; i++)
+            sameKeys = incoming[i].Key == AutoSellRows[i].Key;
+
+        if (sameKeys)
+        {
+            for (int i = 0; i < incoming.Count; i++) AutoSellRows[i].Apply(incoming[i]);
+            return;
+        }
+
+        AutoSellRows.Clear();
+        foreach (var row in incoming) AutoSellRows.Add(new TradeAutoRowViewModel(row));
     }
 
     /// L'historique ne change que par ajout, et une entree passee est immuable.
@@ -232,6 +320,24 @@ public sealed class TradePopupViewModel : ViewModelBase
     public void ShowHistory()
     {
         _host.TradeSetHistoryTab(true);
+        Refresh();
+    }
+
+    public void ShowAuto()
+    {
+        _host.TradeSetAutoTab();
+        Refresh();
+    }
+
+    public void SetAutoSellThreshold(TradeAutoRowViewModel row, double percent)
+    {
+        _host.TradeSetAutoSellThreshold(row.Key, (int)Math.Round(percent));
+        Refresh();
+    }
+
+    public void SetAutoGoldKeepPercent(double percent)
+    {
+        _host.TradeSetAutoGoldKeepPercent((int)Math.Round(percent));
         Refresh();
     }
 

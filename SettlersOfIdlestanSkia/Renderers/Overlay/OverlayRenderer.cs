@@ -389,6 +389,9 @@ public sealed class OverlayRenderer : IGameRenderer
     public void TradeBuyFromHost(string key) => _tradeRenderer.BuyFromHost(key);
     public void TradeSetMultiplierFromHost(int m) => _tradeRenderer.SetMultiplierFromHost(m);
     public void TradeSetHistoryTabFromHost(bool h) => _tradeRenderer.SetHistoryTabFromHost(h);
+    public void TradeSetAutoTabFromHost() => _tradeRenderer.SetAutoTabFromHost();
+    public void TradeSetAutoSellThresholdFromHost(string key, int percent) => _tradeRenderer.SetAutoSellThresholdFromHost(key, percent);
+    public void TradeSetAutoGoldKeepPercentFromHost(int percent) => _tradeRenderer.SetAutoGoldKeepPercentFromHost(percent);
     public void CloseTradePopupFromHost() => _tradeRenderer.Close();
 
     /// <summary>Instantané du popup de prestige pour une vue portée par l'hôte.</summary>

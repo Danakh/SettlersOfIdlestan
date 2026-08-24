@@ -169,6 +169,24 @@ namespace SettlersOfIdlestan.Controller
             return civ?.AutoBuyUnlockedCache ?? false;
         }
 
+        /// <summary>Vrai si la recherche Marché Automatique (vente automatique du surplus) est complétée,
+        /// indépendamment de la présence d'un Marché niv.4+ dans une ville. Sert à afficher l'onglet de
+        /// configuration des seuils d'auto-vente même avant la construction du bâtiment requis.</summary>
+        public bool IsAutoSellResearchUnlocked(int civilizationIndex)
+        {
+            var civ = _state?.GetCivilization(civilizationIndex);
+            return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_MARKET_TRADE) ?? false;
+        }
+
+        /// <summary>Vrai si le vertex de prestige Achat Automatique est débloqué, indépendamment de la
+        /// présence d'un Marché niv.4+ (contrairement à <see cref="IsAutoBuyUnlocked"/>). Sert à afficher
+        /// le réglage du seuil d'or conservé même avant la construction du bâtiment requis.</summary>
+        public bool IsAutoBuyResearchUnlocked(int civilizationIndex)
+        {
+            var civ = _state?.GetCivilization(civilizationIndex);
+            return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE) ?? false;
+        }
+
         /// <summary>
         /// Si <paramref name="incomingGold"/> ferait dépasser le stockage d'or, achète une unité de la
         /// ressource de base la plus rare avec l'or excédentaire pour ne pas le gâcher (Achat Automatique).
@@ -181,7 +199,8 @@ namespace SettlersOfIdlestan.Controller
             if (civ == null) return false;
 
             int maxGold = civ.GetResourceMaxQuantity(Resource.Gold);
-            if (civ.GetResourceQuantity(Resource.Gold) + incomingGold <= maxGold - ResourceUtils.GetOverflowBuffer(maxGold)) return false;
+            int keepThreshold = maxGold * _state.AutomationSettings.AutoBuyGoldKeepPercent / 100;
+            if (civ.GetResourceQuantity(Resource.Gold) + incomingGold <= keepThreshold) return false;
 
             var resource = ResourceUtils.BasicResources.OrderBy(r => civ.GetResourceQuantity(r)).First();
             if (!CanBuyResource(civilizationIndex, resource)) return false;

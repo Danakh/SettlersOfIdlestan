@@ -11,7 +11,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 
 public sealed class TradePopupRenderer : PopupRendererBase
 {
-    private enum SubTab { Trade, History }
+    private enum SubTab { Trade, History, Auto }
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService   _localization;
@@ -159,12 +159,28 @@ public sealed class TradePopupRenderer : PopupRendererBase
         int goldQty = civ.GetResourceQuantity(Resource.Gold);
         int goldMax = civ.GetResourceMaxQuantity(Resource.Gold);
 
+        bool autoSellUnlocked = tc.IsAutoSellResearchUnlocked(civ.Index);
+        bool autoBuyUnlocked = tc.IsAutoBuyResearchUnlocked(civ.Index);
+        var automation = _gameControllerService.CurrentWorldState?.AutomationSettings;
+
+        var autoSellRows = new List<TradeAutoResourceRowSnapshot>();
+        if (autoSellUnlocked && automation != null)
+            foreach (var resource in GetSellableResources(civ))
+                autoSellRows.Add(new TradeAutoResourceRowSnapshot(
+                    Key: resource.ToString(),
+                    IconName: resource.ToString(),
+                    Name: _localization.Get($"resource_{resource.ToString().ToLower()}"),
+                    ThresholdPercent: automation.GetAutoSellThresholdPercent(resource)));
+
         return new TradePopupSnapshot(
             IsOpen: true,
             Title: _localization.Get("trade_title"),
             TradeTabLabel: _localization.Get("trade_tab_main"),
             HistoryTabLabel: _localization.Get("trade_tab_history"),
+            AutoTabLabel: _localization.Get("trade_tab_auto"),
             ShowingHistory: _activeSubTab == SubTab.History,
+            ShowingAuto: _activeSubTab == SubTab.Auto,
+            AutoTabUnlocked: autoSellUnlocked || autoBuyUnlocked,
             SellHeader: _localization.Get("trade_give"),
             BuyHeader: _localization.Get("trade_advanced_title"),
             SellRows: sellRows,
@@ -172,7 +188,12 @@ public sealed class TradePopupRenderer : PopupRendererBase
             GoldLabel: $"{goldQty}/{goldMax}",
             Multipliers: multipliers,
             HistoryEmptyMessage: historyEntries.Count == 0 ? _localization.Get("trade_history_empty") : null,
-            HistoryEntries: historyEntries);
+            HistoryEntries: historyEntries,
+            AutoSellHeader: _localization.Get("trade_auto_sell_header"),
+            AutoSellRows: autoSellRows,
+            AutoGoldHeader: _localization.Get("trade_auto_gold_header"),
+            AutoGoldKeepPercent: autoBuyUnlocked && automation != null ? automation.AutoBuyGoldKeepPercent : -1,
+            AutoNote: _localization.Get("trade_auto_note"));
     }
 
     /// <summary>
@@ -213,6 +234,28 @@ public sealed class TradePopupRenderer : PopupRendererBase
     {
         var target = showHistory ? SubTab.History : SubTab.Trade;
         _activeSubTab = target;
+    }
+
+    /// <summary>Bascule vers l'onglet de configuration de l'auto-trade, depuis la vue de l'hote.</summary>
+    public void SetAutoTabFromHost() => _activeSubTab = SubTab.Auto;
+
+    /// <summary>
+    /// Regle le seuil de declenchement de la vente automatique du surplus d'une ressource (en % du
+    /// stock max), depuis la vue de l'hote. Le clampage vit dans AutomationSettings.SetAutoSellThresholdPercent.
+    /// </summary>
+    public void SetAutoSellThresholdFromHost(string key, int percent)
+    {
+        if (!Enum.TryParse<Resource>(key, out var resource)) return;
+        var automation = _gameControllerService.CurrentWorldState?.AutomationSettings;
+        automation?.SetAutoSellThresholdPercent(resource, percent);
+    }
+
+    /// <summary>Regle la part d'or (en %) conservee avant que l'Achat Automatique ne depense
+    /// l'excedent, depuis la vue de l'hote. Le clampage vit dans AutomationSettings.SetAutoBuyGoldKeepPercent.</summary>
+    public void SetAutoGoldKeepPercentFromHost(int percent)
+    {
+        var automation = _gameControllerService.CurrentWorldState?.AutomationSettings;
+        automation?.SetAutoBuyGoldKeepPercent(percent);
     }
 
     private static string FormatTick(long tick)

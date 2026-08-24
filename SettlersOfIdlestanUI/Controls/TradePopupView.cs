@@ -4,6 +4,8 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -41,6 +43,11 @@ public sealed class TradePopupView : UserControl
     private static readonly SolidColorBrush MultTemporary = new(Color.FromRgb(140, 80, 0));
     private static readonly SolidColorBrush CloseButton = new(Color.FromArgb(230, 90, 50, 50));
 
+    /// Masque via l'opacite plutot que IsVisible : l'element garde sa taille de mise en page
+    /// meme masque, pour qu'une rangee optionnelle (en-tetes/note de l'onglet Auto) ne fasse pas
+    /// varier la hauteur totale du popup d'un onglet a l'autre.
+    private static readonly IValueConverter BoolToOpacity = new FuncValueConverter<bool, double>(v => v ? 1.0 : 0.0);
+
     public TradePopupView(TradePopupViewModel viewModel, SvgIconCache icons)
     {
         DataContext = viewModel;
@@ -69,6 +76,8 @@ public sealed class TradePopupView : UserControl
             nameof(TradePopupViewModel.ShowingTrade), viewModel.ShowTrade));
         tabs.Children.Add(TabButton(nameof(TradePopupViewModel.HistoryTabLabel),
             nameof(TradePopupViewModel.ShowingHistory), viewModel.ShowHistory));
+        tabs.Children.Add(TabButton(nameof(TradePopupViewModel.AutoTabLabel),
+            nameof(TradePopupViewModel.ShowingAuto), viewModel.ShowAuto, nameof(TradePopupViewModel.AutoTabUnlocked)));
 
         // ── Onglet d'echange : deux colonnes ──
         var columns = new Grid
@@ -110,16 +119,73 @@ public sealed class TradePopupView : UserControl
         history.Children.Add(historyEmpty);
         history.Children.Add(historyList);
 
+        // ── Onglet Auto : seuils de vente automatique par ressource + or conserve ──
+        var auto = BuildAutoTab(viewModel, icons);
+
         var content = new StackPanel { Orientation = Orientation.Vertical };
         content.Children.Add(columns);
         content.Children.Add(history);
+        content.Children.Add(auto);
 
+        // Hauteur fixe (pas seulement MaxHeight) : la fenetre et la position des onglets restent
+        // stables d'un onglet a l'autre, seul le contenu defilant en dessous change.
         var scroll = new ScrollViewer
         {
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            MaxHeight = 380,
+            Height = 380,
             Content = content,
+        };
+
+        // En-tetes de colonnes de l'onglet Auto, hors de l'ascenseur — toujours visibles sans
+        // avoir a faire defiler la liste des seuils, alignees sur les colonnes du contenu qui
+        // defile en dessous. Opacity (pas IsVisible) : la rangee garde la meme hauteur sur les
+        // trois onglets meme masquee, sans quoi l'onglet Auto serait plus grand que les autres.
+        var autoHeaders = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,16,*"),
+            Margin = new Thickness(0, 0, 0, 8),
+            [!OpacityProperty] = new Binding(nameof(TradePopupViewModel.ShowingAuto))
+            {
+                Converter = BoolToOpacity,
+            },
+        };
+        var autoSellHeader = new TextBlock
+        {
+            FontSize = 13,
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            [!TextBlock.TextProperty] = new Binding(nameof(TradePopupViewModel.AutoSellHeader)),
+            [!IsVisibleProperty] = new Binding(nameof(TradePopupViewModel.HasAutoSellRows)),
+        };
+        var autoGoldHeader = new TextBlock
+        {
+            FontSize = 13,
+            FontWeight = FontWeight.Bold,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            [!TextBlock.TextProperty] = new Binding(nameof(TradePopupViewModel.AutoGoldHeader)),
+            [!IsVisibleProperty] = new Binding(nameof(TradePopupViewModel.AutoGoldKeepUnlocked)),
+        };
+        Grid.SetColumn(autoSellHeader, 0);
+        Grid.SetColumn(autoGoldHeader, 2);
+        autoHeaders.Children.Add(autoSellHeader);
+        autoHeaders.Children.Add(autoGoldHeader);
+
+        // Texte d'avertissement de l'onglet Auto, hors de l'ascenseur : toujours visible sans
+        // avoir a faire defiler la liste des seuils. Meme raisonnement Opacity qu'au-dessus.
+        var autoNote = new TextBlock
+        {
+            FontSize = 11,
+            Foreground = Subtle,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 8, 0, 0),
+            [!TextBlock.TextProperty] = new Binding(nameof(TradePopupViewModel.AutoNote)),
+            [!OpacityProperty] = new Binding(nameof(TradePopupViewModel.ShowingAuto))
+            {
+                Converter = BoolToOpacity,
+            },
         };
 
         // ── Pied : or disponible et multiplicateurs ──
@@ -143,6 +209,7 @@ public sealed class TradePopupView : UserControl
             Orientation = Orientation.Horizontal,
             Spacing = 5,
             VerticalAlignment = VerticalAlignment.Center,
+            [!IsVisibleProperty] = new Binding(nameof(TradePopupViewModel.ShowingTrade)),
         };
         gold.Children.Add(goldIcon);
         gold.Children.Add(goldText);
@@ -161,7 +228,10 @@ public sealed class TradePopupView : UserControl
             [!IsVisibleProperty] = new Binding(nameof(TradePopupViewModel.ShowingTrade)),
         };
 
-        var footer = new DockPanel { LastChildFill = false, Margin = new Thickness(0, 12, 0, 0) };
+        // Hauteur fixe : gold et multipliers se masquent hors de l'onglet d'echange (IsVisible
+        // les reduit a zero), sans quoi le pied — et donc toute la fenetre — retrecirait sur les
+        // deux autres onglets.
+        var footer = new DockPanel { LastChildFill = false, Height = 28, Margin = new Thickness(0, 12, 0, 0) };
         DockPanel.SetDock(gold, Dock.Left);
         DockPanel.SetDock(multipliers, Dock.Right);
         footer.Children.Add(gold);
@@ -192,7 +262,9 @@ public sealed class TradePopupView : UserControl
         var stack = new StackPanel { Orientation = Orientation.Vertical };
         stack.Children.Add(title);
         stack.Children.Add(tabs);
+        stack.Children.Add(autoHeaders);
         stack.Children.Add(scroll);
+        stack.Children.Add(autoNote);
         stack.Children.Add(footer);
 
         var body = new Panel();
@@ -215,7 +287,7 @@ public sealed class TradePopupView : UserControl
         Content = new Border { Background = Veil, Child = box };
     }
 
-    private static Button TabButton(string labelPath, string activePath, Action onClick)
+    private static Button TabButton(string labelPath, string activePath, Action onClick, string? visiblePath = null)
     {
         var button = new Button
         {
@@ -235,9 +307,148 @@ public sealed class TradePopupView : UserControl
                 Converter = new FuncValueConverter<bool, IBrush>(a => a ? TabActive : TabInactive),
             },
         };
+        if (visiblePath != null) button[!IsVisibleProperty] = new Binding(visiblePath);
         button.Classes.Add(GameControlStyles.ToneButton);
         button.Click += (_, _) => onClick();
         return button;
+    }
+
+    /// <summary>
+    /// Onglet Auto : meme decoupage deux colonnes que l'onglet d'echange — a gauche, un curseur par
+    /// ressource vendable pour le seuil de declenchement de la vente automatique (50%-99% du stock
+    /// max) ; a droite, un curseur pour la part d'or conservee avant que l'Achat Automatique ne
+    /// depense l'excedent. Les en-tetes de colonnes vivent hors de l'ascenseur (voir autoHeaders
+    /// dans le constructeur) ; ceci ne construit que le contenu qui defile. Chaque section reste
+    /// masquee tant que l'automatisation correspondante n'est pas debloquee (voir TradePopupRenderer.GetSnapshot).
+    /// </summary>
+    private static Control BuildAutoTab(TradePopupViewModel viewModel, SvgIconCache icons)
+    {
+        var columns = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,16,*"),
+            [!IsVisibleProperty] = new Binding(nameof(TradePopupViewModel.ShowingAuto)),
+        };
+        var sellRows = BuildAutoSellRows(viewModel, icons);
+        var goldRow = BuildAutoGoldRow(viewModel);
+        Grid.SetColumn(sellRows, 0);
+        Grid.SetColumn(goldRow, 2);
+        columns.Children.Add(sellRows);
+        columns.Children.Add(goldRow);
+        return columns;
+    }
+
+    private static Control BuildAutoSellRows(TradePopupViewModel viewModel, SvgIconCache icons) => new ItemsControl
+    {
+        [!ItemsControl.ItemsSourceProperty] = new Binding(nameof(TradePopupViewModel.AutoSellRows)),
+        ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel { Spacing = 1 }),
+        ItemTemplate = new FuncDataTemplate<TradeAutoRowViewModel>(
+            (_, _) => BuildAutoRow(viewModel, icons), supportsRecycling: true),
+    };
+
+    private static Control BuildAutoGoldRow(TradePopupViewModel viewModel)
+    {
+        var slider = new Slider
+        {
+            Width = 200,
+            Minimum = 0,
+            Maximum = AutomationSettings.AutoBuyGoldKeepMaxPercent,
+            VerticalAlignment = VerticalAlignment.Center,
+            [!Slider.ValueProperty] = new Binding(nameof(TradePopupViewModel.AutoGoldKeepPercent)),
+            TickFrequency = 1,
+            IsSnapToTickEnabled = true,
+        };
+        slider.AddHandler(PointerReleasedEvent, (_, _) =>
+            viewModel.SetAutoGoldKeepPercent(slider.Value), RoutingStrategies.Tunnel);
+
+        var percentText = new TextBlock
+        {
+            FontSize = 12,
+            Foreground = Subtle,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(8, 0, 0, 0),
+            Width = 40,
+            [!TextBlock.TextProperty] = new Binding(nameof(TradePopupViewModel.AutoGoldKeepPercent))
+            {
+                Converter = new FuncValueConverter<int, string>(p => $"{p}%"),
+            },
+        };
+
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            // Sans ceci, le Grid parent (dont la ligne unique s'etire a la hauteur de la liste de
+            // ressources en colonne de gauche) centrerait ce curseur au milieu de toute la liste
+            // au lieu de l'aligner sur sa premiere ligne.
+            VerticalAlignment = VerticalAlignment.Top,
+            [!IsVisibleProperty] = new Binding(nameof(TradePopupViewModel.AutoGoldKeepUnlocked)),
+        };
+        row.Children.Add(slider);
+        row.Children.Add(percentText);
+        return row;
+    }
+
+    /// <summary>Une ligne de l'onglet Auto : icone, nom, curseur de seuil (50%-99%) et sa valeur.</summary>
+    private static Control BuildAutoRow(TradePopupViewModel viewModel, SvgIconCache icons)
+    {
+        var icon = new Image { Width = 18, Height = 18, VerticalAlignment = VerticalAlignment.Center };
+
+        var name = new TextBlock
+        {
+            FontSize = 13,
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(6, 0, 0, 0),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            [!TextBlock.TextProperty] = new Binding(nameof(TradeAutoRowViewModel.Name)),
+        };
+
+        var slider = new Slider
+        {
+            Width = 130,
+            Minimum = AutomationSettings.AutoSellThresholdMinPercent,
+            Maximum = AutomationSettings.AutoSellThresholdMaxPercent,
+            VerticalAlignment = VerticalAlignment.Center,
+            [!Slider.ValueProperty] = new Binding(nameof(TradeAutoRowViewModel.ThresholdPercent)),
+            TickFrequency = 1,
+            IsSnapToTickEnabled = true,
+        };
+
+        var percentText = new TextBlock
+        {
+            FontSize = 12,
+            Foreground = Subtle,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(8, 0, 0, 0),
+            Width = 36,
+            [!TextBlock.TextProperty] = new Binding(nameof(TradeAutoRowViewModel.ThresholdPercent))
+            {
+                Converter = new FuncValueConverter<int, string>(p => $"{p}%"),
+            },
+        };
+
+        TradeAutoRowViewModel? row = null;
+        slider.AddHandler(PointerReleasedEvent, (_, _) =>
+        {
+            if (row != null) viewModel.SetAutoSellThreshold(row, slider.Value);
+        }, RoutingStrategies.Tunnel);
+
+        var layout = new DockPanel { LastChildFill = true };
+        DockPanel.SetDock(icon, Dock.Left);
+        DockPanel.SetDock(percentText, Dock.Right);
+        DockPanel.SetDock(slider, Dock.Right);
+        layout.Children.Add(icon);
+        layout.Children.Add(percentText);
+        layout.Children.Add(slider);
+        layout.Children.Add(name);
+
+        var border = new Border { Child = layout };
+        border.DataContextChanged += (_, _) =>
+        {
+            row = border.DataContext as TradeAutoRowViewModel;
+            if (row != null) icon.Source = icons.GetResourceIcon(row.IconName, 18);
+        };
+        return border;
     }
 
     private static Control BuildColumn(

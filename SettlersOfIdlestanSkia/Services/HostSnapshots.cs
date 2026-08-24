@@ -346,16 +346,33 @@ public sealed record TradeHistoryEntrySnapshot(
 /// est relachee, contrairement au choix permanent.</param>
 public sealed record TradeMultiplierSnapshot(int Value, string Label, bool IsActive, bool IsTemporary);
 
+/// <summary>Une ligne de l'onglet Auto : seuil de declenchement de la vente automatique du surplus
+/// pour une ressource, en % du stock max (voir AutomationSettings.GetAutoSellThresholdPercent).</summary>
+/// <param name="Key">Nom d'enum de la ressource : identifiant stable et routage.</param>
+public sealed record TradeAutoResourceRowSnapshot(
+    string Key,
+    string IconName,
+    string Name,
+    int ThresholdPercent);
+
 /// <summary>
 /// Popup de commerce : deux colonnes vendre/acheter, un historique, et un multiplicateur de
 /// paquet. Les regles de deblocage, les taux et la solvabilite restent dans TradeController.
 /// </summary>
+/// <param name="AutoTabUnlocked">Vrai des qu'au moins une des deux automatisations (vente
+/// automatique ou achat automatique) est debloquee : conditionne l'affichage de l'onglet Auto.</param>
+/// <param name="AutoSellRows">Vide si la vente automatique n'est pas debloquee.</param>
+/// <param name="AutoGoldKeepPercent">-1 si l'achat automatique n'est pas debloque : distingue
+/// "non affiche" d'un reglage a 0%.</param>
 public sealed record TradePopupSnapshot(
     bool IsOpen,
     string Title,
     string TradeTabLabel,
     string HistoryTabLabel,
+    string AutoTabLabel,
     bool ShowingHistory,
+    bool ShowingAuto,
+    bool AutoTabUnlocked,
     string SellHeader,
     string BuyHeader,
     IReadOnlyList<TradeRowSnapshot> SellRows,
@@ -363,10 +380,15 @@ public sealed record TradePopupSnapshot(
     string GoldLabel,
     IReadOnlyList<TradeMultiplierSnapshot> Multipliers,
     string? HistoryEmptyMessage,
-    IReadOnlyList<TradeHistoryEntrySnapshot> HistoryEntries)
+    IReadOnlyList<TradeHistoryEntrySnapshot> HistoryEntries,
+    string AutoSellHeader,
+    IReadOnlyList<TradeAutoResourceRowSnapshot> AutoSellRows,
+    string AutoGoldHeader,
+    int AutoGoldKeepPercent,
+    string AutoNote)
 {
     public static readonly TradePopupSnapshot Closed =
-        new(false, "", "", "", false, "", "", [], [], "", [], null, []);
+        new(false, "", "", "", "", false, false, false, "", "", [], [], "", [], null, [], "", [], "", -1, "");
 }
 
 /// <summary>
