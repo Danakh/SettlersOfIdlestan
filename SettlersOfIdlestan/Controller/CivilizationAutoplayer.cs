@@ -1222,8 +1222,16 @@ namespace SettlersOfIdlestan.Controller
         /// plusieurs milliers de sommets, et le reconstruire à chaque recherche d'expansion — deux
         /// fois par tour d'IA et par civilisation PNJ — était le premier poste d'allocation de
         /// l'autoplay. Même réserve que les caches voisins : le déplacement d'une ville
-        /// (CityBuilderController.RelocateCity) change une position sans changer aucun compteur ; il
-        /// est réservé au joueur et reste sans effet sur les décisions d'IA d'ici au tour suivant.</para>
+        /// (CityBuilderController.RelocateCity) change une position sans changer aucun compteur, donc
+        /// ce cache-ci garde l'ancienne position comme sommet du réseau pendant que
+        /// GetProspectiveVertices (invalidé par RelocateCity via le recalcul de visibilité) la traite
+        /// déjà comme un vertex prospectif libre. Contrairement à ce qu'indiquait ce commentaire
+        /// auparavant, ce n'est pas sans effet : quand l'AutoplayerDebugRenderer exécute l'autoplay du
+        /// joueur juste après une relocation, l'ancienne position matche alors exactement (distance 0)
+        /// ce sommet périmé, et FindBestExpansionTarget renvoyait from == target — de là un crash dans
+        /// HexGridPathfinder.FindVertexPath, qui renvoie un chemin à un seul élément quand from == to.
+        /// FindBestExpansionTarget se protège désormais explicitement en écartant tout candidat déjà
+        /// membre du réseau, donc ce déphasage reste inoffensif jusqu'au prochain recalcul.</para>
         ///
         /// <para>L'ensemble rendu est <b>partagé</b> et réutilisé : les appelants le lisent
         /// uniquement.</para>
@@ -1312,6 +1320,13 @@ namespace SettlersOfIdlestan.Controller
             int bestDist = int.MaxValue;
             foreach (var candidate in candidates)
             {
+                // GetProspectiveVertices() est censé exclure tout vertex déjà dans le réseau, mais son
+                // cache et celui de GetNetworkVertices s'invalident sur des clés différentes et peuvent
+                // transitoirement diverger : un candidat qui EST déjà un vertex du réseau produirait
+                // dist=0 (from == candidate), et FindVertexPath(from, target) avec from==target renvoie
+                // un chemin à un seul élément — path[1] plante alors dans TryExpandOnce.
+                if (networkVertices.Contains(candidate)) continue;
+
                 Vertex? from = null;
                 int dist = int.MaxValue;
                 foreach (var nv in networkVertices)
