@@ -401,6 +401,13 @@ namespace SettlersOfIdlestan.Controller
                 // kill switch, à refaire à chaque île/prestige/chargement puisque AutomationSettings
                 // est recréé avec le WorldState.
                 WorldState.AutomationSettings.Bind(CurrentMainState!.Settings);
+                WorldState.AutomationSettings.BindPresets(CurrentMainState!.GodState);
+
+                // Migration : une sauvegarde plus ancienne peut stocker un plafond de preset
+                // supérieur au niveau max théorique actuel d'un bâtiment (recherche/vertex/hexagone
+                // de prestige retiré ou réduit depuis). Ramené au max courant plutôt que laissé tel
+                // quel — voir AutomationPresetSettings.ClampToTheoreticalMax.
+                CurrentMainState!.GodState.AutomationPresets.ClampToTheoreticalMax();
 
                 AscensionController.ApplyPermanentUniqueBuildingToCivilization();
 

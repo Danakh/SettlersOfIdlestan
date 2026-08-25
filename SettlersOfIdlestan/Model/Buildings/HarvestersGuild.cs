@@ -22,9 +22,6 @@ public class HarvestersGuild : Building, IUniqueBuilding
     public override bool ProvidesAutomation => true;
     public override int GetDefaultMaxLevel() => 0;
 
-    // Prestige : Guilde des Récolteurs +4 (voir PrestigeMapFactory.cs).
-    public override int GetAbsoluteMaxLevel() => 4;
-
     public long GetAutoProductionCooldownTicks() => 1000L;
 
     public override bool HasBuildPrerequisites(IBuildingContext city)

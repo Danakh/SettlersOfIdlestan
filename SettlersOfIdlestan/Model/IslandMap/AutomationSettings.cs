@@ -1,6 +1,8 @@
 using System.Text.Json.Serialization;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
 
@@ -20,6 +22,22 @@ public class AutomationSettings
     /// unique du "kill switch" : le reste du code doit lire les propriétés IsXActive, jamais les
     /// champs XEnabled bruts (réservés à la persistance et à l'UI de configuration par flag).</summary>
     private bool Active(bool flag) => flag && (_globalSettings?.AutomationsEnabled ?? true);
+
+    /// <summary>
+    /// Référence vers GodState, utilisée uniquement pour lire le plafond de niveau du preset actif
+    /// (GodState.AutomationPresets). Câblée une fois via BindPresets (voir
+    /// MainGameController.InitializeControllersForCurrentIsland), jamais sérialisée.
+    /// </summary>
+    [JsonIgnore]
+    private GodState? _presetSource;
+
+    public void BindPresets(GodState godState) => _presetSource = godState;
+
+    /// <summary>Plafond de niveau du preset actif pour ce type de bâtiment, consulté par
+    /// BuildingController.TickGuildAutomation. 10 (illimité en pratique) tant que le preset
+    /// n'a pas été câblé ou que le joueur n'a pas personnalisé ce type.</summary>
+    public int GetActivePresetCap(BuildingType type) =>
+        _presetSource?.AutomationPresets.GetActiveCap(type) ?? AutomationPresetSettings.DefaultCap;
 
     public bool RoadAutomationEnabled { get; set; } = true;
     [JsonIgnore] public bool IsRoadAutomationActive => Active(RoadAutomationEnabled);

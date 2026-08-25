@@ -295,6 +295,16 @@ public sealed class SkiaGameRuntime : IDisposable
     public void ToggleAutomation(string key) => _gameScreen?.ToggleAutomationFromHost(key);
     public void ToggleAutomationPin(string key) => _gameScreen?.ToggleAutomationPinFromHost(key);
     public void ToggleAutomationsGlobally() => _gameScreen?.ToggleAutomationsGloballyFromHost();
+    public void SelectAutomationPreset(int preset) => _gameScreen?.SelectAutomationPresetFromHost(preset);
+
+    public AutomationPresetPopupSnapshot GetAutomationPresetPopupSnapshot() =>
+        _onTitleScreen ? AutomationPresetPopupSnapshot.Closed
+                       : _gameScreen?.GetAutomationPresetPopupSnapshot() ?? AutomationPresetPopupSnapshot.Closed;
+
+    public void OpenAutomationPresetPopup() => _gameScreen?.OpenAutomationPresetPopupFromHost();
+    public void CloseAutomationPresetPopup() => _gameScreen?.CloseAutomationPresetPopupFromHost();
+    public void SetAutomationPresetCap(string buildingKey, int preset, int value) =>
+        _gameScreen?.SetAutomationPresetCapFromHost(buildingKey, preset, value);
 
     /// <summary>Instantané du menu de l'engrenage pour une vue portée par l'hôte.</summary>
     public SettingsMenuSnapshot GetSettingsMenuSnapshot() =>

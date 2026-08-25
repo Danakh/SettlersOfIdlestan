@@ -21,6 +21,12 @@ namespace SettlersOfIdlestan.Model.Prestige
         public AscensionState AscensionState { get; set; } = new();
 
         /// <summary>
+        /// Plafonds de niveau par bâtiment pour l'automatisation de construction, en 3 préréglages
+        /// (cross-prestige, cross-ascension — voir TechnologyId.AutomationPreset).
+        /// </summary>
+        public AutomationPresetSettings AutomationPresets { get; set; } = new();
+
+        /// <summary>
         /// Points divins actuels (cross-prestige).
         /// </summary>
         public int GodPoints { get; set; }

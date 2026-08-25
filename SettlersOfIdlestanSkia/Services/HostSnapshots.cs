@@ -437,16 +437,47 @@ public sealed record AutomationSectionSnapshot(string Header, IReadOnlyList<Auto
 /// l'effet de chaque bascule restent dans AutomationRenderer.
 /// </summary>
 /// <param name="PinTooltip">Infobulle commune aux cases a cocher d'epinglage.</param>
+/// <param name="PresetBarVisible">Vrai une fois TechnologyId.AutomationPreset debloquee : affiche
+/// les boutons 1/2/3/Changer a cote de la section Constructions.</param>
+/// <param name="ActivePreset">Preset d'automatisation actif (1 a 3).</param>
+/// <param name="PresetChangeButtonLabel">Libelle du bouton ouvrant le popup d'edition des presets.</param>
 public sealed record AutomationSnapshot(
     bool IsVisible,
     string Title,
     string GlobalToggleLabel,
     bool GlobalToggleOn,
     string PinTooltip,
+    bool PresetBarVisible,
+    int ActivePreset,
+    string PresetChangeButtonLabel,
     IReadOnlyList<AutomationSectionSnapshot> LeftColumn,
     IReadOnlyList<AutomationSectionSnapshot> RightColumn)
 {
-    public static readonly AutomationSnapshot Hidden = new(false, "", "", false, "", [], []);
+    public static readonly AutomationSnapshot Hidden = new(false, "", "", false, "", false, 1, "", [], []);
+}
+
+/// <summary>Une ligne du tableau d'edition des presets d'automatisation : un batiment, son plafond
+/// de niveau pour chacun des 3 presets.</summary>
+/// <param name="MaxLevel">Niveau max theorique du batiment (Building.GetAbsoluteMaxLevel), borne
+/// superieure du menu deroulant de chaque preset — pas la peine de proposer 4 a 10 pour un
+/// batiment qui ne peut jamais depasser 3.</param>
+public sealed record AutomationPresetRowSnapshot(string Key, string Name, int MaxLevel, int Preset1, int Preset2, int Preset3);
+
+/// <summary>Popup d'edition des presets d'automatisation (voir TechnologyId.AutomationPreset).</summary>
+/// <param name="ZeroColumnTooltip">Infobulle du bouton "0" en tete de chaque colonne de preset,
+/// qui met tous les batiments de la colonne a 0.</param>
+/// <param name="MaxColumnTooltip">Infobulle du bouton "M" en tete de chaque colonne de preset, qui
+/// met tous les batiments de la colonne a leur niveau max atteignable respectif.</param>
+public sealed record AutomationPresetPopupSnapshot(
+    bool IsOpen,
+    string Title,
+    string BuildingColumnHeader,
+    string ZeroColumnTooltip,
+    string MaxColumnTooltip,
+    int ActivePreset,
+    IReadOnlyList<AutomationPresetRowSnapshot> Rows)
+{
+    public static readonly AutomationPresetPopupSnapshot Closed = new(false, "", "", "", "", 1, []);
 }
 
 /// <summary>

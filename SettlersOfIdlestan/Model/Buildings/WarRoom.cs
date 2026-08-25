@@ -17,9 +17,6 @@ public class WarRoom : Building, IUniqueBuilding
     public override bool ProvidesAutomation => true;
     public override int GetDefaultMaxLevel() => 0;
 
-    // Prestige : Salle de Guerre +1 (voir PrestigeMapFactory.cs).
-    public override int GetAbsoluteMaxLevel() => 1;
-
     public long GetAutoMilitaryCooldownTicks() => 1000L;
 
     public override bool HasBuildPrerequisites(IBuildingContext city) =>

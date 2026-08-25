@@ -489,6 +489,15 @@ public sealed class GameScreen : IDisposable
     public void ToggleAutomationFromHost(string key) => _overlayRenderer?.ToggleAutomationFromHost(key);
     public void ToggleAutomationPinFromHost(string key) => _overlayRenderer?.ToggleAutomationPinFromHost(key);
     public void ToggleAutomationsGloballyFromHost() => _overlayRenderer?.ToggleAutomationsGloballyFromHost();
+    public void SelectAutomationPresetFromHost(int preset) => _overlayRenderer?.SelectAutomationPresetFromHost(preset);
+
+    public AutomationPresetPopupSnapshot GetAutomationPresetPopupSnapshot() =>
+        _overlayRenderer?.GetAutomationPresetPopupSnapshot() ?? AutomationPresetPopupSnapshot.Closed;
+
+    public void OpenAutomationPresetPopupFromHost() => _overlayRenderer?.OpenAutomationPresetPopupFromHost();
+    public void CloseAutomationPresetPopupFromHost() => _overlayRenderer?.CloseAutomationPresetPopupFromHost();
+    public void SetAutomationPresetCapFromHost(string buildingKey, int preset, int value) =>
+        _overlayRenderer?.SetAutomationPresetCapFromHost(buildingKey, preset, value);
 
     /// <summary>Instantané du menu de l'engrenage pour une vue portée par l'hôte.</summary>
     public SettingsMenuSnapshot GetSettingsMenuSnapshot() =>

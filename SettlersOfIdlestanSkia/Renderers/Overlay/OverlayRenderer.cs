@@ -375,6 +375,15 @@ public sealed class OverlayRenderer : IGameRenderer
     public void ToggleAutomationFromHost(string key) => _automationRenderer.ToggleByKey(key);
     public void ToggleAutomationPinFromHost(string key) => _automationRenderer.TogglePinFromHost(key);
     public void ToggleAutomationsGloballyFromHost() => _automationRenderer.ToggleGlobalFromHost();
+    public void SelectAutomationPresetFromHost(int preset) => _automationRenderer.SelectAutomationPresetFromHost(preset);
+
+    /// <summary>Instantane du popup d'edition des presets d'automatisation pour une vue portee par l'hote.</summary>
+    public AutomationPresetPopupSnapshot GetAutomationPresetPopupSnapshot() => _automationRenderer.GetAutomationPresetPopupSnapshot();
+
+    public void OpenAutomationPresetPopupFromHost() => _automationRenderer.OpenAutomationPresetPopupFromHost();
+    public void CloseAutomationPresetPopupFromHost() => _automationRenderer.CloseAutomationPresetPopupFromHost();
+    public void SetAutomationPresetCapFromHost(string buildingKey, int preset, int value) =>
+        _automationRenderer.SetAutomationPresetCapFromHost(buildingKey, preset, value);
 
     /// <summary>Instantané du menu de l'engrenage pour une vue portée par l'hôte.</summary>
     public SettingsMenuSnapshot GetSettingsMenuSnapshot() => _settingsMenu.GetSnapshot();

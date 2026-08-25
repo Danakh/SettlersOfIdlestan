@@ -65,8 +65,11 @@ public sealed class AutomationView : UserControl
         header.Children.Add(globalToggle);
 
         var columns = new Grid { ColumnDefinitions = new ColumnDefinitions("*,12,*") };
-        var left = BuildColumn(viewModel, nameof(AutomationViewModel.LeftColumn));
-        var right = BuildColumn(viewModel, nameof(AutomationViewModel.RightColumn));
+        // La barre de presets n'a de sens qu'a cote de "Constructions", seule section de la
+        // colonne gauche : pas besoin de la retrouver par cle, ce template n'est jamais instancie
+        // pour la colonne droite.
+        var left = BuildColumn(viewModel, nameof(AutomationViewModel.LeftColumn), showPresetBar: true);
+        var right = BuildColumn(viewModel, nameof(AutomationViewModel.RightColumn), showPresetBar: false);
         Grid.SetColumn(left, 0);
         Grid.SetColumn(right, 2);
         columns.Children.Add(left);
@@ -89,24 +92,35 @@ public sealed class AutomationView : UserControl
         };
     }
 
-    private static Control BuildColumn(AutomationViewModel viewModel, string path) => new ItemsControl
+    private static Control BuildColumn(AutomationViewModel viewModel, string path, bool showPresetBar) => new ItemsControl
     {
         [!ItemsControl.ItemsSourceProperty] = new Binding(path),
         ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel { Spacing = 12 }),
         ItemTemplate = new FuncDataTemplate<AutomationSectionViewModel>(
-            (_, _) => BuildSection(viewModel), supportsRecycling: true),
+            (_, _) => BuildSection(viewModel, showPresetBar), supportsRecycling: true),
     };
 
-    private static Control BuildSection(AutomationViewModel viewModel)
+    private static Control BuildSection(AutomationViewModel viewModel, bool showPresetBar)
     {
         var header = new TextBlock
         {
             FontSize = 13,
             FontWeight = FontWeight.Bold,
             Foreground = Accent,
-            Margin = new Thickness(0, 0, 0, 8),
+            VerticalAlignment = VerticalAlignment.Center,
             [!TextBlock.TextProperty] = new Binding(nameof(AutomationSectionViewModel.Header)),
         };
+
+        var headerRow = new DockPanel { LastChildFill = false, Margin = new Thickness(0, 0, 0, 8) };
+        DockPanel.SetDock(header, Dock.Left);
+        headerRow.Children.Add(header);
+        if (showPresetBar)
+        {
+            var presetBar = BuildPresetBar(viewModel);
+            presetBar[!IsVisibleProperty] = new Binding(nameof(AutomationViewModel.ShowPresetBar)) { Source = viewModel };
+            DockPanel.SetDock(presetBar, Dock.Right);
+            headerRow.Children.Add(presetBar);
+        }
 
         var rows = new ItemsControl
         {
@@ -117,9 +131,63 @@ public sealed class AutomationView : UserControl
         };
 
         var stack = new StackPanel { Orientation = Orientation.Vertical };
-        stack.Children.Add(header);
+        stack.Children.Add(headerRow);
         stack.Children.Add(rows);
         return stack;
+    }
+
+    /// <summary>Boutons 1/2/3 (preset actif en surbrillance) + bouton "Changer" ouvrant le popup
+    /// d'edition. Visible uniquement une fois TechnologyId.AutomationPreset debloquee. Lie
+    /// directement au AutomationViewModel du panneau (pas a la section) : une seule barre existe,
+    /// toujours a cote de "Constructions".</summary>
+    private static Control BuildPresetBar(AutomationViewModel viewModel)
+    {
+        static Button PresetButton(int n, AutomationViewModel owner)
+        {
+            var button = new Button
+            {
+                Width = 22,
+                Height = 22,
+                Padding = new Thickness(0),
+                FontSize = 12,
+                FontWeight = FontWeight.Bold,
+                Content = n.ToString(),
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                CornerRadius = new CornerRadius(4),
+                [!BackgroundProperty] = new Binding(nameof(AutomationViewModel.ActivePreset))
+                {
+                    Source = owner,
+                    Converter = new FuncValueConverter<int, IBrush>(active => active == n ? Accent : Card),
+                },
+                [!ForegroundProperty] = new Binding(nameof(AutomationViewModel.ActivePreset))
+                {
+                    Source = owner,
+                    Converter = new FuncValueConverter<int, IBrush>(active => active == n ? new SolidColorBrush(Colors.Black) : NameText),
+                },
+            };
+            button.Classes.Add(GameControlStyles.ToneButton);
+            button.Click += (_, _) => owner.SelectPreset(n);
+            return button;
+        }
+
+        var changeButton = new Button
+        {
+            Height = 22,
+            Padding = new Thickness(8, 0),
+            FontSize = 11,
+            [!ContentProperty] = new Binding(nameof(AutomationViewModel.PresetChangeButtonLabel)) { Source = viewModel },
+            CornerRadius = new CornerRadius(4),
+        };
+        changeButton.Classes.Add(GameControlStyles.ToneButton);
+        changeButton.Click += (_, _) => viewModel.OpenPresetPopup();
+
+        var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+        bar.Children.Add(PresetButton(1, viewModel));
+        bar.Children.Add(PresetButton(2, viewModel));
+        bar.Children.Add(PresetButton(3, viewModel));
+        bar.Children.Add(changeButton);
+        return bar;
     }
 
     /// <summary>Une carte : bascule, nom, description, resume de construction, case d'epinglage.</summary>

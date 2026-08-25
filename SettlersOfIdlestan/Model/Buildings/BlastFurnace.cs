@@ -20,9 +20,6 @@ public class BlastFurnace : Building, IUniqueBuilding
     // Verrouillé par défaut ; débloqué par le vertex de prestige Hauts-Fourneaux (+1 niveau max)
     public override int GetDefaultMaxLevel() => 0;
 
-    // Prestige : Hauts-Fourneaux +1 (voir PrestigeMapFactory.cs).
-    public override int GetAbsoluteMaxLevel() => 1;
-
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Stone, 800 },

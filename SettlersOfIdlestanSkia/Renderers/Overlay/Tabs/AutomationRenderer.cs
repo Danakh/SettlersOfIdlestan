@@ -681,6 +681,7 @@ public sealed class AutomationRenderer : IDisposable
 
         var pinned = gameState.Settings.PinnedCivPanelKeys;
         var (left, right) = BuildColumns(civ, worldState);
+        bool presetsUnlocked = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AutomationPreset);
 
         IReadOnlyList<AutomationSectionSnapshot> Project(List<SectionModel> sections) =>
             sections.Select(section => new AutomationSectionSnapshot(
@@ -707,8 +708,55 @@ public sealed class AutomationRenderer : IDisposable
             GlobalToggleLabel: _localization.Get("settings_automations_enabled"),
             GlobalToggleOn: gameState.Settings.AutomationsEnabled,
             PinTooltip: _localization.Get("tooltip_pin_to_civ_panel"),
+            PresetBarVisible: presetsUnlocked,
+            ActivePreset: gameState.GodState.AutomationPresets.ActivePreset,
+            PresetChangeButtonLabel: _localization.Get("automation_preset_change_button"),
             LeftColumn: Project(left),
             RightColumn: Project(right));
+    }
+
+    /// <summary>Bascule le preset d'automatisation actif (1 a 3), depuis la vue de l'hote.</summary>
+    public void SelectAutomationPresetFromHost(int preset) =>
+        _gameControllerService.CurrentGameState?.GodState.AutomationPresets.SetActivePreset(preset);
+
+    private bool _presetPopupOpen;
+
+    /// <summary>Instantane du popup d'edition des presets pour une vue portee par l'hote.</summary>
+    public AutomationPresetPopupSnapshot GetAutomationPresetPopupSnapshot()
+    {
+        var gameState = _gameControllerService.CurrentGameState;
+        if (!_presetPopupOpen || _disposed || gameState == null) return AutomationPresetPopupSnapshot.Closed;
+
+        var presets = gameState.GodState.AutomationPresets;
+        var rows = BuildingController.PresetTableBuildingTypes
+            .Select(type => new AutomationPresetRowSnapshot(
+                Key: type.ToString(),
+                Name: _localization.Get($"building_{type.ToString().ToLower()}_name"),
+                MaxLevel: Math.Min(SettlersOfIdlestan.Model.Prestige.AutomationPresetSettings.MaxCap, BuildingController.CreateBuilding(type)!.GetAbsoluteMaxLevel()),
+                Preset1: presets.GetCap(1, type),
+                Preset2: presets.GetCap(2, type),
+                Preset3: presets.GetCap(3, type)))
+            .ToList();
+
+        return new AutomationPresetPopupSnapshot(
+            true,
+            _localization.Get("automation_preset_popup_title"),
+            _localization.Get("automation_preset_popup_building_header"),
+            _localization.Get("automation_preset_column_zero_tooltip"),
+            _localization.Get("automation_preset_column_max_tooltip"),
+            presets.ActivePreset,
+            rows);
+    }
+
+    public void OpenAutomationPresetPopupFromHost() => _presetPopupOpen = true;
+    public void CloseAutomationPresetPopupFromHost() => _presetPopupOpen = false;
+
+    /// <summary>Modifie le plafond d'un batiment pour un preset donne, depuis la vue de l'hote.</summary>
+    public void SetAutomationPresetCapFromHost(string buildingKey, int preset, int value)
+    {
+        var gameState = _gameControllerService.CurrentGameState;
+        if (gameState == null || !Enum.TryParse<BuildingType>(buildingKey, out var type)) return;
+        gameState.GodState.AutomationPresets.SetCap(preset, type, value);
     }
 
     /// <summary>Epingle ou desepingle une ligne au panneau civilisation, depuis la vue de l'hote.</summary>

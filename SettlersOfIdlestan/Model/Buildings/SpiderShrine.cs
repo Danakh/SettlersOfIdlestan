@@ -24,9 +24,6 @@ public class SpiderShrine : Building, IUniqueBuilding
     public override bool IsUnique => true;
     public override int GetDefaultMaxLevel() => 0;
 
-    // Race Elfes noirs : +1 (voir RaceDefinitions.cs).
-    public override int GetAbsoluteMaxLevel() => 1;
-
     public override bool IsAvailableInLayer(int z) => z != IslandMap.IslandMap.SurfaceLayer;
 
     public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)

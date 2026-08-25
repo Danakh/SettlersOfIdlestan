@@ -46,6 +46,23 @@ namespace SettlersOfIdlestan.Controller.Island
         private static readonly BuildingType[] _uniqueBuildingTypes =
             _allBuildingTypes.Where(bt => CreateBuilding(bt)?.IsUnique == true).ToArray();
 
+        /// <summary>
+        /// Bâtiments non-uniques sans automatisation existante : ni Watchtower (verrouillé par
+        /// défaut, GetDefaultMaxLevel() == 0, tant qu'un vertex de prestige ne le débloque pas) ni
+        /// AdventurersWaypost (coût dépendant d'un état civ-wide, GetBuildCost ne peut pas être
+        /// appelé sans passer par le chemin spécial de BuildBuilding) ne doivent apparaître dans le
+        /// tableau des presets d'automatisation — voir TechnologyId.AutomationPreset.
+        /// </summary>
+        private static readonly BuildingType[] _excludedFromPresetTable =
+            [BuildingType.Watchtower, BuildingType.AdventurersWaypost];
+
+        /// <summary>
+        /// Types de bâtiments affichés dans le tableau d'édition des presets d'automatisation :
+        /// tous les bâtiments non-uniques à l'exception de <see cref="_excludedFromPresetTable"/>.
+        /// </summary>
+        public static readonly BuildingType[] PresetTableBuildingTypes =
+            _allBuildingTypes.Except(_uniqueBuildingTypes).Except(_excludedFromPresetTable).ToArray();
+
         public event EventHandler<BuildingBuiltEventArgs>? OnBuildingBuilt;
 
         internal BuildingController(WorldState? state = null)
@@ -286,6 +303,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (!enabled) { lastTick = now; return; }
             if (lastTick == 0) { lastTick = now; return; }
+            if (_state == null) return;
 
             double guildSpeedBonus = civ.ModifierAggregator.ApplyModifiers(ECategory.GUILD_AUTOMATION_SPEED_PER_CITY, "", 0.0) * civ.Cities.Count;
             long effectiveCooldown = guildSpeedBonus > 0 ? (long)(cooldown / (1.0 + guildSpeedBonus)) : cooldown;
@@ -293,15 +311,21 @@ namespace SettlersOfIdlestan.Controller.Island
 
             lastTick = now;
 
-            // New builds first, then upgrade lowest-level existing buildings
+            var presets = _state.AutomationSettings;
+
+            // New builds first, then upgrade lowest-level existing buildings. Un plafond de preset
+            // à 0 empêche toute construction du type ; un plafond atteint arrête son amélioration
+            // (voir AutomationPresetSettings / TechnologyId.AutomationPreset).
             foreach (var city in civ.Cities)
                 foreach (var type in targets)
-                    if (!city.Buildings.Any(b => b.Type == type) && BuildBuilding(city, type))
+                    if (presets.GetActivePresetCap(type) > 0
+                        && !city.Buildings.Any(b => b.Type == type)
+                        && BuildBuilding(city, type))
                         return;
 
             var lowestLevelFirst = civ.Cities
                 .SelectMany(city => city.Buildings
-                    .Where(b => targets.Contains(b.Type))
+                    .Where(b => targets.Contains(b.Type) && b.Level < presets.GetActivePresetCap(b.Type))
                     .Select(b => (city, b.Type, b.Level)))
                 .OrderBy(x => x.Level);
 

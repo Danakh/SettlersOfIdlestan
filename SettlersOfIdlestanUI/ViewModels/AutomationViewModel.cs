@@ -100,6 +100,9 @@ public sealed class AutomationViewModel : ViewModelBase
     private string _globalToggleLabel = "";
     private bool _globalToggleOn;
     private string _pinTooltip = "";
+    private bool _showPresetBar;
+    private int _activePreset = 1;
+    private string _presetChangeButtonLabel = "";
 
     public AutomationViewModel(GameRuntimeHost host) => _host = host;
 
@@ -111,6 +114,11 @@ public sealed class AutomationViewModel : ViewModelBase
     public string GlobalToggleLabel { get => _globalToggleLabel; private set => SetProperty(ref _globalToggleLabel, value); }
     public bool GlobalToggleOn { get => _globalToggleOn; private set => SetProperty(ref _globalToggleOn, value); }
     public string PinTooltip { get => _pinTooltip; private set => SetProperty(ref _pinTooltip, value); }
+
+    /// Visible une fois TechnologyId.AutomationPreset debloquee.
+    public bool ShowPresetBar { get => _showPresetBar; private set => SetProperty(ref _showPresetBar, value); }
+    public int ActivePreset { get => _activePreset; private set => SetProperty(ref _activePreset, value); }
+    public string PresetChangeButtonLabel { get => _presetChangeButtonLabel; private set => SetProperty(ref _presetChangeButtonLabel, value); }
 
     public void Refresh()
     {
@@ -134,6 +142,9 @@ public sealed class AutomationViewModel : ViewModelBase
         GlobalToggleLabel = snapshot.GlobalToggleLabel;
         GlobalToggleOn = snapshot.GlobalToggleOn;
         PinTooltip = snapshot.PinTooltip;
+        ShowPresetBar = snapshot.PresetBarVisible;
+        ActivePreset = snapshot.ActivePreset;
+        PresetChangeButtonLabel = snapshot.PresetChangeButtonLabel;
 
         Sync(LeftColumn, snapshot.LeftColumn);
         Sync(RightColumn, snapshot.RightColumn);
@@ -177,4 +188,12 @@ public sealed class AutomationViewModel : ViewModelBase
         _host.ToggleAutomationsGlobally();
         Refresh();
     }
+
+    public void SelectPreset(int preset)
+    {
+        _host.SelectAutomationPreset(preset);
+        Refresh();
+    }
+
+    public void OpenPresetPopup() => _host.OpenAutomationPresetPopup();
 }

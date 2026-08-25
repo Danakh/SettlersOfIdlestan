@@ -36,6 +36,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly TradePopupView _tradePopup;
     private readonly PrestigePopupView _prestigePopup;
     private readonly SettingsPopupView _settingsPopup;
+    private readonly AutomationPresetPopupView _automationPresetPopup;
     private readonly TitleScreenView _titleScreen;
     private readonly TooltipLayerControl _tooltipLayer;
 
@@ -56,6 +57,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly TradePopupViewModel _tradeModel;
     private readonly PrestigePopupViewModel _prestigeModel;
     private readonly SettingsPopupViewModel _settingsModel;
+    private readonly AutomationPresetPopupViewModel _automationPresetModel;
     private readonly TitleScreenViewModel _titleModel;
 
     private IDisposable? _stateSync;
@@ -105,6 +107,7 @@ public sealed class GameView : Panel, IDisposable
         _tradeModel = new TradePopupViewModel(host);
         _prestigeModel = new PrestigePopupViewModel(host);
         _settingsModel = new SettingsPopupViewModel(host);
+        _automationPresetModel = new AutomationPresetPopupViewModel(host);
         _titleModel = new TitleScreenViewModel(host);
 
         _zoomControl = new ZoomControlView(host.ZoomIn, host.ZoomOut) { IsVisible = false };
@@ -148,6 +151,7 @@ public sealed class GameView : Panel, IDisposable
         _tradePopup = new TradePopupView(_tradeModel, _icons);
         _prestigePopup = new PrestigePopupView(_prestigeModel);
         _settingsPopup = new SettingsPopupView(_settingsModel);
+        _automationPresetPopup = new AutomationPresetPopupView(_automationPresetModel);
         _titleScreen = new TitleScreenView(_titleModel);
         _tooltipLayer = new TooltipLayerControl(host);
 
@@ -190,6 +194,7 @@ public sealed class GameView : Panel, IDisposable
         Children.Add(_tradePopup);
         Children.Add(_prestigePopup);
         Children.Add(_settingsPopup);
+        Children.Add(_automationPresetPopup);
 
         // L'ecran-titre couvre tout le jeu : il passe avant les modales, qui restent au-dessus
         // (sa confirmation de remise a zero emprunte la meme vue).
@@ -218,6 +223,13 @@ public sealed class GameView : Panel, IDisposable
         if (e.Key == Key.Escape && _tradeModel.IsOpen)
         {
             _tradeModel.Close();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Escape && _automationPresetModel.IsOpen)
+        {
+            _automationPresetModel.Close();
             e.Handled = true;
             return;
         }
@@ -352,6 +364,7 @@ public sealed class GameView : Panel, IDisposable
         _tradeModel.Refresh();
         _prestigeModel.Refresh();
         _settingsModel.Refresh();
+        _automationPresetModel.Refresh();
         _titleModel.Refresh();
 
         // Les boutons de zoom n'ont de sens que sur une vue carte : ni sur l'ecran titre,

@@ -44,9 +44,6 @@ public class VolcanicForge : Building, IUniqueBuilding
     // Verrouillée par défaut ; débloquée par la recherche Métallurgie Volcanique (+3 niveaux max)
     public override int GetDefaultMaxLevel() => 0;
 
-    // Recherche : Métallurgie Volcanique +3 (voir TechnologyDefinitions.cs).
-    public override int GetAbsoluteMaxLevel() => 3;
-
     public override bool HasBuildPrerequisites(IBuildingContext city, WorldState state)
         => IsAdjacentToFoundVolcano(city, state);
 

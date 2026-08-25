@@ -339,15 +339,17 @@ public class Building
 
     /// <summary>
     /// Niveau max en comptant TOUS les bonus BUILDING_MAX_LEVEL atteignables (recherche + prestige +
-    /// race), toutes conditions dynamiques ignorées. Sert uniquement à créer un bâtiment unique
-    /// accordé en permanence par l'Ascension (voir Civilization.RebuildUniqueBuildingCache) : ce
-    /// bâtiment ne vit dans aucune ville, donc les modifiers dynamiques (recherche faite, race
-    /// actuellement jouée...) ne s'appliqueraient pas forcément. Par défaut = GetDefaultMaxLevel().
-    /// À maintenir à la main : si une nouvelle recherche/vertex de prestige ajoute un bonus
-    /// BUILDING_MAX_LEVEL pour un bâtiment unique, mettre à jour son override ici (couvert par
-    /// UniqueBuildingMaxLevelTests.AbsoluteMaxLevel_MatchesSumOfAllBonusSources).
+    /// bâtiments uniques + Ascension), toutes conditions dynamiques ignorées (recherche non faite,
+    /// vertex non acheté...) — voir BuildingMaxLevelCalculator pour le détail des sources et
+    /// l'exclusion volontaire des bonus de race (mutuellement exclusifs, incohérents à sommer).
+    /// Utilisé pour créer un bâtiment unique accordé en permanence par l'Ascension (voir
+    /// Civilization.RebuildUniqueBuildingCache : ce bâtiment ne vit dans aucune ville, donc les
+    /// modifiers dynamiques ne s'appliqueraient pas forcément) et pour borner le plafond
+    /// sélectionnable dans le tableau des presets d'automatisation (voir
+    /// AutomationRenderer.GetAutomationPresetPopupSnapshot). Couvert par
+    /// BuildingMaxLevelCalculatorTests.TheoreticalMaxLevel_MatchesSumOfAllBonusSources.
     /// </summary>
-    public virtual int GetAbsoluteMaxLevel() => GetDefaultMaxLevel();
+    public virtual int GetAbsoluteMaxLevel() => BuildingMaxLevelCalculator.GetTheoreticalMaxLevel(Type);
 
     /// <summary>
     /// Gets or sets the description of the building.

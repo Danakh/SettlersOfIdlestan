@@ -19,9 +19,6 @@ public class RunicForge : Building, IUniqueBuilding
     public override bool IsUnique => true;
     public override int GetDefaultMaxLevel() => 0;
 
-    // Race Naine : +1 (voir RaceDefinitions.cs).
-    public override int GetAbsoluteMaxLevel() => 1;
-
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
         { Resource.Stone, 100 },
