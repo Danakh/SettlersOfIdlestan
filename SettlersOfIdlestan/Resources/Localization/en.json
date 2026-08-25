@@ -331,6 +331,7 @@
   "prestige_tooltip_corrupted_action": "Like a normal Prestige, but permanently raises the world's corruption level.",
   "prestige_tooltip_corrupted_action_risk": "⚠ Corrupted zones will spawn at a higher level and hamper harvesting accordingly; beyond level 3, corruption spills over onto the surface.",
   "prestige_tooltip_corrupted_action_reward": "Fully clearing a more corrupted zone raises your prestige multiplier, and a level 4 zone under the Spire lets you open the Abyss Gate.",
+  "prestige_tooltip_corrupted_action_locked": "⚠ Build a Corruption Spire on or near a level {0} corrupted zone, then let it clear the zone to unlock corrupted prestige.",
   "tooltip_prestige_no_imperial_port": "⚠ Requires an Imperial Port",
   "tooltip_prestige_not_enough_points": "⚠ Not enough prestige points ({0}/{1})",
   "tooltip_prestige_next_island": "Accumulated points can be spent on the next island",

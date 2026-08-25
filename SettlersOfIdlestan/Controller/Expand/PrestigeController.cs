@@ -170,6 +170,18 @@ namespace SettlersOfIdlestan.Controller.Expand
             => _islandState?.Features.OfType<CorruptionSpire>().Any(f => f.Built) == true
                || _islandState?.Features.OfType<AbyssGate>().Any(f => f.Built) == true;
 
+        /// <summary>
+        /// Vrai une fois les 3 vertex de prestige de l'Abysse achetés (Porte Planaire, Faille des
+        /// Abysses, Rituel de l'Éclipse Noire — voir CorruptionSpireController.AbyssUnlockThreshold),
+        /// même si la Spire de Corruption n'a pas encore été construite. Pilote la visibilité du
+        /// bouton de prestige corrompu (voir PrestigeRenderer) : le bouton reste affiché dès ce
+        /// déblocage, avec un message expliquant comment construire la Spire tant qu'elle n'est pas
+        /// bâtie (voir HasCorruptionSpireBuilt, qui reste la condition réelle d'activation).
+        /// </summary>
+        public bool IsCorruptedPrestigeUnlocked()
+            => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.UNLOCK_ABYSS, "", 0)
+               >= CorruptionSpireController.AbyssUnlockThreshold;
+
         public int GetMaxCorruptionLevelCleared() => _prestigeState?.MaxCorruptionLevelCleared ?? 0;
 
         /// <summary>

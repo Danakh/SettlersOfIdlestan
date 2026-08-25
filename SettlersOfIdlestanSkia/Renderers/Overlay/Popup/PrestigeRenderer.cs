@@ -201,20 +201,30 @@ public sealed class PrestigeRenderer : PopupRendererBase
                 canPrestige, false, [_localization.Get("prestige_tooltip_action")]),
         };
 
-        // Le prestige corrompu n'existe qu'une fois une Spire de Corruption batie.
-        if (controller.HasCorruptionSpireBuilt())
+        // Le bouton de prestige corrompu reste visible des que l'Abysse est debloque (3 vertex de
+        // prestige), meme avant que la Spire de Corruption ne soit batie : le message explique alors
+        // comment y arriver plutot que de faire disparaitre le bouton.
+        if (controller.IsCorruptedPrestigeUnlocked())
         {
+            bool spireBuilt = controller.HasCorruptionSpireBuilt();
             int corruptionLevel = controller.GetCorruptionLevel();
+            var tooltip = new List<string> { _localization.Get("prestige_tooltip_corrupted_action") };
+            if (spireBuilt)
+            {
+                tooltip.Add(_localization.Get("prestige_tooltip_corrupted_action_risk"));
+                tooltip.Add(_localization.Get("prestige_tooltip_corrupted_action_reward"));
+            }
+            else
+            {
+                tooltip.Add(_localization.GetFormated("prestige_tooltip_corrupted_action_locked", corruptionLevel));
+            }
+
             actions.Add(new PrestigeActionSnapshot(
                 PrestigePopupSnapshot.ActionCorrupted,
                 _localization.Get("prestige_corrupted_action"),
-                $"{corruptionLevel} -> {corruptionLevel + 1}",
-                canPrestige, true,
-                [
-                    _localization.Get("prestige_tooltip_corrupted_action"),
-                    _localization.Get("prestige_tooltip_corrupted_action_risk"),
-                    _localization.Get("prestige_tooltip_corrupted_action_reward"),
-                ]));
+                spireBuilt ? $"{corruptionLevel} -> {corruptionLevel + 1}" : null,
+                canPrestige && spireBuilt, true,
+                tooltip));
         }
 
         bool hasEnoughPoints = controller.CalculatePrestigePoints() >= PrestigeController.PrestigeRequiredPoints;
