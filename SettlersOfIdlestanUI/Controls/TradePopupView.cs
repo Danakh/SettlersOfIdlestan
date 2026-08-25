@@ -353,12 +353,21 @@ public sealed class TradePopupView : UserControl
             Minimum = 0,
             Maximum = AutomationSettings.AutoBuyGoldKeepMaxPercent,
             VerticalAlignment = VerticalAlignment.Center,
-            [!Slider.ValueProperty] = new Binding(nameof(TradePopupViewModel.AutoGoldKeepPercent)),
+            // OneWay explicite : AutoGoldKeepPercent expose un setter prive (pour Refresh()) que
+            // le binding peut atteindre par reflexion et traiter comme TwoWay. Si un Refresh()
+            // du jeu survient entre l'appui et le relachement d'une touche flechee, l'echo de ce
+            // TwoWay ecrase alors le deplacement local avec l'ancienne valeur pas encore transmise
+            // au host (voir CommitGoldKeep) — d'ou un curseur qui « rebondit » a chaque touche.
+            [!Slider.ValueProperty] = new Binding(nameof(TradePopupViewModel.AutoGoldKeepPercent))
+            {
+                Mode = BindingMode.OneWay,
+            },
             TickFrequency = 1,
             IsSnapToTickEnabled = true,
         };
-        slider.AddHandler(PointerReleasedEvent, (_, _) =>
-            viewModel.SetAutoGoldKeepPercent(slider.Value), RoutingStrategies.Tunnel);
+        void CommitGoldKeep() => viewModel.SetAutoGoldKeepPercent(slider.Value);
+        slider.AddHandler(PointerReleasedEvent, (_, _) => CommitGoldKeep(), RoutingStrategies.Tunnel);
+        slider.AddHandler(KeyUpEvent, (_, _) => CommitGoldKeep(), RoutingStrategies.Tunnel);
 
         var percentText = new TextBlock
         {
@@ -367,9 +376,13 @@ public sealed class TradePopupView : UserControl
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(8, 0, 0, 0),
             Width = 40,
-            [!TextBlock.TextProperty] = new Binding(nameof(TradePopupViewModel.AutoGoldKeepPercent))
+            // Lie a la valeur du slider (et non a la propriete du view model, mise a jour
+            // seulement au relachement du pointeur) pour que le texte suive le curseur pendant
+            // le glissement et lors des deplacements au clavier.
+            [!TextBlock.TextProperty] = new Binding(nameof(Slider.Value))
             {
-                Converter = new FuncValueConverter<int, string>(p => $"{p}%"),
+                Source = slider,
+                Converter = new FuncValueConverter<double, string>(p => $"{(int)Math.Round(p)}%"),
             },
         };
 
@@ -409,7 +422,12 @@ public sealed class TradePopupView : UserControl
             Minimum = AutomationSettings.AutoSellThresholdMinPercent,
             Maximum = AutomationSettings.AutoSellThresholdMaxPercent,
             VerticalAlignment = VerticalAlignment.Center,
-            [!Slider.ValueProperty] = new Binding(nameof(TradeAutoRowViewModel.ThresholdPercent)),
+            // OneWay explicite : voir le commentaire equivalent sur le slider d'or dans
+            // BuildAutoGoldRow — meme piege si cette propriete gagnait un jour un setter.
+            [!Slider.ValueProperty] = new Binding(nameof(TradeAutoRowViewModel.ThresholdPercent))
+            {
+                Mode = BindingMode.OneWay,
+            },
             TickFrequency = 1,
             IsSnapToTickEnabled = true,
         };
@@ -421,17 +439,23 @@ public sealed class TradePopupView : UserControl
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(8, 0, 0, 0),
             Width = 36,
-            [!TextBlock.TextProperty] = new Binding(nameof(TradeAutoRowViewModel.ThresholdPercent))
+            // Lie a la valeur du slider (et non a la propriete du view model, mise a jour
+            // seulement au relachement du pointeur) pour que le texte suive le curseur pendant
+            // le glissement et lors des deplacements au clavier.
+            [!TextBlock.TextProperty] = new Binding(nameof(Slider.Value))
             {
-                Converter = new FuncValueConverter<int, string>(p => $"{p}%"),
+                Source = slider,
+                Converter = new FuncValueConverter<double, string>(p => $"{(int)Math.Round(p)}%"),
             },
         };
 
         TradeAutoRowViewModel? row = null;
-        slider.AddHandler(PointerReleasedEvent, (_, _) =>
+        void CommitThreshold()
         {
             if (row != null) viewModel.SetAutoSellThreshold(row, slider.Value);
-        }, RoutingStrategies.Tunnel);
+        }
+        slider.AddHandler(PointerReleasedEvent, (_, _) => CommitThreshold(), RoutingStrategies.Tunnel);
+        slider.AddHandler(KeyUpEvent, (_, _) => CommitThreshold(), RoutingStrategies.Tunnel);
 
         var layout = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(icon, Dock.Left);
