@@ -296,7 +296,7 @@ public static class TechnologyDefinitions
         // (auparavant 2 000 000 au tier 7).
         new(TechnologyId.GrandTempleConstruction,
             "tech_grand_temple_construction_name", "tech_grand_temple_construction_desc",
-            cost: 150000,
+            cost: 115000,
             prerequisites: new[] { TechnologyId.GrandArchitecture },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "GrandTemple", EType.ADDITIVE, 1) },
             tier: 5, line: 5),
