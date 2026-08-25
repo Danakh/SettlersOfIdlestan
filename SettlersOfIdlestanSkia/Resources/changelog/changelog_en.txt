@@ -3,6 +3,10 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.17
+
+---
+
 v0.16
 • New Automation Presets research: lets you cap, building by building, the level that construction automation should not exceed
 • New Auto tab in the Trade window: configure per-resource auto-sell thresholds and the gold kept before auto-buy
