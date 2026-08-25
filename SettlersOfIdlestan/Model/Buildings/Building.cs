@@ -252,8 +252,11 @@ public enum BuildingType
 public class Building
 {
     /// <summary>
-    /// Gets or sets the localized name of the building.
+    /// Gets or sets the localized name of the building. Ignoré en JSON : dérivé de Type dans le
+    /// constructeur (jamais recalculé à la lecture, le setter étant protected), le sérialiser
+    /// gonflait chaque bâtiment sauvegardé pour rien.
     /// </summary>
+    [JsonIgnore]
     public string NameKey { get; protected set; }
 
     /// <summary>
@@ -303,21 +306,26 @@ public class Building
     public virtual double GetAutomaticHarvestTerrainSpeedMultiplier(TerrainType terrain) => 1.0;
 
     /// <summary>
-    /// Building level at which automatic harvest is unlocked. Override in subclasses.
+    /// Building level at which automatic harvest is unlocked. Override in subclasses. Ignoré en
+    /// JSON : propriété calculée sans setter (donc jamais restaurée à la lecture), constante par
+    /// type de bâtiment — la sérialiser ne fait que gonfler la sauvegarde.
     /// </summary>
+    [JsonIgnore]
     public virtual int AutomaticHarvestUnlockLevel => int.MaxValue;
 
     /// <summary>
     /// Resource that this building can manually harvest, independent of terrain. Null if none.
-    /// Used for tooltip display only.
+    /// Used for tooltip display only. Ignoré en JSON (voir AutomaticHarvestUnlockLevel).
     /// </summary>
+    [JsonIgnore]
     public virtual Resource? ManualHarvestResource => null;
 
     /// <summary>
     /// Resource that this building can automatically harvest, independent of terrain. Null if none.
     /// Auto harvest is active when Level >= AutomaticHarvestUnlockLevel.
-    /// Used for tooltip display only.
+    /// Used for tooltip display only. Ignoré en JSON (voir AutomaticHarvestUnlockLevel).
     /// </summary>
+    [JsonIgnore]
     public virtual Resource? AutomaticHarvestResource => null;
 
     /// <summary>
@@ -352,19 +360,24 @@ public class Building
     public virtual int GetAbsoluteMaxLevel() => BuildingMaxLevelCalculator.GetTheoreticalMaxLevel(Type);
 
     /// <summary>
-    /// Gets or sets the description of the building.
+    /// Gets or sets the description of the building. Ignoré en JSON (voir NameKey).
     /// </summary>
+    [JsonIgnore]
     public string DescriptionKey { get; protected set; }
 
     /// <summary>
     /// Whether this building is unique: only one can be built per civilization per island.
+    /// Ignoré en JSON (voir AutomaticHarvestUnlockLevel).
     /// </summary>
+    [JsonIgnore]
     public virtual bool IsUnique => false;
 
     /// <summary>
     /// Whether this building unlocks entries in the Automation tab.
     /// Override to true in any building that contributes automation rows.
+    /// Ignoré en JSON (voir AutomaticHarvestUnlockLevel).
     /// </summary>
+    [JsonIgnore]
     public virtual bool ProvidesAutomation => false;
 
     /// <summary>
@@ -374,8 +387,11 @@ public class Building
     public ActivationStatus ActivationStatus { get; set; } = ActivationStatus.NON_ACTIVABLE;
 
     /// <summary>
-    /// Gets or sets the city level at which the building becomes available.
+    /// Gets or sets the city level at which the building becomes available. Ignoré en JSON :
+    /// toujours réaffecté à la même constante par le constructeur du type concret, jamais modifié
+    /// ailleurs — le sérialiser ne fait que dupliquer une valeur déjà fixée par Type.
     /// </summary>
+    [JsonIgnore]
     public int AvailableAtLevel { get; set; }
 
     private readonly Dictionary<HexCoord, long> _autoHarvestLastTicks = new();

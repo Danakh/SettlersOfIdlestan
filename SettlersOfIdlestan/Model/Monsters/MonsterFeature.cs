@@ -15,6 +15,10 @@ namespace SettlersOfIdlestan.Model.Monsters;
 public abstract class MonsterFeature : IslandFeature
 {
     public int Hp { get; set; }
+    // Ignorées en JSON : propriétés calculées sans setter, constantes par sous-type de monstre —
+    // jamais restaurées à la lecture, les sérialiser gonflait chaque feature pour rien (cf.
+    // IslandFeature pour le même constat sur la classe de base).
+    [JsonIgnore]
     public abstract int MaxHp { get; }
 
     /// <summary>Niveau du monstre (1 = stats de base). Voir MonsterLeveling pour le calcul au spawn.</summary>
@@ -24,6 +28,7 @@ public abstract class MonsterFeature : IslandFeature
     /// Réduit les dégâts subis (soldats, Aventurier, rituels) : voir <see cref="ApplyArmorReduction"/>
     /// pour la formule. 0 = aucune réduction (valeur par défaut).
     /// </summary>
+    [JsonIgnore]
     public virtual double Armor => 0;
 
     /// <summary>
@@ -54,26 +59,36 @@ public abstract class MonsterFeature : IslandFeature
     [JsonIgnore]
     public int KilledByCivilizationIndex { get; set; } = -1;
 
+    [JsonIgnore]
     public override float SvgIconSize => 24f;
+    [JsonIgnore]
     public override bool ShouldRenderIcon => false;
 
     // ── Mouvement (opt-in) ─────────────────────────────────────────────────
+    [JsonIgnore]
     public override bool CanMove => false;
+    [JsonIgnore]
     public virtual long MovementIntervalTicks => long.MaxValue;
     /// <summary>Nombre d'hexes parcourus à chaque déplacement (1 = un seul pas).</summary>
+    [JsonIgnore]
     public virtual int MovementRangeInHexes => 1;
     /// <summary>Ticks de blocage de récolte laissés sur l'ancien hex après départ. 0 = pas de cooldown.</summary>
+    [JsonIgnore]
     public virtual long DepartureCooldownTicks => 0L;
     /// <summary>Tick du dernier déplacement (utilisé pour la grâce après mouvement).</summary>
     public long LastMovedTick { get; set; } = 0;
     /// <summary>Peut se déplacer sur les hex d'Eau/Eau profonde, normalement infranchissables.</summary>
+    [JsonIgnore]
     public virtual bool CanCrossWater => false;
     /// <summary>Peut se déplacer sur les hex de Void (bordure de l'Abysse), normalement infranchissables.</summary>
+    [JsonIgnore]
     public virtual bool CanCrossVoid => false;
 
     // ── Régénération de PV (opt-in) ────────────────────────────────────────
     /// <summary>Peut être fractionnaire (bonus de +0.5/niveau) — voir MonsterFeatureController.RegenHp pour l'accumulation.</summary>
+    [JsonIgnore]
     public virtual double HpRegenAmount => 0;
+    [JsonIgnore]
     public virtual long HpRegenIntervalTicks => long.MaxValue;
     public long LastHpRegenTick { get; set; } = 0;
     /// <summary>Reste fractionnaire accumulé entre deux régénérations, pour appliquer correctement un HpRegenAmount non entier.</summary>
@@ -81,15 +96,20 @@ public abstract class MonsterFeature : IslandFeature
 
     // ── Attaque des villes (opt-in) ────────────────────────────────────────
     /// <summary>Portée en hexes : 0 = n'attaque pas, 1 = hex propre, 2 = hex propre + voisins.</summary>
+    [JsonIgnore]
     public virtual int AttackRangeInHexes => 0;
+    [JsonIgnore]
     public virtual long AttackIntervalTicks => long.MaxValue;
+    [JsonIgnore]
     public virtual bool IgnoresPalisade => false;
     /// <summary>
     /// Dégâts infligés en cascade : soldats d'abord, puis défense, puis niveaux de Townhall (1 par point).
     /// Quand le Townhall tombe à 0 il est détruit ; les dégâts restants détruisent la ville.
     /// </summary>
+    [JsonIgnore]
     public virtual int AttackDamage => 0;
     /// <summary>Ressources volées (une par tirage) lors d'une attaque réussie.</summary>
+    [JsonIgnore]
     public virtual int AttackResources => 0;
     public long LastAttackTick { get; set; } = 0;
     public Vertex? LastAttackTargetVertex { get; set; } = null;
@@ -104,6 +124,7 @@ public abstract class MonsterFeature : IslandFeature
     /// Les monstres amis ne s'attaquent jamais entre eux et sont ignorés par le combat
     /// automatique des soldats (cf. MonsterCombatEngine).
     /// </summary>
+    [JsonIgnore]
     public virtual bool AttacksOtherMonsters => false;
 
     // ── Génération de Corruption (opt-in) ──────────────────────────────────
@@ -114,6 +135,7 @@ public abstract class MonsterFeature : IslandFeature
     /// niveau de corruption de l'île (voir CorruptionController.ProcessMonsterCorruptionGrowth).
     /// Le tuer tarit la source, comme purifier des Os Divins.
     /// </summary>
+    [JsonIgnore]
     public virtual bool GeneratesCorruption => false;
 
     // ── Invocation de nouvelles créatures (opt-in) ─────────────────────────

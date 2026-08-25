@@ -51,12 +51,18 @@ public abstract class IslandFeature
     /// </summary>
     public bool IsVisible { get; set; } = true;
 
+    // Ignorées en JSON : ces propriétés calculées (sans setter, donc jamais restaurées à la
+    // lecture) sont constantes par sous-type ou dérivées d'autres champs déjà sérialisés
+    // (Found/IsVisible) — les sérialiser gonflait chaque feature sauvegardée pour rien.
+    [JsonIgnore]
     public abstract GameEventType DiscoveredEventType { get; }
+    [JsonIgnore]
     public abstract GameEventType RemovedEventType { get; }
 
     /// <summary>
     /// True si cette feature bloque la récolte sur son hex.
     /// </summary>
+    [JsonIgnore]
     public virtual bool BlocksHarvest => false;
 
     /// <summary>
@@ -71,6 +77,7 @@ public abstract class IslandFeature
     /// Profonde…) sur son hex. Par défaut identique aux autres features occupant l'hex ; Corruption
     /// et Dominion se superposent au terrain sans l'occuper et lèvent ce blocage.
     /// </summary>
+    [JsonIgnore]
     public virtual bool BlocksMonumentPlacement => true;
 
     /// <summary>
@@ -80,36 +87,43 @@ public abstract class IslandFeature
     /// </summary>
     public virtual double GetHarvestTimeMultiplier(SettlersOfIdlestan.Model.Civilization.Civilization civ) => 1.0;
 
+    [JsonIgnore]
     public virtual bool CanMove => false;
 
     /// <summary>
     /// True tant que la feature peut encore être découverte.
     /// Les sous-classes peuvent rajouter leurs conditions (ex. non réclamée).
     /// </summary>
+    [JsonIgnore]
     public virtual bool IsDiscoverable => !Found && IsVisible;
 
     /// <summary>
     /// Nom de la ressource SVG à afficher sur la carte (ex. "Resources.icons.features.chest.svg").
     /// Null = pas d'icône SVG.
     /// </summary>
+    [JsonIgnore]
     public virtual string? SvgIconResourceName => null;
 
     /// <summary>Taille d'affichage souhaitée en pixels (SVG).</summary>
+    [JsonIgnore]
     public virtual float SvgIconSize => 20f;
 
     /// <summary>
     /// Facteur multiplicateur de la taille d'icône (1.0 = taille de base).
     /// Utilisé par le renderer pour agrandir ou réduire l'icône tout en la gardant centrée sur l'hex.
     /// </summary>
+    [JsonIgnore]
     public virtual float IconSizeFactor => 1f;
 
     /// <summary>
     /// Texte ou emoji à afficher sur la carte à la place d'une icône SVG.
     /// Utilisé uniquement si SvgIconResourceName est null.
     /// </summary>
+    [JsonIgnore]
     public virtual string? TextIcon => null;
 
     /// <summary>True si l'icône (SVG ou texte) doit être dessinée dans l'état actuel de la feature.</summary>
+    [JsonIgnore]
     public virtual bool ShouldRenderIcon => Found;
 
     /// <summary>
