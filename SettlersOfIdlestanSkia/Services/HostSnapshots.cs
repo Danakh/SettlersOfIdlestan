@@ -769,6 +769,7 @@ public sealed record CivPanelSnapshot(
     public const string KeySpire           = "spire";
     public const string KeyRaid            = "raid";
     public const string KeyWarHerald       = "warHerald";
+    public const string KeyMonumentCycle   = "monumentCycle";
     public const string KeyRelocation      = "relocation";
     public const string KeyWalkOfGod       = "walkOfGod";
     public const string KeyPresenceOfGod   = "presenceOfGod";

@@ -57,7 +57,10 @@ public sealed class TargetSelectionService
         TargetSelectionTheme theme = TargetSelectionTheme.Hostile,
         string? secondaryActionLabelKey = null, Action? secondaryAction = null)
     {
-        if (targets.Count == 0) return;
+        // Une liste de cibles vide reste utile quand une action secondaire est proposée (ex: aucun
+        // emplacement de relocalisation disponible, mais "Détruire la ville" doit rester accessible) :
+        // seul un mode sans aucune sortie possible (ni cible, ni action secondaire) n'a de raison de s'ouvrir.
+        if (targets.Count == 0 && secondaryAction == null) return;
 
         bool wasActive = IsActive;
         Shape = TargetSelectionShape.Vertex;

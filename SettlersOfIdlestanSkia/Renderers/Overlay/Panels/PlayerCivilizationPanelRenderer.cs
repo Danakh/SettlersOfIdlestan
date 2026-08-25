@@ -7,6 +7,7 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestanSkia.Services.Localization;
@@ -30,6 +31,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly TooltipRenderer _tooltipRenderer;
     private readonly ResourceManager _resourceManager;
     private readonly Action<int, float, float> _centerCameraOnMapPosition;
+
+    /// <summary>Index du dernier monument centré par <see cref="DoCycleMonuments"/>, pour reprendre
+    /// au suivant au clic d'après plutôt que de toujours revenir au premier.</summary>
+    private int _monumentCycleIndex = -1;
 
     public bool IsCollapsed  => Collapsed;
     public void Collapse()   => Collapsed = true;
@@ -256,8 +261,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 var city = playerCiv.Cities.FirstOrDefault(c => c.Position.Equals(source));
                 if (city == null) return;
                 var destinations = cityBuilderController.GetRelocationTargets(city);
-                if (destinations.Count == 0) return;
-                _targetSelectionService.EnterVertexSelection("relocation_select_destination", destinations,
+                string destinationTitleKey = destinations.Count > 0
+                    ? "relocation_select_destination"
+                    : "relocation_select_destination_empty";
+                _targetSelectionService.EnterVertexSelection(destinationTitleKey, destinations,
                     destination => cityBuilderController.RelocateCity(city, destination),
                     TargetSelectionTheme.Friendly,
                     secondaryActionLabelKey: "relocation_destroy_city",
@@ -291,6 +298,45 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _targetSelectionService.EnterHexSelection("fistofgod_select_hex", ascension.GetFistOfGodTargetHexes(),
             hex => ascension.ApplyFistOfGod(hex), TargetSelectionTheme.Hostile);
     }
+
+    /// <summary>Centre la caméra sur le monument suivant du joueur (Merveille, Grand Phare,
+    /// Observatoire, Mine Profonde, Spire de Corruption, Nécropole), en changeant d'onglet de
+    /// calque si besoin — voir OverlayRenderer.CenterCameraOnMapPosition.</summary>
+    private void DoCycleMonuments()
+    {
+        var monuments = GetPlayerMonuments();
+        if (monuments.Count == 0) return;
+
+        _monumentCycleIndex = (_monumentCycleIndex + 1) % monuments.Count;
+        var monument = monuments[_monumentCycleIndex];
+        var (x, y) = HexToWorld(monument.Position);
+        _centerCameraOnMapPosition(monument.Position.Z, x, y);
+    }
+
+    /// <summary>Ordre d'affichage fixe des monuments cyclables — les autres features dérivant de
+    /// <see cref="Monument"/> (portes, Os Divins…) ne sont pas des monuments bâtis par le joueur.</summary>
+    private static int MonumentCycleOrder(Monument m) => m switch
+    {
+        Wonder => 0,
+        GreatLighthouse => 1,
+        Observatory => 2,
+        DeepestMine => 3,
+        CorruptionSpire => 4,
+        Necropolis => 5,
+        _ => -1,
+    };
+
+    private List<Monument> GetPlayerMonuments()
+    {
+        var worldState = _gameControllerService.CurrentWorldState;
+        if (worldState == null) return new List<Monument>();
+        return worldState.Features.OfType<Monument>()
+            .Where(m => MonumentCycleOrder(m) >= 0)
+            .OrderBy(MonumentCycleOrder)
+            .ToList();
+    }
+
+    private bool IsMonumentCycleVisible() => GetPlayerMonuments().Count > 0;
 
     private void HandlePinnedToggle(string key, Civilization? civ, SettlersOfIdlestan.Model.IslandMap.WorldState? worldState)
     {
@@ -723,6 +769,12 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 IconName: "Resources.icons.military.defense.svg", Glyph: null,
                 TooltipLines: [_localization.Get("warherald_action_short"), _localization.Get("tooltip_warherald")]));
 
+        if (IsMonumentCycleVisible())
+            iconActions.Add(new CivActionSnapshot(
+                CivPanelSnapshot.KeyMonumentCycle, _localization.Get("monument_cycle_action"), true, false,
+                IconName: null, Glyph: "🏛",
+                TooltipLines: [_localization.Get("monument_cycle_action"), _localization.Get("tooltip_monument_cycle")]));
+
         // ── Grille d'actions, dans l'ordre du rendu Skia ──
 
         if (IsPrestigeVisible())
@@ -898,6 +950,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case CivPanelSnapshot.KeySpire:           DoSpire();           break;
             case CivPanelSnapshot.KeyRaid:            DoRaid();            break;
             case CivPanelSnapshot.KeyWarHerald:       DoWarHerald();       break;
+            case CivPanelSnapshot.KeyMonumentCycle:   DoCycleMonuments();  break;
             case CivPanelSnapshot.KeyRelocation:      DoRelocation();      break;
             case CivPanelSnapshot.KeyWalkOfGod:       DoWalkOfGod();       break;
             case CivPanelSnapshot.KeyPresenceOfGod:   DoPresenceOfGod();   break;
