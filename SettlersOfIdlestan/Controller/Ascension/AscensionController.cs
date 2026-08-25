@@ -273,27 +273,16 @@ public class AscensionController : IModifierProvider
         (IReadOnlyCollection<RaceId>?)_ascensionState?.AscendedRaces ?? Array.Empty<RaceId>();
 
     /// <summary>
-    /// Colonnes de pouvoirs divins qui conditionnent le déblocage des races avancées : les 4
-    /// premières (Main/Oeil/Marche/Bras de Dieu). Volontairement figé plutôt qu'aligné sur
-    /// AscensionPowerDefinitions.ColumnCount : une colonne ajoutée après coup reverrouillerait le
-    /// choix de race des joueurs qui l'ont déjà acquis.
-    /// </summary>
-    private const int AdvancedRaceUnlockColumnCount = 4;
-
-    /// <summary>
     /// Vrai si <paramref name="race"/> est actuellement sélectionnable à l'Ascension. Humains :
-    /// toujours. Races de base (Elfes, Nains, Gobelins, Orcs) : chacune sa propre combinaison de 3
-    /// pouvoirs divins (voir <see cref="RaceDefinition.RequiredPowers"/>), indépendante des autres —
-    /// deux races de base peuvent donc se débloquer à des moments différents. Races avancées : toute
-    /// la seconde rangée de pouvoirs divins complète (voir <see cref="AreAdvancedRacesUnlocked"/>).
+    /// toujours. Toute autre race (Base comme Advanced) : sa propre combinaison de 3 pouvoirs divins
+    /// (voir <see cref="RaceDefinition.RequiredPowers"/>), indépendante des autres — deux races
+    /// peuvent donc se débloquer à des moments différents.
     /// </summary>
     public bool IsRaceUnlocked(RaceId race)
     {
         if (race == RaceId.Human) return true;
 
         var def = RaceDefinitions.Get(race);
-        if (def.Tier == RaceTier.Advanced) return AreAdvancedRacesUnlocked;
-
         return def.RequiredPowers.Count > 0 && def.RequiredPowers.All(IsPowerUnlocked);
     }
 
@@ -305,19 +294,6 @@ public class AscensionController : IModifierProvider
     /// </summary>
     public bool IsRaceSelectionUnlocked =>
         RaceDefinitions.All.Any(r => r.Tier == RaceTier.Base && r.Id != RaceId.Human && IsRaceUnlocked(r.Id));
-
-    /// <summary>
-    /// Vrai si les races avancées (Géants, Garudas, Sirènes, Elfes noirs) sont débloquées : toute la
-    /// seconde rangée de pouvoirs divins achetée (le deuxième pouvoir de chacune des
-    /// <see cref="AdvancedRaceUnlockColumnCount"/> colonnes d'origine — Main/Oeil/Marche/Bras de Dieu).
-    /// </summary>
-    public bool AreAdvancedRacesUnlocked =>
-        Enumerable.Range(0, AdvancedRaceUnlockColumnCount).All(col =>
-        {
-            var column = AscensionPowerDefinitions.GetColumn(col);
-            return column.Count > 0 && IsPowerUnlocked(column[0].Id) &&
-                   (column.Count < 2 || IsPowerUnlocked(column[1].Id));
-        });
 
     /// <summary>
     /// Races choisissables à la prochaine Ascension : Humains toujours, plus toute race pour

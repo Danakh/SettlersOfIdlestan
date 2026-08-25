@@ -918,13 +918,12 @@ public sealed class AscensionRenderer : IDisposable
 
     /// <summary>
     /// Dessine les éléments de déblocage sur une carte de race verrouillée (voir DrawPendingRaceCard) :
-    /// la combinaison de pouvoirs divins requise pour une race de base (RaceDefinition.RequiredPowers),
+    /// la combinaison de pouvoirs divins requise (RaceDefinition.RequiredPowers, Base comme Advanced),
     /// un prérequis par ligne (sans libellé d'en-tête, pour tenir dans <see cref="RaceCardHeight"/> —
     /// le cadre grisé de la carte suffit à signaler qu'il s'agit de prérequis), chacun en vert
     /// (_metPrereqPaint) dès qu'il est déjà débloqué (voir AscensionController.IsPowerUnlocked) pour
     /// que le joueur voie sa progression vers le déblocage de la race plutôt qu'une simple liste
-    /// statique ; le rappel de la seconde rangée pour une race avancée, ou « bientôt disponible » pour
-    /// un éventuel stub.
+    /// statique ; « bientôt disponible » pour un éventuel stub sans bâtiment racial.
     /// </summary>
     private void DrawRaceLockRequirement(SKCanvas canvas, RaceDefinition race, AscensionController ascension, float centerX, float y, float maxWidth)
     {
@@ -932,13 +931,6 @@ public sealed class AscensionRenderer : IDisposable
         {
             var comingSoonLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_race_coming_soon_label"), maxWidth, _buttonFont);
             DrawCenteredTextLayout(canvas, comingSoonLayout, centerX, y, _buttonFont, _mutedPaint);
-            return;
-        }
-
-        if (race.RequiredPowers.Count == 0)
-        {
-            var advancedLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_race_advanced_locked_label"), maxWidth, _buttonFont);
-            DrawCenteredTextLayout(canvas, advancedLayout, centerX, y, _buttonFont, _mutedPaint);
             return;
         }
 

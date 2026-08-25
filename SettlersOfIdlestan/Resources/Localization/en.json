@@ -1420,7 +1420,6 @@
   "ascension_race_current_label": "Race: {0}",
   "ascension_race_choice_title": "Choose the race of your next people",
   "ascension_race_pending_hint": "The game is paused. You can still buy divine powers in the Ascension tab before confirming your choice — a new power may unlock an extra race.",
-  "ascension_race_advanced_locked_label": "Second row of powers required",
   "ascension_race_coming_soon_label": "Coming soon",
   "ascension_pending_choose_race_hint": "Ascension in progress: choose the race of your next people on the Island screen.",
   "race_human_name": "Humans",

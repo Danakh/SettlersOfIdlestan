@@ -83,10 +83,9 @@ public class RaceDefinition
 
     /// <summary>
     /// Pouvoirs divins dont la possession simultanée débloque cette race à l'Ascension (voir
-    /// AscensionController.IsRaceUnlocked) — vide pour les Humains (toujours sélectionnables) et pour
-    /// les races avancées, dont le déblocage reste collectif (seconde rangée complète, voir
-    /// AscensionController.AreAdvancedRacesUnlocked). Chaque race de base a sa propre combinaison de 3
-    /// pouvoirs, indépendante des autres : elles peuvent donc se débloquer à des moments différents.
+    /// AscensionController.IsRaceUnlocked) — vide seulement pour les Humains (toujours
+    /// sélectionnables). Chaque race, de base comme avancée, a sa propre combinaison de 3 pouvoirs,
+    /// indépendante des autres : elles peuvent donc se débloquer à des moments différents.
     /// </summary>
     public IReadOnlyList<AscensionPowerId> RequiredPowers { get; }
 

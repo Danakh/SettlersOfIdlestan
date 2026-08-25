@@ -171,10 +171,11 @@ summary keeps them apart:
   before the time cap, so more time would change nothing; the strategy has run out of things to do.
 
 **Each race starts where a player would actually first pick it** —
-`GameStateFactory.NewGameForRace` unlocks the divine powers its tier requires (first row of the
-ascension grid for a Base race, first two rows for an Advanced one, derived from
-`AscensionPowerDefinitions` exactly the way `AscensionController.IsRaceSelectionUnlocked` /
-`AreAdvancedRacesUnlocked` check for them) and then goes through the **real**
+`GameStateFactory.NewGameForRace` unlocks a superset of divine powers guaranteed to cover the race's
+own `RaceDefinition.RequiredPowers` combination (first row of the ascension grid for a Base race,
+first two rows for an Advanced one — each advanced race's 3 required powers are drawn from the 6
+second-rank powers, so granting all of them covers every race regardless of which one is being
+started) and then goes through the **real**
 `AscensionController.PerformAscension`. That last part matters: it is the only path that regenerates
 island 1 *for that race* (start terrain, Underworld start for the Dark Elves) and that grants the free
 prestige vertices which come with Faith and with race selection being unlocked (central vertex + its 3

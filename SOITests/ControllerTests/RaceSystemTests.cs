@@ -24,13 +24,12 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SOITests.ControllerTests;
 
 /// <summary>
-/// Système de races (choix à l'Ascension) : déblocage individuel des races de base par combinaison
-/// de 3 pouvoirs divins propre à chacune, déblocage collectif des races avancées par rangée
-/// (AscensionController.IsRaceUnlocked / IsRaceSelectionUnlocked / AreAdvancedRacesUnlocked /
-/// GetSelectableRaces), enregistrement des races ayant ascensionné et bâtiments raciaux permanents,
-/// restrictions de placement (CITY_MIN_DISTANCE, CITY_PLACEMENT_REQUIRES_TERRAIN,
-/// CITY_PLACEMENT_FLYING), réduction de coût de ville (NEW_CITY_COST_REDUCTION) et effet Ziggourat
-/// (production instantanée de Dominion des Temples).
+/// Système de races (choix à l'Ascension) : déblocage individuel de chaque race — base comme
+/// avancée — par sa propre combinaison de 3 pouvoirs divins (AscensionController.IsRaceUnlocked /
+/// IsRaceSelectionUnlocked / GetSelectableRaces), enregistrement des races ayant ascensionné et
+/// bâtiments raciaux permanents, restrictions de placement (CITY_MIN_DISTANCE,
+/// CITY_PLACEMENT_REQUIRES_TERRAIN, CITY_PLACEMENT_FLYING), réduction de coût de ville
+/// (NEW_CITY_COST_REDUCTION) et effet Ziggourat (production instantanée de Dominion des Temples).
 /// </summary>
 public class RaceSystemTests
 {
@@ -61,13 +60,20 @@ public class RaceSystemTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
     }
 
-    /// <summary>Seconde rangée complète (un pouvoir par colonne qui en possède un) : races avancées.</summary>
+    /// <summary>
+    /// Les 6 pouvoirs divins de second rang (le 2e de chaque colonne 0-5) : l'union des combinaisons
+    /// requises par chacune des 4 races avancées (voir RaceDefinitions.All), donc les débloque toutes
+    /// simultanément. Suppose UnlockFirstRow déjà appelée (chaque pouvoir de second rang exige le
+    /// premier pouvoir de sa colonne).
+    /// </summary>
     private static void UnlockSecondRow(AscensionController ascension)
     {
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
         Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.GreaterPurification));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EternalLegacy));
     }
 
     /// <summary>
@@ -116,25 +122,33 @@ public class RaceSystemTests
         Assert.Equal(new[] { RaceId.Human, RaceId.Orc }, races);
     }
 
+    /// <summary>
+    /// Chaque race avancée a sa propre combinaison de 3 pouvoirs de second rang (voir
+    /// RaceDefinitions.All), en graphe complet à 4 sommets : chaque pouvoir est partagé par exactement
+    /// 2 races. Acheter uniquement la combinaison des Géants (Œil, Inventaire Divin, Poing de Dieu) ne
+    /// débloque donc ni les Garudas, ni les Sirènes, ni les Elfes noirs — Œil de Dieu, commun aux
+    /// Géants et aux Garudas, ne suffit pas à débloquer ces derniers sans Héritage Éternel et
+    /// Présence de Dieu.
+    /// </summary>
     [Fact]
-    public void AreAdvancedRacesUnlocked_RequiresFullSecondRow()
+    public void IsRaceUnlocked_EachAdvancedRaceHasItsOwnIndependentCombination()
     {
         var ascension = CreateAscension(out _);
         UnlockFirstRow(ascension);
-
-        Assert.False(ascension.AreAdvancedRacesUnlocked);
-
-        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.False(ascension.AreAdvancedRacesUnlocked);
-
         Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
-        Assert.False(ascension.AreAdvancedRacesUnlocked);
-
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
-        Assert.False(ascension.AreAdvancedRacesUnlocked);
-
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
-        Assert.True(ascension.AreAdvancedRacesUnlocked);
+
+        Assert.True(ascension.IsRaceUnlocked(RaceId.Giant));
+        Assert.False(ascension.IsRaceUnlocked(RaceId.Garuda));
+        Assert.False(ascension.IsRaceUnlocked(RaceId.Mermaid));
+        Assert.False(ascension.IsRaceUnlocked(RaceId.DarkElf));
+
+        var races = ascension.GetSelectableRaces();
+        Assert.Contains(RaceId.Giant, races);
+        Assert.DoesNotContain(RaceId.Garuda, races);
+        Assert.DoesNotContain(RaceId.Mermaid, races);
+        Assert.DoesNotContain(RaceId.DarkElf, races);
     }
 
     [Fact]
@@ -158,13 +172,14 @@ public class RaceSystemTests
         Assert.Contains(RaceId.Dwarf, races);
         Assert.Contains(RaceId.Goblin, races);
         Assert.Contains(RaceId.Orc, races);
-        // Races avancées : verrouillées tant que la seconde rangée de pouvoirs n'est pas complète.
+        // Races avancées : verrouillées tant qu'aucune de leurs combinaisons de second rang n'est complète.
         Assert.DoesNotContain(RaceId.Mermaid, races);
         Assert.DoesNotContain(RaceId.DarkElf, races);
         Assert.DoesNotContain(RaceId.Giant, races);
         Assert.DoesNotContain(RaceId.Garuda, races);
     }
 
+    /// <summary>All 6 second-rank powers together cover every advanced race's own combination.</summary>
     [Fact]
     public void GetSelectableRaces_SecondRowComplete_AddsImplementedAdvancedRaces()
     {

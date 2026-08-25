@@ -162,10 +162,13 @@ public static class GameStateFactory
     }
 
     /// <summary>
-    /// The divine powers that make <paramref name="tier"/> selectable, derived the same way
-    /// AscensionController.IsRaceSelectionUnlocked / AreAdvancedRacesUnlocked check for it: Faith, then
-    /// the first power of every column (Base), plus the second power of every column that has one
-    /// (Advanced). Derived rather than hard-coded so adding a column or a power keeps this honest.
+    /// A superset of divine powers guaranteed to satisfy any race's own <see cref="RaceDefinition.RequiredPowers"/>
+    /// combination for <paramref name="tier"/>: Faith, then the first power of every column (covers
+    /// any Base race's combination, all drawn from first-rank powers), plus the second power of every
+    /// column that has one (covers any Advanced race's combination — each drawn from the 6 second-rank
+    /// powers, one per column 0-5). Derived rather than hard-coded so adding a column or a power keeps
+    /// this honest; granting the superset rather than the specific race's 3 powers keeps this simple
+    /// without needing race-specific plumbing here.
     /// </summary>
     public static IReadOnlyList<AscensionPowerId> RequiredPowersFor(RaceTier tier)
     {
