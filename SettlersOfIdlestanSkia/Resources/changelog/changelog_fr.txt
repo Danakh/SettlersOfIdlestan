@@ -4,6 +4,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.16
+• Nouvelle recherche Préréglages d'automatisation : permet de plafonner, bâtiment par bâtiment, le niveau que l'automatisation de construction ne doit pas dépasser
 • Nouvel onglet Auto dans la fenêtre de Commerce : réglage des seuils de vente automatique par ressource et de l'or conservé avant achat automatique
 • Relocaliser une ville permet désormais de la détruire
 • Nouveau bouton pour cycler entre les monuments
