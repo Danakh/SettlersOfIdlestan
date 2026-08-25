@@ -304,10 +304,10 @@ public static class TechnologyDefinitions
         // PRESTIGE_GAIN_PER_TEMPLE, cumulable avec PRESTIGE_GAIN.
         new(TechnologyId.GrandTempleConstruction,
             "tech_grand_temple_construction_name", "tech_grand_temple_construction_desc",
-            cost: 6000000,
+            cost: 2000000,
             prerequisites: new[] { TechnologyId.AdvancedGuilds },
             modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "GrandTemple", EType.ADDITIVE, 1) },
-            tier: 8, line: 5),
+            tier: 7, line: 5),
 
         // === Branche de l'Acier (débloquée par les vertex de prestige du nord-est) ===
 
@@ -817,7 +817,7 @@ public static class TechnologyDefinitions
             cost: 1687500000,
             prerequisites: new[] { TechnologyId.LegionEternelle },
             modifiers: new Modifier[] { new(ECategory.TEMPLE_DEFENSE_BONUS, EType.ADDITIVE, 1) },
-            tier: 12, line: 7,
+            tier: 12, line: 8,
             requiresDominionUnlock: true),
 
     };
