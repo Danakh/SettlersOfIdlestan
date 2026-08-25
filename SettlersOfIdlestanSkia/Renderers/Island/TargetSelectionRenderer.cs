@@ -26,6 +26,7 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
     private const float ButtonWidth = 120f;
     private const float ButtonHeight = 38f;
     private const float ButtonMargin = 14f;
+    private const float ButtonSpacing = 10f;
 
     private SKPaint? _dimPaint;
     private SKPaint? _hostileFill;
@@ -41,8 +42,10 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
     private SKFont? _titleFont;
     private SKPaint? _hexLabelPaint;
     private SKFont? _hexLabelFont;
+    private SKPaint? _secondaryActionBgPaint;
 
     private SKRect _cancelButtonRect = SKRect.Empty;
+    private SKRect _secondaryActionButtonRect = SKRect.Empty;
     private int _currentLayer = IslandMap.SurfaceLayer;
     private bool _disposed;
 
@@ -72,6 +75,7 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
         _friendlyHexBorder = new SKPaint { Color = new SKColor(50, 200, 80, 220), StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
         _hostileHexBorder = new SKPaint { Color = new SKColor(220, 60, 60, 220), StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
         _cancelBgPaint = new SKPaint { Color = new SKColor(180, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+        _secondaryActionBgPaint = new SKPaint { Color = new SKColor(110, 20, 20), Style = SKPaintStyle.Fill, IsAntialias = true };
         _cancelTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
         _cancelFont = new SKFont { Size = 14, Typeface = SkiaFonts.Bold };
         _titlePaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
@@ -155,6 +159,23 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
 
         canvas.DrawRoundRect(_cancelButtonRect, 7, 7, _cancelBgPaint!);
         SkiaTextUtils.DrawText(canvas, _localization.Get("ui_cancel"), _cancelButtonRect.MidX, _cancelButtonRect.MidY + 6, SKTextAlign.Center, _cancelFont!, _cancelTextPaint!);
+
+        if (_selectionService.SecondaryActionLabelKey != null)
+        {
+            _secondaryActionButtonRect = new SKRect(
+                _cancelButtonRect.Left - ButtonSpacing - ButtonWidth,
+                _cancelButtonRect.Top,
+                _cancelButtonRect.Left - ButtonSpacing,
+                _cancelButtonRect.Bottom);
+
+            canvas.DrawRoundRect(_secondaryActionButtonRect, 7, 7, _secondaryActionBgPaint!);
+            SkiaTextUtils.DrawText(canvas, _localization.Get(_selectionService.SecondaryActionLabelKey),
+                _secondaryActionButtonRect.MidX, _secondaryActionButtonRect.MidY + 6, SKTextAlign.Center, _cancelFont!, _cancelTextPaint!);
+        }
+        else
+        {
+            _secondaryActionButtonRect = SKRect.Empty;
+        }
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -186,6 +207,12 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
         if (_cancelButtonRect.Contains(e.Position.X, e.Position.Y))
         {
             _selectionService.Cancel();
+            return;
+        }
+
+        if (_secondaryActionButtonRect.Contains(e.Position.X, e.Position.Y))
+        {
+            _selectionService.InvokeSecondaryAction();
             return;
         }
 
@@ -238,6 +265,7 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
         _friendlyHexBorder?.Dispose();
         _hostileHexBorder?.Dispose();
         _cancelBgPaint?.Dispose();
+        _secondaryActionBgPaint?.Dispose();
         _cancelTextPaint?.Dispose();
         _cancelFont?.Dispose();
         _titlePaint?.Dispose();

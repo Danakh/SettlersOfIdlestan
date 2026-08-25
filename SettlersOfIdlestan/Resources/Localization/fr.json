@@ -1292,6 +1292,7 @@
   "relocation_action_short": "Relocaliser",
   "relocation_select_city": "Choisissez une de vos villes à relocaliser",
   "relocation_select_destination": "Choisissez le nouvel emplacement (3 routes maximum)",
+  "relocation_destroy_city": "Détruire la ville",
   "tooltip_relocation": "Déplacez une ville vers un nouvel emplacement à proximité — coûte 100 Or et 100 Nourriture",
   "tooltip_relocation_insufficient_resources": "⚠ Nécessite 100 Or et 100 Nourriture",
   "warherald_action_short": "War Herald",

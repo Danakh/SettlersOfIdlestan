@@ -1292,6 +1292,7 @@
   "relocation_action_short": "Relocate",
   "relocation_select_city": "Choose one of your cities to relocate",
   "relocation_select_destination": "Choose the new location (3 roads maximum)",
+  "relocation_destroy_city": "Destroy City",
   "tooltip_relocation": "Move a city to a nearby new location — costs 100 Gold and 100 Food",
   "tooltip_relocation_insufficient_resources": "⚠ Requires 100 Gold and 100 Food",
   "warherald_action_short": "War Herald",

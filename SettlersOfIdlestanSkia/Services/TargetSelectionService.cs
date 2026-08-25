@@ -39,8 +39,13 @@ public sealed class TargetSelectionService
     /// <summary>Libellé optionnel affiché sur chaque hexagone ciblable (ex: niveau de corruption).</summary>
     public IReadOnlyDictionary<HexCoord, string>? HexLabels { get; private set; }
 
+    /// <summary>Clé de localisation d'un bouton optionnel affiché à côté d'Annuler (ex: "Détruire la ville"
+    /// pendant le ciblage de destination de la relocalisation). Null si aucune action secondaire.</summary>
+    public string? SecondaryActionLabelKey { get; private set; }
+
     private Action<Vertex>? _onVertexConfirmed;
     private Action<HexCoord>? _onHexConfirmed;
+    private Action? _secondaryAction;
 
     /// <summary>Déclenché à l'entrée en mode ciblage (pour mettre en pause/masquer l'overlay).</summary>
     public event EventHandler? Entered;
@@ -49,7 +54,8 @@ public sealed class TargetSelectionService
     public event EventHandler? Cancelled;
 
     public void EnterVertexSelection(string titleKey, IReadOnlyList<Vertex> targets, Action<Vertex> onConfirmed,
-        TargetSelectionTheme theme = TargetSelectionTheme.Hostile)
+        TargetSelectionTheme theme = TargetSelectionTheme.Hostile,
+        string? secondaryActionLabelKey = null, Action? secondaryAction = null)
     {
         if (targets.Count == 0) return;
 
@@ -61,6 +67,8 @@ public sealed class TargetSelectionService
         HexTargets = Array.Empty<HexCoord>();
         _onVertexConfirmed = onConfirmed;
         _onHexConfirmed = null;
+        SecondaryActionLabelKey = secondaryActionLabelKey;
+        _secondaryAction = secondaryAction;
         HoveredVertex = null;
         HoveredHex = null;
         IsActive = true;
@@ -81,6 +89,8 @@ public sealed class TargetSelectionService
         HexLabels = hexLabels;
         _onHexConfirmed = onConfirmed;
         _onVertexConfirmed = null;
+        SecondaryActionLabelKey = null;
+        _secondaryAction = null;
         HoveredVertex = null;
         HoveredHex = null;
         IsActive = true;
@@ -106,6 +116,8 @@ public sealed class TargetSelectionService
         HexTargets = hexTargets;
         _onVertexConfirmed = onVertexConfirmed;
         _onHexConfirmed = onHexConfirmed;
+        SecondaryActionLabelKey = null;
+        _secondaryAction = null;
         HoveredVertex = null;
         HoveredHex = null;
         IsActive = true;
@@ -146,6 +158,18 @@ public sealed class TargetSelectionService
         }
     }
 
+    /// <summary>Déclenche le bouton d'action secondaire (ex: "Détruire la ville") au lieu de choisir
+    /// une cible. Contrairement à Annuler, l'action est exécutée avant de refermer le mode ciblage,
+    /// et c'est Confirmed qui se déclenche — le ciblage se résout, il n'est pas annulé.</summary>
+    public void InvokeSecondaryAction()
+    {
+        if (!IsActive || _secondaryAction == null) return;
+        var action = _secondaryAction;
+        Reset();
+        action.Invoke();
+        Confirmed?.Invoke(this, EventArgs.Empty);
+    }
+
     public void Cancel()
     {
         if (!IsActive) return;
@@ -161,5 +185,7 @@ public sealed class TargetSelectionService
         HexLabels = null;
         _onVertexConfirmed = null;
         _onHexConfirmed = null;
+        SecondaryActionLabelKey = null;
+        _secondaryAction = null;
     }
 }

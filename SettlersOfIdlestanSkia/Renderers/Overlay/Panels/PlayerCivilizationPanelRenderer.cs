@@ -259,7 +259,9 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 if (destinations.Count == 0) return;
                 _targetSelectionService.EnterVertexSelection("relocation_select_destination", destinations,
                     destination => cityBuilderController.RelocateCity(city, destination),
-                    TargetSelectionTheme.Friendly);
+                    TargetSelectionTheme.Friendly,
+                    secondaryActionLabelKey: "relocation_destroy_city",
+                    secondaryAction: () => cityBuilderController.DestroyCity(city, CityDestructionCause.PlayerChoice));
             }, TargetSelectionTheme.Friendly);
     }
 

@@ -39,6 +39,10 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Marche de Dieu transforme un terrain occupé.
         /// </summary>
         Terrain,
+
+        /// <summary>Le joueur a choisi de détruire sa propre ville (ex : bouton "Détruire" pendant
+        /// le ciblage de destination de la relocalisation).</summary>
+        PlayerChoice,
     }
 
     public class CityDestroyedEventArgs : EventArgs
