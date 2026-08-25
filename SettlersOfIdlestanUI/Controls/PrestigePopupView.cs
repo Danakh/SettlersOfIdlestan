@@ -391,6 +391,7 @@ public sealed class PrestigePopupView : UserControl
             VerticalContentAlignment = VerticalAlignment.Center,
             Content = content,
             [!ToolTip.TipProperty] = new Binding(nameof(PrestigeActionViewModel.Tooltip)),
+            [!IsEnabledProperty] = new Binding(nameof(PrestigeActionViewModel.IsEnabled)),
         };
 
         // Le prestige corrompu se distingue du normal, et l'indisponibilite des deux.
