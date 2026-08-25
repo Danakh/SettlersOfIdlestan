@@ -935,6 +935,8 @@
   "tech_advanced_guilds_desc": "Increases the automatic building construction speed of guilds by 10% per city in the empire",
   "tech_grand_temple_construction_name": "Grand Temple",
   "tech_grand_temple_construction_desc": "Unlocks the Grand Temple, a unique building that automates Temple construction and adds a 0.5% prestige bonus per Temple built in the civilization",
+  "tech_automation_preset_name": "Automation Presets",
+  "tech_automation_preset_desc": "Unlocks a new feature (coming soon)",
   "tech_maitrise_des_alliages_name": "Alloy Mastery",
   "tech_maitrise_des_alliages_desc": "+15% Forge double harvest chance",
   "tech_steel_weapons_name": "Steel Weapons",

@@ -277,7 +277,8 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.3) },
             tier: 7, line: 6),
 
-        // Débloquée par le vertex de prestige Guilde des Marchands
+        // Débloquée par le vertex de prestige Guilde des Marchands. Remontée d'une ligne (juste
+        // sous Automatic Market, son prérequis) pour libérer la ligne 5 au Grand Temple.
         new(TechnologyId.AdvancedTradingPosts,
             "tech_advanced_trading_posts_name", "tech_advanced_trading_posts_desc",
             cost: 120000,
@@ -286,27 +287,38 @@ public static class TechnologyDefinitions
             {
                 new(ECategory.UNLOCK_INTERMEDIATE_TRADE, EType.ADDITIVE, 1),
             },
+            tier: 5, line: 4),
+
+        // Prend l'ancienne place des Comptoirs Avancés (tier 5, ligne 5) : se place désormais entre
+        // Grande Architecture (seul prérequis) et Guildes Avancées, qui en dépend en retour. Débloque
+        // le Grand Temple (bâtiment unique, niveau max 1) : automatise la construction des Temples et
+        // ajoute PRESTIGE_GAIN_PER_TEMPLE, cumulable avec PRESTIGE_GAIN. Coût recalé sur le tier 5
+        // (auparavant 2 000 000 au tier 7).
+        new(TechnologyId.GrandTempleConstruction,
+            "tech_grand_temple_construction_name", "tech_grand_temple_construction_desc",
+            cost: 150000,
+            prerequisites: new[] { TechnologyId.GrandArchitecture },
+            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "GrandTemple", EType.ADDITIVE, 1) },
             tier: 5, line: 5),
 
-        // Un tier au-dessus des Comptoirs Avancés (seul prérequis).
+        // Un tier au-dessus du Grand Temple (seul prérequis, à la place des Comptoirs Avancés).
         new(TechnologyId.AdvancedGuilds,
             "tech_advanced_guilds_name", "tech_advanced_guilds_desc",
             cost: 425000,
-            prerequisites: new[] { TechnologyId.AdvancedTradingPosts },
+            prerequisites: new[] { TechnologyId.GrandTempleConstruction },
             modifiers: new Modifier[]
             {
                 new(ECategory.GUILD_AUTOMATION_SPEED_PER_CITY, EType.ADDITIVE, 0.1),
             },
             tier: 6, line: 5),
 
-        // Deux tiers au-dessus des Guildes Avancées (seul prérequis). Débloque le Grand Temple
-        // (bâtiment unique, niveau max 1) : automatise la construction des Temples et ajoute
-        // PRESTIGE_GAIN_PER_TEMPLE, cumulable avec PRESTIGE_GAIN.
-        new(TechnologyId.GrandTempleConstruction,
-            "tech_grand_temple_construction_name", "tech_grand_temple_construction_desc",
+        // Prend l'ancien emplacement du Grand Temple (tier 7, ligne 5). Débloque une nouvelle feature
+        // qui sera codée plus tard — pas de modificateur associé pour l'instant.
+        new(TechnologyId.AutomationPreset,
+            "tech_automation_preset_name", "tech_automation_preset_desc",
             cost: 2000000,
             prerequisites: new[] { TechnologyId.AdvancedGuilds },
-            modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "GrandTemple", EType.ADDITIVE, 1) },
+            modifiers: Array.Empty<Modifier>(),
             tier: 7, line: 5),
 
         // === Branche de l'Acier (débloquée par les vertex de prestige du nord-est) ===
@@ -392,22 +404,25 @@ public static class TechnologyDefinitions
         // débloquée par le vertex de prestige Raids (voir PrestigeMapFactory, SiegeTrainingVertex).
         // Raid gratuit sur une ville alliée : redirige tous les flux de renfort vers la cible, sauf
         // les emplacements ayant un flux d'attaque actif (voir RaidEngine.StartWarHeraldRaid).
+        // Baissée d'un tier (coût / 4), avec toute la suite de la branche (Vendetta, Légion Éternelle,
+        // Bastion Consacré).
         new(TechnologyId.WarHerald,
             "tech_war_herald_name", "tech_war_herald_desc",
-            cost: 30000000,
+            cost: 7500000,
             prerequisites: new[] { TechnologyId.EntrainementIntensif },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_WAR_HERALD, EType.ADDITIVE, 1) },
-            tier: 9, line: 8),
+            tier: 8, line: 8),
 
         // Même ligne que WarHerald (voir Technology.cs), son seul prérequis désormais que Patrol a
         // été supprimée de l'arbre. Raids automatiques sur une civilisation : la cible se met à jour
-        // après un raid manuel du joueur ou une attaque subie.
+        // après un raid manuel du joueur ou une attaque subie. Baissée d'un tier (coût / 4), avec
+        // WarHerald.
         new(TechnologyId.Vendetta,
             "tech_vendetta_name", "tech_vendetta_desc",
-            cost: 100000000,
+            cost: 25000000,
             prerequisites: new[] { TechnologyId.WarHerald },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_VENDETTA, EType.ADDITIVE, 1) },
-            tier: 10, line: 8),
+            tier: 9, line: 8),
 
         // === Branche de l'Inframonde (débloquée par les vertex de prestige du nord-ouest) ===
 
@@ -709,17 +724,18 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.5) },
             tier: 9, line: 6),
 
-        // Baissée de 2 tiers (coût / 16).
+        // Baissée de 2 tiers (coût / 16), puis d'un tier supplémentaire (coût / 4) avec le reste de la
+        // branche WarHerald.
         new(TechnologyId.LegionEternelle,
             "tech_legion_eternelle_name", "tech_legion_eternelle_desc",
-            cost: 418750000,
+            cost: 104687500,
             prerequisites: new[] { TechnologyId.Vendetta },
             modifiers: new Modifier[]
             {
                 new(ECategory.UNIT_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
                 new(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 10),
             },
-            tier: 11, line: 8),
+            tier: 10, line: 8),
 
         // === Suite de la ligne du Vide (VoidWalking → VoidCompass, tiers 10-11 depuis la baisse de 2 tiers) ===
         // Accélère la boucle d'Ascension : Purification des Os Divins moins chère, puis routes du
@@ -811,13 +827,14 @@ public static class TechnologyDefinitions
 
         // Chaque Temple ajoute un bonus fixe de défense à sa ville selon son niveau (+1/3/6/10,
         // voir Temple.GetDefenseBonusForLevel et MilitaryController.GetDefenseScore).
-        // Baissée de 2 tiers (coût / 16).
+        // Baissée de 2 tiers (coût / 16), puis d'un tier supplémentaire (coût / 4) avec le reste de la
+        // branche WarHerald.
         new(TechnologyId.BastionConsacre,
             "tech_bastion_consacre_name", "tech_bastion_consacre_desc",
-            cost: 1687500000,
+            cost: 421875000,
             prerequisites: new[] { TechnologyId.LegionEternelle },
             modifiers: new Modifier[] { new(ECategory.TEMPLE_DEFENSE_BONUS, EType.ADDITIVE, 1) },
-            tier: 12, line: 8,
+            tier: 11, line: 8,
             requiresDominionUnlock: true),
 
     };

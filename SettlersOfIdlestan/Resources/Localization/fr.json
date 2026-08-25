@@ -935,6 +935,8 @@
   "tech_advanced_guilds_desc": "Augmente la vitesse de construction automatique des bâtiments par les guildes de 10% par ville de l'empire",
   "tech_grand_temple_construction_name": "Grand Temple",
   "tech_grand_temple_construction_desc": "Débloque la construction du Grand Temple, un bâtiment unique qui automatise la construction des Temples et ajoute 0,5% de bonus de prestige par Temple construit dans la civilisation",
+  "tech_automation_preset_name": "Préréglages d'automatisation",
+  "tech_automation_preset_desc": "Débloque une nouvelle fonctionnalité (à venir)",
   "tech_maitrise_des_alliages_name": "Maîtrise des alliages",
   "tech_maitrise_des_alliages_desc": "+15% de chance de double récolte sur la Forge",
   "tech_steel_weapons_name": "Armes en Acier",
