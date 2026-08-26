@@ -7,12 +7,13 @@ using SettlersOfIdlestan.Model.Localization;
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
 /// <summary>
-/// Spire de Corruption — Monument de l'Inframonde, plaçable uniquement sur une zone corrompue.
-/// Construite par investissement progressif comme tout Monument. Une fois bâtie, réduit
-/// systématiquement la corruption dans un rayon (voir <see cref="Radius"/>) autour de son hex ;
-/// son rayon peut ensuite être amélioré indéfiniment par investissement, à un coût croissant de
-/// 50% par niveau (voir <see cref="GetRadiusUpgradeCost"/>). Ne protège pas son hex des mécaniques
-/// de Temple/débordement, qui peuvent toujours y agir normalement (voir CorruptionController).
+/// Spire de Corruption — Monument de l'Inframonde, plaçable uniquement sur une Source de Corruption
+/// (voir <see cref="CorruptionSource"/>) ; achever sa construction détruit la Source. Construite par
+/// investissement progressif comme tout Monument. Une fois bâtie, réduit systématiquement la
+/// corruption dans un rayon (voir <see cref="Radius"/>) autour de son hex ; son rayon peut ensuite
+/// être amélioré indéfiniment par investissement, à un coût croissant de 50% par niveau (voir
+/// <see cref="GetRadiusUpgradeCost"/>). Ne protège pas son hex des mécaniques de Temple/débordement,
+/// qui peuvent toujours y agir normalement (voir CorruptionController).
 /// </summary>
 public class CorruptionSpire : Monument
 {

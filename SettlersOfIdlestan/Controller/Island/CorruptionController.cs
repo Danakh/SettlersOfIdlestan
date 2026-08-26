@@ -49,6 +49,13 @@ namespace SettlersOfIdlestan.Controller.Island;
 ///    morts tarissent les sources. À leur apparition, <see cref="SeedCorruptionAroundNewMonster"/>
 ///    (appelé par les générateurs) corrompt d'office leur hex et ses six voisins au niveau de l'île,
 ///    soit la moitié de ce plafond.
+/// 6. <see cref="ProcessCorruptionSourceGrowth"/> — même mécanique que les Os Divins pour les
+///    Sources de Corruption (voir <see cref="IslandFeatures.CorruptionSource"/>, semées par
+///    AutoExtendController.TrySpawnUnderworldDenizen) : chacune ajoute un point de Corruption sur son
+///    propre hex tant que le niveau y reste sous <see cref="IslandFeatures.CorruptionSource.GetCorruptionCap"/>
+///    — le niveau de corruption de l'île figé à sa génération, jamais doublé (contrairement aux Os
+///    Divins). C'est le seul hex sur lequel une Spire de Corruption peut être bâtie ; la construire
+///    détruit la Source (voir CorruptionSpireController.ProcessInvestment).
 /// </summary>
 public class CorruptionController
 {
@@ -71,6 +78,7 @@ public class CorruptionController
     private long _lastMonumentDecayTick;
     private long _lastDivineBonesGrowthTick;
     private long _lastMonsterGrowthTick;
+    private long _lastCorruptionSourceGrowthTick;
 
     public void Initialize(WorldState state, GameClock? clock, GamePRNG prng, PrestigeState? prestigeState = null)
     {
@@ -85,6 +93,7 @@ public class CorruptionController
         _lastMonumentDecayTick = 0;
         _lastDivineBonesGrowthTick = 0;
         _lastMonsterGrowthTick = 0;
+        _lastCorruptionSourceGrowthTick = 0;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -106,6 +115,9 @@ public class CorruptionController
 
         try { ProcessMonsterCorruptionGrowth(e.CurrentTick); }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessMonsterCorruptionGrowth)}: {ex}"); }
+
+        try { ProcessCorruptionSourceGrowth(e.CurrentTick); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessCorruptionSourceGrowth)}: {ex}"); }
     }
 
     /// <summary>Cooldown par Temple (comme AlchimistHut.LastCrystalProductionTick) — chaque Temple agit toutes les 10 s depuis sa dernière action.</summary>
@@ -494,6 +506,33 @@ public class CorruptionController
             if (corruption == null)
                 _state.AddFeature(new Corruption(monster.Position, level: 1));
             else if (corruption.Level < cap)
+                IncreaseLevel(corruption);
+        }
+    }
+
+    /// <summary>
+    /// Miroir de <see cref="ProcessDivineBonesCorruptionGrowth"/> pour les Sources de Corruption
+    /// (voir <see cref="IslandFeatures.CorruptionSource"/>) : chaque Source ajoute, de façon garantie
+    /// et à chaque intervalle, un point de Corruption sur son propre hex — en la semant à niveau 1 si
+    /// l'hex est sain — tant que le niveau y reste sous <see cref="IslandFeatures.CorruptionSource.GetCorruptionCap"/>.
+    /// Contrairement aux Os Divins, ce plafond n'est jamais doublé : il vaut exactement le niveau de
+    /// corruption de l'île au moment de la génération de la Source. Une Source n'est jamais purifiée
+    /// par le joueur ; elle disparaît uniquement quand une Spire de Corruption est bâtie sur son hex
+    /// (voir CorruptionSpireController.ProcessInvestment).
+    /// </summary>
+    private void ProcessCorruptionSourceGrowth(long currentTick)
+    {
+        if (_state == null) return;
+        if (currentTick - _lastCorruptionSourceGrowthTick < ProductionIntervalTicks) return;
+        _lastCorruptionSourceGrowthTick = currentTick;
+
+        // Snapshot : semer une Corruption ajoute une feature à _state.Features pendant l'itération.
+        foreach (var source in _state.Features.OfType<CorruptionSource>().ToList())
+        {
+            var corruption = _state.GetFeaturesAt(source.Position).OfType<Corruption>().FirstOrDefault();
+            if (corruption == null)
+                _state.AddFeature(new Corruption(source.Position, level: 1));
+            else if (corruption.Level < source.GetCorruptionCap())
                 IncreaseLevel(corruption);
         }
     }

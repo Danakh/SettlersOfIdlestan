@@ -182,6 +182,36 @@ namespace SettlersOfIdlestan.Controller.Expand
             => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.UNLOCK_ABYSS, "", 0)
                >= CorruptionSpireController.AbyssUnlockThreshold;
 
+        /// <summary>
+        /// Étape restante avant que le Prestige Corrompu ne soit disponible, une fois débloqué (voir
+        /// <see cref="IsCorruptedPrestigeUnlocked"/>) mais tant que la Spire de Corruption n'est pas
+        /// bâtie (voir <see cref="HasCorruptionSpireBuilt"/>) — pilote le message affiché sous le
+        /// bouton de Prestige Corrompu (voir PrestigeRenderer). La Spire ne pouvant être placée que
+        /// sur une Source de Corruption (voir <see cref="IslandFeatures.CorruptionSource"/>, semée
+        /// aléatoirement par AutoExtendController.TrySpawnUnderworldDenizen), et sa construction la
+        /// détruisant, trois étapes distinctes précèdent <see cref="Available"/> selon ce qui existe
+        /// déjà sur la carte.
+        /// </summary>
+        public enum CorruptedPrestigeStep
+        {
+            /// <summary>La Spire est bâtie (ou a évolué en Faille des Abysses) : le Prestige Corrompu est disponible.</summary>
+            Available,
+            /// <summary>Une Spire est placée mais pas encore bâtie : il reste à investir des ressources pour l'achever.</summary>
+            SpireUnderConstruction,
+            /// <summary>Une Source de Corruption existe sur la carte, mais aucune Spire n'y a encore été placée.</summary>
+            SourceAwaitingSpire,
+            /// <summary>Aucune Source de Corruption n'existe encore sur la carte (tirage aléatoire non encore obtenu).</summary>
+            NoSourceYet,
+        }
+
+        public CorruptedPrestigeStep GetCorruptedPrestigeStep()
+        {
+            if (HasCorruptionSpireBuilt()) return CorruptedPrestigeStep.Available;
+            if (_islandState?.Features.OfType<CorruptionSpire>().Any() == true) return CorruptedPrestigeStep.SpireUnderConstruction;
+            if (_islandState?.Features.OfType<CorruptionSource>().Any() == true) return CorruptedPrestigeStep.SourceAwaitingSpire;
+            return CorruptedPrestigeStep.NoSourceYet;
+        }
+
         public int GetMaxCorruptionLevelCleared() => _prestigeState?.MaxCorruptionLevelCleared ?? 0;
 
         /// <summary>

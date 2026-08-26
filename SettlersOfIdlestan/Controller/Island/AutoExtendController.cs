@@ -62,6 +62,11 @@ public class AutoExtendController
     private const int OgreSpawnChancePercent = 3;
     private const int BaseTreasureChancePercent = 2;
 
+    // Quand la Corruption semée sur un nouvel hex de l'Inframonde atteint le niveau maximal de l'île
+    // (voir TrySpawnUnderworldDenizen), chance supplémentaire de poser en plus une Source de
+    // Corruption sur ce même hex (voir CorruptionSource).
+    private const int CorruptionSourceSpawnChancePercent = 50;
+
     /// <summary>
     /// Hexagones de distance <b>ajoutés</b> à <see cref="MinHexDistanceFromArrival"/> autour du point
     /// d'arrivée de l'Inframonde, sur la 1re, 2e, 3e et 4e île d'une partie : un anneau garanti sans
@@ -509,7 +514,15 @@ public class AutoExtendController
             + CorruptionChancePerDistancePercent * minDist
             + CorruptionChancePerLevelPercent * corruptionLevel;
         if (corruptionChance > 0 && _prng!.Next(100) < corruptionChance)
-            _state.AddFeature(new Model.IslandFeatures.Corruption(newHex, RollCorruptionLevel(corruptionLevel)));
+        {
+            int level = RollCorruptionLevel(corruptionLevel);
+            _state.AddFeature(new Model.IslandFeatures.Corruption(newHex, level));
+
+            // Le tirage a atteint le plafond de corruption de l'île : chance supplémentaire de poser
+            // aussi une Source de Corruption sur cet hex (voir CorruptionSource).
+            if (level >= corruptionLevel && _prng.Next(100) < CorruptionSourceSpawnChancePercent)
+                _state.AddFeature(new Model.IslandFeatures.CorruptionSource(newHex, corruptionLevel));
+        }
     }
 
     /// <summary>

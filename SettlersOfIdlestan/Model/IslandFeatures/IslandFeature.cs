@@ -28,6 +28,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 [JsonDerivedType(typeof(FairyCircle), "FairyCircle")]
 [JsonDerivedType(typeof(Dolmen), "Dolmen")]
 [JsonDerivedType(typeof(Corruption), "Corruption")]
+[JsonDerivedType(typeof(CorruptionSource), "CorruptionSource")]
 [JsonDerivedType(typeof(CorruptionSpire), "CorruptionSpire")]
 [JsonDerivedType(typeof(AbyssGate), "AbyssGate")]
 [JsonDerivedType(typeof(PandemoniumGate), "PandemoniumGate")]

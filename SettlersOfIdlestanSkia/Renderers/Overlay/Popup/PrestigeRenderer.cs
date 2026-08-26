@@ -206,7 +206,8 @@ public sealed class PrestigeRenderer : PopupRendererBase
         // comment y arriver plutot que de faire disparaitre le bouton.
         if (controller.IsCorruptedPrestigeUnlocked())
         {
-            bool spireBuilt = controller.HasCorruptionSpireBuilt();
+            var step = controller.GetCorruptedPrestigeStep();
+            bool spireBuilt = step == PrestigeController.CorruptedPrestigeStep.Available;
             int corruptionLevel = controller.GetCorruptionLevel();
             var tooltip = new List<string> { _localization.Get("prestige_tooltip_corrupted_action") };
             if (spireBuilt)
@@ -216,7 +217,15 @@ public sealed class PrestigeRenderer : PopupRendererBase
             }
             else
             {
-                tooltip.Add(_localization.GetFormated("prestige_tooltip_corrupted_action_locked", corruptionLevel));
+                // Chaque étape restante (voir PrestigeController.CorruptedPrestigeStep) pointe vers
+                // l'action concrète à accomplir ensuite : explorer, placer la Spire, ou l'achever.
+                string lockedKey = step switch
+                {
+                    PrestigeController.CorruptedPrestigeStep.SpireUnderConstruction => "prestige_tooltip_corrupted_action_locked_building",
+                    PrestigeController.CorruptedPrestigeStep.SourceAwaitingSpire    => "prestige_tooltip_corrupted_action_locked_awaiting_spire",
+                    _                                                              => "prestige_tooltip_corrupted_action_locked_no_source",
+                };
+                tooltip.Add(_localization.Get(lockedKey));
             }
 
             actions.Add(new PrestigeActionSnapshot(

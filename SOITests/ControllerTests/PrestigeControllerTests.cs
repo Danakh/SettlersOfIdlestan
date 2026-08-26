@@ -416,6 +416,57 @@ namespace SOITests.ControllerTests
             Assert.Equal(4, controller.CalculatePrestigePoints());
         }
 
+        // ── Étape restante avant le Prestige Corrompu (GetCorruptedPrestigeStep) ────
+
+        [Fact]
+        public void CorruptedPrestigeStep_NoSourceYet_WhenMapHasNeitherSourceNorSpire()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state);
+
+            Assert.Equal(PrestigeController.CorruptedPrestigeStep.NoSourceYet, controller.GetCorruptedPrestigeStep());
+        }
+
+        [Fact]
+        public void CorruptedPrestigeStep_SourceAwaitingSpire_WhenSourceExistsButNoSpirePlaced()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var hex = state.Civilizations[0].Cities[0].Position.GetHexes().First();
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.CorruptionSource(hex, corruptionLevel: 1));
+
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state);
+
+            Assert.Equal(PrestigeController.CorruptedPrestigeStep.SourceAwaitingSpire, controller.GetCorruptedPrestigeStep());
+        }
+
+        [Fact]
+        public void CorruptedPrestigeStep_SpireUnderConstruction_WhenSpirePlacedButNotBuilt()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var hex = state.Civilizations[0].Cities[0].Position.GetHexes().First();
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.CorruptionSpire(hex));
+
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state);
+
+            Assert.Equal(PrestigeController.CorruptedPrestigeStep.SpireUnderConstruction, controller.GetCorruptedPrestigeStep());
+        }
+
+        [Fact]
+        public void CorruptedPrestigeStep_Available_WhenSpireBuilt()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var hex = state.Civilizations[0].Cities[0].Position.GetHexes().First();
+            state.AddFeature(new SettlersOfIdlestan.Model.IslandFeatures.CorruptionSpire(hex) { Built = true });
+
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state);
+
+            Assert.Equal(PrestigeController.CorruptedPrestigeStep.Available, controller.GetCorruptedPrestigeStep());
+        }
+
         // ── Garde-fou : montée de corruption avant la première Ascension ────
 
         /// <summary>État minimal du garde-fou : une Spire bâtie (prestige corrompu disponible) et un niveau de corruption donné.</summary>

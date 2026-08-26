@@ -37,6 +37,7 @@ namespace SOITests.ControllerTests
             var tiles = new[] { new HexTile(UnderworldHex, TerrainType.Mountain) };
             state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(tiles, LayerState.UnderworldZ)));
             state.AddFeature(new Corruption(UnderworldHex));
+            state.AddFeature(new CorruptionSource(UnderworldHex, corruptionLevel: 1));
 
             // Un avant-poste de l'Inframonde touchant UnderworldHex : requis pour investir
             // (l'investissement d'un Monument n'est possible que ville adjacente).
@@ -107,11 +108,35 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void GetPlaceableHexes_OnlyCorruptedUnderworldHexes()
+        public void GetPlaceableHexes_OnlyUnderworldHexesWithACorruptionSource()
         {
             var (state, _, controller) = CreateSetup();
             var hexes = controller.GetPlaceableHexes();
             Assert.Equal(new[] { UnderworldHex }, hexes);
+        }
+
+        [Fact]
+        public void GetPlaceableHexes_ExcludesCorruptedHexWithoutASource()
+        {
+            // Une zone simplement corrompue, sans Source de Corruption, ne suffit plus (voir
+            // AutoExtendController.TrySpawnUnderworldDenizen : seule une Source, semée avec 50% de
+            // chance quand le tirage de Corruption atteint le plafond de l'île, rend l'hex éligible).
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
+            BuildingController.RecalculateStorageCapacity(state.PlayerCivilization);
+
+            var tiles = new[] { new HexTile(UnderworldHex, TerrainType.Mountain) };
+            state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(tiles, LayerState.UnderworldZ)));
+            state.AddFeature(new Corruption(UnderworldHex));
+
+            var vertex = Vertex.Create(UnderworldHex, UnderworldHex.Neighbor(HexDirection.E), UnderworldHex.Neighbor(HexDirection.NE));
+            var outpost = new City(vertex) { CivilizationIndex = state.PlayerCivilization.Index };
+            state.PlayerCivilization.AddCity(outpost);
+
+            var controller = new CorruptionSpireController();
+            controller.Initialize(state);
+
+            Assert.Empty(controller.GetPlaceableHexes());
         }
 
         [Fact]
@@ -229,6 +254,28 @@ namespace SOITests.ControllerTests
             var (_, _, controller) = CreateSetup();
             controller.PlaceCorruptionSpire(UnderworldHex);
             Assert.False(controller.HasCorruptionSpireBuilt());
+        }
+
+        [Fact]
+        public void Investment_CompletingAllResources_DestroysTheCorruptionSourceOnItsHex()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var spire = controller.PlaceCorruptionSpire(UnderworldHex)!;
+            Assert.NotEmpty(state.Features.OfType<CorruptionSource>());
+
+            var cost = CorruptionSpire.GetSpireCost();
+            foreach (var kvp in cost)
+            {
+                spire.InvestedResources[kvp.Key] = kvp.Value;
+                spire.InvestmentEnabled.Add(kvp.Key);
+            }
+
+            clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks);
+
+            Assert.True(spire.Built);
+            Assert.Empty(state.Features.OfType<CorruptionSource>());
+            // La Corruption qu'elle engendrait, elle, n'est pas retirée par ce mécanisme.
+            Assert.Contains(state.Features.OfType<Corruption>(), f => f.Position.Equals(UnderworldHex));
         }
     }
 }

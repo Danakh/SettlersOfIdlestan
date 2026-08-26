@@ -38,6 +38,27 @@ public class PrestigeActionViewModelTests
 
         Assert.Equal(0, notifications);
     }
+
+    /// <summary>
+    /// Bug corrige : Apply() ne resynchronisait que Label/SubLabel/IsEnabled, jamais Tooltip — un
+    /// popup deja ouvert au moment ou, par ex., la Spire de Corruption passait Built = true gardait
+    /// donc affiche le texte "verrouille" d'origine tant qu'on ne le refermait pas.
+    /// </summary>
+    [Fact]
+    public void Le_tooltip_se_met_a_jour_quand_l_instantane_change_sans_que_la_cle_change()
+    {
+        var locked = new SkiaLayer.PrestigeActionSnapshot(
+            "corruptedPrestige", "Prestige corrompu", null, false, true, ["Verrouille"]);
+        var unlocked = new SkiaLayer.PrestigeActionSnapshot(
+            "corruptedPrestige", "Prestige corrompu", "2 -> 3", true, true, ["Disponible"]);
+
+        var action = new PrestigeActionViewModel(locked);
+        Assert.Equal("Verrouille", action.Tooltip);
+
+        action.Apply(unlocked);
+
+        Assert.Equal("Disponible", action.Tooltip);
+    }
 }
 
 public class PrestigePopupViewModelTests

@@ -7,11 +7,12 @@ namespace SettlersOfIdlestanUI.ViewModels;
 public sealed class PrestigeActionViewModel : ViewModelBase
 {
     private SkiaLayer.PrestigeActionSnapshot _snapshot;
+    private string _tooltip;
 
     public PrestigeActionViewModel(SkiaLayer.PrestigeActionSnapshot snapshot)
     {
         _snapshot = snapshot;
-        Tooltip = string.Join('\n', snapshot.Tooltip);
+        _tooltip = string.Join('\n', snapshot.Tooltip);
     }
 
     public string Key => _snapshot.Key;
@@ -23,7 +24,7 @@ public sealed class PrestigeActionViewModel : ViewModelBase
     public bool HasSubLabel => _snapshot.SubLabel != null;
     public bool IsEnabled => _snapshot.IsEnabled;
     public bool IsCorrupted => _snapshot.IsCorrupted;
-    public string Tooltip { get; }
+    public string Tooltip { get => _tooltip; private set => SetProperty(ref _tooltip, value); }
 
     internal void Apply(SkiaLayer.PrestigeActionSnapshot snapshot)
     {
@@ -34,6 +35,11 @@ public sealed class PrestigeActionViewModel : ViewModelBase
         if (previous.Label != snapshot.Label) RaisePropertyChanged(nameof(Label));
         if (previous.SubLabel != snapshot.SubLabel) RaisePropertyChanged(nameof(SubLabel));
         if (previous.IsEnabled != snapshot.IsEnabled) RaisePropertyChanged(nameof(IsEnabled));
+
+        // Bug corrige : le tooltip n'etait jamais resynchronise ici (seulement fixe au constructeur),
+        // donc restait fige au texte "verrouille" si le popup etait deja ouvert au moment ou la Spire
+        // passait Built = true (ou toute autre etape de CorruptedPrestigeStep) — voir PrestigeRenderer.
+        Tooltip = string.Join('\n', snapshot.Tooltip);
     }
 }
 

@@ -902,6 +902,83 @@ public class CorruptionControllerTests
         Assert.Equal(3, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
     }
 
+    // ── Sources de Corruption : générateurs de Corruption, sans le doublement de plafond des Os Divins ──
+    // La carte à un seul hex isole ce mécanisme du débordement (aucun voisin candidat).
+
+    [Fact]
+    public void CorruptionSource_RaisesCorruptionOnItsOwnHex_EachInterval()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 1));
+        state.AddFeature(new CorruptionSource(landHex, corruptionLevel: 3)); // plafond 3, pas 6
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        Assert.Equal(2, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        var corruption = state.GetFeaturesAt(landHex).OfType<Corruption>().Single();
+        Assert.Equal(3, corruption.Level);
+        Assert.Equal(3, corruption.PeakLevel); // le pic engendré compte pour le record de nettoyage
+    }
+
+    [Fact]
+    public void CorruptionSource_SeedsCorruption_WhenItsHexIsClean()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new CorruptionSource(landHex, corruptionLevel: 2));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(1, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void CorruptionSource_StopsRaisingCorruption_AtTheIslandCorruptionLevel_NotTwice()
+    {
+        // Contrairement aux Os Divins (plafond ×2), la Source s'arrête exactement au niveau de
+        // corruption de l'île figé à sa génération.
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        var source = new CorruptionSource(landHex, corruptionLevel: 2); // plafond 2, pas 4
+        state.AddFeature(new Corruption(landHex, level: 1));
+        state.AddFeature(source);
+
+        Assert.Equal(2, source.GetCorruptionCap());
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 10; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(2, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void CorruptionSource_DoesNotReduceCorruptionAlreadyAboveItsCap()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Corruption(landHex, level: 9));
+        state.AddFeature(new CorruptionSource(landHex, corruptionLevel: 2)); // plafond 2
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 3; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(9, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
     // ── Tentacules et Dieu démon : générateurs de Corruption tant qu'ils sont vivants ──────
     // Même mécanique que les Os Divins, avec le plafond calculé sur le niveau de corruption courant.
 
