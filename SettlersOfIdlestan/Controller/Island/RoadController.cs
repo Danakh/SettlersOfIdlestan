@@ -203,6 +203,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var citiesInLayer = civ.Cities.Where(c => c.Position.Z == layer).ToList();
             var roadsInLayer = civ.Roads.Where(r => r.Position.Z == layer).ToList();
+            var mapTiles = _state!.GetMapForZ(layer)?.Tiles;
 
             // Seules les routes de NOTRE civilisation bloquent la construction.
             // Les routes ennemies sont conquérables (elles seront détruites à la construction).
@@ -237,6 +238,21 @@ namespace SettlersOfIdlestan.Controller.Island
             var result = new List<Road>();
             foreach (var edge in candidates)
             {
+                // Un candidat dont l'un des deux hex n'existe pas encore sur la carte (au-delà de
+                // l'anneau d'eau profonde en surface, ou pas encore révélé sur une couche AutoExtend)
+                // ne peut jamais être construit — BuildRoad rejette systématiquement une telle arête
+                // (voir sa vérification "Edge not part of the map"). IsEdgeOnLand ci-dessous traite un
+                // hex absent comme de l'eau pour décider si l'arête est "sur terre", ce qui la fait à
+                // tort passer pour une route terrestre normale dès que l'autre hex est un vrai hex de
+                // terre — reproduit en jeu par un PNJ dont une route côtière touche l'anneau d'eau
+                // profonde : le "troisième hex" du vertex suivant est alors totalement absent de la
+                // carte, jamais re-révélé (l'anneau n'est ajouté qu'une fois, autour des hex d'Eau
+                // d'origine, pas autour de lui-même). Sur une couche AutoExtend, ce filtre ne retire
+                // jamais de candidat légitime : TryExtendMapAfterRoad révèle systématiquement les deux
+                // vertex complets de toute arête construite, donc tout hex à un pas d'une ville ou
+                // d'une route existante est déjà garanti présent ici.
+                if (mapTiles == null || !mapTiles.ContainsKey(edge.Hex1) || !mapTiles.ContainsKey(edge.Hex2))
+                    continue;
                 if (ownOccupied.Contains(edge)) continue;
                 if (enemyProtectedEdges.Contains(edge)) continue;
                 if (IsEdgeBetweenVoidHexes(edge))
