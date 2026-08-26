@@ -84,12 +84,15 @@ namespace SettlersOfIdlestan.Controller.Island
                 bones.InvestmentEnabled.Clear();
 
                 // Chaque Purification octroie directement 1 essence divine, seulement si le plafond
-                // (une essence par niveau de corruption à partir du niveau 4) n'est pas déjà atteint —
-                // au-delà, il faut prestige pour relever ce plafond (la Purification a quand même
-                // lieu, mais n'accorde aucune essence). GodState.DivineEssence ne compte déjà pas les
-                // essences garanties par le Reliquaire (GodState.DivineEssenceReliquaryFloor, distinct) :
-                // un Reliquaire plein n'interdit donc jamais de nouvelles essences en début de cycle.
-                bones.EssenceGranted = _godState.DivineEssence < bones.GetEssenceCap();
+                // (une essence par niveau de corruption à partir du niveau 4, plus 1 par pouvoir divin
+                // déjà débloqué — voir AscensionController.GetDivineEssenceCap) n'est pas déjà atteint —
+                // au-delà, il faut prestige ou débloquer un nouveau pouvoir divin pour relever ce
+                // plafond (la Purification a quand même lieu, mais n'accorde aucune essence).
+                // GodState.DivineEssence ne compte déjà pas les essences garanties par le Reliquaire
+                // (GodState.DivineEssenceReliquaryFloor, distinct) : un Reliquaire plein n'interdit
+                // donc jamais de nouvelles essences en début de cycle.
+                int essenceCap = bones.GetEssenceCap() + _godState.AscensionState.UnlockedPowers.Count;
+                bones.EssenceGranted = _godState.DivineEssence < essenceCap;
                 if (bones.EssenceGranted)
                 {
                     _godState.DivineEssence++;

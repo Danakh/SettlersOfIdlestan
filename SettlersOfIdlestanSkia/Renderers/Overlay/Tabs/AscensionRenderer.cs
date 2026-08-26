@@ -276,6 +276,8 @@ public sealed class AscensionRenderer : IDisposable
         // gain réel (voir AscensionController.GetGodPointsGain, qui lui inclut le Reliquaire), qui est
         // ce que le bouton créditera.
         double necropolisBonus = ascension.GetNecropolisAscensionBonus();
+        int corruptionLevel = Math.Max(0, godState.PrestigeState?.CurrentCorruptionLevel ?? 0);
+        int unlockedPowers = godState.AscensionState.UnlockedPowers.Count;
         int essenceCap = ascension.GetDivineEssenceCap();
         string essenceText = necropolisBonus > 0
             ? _localization.GetFormated("ascension_divine_essence_necropolis_label",
@@ -283,6 +285,9 @@ public sealed class AscensionRenderer : IDisposable
                 ascension.GetNecropolisLevel(), (int)Math.Round(necropolisBonus * 100))
             : _localization.GetFormated("ascension_divine_essence_label", godState.DivineEssence, essenceCap);
         SkiaTextUtils.DrawText(canvas, essenceText, x + contentWidth, y + 2, SKTextAlign.Right, _nameFont, _accentPaint);
+        float essenceZoneRight = x + contentWidth;
+        float essenceZoneWidth = _nameFont.MeasureText(essenceText);
+        float essenceZoneTop = y - 6f;
 
         float nextLineY = y + 22;
 
@@ -293,7 +298,19 @@ public sealed class AscensionRenderer : IDisposable
             string reliquaryText = _localization.GetFormated("ascension_divine_essence_reliquary_label",
                 ascension.GetDivineEssenceReliquaryAmount(godState));
             SkiaTextUtils.DrawText(canvas, reliquaryText, x + contentWidth, nextLineY, SKTextAlign.Right, _nameFont, _accentPaint);
+            essenceZoneWidth = Math.Max(essenceZoneWidth, _nameFont.MeasureText(reliquaryText));
             nextLineY += 20f;
+        }
+
+        // Zone de survol couvrant l'essence divine et la réserve du Reliquaire : un seul tooltip
+        // explique le calcul du plafond (corruption + pouvoirs divins débloqués) et précise que le
+        // Reliquaire n'y compte pas — remplace l'ancienne mention texte "(max lié à la corruption)".
+        var essenceZoneRect = new SKRect(essenceZoneRight - essenceZoneWidth - 6f, essenceZoneTop, essenceZoneRight + 4f, nextLineY - 2f);
+        if (essenceZoneRect.Contains(_hoverPosition.X, _hoverPosition.Y))
+        {
+            _hoveredLockedRect = essenceZoneRect;
+            _hoveredLockedTooltip = _localization.GetFormated("ascension_divine_essence_cap_tooltip",
+                corruptionLevel, unlockedPowers, essenceCap);
         }
 
         // Race jouée pendant ce cycle — visible dès que le choix de race existe (ou si une race

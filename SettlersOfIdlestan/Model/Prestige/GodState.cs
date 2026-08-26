@@ -39,8 +39,9 @@ namespace SettlersOfIdlestan.Model.Prestige
         /// <summary>
         /// Essences divines gagnées <b>pendant le run courant</b> : chaque Purification d'Os Divins
         /// dans les Abysses en octroie directement 1 (voir DivineBonesController), tant que
-        /// <see cref="AscensionController.GetDivineEssenceCap"/> (lié à la corruption) n'est pas
-        /// atteint. Remise à zéro à chaque prestige (voir PrestigeController.PerformPrestige) et à
+        /// <see cref="AscensionController.GetDivineEssenceCap"/> (lié à la corruption et au nombre de
+        /// pouvoirs divins débloqués) n'est pas atteint. Remise à zéro à chaque prestige (voir
+        /// PrestigeController.PerformPrestige) et à
         /// chaque Ascension. N'inclut jamais les essences du Reliquaire (<see cref="DivineEssenceReliquaryFloor"/>) :
         /// c'est ce qui les exclut du plafond de corruption et du coût de Purification (voir
         /// DivineBones.EssenceAlreadyCollected) — seul ce champ pilote l'un et l'autre. Pour

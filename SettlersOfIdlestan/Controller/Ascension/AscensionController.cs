@@ -413,9 +413,14 @@ public class AscensionController : IModifierProvider
     /// (GodState.DivineEssence uniquement — voir <see cref="GetEffectiveDivineEssence"/>) : le niveau
     /// de corruption actuel de l'île (voir DivineBones.GetEssenceCap, PrestigeState.CurrentCorruptionLevel
     /// — chaque Os Divins fige ce niveau à sa génération, ce plafond est donc celui d'un Os Divins
-    /// fraîchement apparu). Pour l'obtenir plus haut, il faut prestige pour augmenter la corruption.
+    /// fraîchement apparu), plus 1 par pouvoir divin déjà débloqué (GodState.AscensionState.UnlockedPowers,
+    /// cross-prestige — voir DivineBonesController.ProcessInvestment, qui applique le même bonus au
+    /// plafond propre à chaque Os Divins). Pour l'augmenter, il faut donc soit prestige pour relever
+    /// la corruption, soit débloquer de nouveaux pouvoirs divins.
     /// </summary>
-    public int GetDivineEssenceCap() => Math.Max(0, _godState?.PrestigeState?.CurrentCorruptionLevel ?? 0);
+    public int GetDivineEssenceCap() =>
+        Math.Max(0, _godState?.PrestigeState?.CurrentCorruptionLevel ?? 0)
+        + (_godState?.AscensionState.UnlockedPowers.Count ?? 0);
 
     /// <summary>
     /// Vrai si le Reliquaire (Reliquaire Sacré/Renforcé) est débloqué, c'est-à-dire si la
