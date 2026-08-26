@@ -56,6 +56,13 @@ namespace SettlersOfIdlestan.Controller.Island;
 ///    — le niveau de corruption de l'île figé à sa génération, jamais doublé (contrairement aux Os
 ///    Divins). C'est le seul hex sur lequel une Spire de Corruption peut être bâtie ; la construire
 ///    détruit la Source (voir CorruptionSpireController.ProcessInvestment).
+/// Invariant : Corruption et Dominion ne coexistent jamais sur un même hex. Le Temple (1) l'assure déjà
+/// dans un sens (il ne pose du Dominion que sur un hex sans Corruption). Les trois générateurs directs
+/// (4, 5, 6) l'assurent dans l'autre sens via <see cref="GrowOrSeedCorruptionOnHex"/> : si un Dominion
+/// occupe déjà leur hex, ils le combattent (-1) au lieu d'y semer de la Corruption. Nécessaire car (2)
+/// peut semer un nouveau Dominion sur un hex dont la Corruption vient d'être réduite à zéro plus tôt
+/// dans le même tick (par 1) — sans ce garde-fou, (4)/(5)/(6), qui passent en dernier, la ressèmeraient
+/// par-dessus sans regarder ce qui s'y trouve déjà.
 /// </summary>
 public class CorruptionController
 {
@@ -292,6 +299,33 @@ public class CorruptionController
             _state!.AddFeature(new Corruption(hex, level: 1));
     }
 
+    /// <summary>
+    /// Fait grandir la Corruption sur le propre hex d'un générateur direct (Os Divin, Source de
+    /// Corruption, monstre enraciné) jusqu'à <paramref name="cap"/> — sauf si un Dominion occupe déjà
+    /// ce hex, auquel cas le combat l'emporte sur la croissance : le Dominion perd un point à la
+    /// place, exactement comme <see cref="ApplyTempleActionOnHex"/> réduit la Corruption plutôt que
+    /// d'ajouter du Dominion sur un hex déjà corrompu. Sans cette vérification, les deux pouvaient
+    /// coexister durablement sur le même hex : <see cref="ProcessSpread"/> peut semer un nouveau
+    /// Dominion sur un hex dont la Corruption vient d'être réduite à zéro plus tôt dans le même tick
+    /// (par <see cref="ProcessTempleProduction"/>), avant que ce générateur, qui passe en dernier, ne
+    /// la ressème par-dessus sans regarder ce qui s'y trouve déjà.
+    /// </summary>
+    private void GrowOrSeedCorruptionOnHex(HexCoord hex, int cap)
+    {
+        var dominion = _state!.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault();
+        if (dominion != null)
+        {
+            ReduceLevel(dominion);
+            return;
+        }
+
+        var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
+        if (corruption == null)
+            _state.AddFeature(new Corruption(hex, level: 1));
+        else if (corruption.Level < cap)
+            IncreaseLevel(corruption);
+    }
+
     private static int GetLevel(IslandFeature feature) => feature switch
     {
         Corruption c => c.Level,
@@ -403,6 +437,8 @@ public class CorruptionController
     /// la source se tarit alors d'elle-même, sans laisser de générateur résiduel.
     /// <see cref="IncreaseLevel"/> tient à jour <see cref="Corruption.PeakLevel"/>, donc la Corruption
     /// engendrée ici compte normalement dans le record de nettoyage une fois la zone dissipée.
+    /// Voir <see cref="GrowOrSeedCorruptionOnHex"/> : si un Dominion occupe déjà l'hex, il perd un
+    /// point à la place de la croissance — Corruption et Dominion ne peuvent jamais coexister.
     /// </summary>
     private void ProcessDivineBonesCorruptionGrowth(long currentTick)
     {
@@ -414,12 +450,7 @@ public class CorruptionController
         foreach (var bones in _state.Features.OfType<DivineBones>().ToList())
         {
             if (bones.Purified) continue;
-
-            var corruption = _state.GetFeaturesAt(bones.Position).OfType<Corruption>().FirstOrDefault();
-            if (corruption == null)
-                _state.AddFeature(new Corruption(bones.Position, level: 1));
-            else if (corruption.Level < bones.GetCorruptionCap())
-                IncreaseLevel(corruption);
+            GrowOrSeedCorruptionOnHex(bones.Position, bones.GetCorruptionCap());
         }
     }
 
@@ -489,7 +520,8 @@ public class CorruptionController
     /// Le plafond ne borne que cette génération : une Corruption déjà plus élevée (tirage initial de
     /// AutoExtendController.PlaceAbyssCorruption, débordement d'un voisin) n'est jamais réduite ici.
     /// Passe après la décroissance des monuments, pour la même raison que la croissance des Os Divins :
-    /// sous une Spire, les deux effets s'annulent exactement.
+    /// sous une Spire, les deux effets s'annulent exactement. Voir <see cref="GrowOrSeedCorruptionOnHex"/> :
+    /// un Dominion déjà présent perd un point à la place de la croissance.
     /// </summary>
     private void ProcessMonsterCorruptionGrowth(long currentTick)
     {
@@ -501,13 +533,7 @@ public class CorruptionController
 
         // Snapshot : semer une Corruption ajoute une feature à _state.Features pendant l'itération.
         foreach (var monster in _state.Features.OfType<MonsterFeature>().Where(m => m.GeneratesCorruption).ToList())
-        {
-            var corruption = _state.GetFeaturesAt(monster.Position).OfType<Corruption>().FirstOrDefault();
-            if (corruption == null)
-                _state.AddFeature(new Corruption(monster.Position, level: 1));
-            else if (corruption.Level < cap)
-                IncreaseLevel(corruption);
-        }
+            GrowOrSeedCorruptionOnHex(monster.Position, cap);
     }
 
     /// <summary>
@@ -518,7 +544,8 @@ public class CorruptionController
     /// Contrairement aux Os Divins, ce plafond n'est jamais doublé : il vaut exactement le niveau de
     /// corruption de l'île au moment de la génération de la Source. Une Source n'est jamais purifiée
     /// par le joueur ; elle disparaît uniquement quand une Spire de Corruption est bâtie sur son hex
-    /// (voir CorruptionSpireController.ProcessInvestment).
+    /// (voir CorruptionSpireController.ProcessInvestment). Voir <see cref="GrowOrSeedCorruptionOnHex"/> :
+    /// un Dominion déjà présent perd un point à la place de la croissance.
     /// </summary>
     private void ProcessCorruptionSourceGrowth(long currentTick)
     {
@@ -528,13 +555,7 @@ public class CorruptionController
 
         // Snapshot : semer une Corruption ajoute une feature à _state.Features pendant l'itération.
         foreach (var source in _state.Features.OfType<CorruptionSource>().ToList())
-        {
-            var corruption = _state.GetFeaturesAt(source.Position).OfType<Corruption>().FirstOrDefault();
-            if (corruption == null)
-                _state.AddFeature(new Corruption(source.Position, level: 1));
-            else if (corruption.Level < source.GetCorruptionCap())
-                IncreaseLevel(corruption);
-        }
+            GrowOrSeedCorruptionOnHex(source.Position, source.GetCorruptionCap());
     }
 
     /// <summary>Le centre puis, anneau par anneau, tous les hexes à distance ≤ radius de center (BFS via les 6 directions).</summary>

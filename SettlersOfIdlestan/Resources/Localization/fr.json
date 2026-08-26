@@ -1548,7 +1548,7 @@
   "building_armorsmith_desc": "Produit automatiquement des Armures en Acier en consommant de l'Acier.",
   "armorsmith_production_cooldown": "Prochaine armure :",
   "armorsmith_production_costs": "Coût : {0} Acier ► 1 Armure en Acier par cycle",
-  "map_switch_corruption_level": "Corruption niv. {0}",
+  "map_label_corruption_source": "Source de Corruption",
   "game_over_title": "Défaite",
   "game_over_line1": "Toutes vos cités ont été détruites.",
   "game_over_line2": "Votre civilisation est tombée.",

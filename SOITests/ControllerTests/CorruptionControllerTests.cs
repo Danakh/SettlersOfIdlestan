@@ -979,6 +979,83 @@ public class CorruptionControllerTests
         Assert.Equal(9, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
     }
 
+    // ── Invariant : Corruption et Dominion ne coexistent jamais sur le même hex ────────────
+    // Reproduit le bug signalé : une Source de Corruption (ou un Os Divin/monstre) ne doit jamais
+    // semer de la Corruption sur un hex déjà occupé par du Dominion — elle doit d'abord le combattre.
+
+    [Fact]
+    public void CorruptionSource_FightsExistingDominion_InsteadOfSeedingCorruption()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Dominion(landHex, level: 4));
+        state.AddFeature(new CorruptionSource(landHex, corruptionLevel: 1));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(3, state.GetFeaturesAt(landHex).OfType<Dominion>().Single().Level);
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
+    }
+
+    [Fact]
+    public void CorruptionSource_KeepsFightingDominion_UntilItIsGone_ThenSeedsCorruption()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Dominion(landHex, level: 2));
+        state.AddFeature(new CorruptionSource(landHex, corruptionLevel: 1));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // Dominion 2 -> 1
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // Dominion 1 -> 0 (supprimé)
+
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Dominion>());
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
+
+        // Le Dominion enfin parti, la Source recommence à semer normalement.
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        Assert.Equal(1, state.GetFeaturesAt(landHex).OfType<Corruption>().Single().Level);
+    }
+
+    [Fact]
+    public void DivineBones_FightsExistingDominion_InsteadOfSeedingCorruption()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Dominion(landHex, level: 1));
+        state.AddFeature(new DivineBones(landHex, corruptionLevel: 3));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Dominion>());
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
+    }
+
+    [Fact]
+    public void Monster_FightsExistingDominion_InsteadOfSeedingCorruption()
+    {
+        var (state, _, landHex) = CreateSingleLandHexCitySetup();
+        state.AddFeature(new Dominion(landHex, level: 1));
+        state.AddFeature(new DemonGod(landHex));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock, prestigeState: new PrestigeState { CurrentCorruptionLevel = 2 });
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Dominion>());
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
+    }
+
     // ── Tentacules et Dieu démon : générateurs de Corruption tant qu'ils sont vivants ──────
     // Même mécanique que les Os Divins, avec le plafond calculé sur le niveau de corruption courant.
 

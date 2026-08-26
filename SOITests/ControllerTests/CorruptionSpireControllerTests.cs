@@ -140,6 +140,32 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void GetPlaceableHexes_IncludesSourceHexEvenWhenDominionReplacedItsCorruption()
+        {
+            // CorruptionController.GrowOrSeedCorruptionOnHex fait combattre un Dominion existant par
+            // la Source plutôt que d'y semer de la Corruption par-dessus : l'hex peut donc se
+            // retrouver avec la Source mais du Dominion à la place de la Corruption. La Spire doit
+            // rester plaçable sur cet hex — la Source y est toujours présente.
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
+            BuildingController.RecalculateStorageCapacity(state.PlayerCivilization);
+
+            var tiles = new[] { new HexTile(UnderworldHex, TerrainType.Mountain) };
+            state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(tiles, LayerState.UnderworldZ)));
+            state.AddFeature(new CorruptionSource(UnderworldHex, corruptionLevel: 1));
+            state.AddFeature(new Dominion(UnderworldHex, level: 4));
+
+            var vertex = Vertex.Create(UnderworldHex, UnderworldHex.Neighbor(HexDirection.E), UnderworldHex.Neighbor(HexDirection.NE));
+            var outpost = new City(vertex) { CivilizationIndex = state.PlayerCivilization.Index };
+            state.PlayerCivilization.AddCity(outpost);
+
+            var controller = new CorruptionSpireController();
+            controller.Initialize(state);
+
+            Assert.Equal(new[] { UnderworldHex }, controller.GetPlaceableHexes());
+        }
+
+        [Fact]
         public void GetPlaceableHexes_ExcludesHexWithOtherFeature()
         {
             var (state, _, controller) = CreateSetup();

@@ -1548,7 +1548,7 @@
   "building_armorsmith_desc": "Automatically produces Steel Armor by consuming Steel.",
   "armorsmith_production_cooldown": "Next armor:",
   "armorsmith_production_costs": "Cost: {0} Steel ► 1 Steel Armor per cycle",
-  "map_switch_corruption_level": "Corruption lvl. {0}",
+  "map_label_corruption_source": "Corruption Source",
   "game_over_title": "Defeat",
   "game_over_line1": "All your cities have been destroyed.",
   "game_over_line2": "Your civilization has fallen.",

@@ -198,8 +198,11 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _closeAll();
         var spireController = _gameControllerService.MainGameController.CorruptionSpireController;
         var spireHexes = spireController.GetPlaceableHexes();
-        var spireHexLabels = spireHexes.ToDictionary(hex => hex,
-            hex => _localization.GetFormated("map_switch_corruption_level", spireController.GetCorruptionLevel(hex)));
+        // Le niveau de corruption de l'hex n'est plus pertinent ici : une Source peut s'y trouver
+        // avec du Dominion à la place de la Corruption (voir CorruptionSpireController.GetPlaceableHexes) ;
+        // seule la présence de la Source compte pour le placement.
+        var sourceLabel = _localization.Get("map_label_corruption_source");
+        var spireHexLabels = spireHexes.ToDictionary(hex => hex, _ => sourceLabel);
         _targetSelectionService.EnterHexSelection("spire_select_hex", spireHexes,
             hex => spireController.PlaceCorruptionSpire(hex), TargetSelectionTheme.Friendly, spireHexLabels);
     }

@@ -119,11 +119,14 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         /// <summary>
         /// Hexes de l'Inframonde portant la feature CorruptionSource (voir <see cref="CorruptionSource"/>),
-        /// libres de toute autre feature que la Corruption qu'elle engendre, et actuellement visibles
-        /// par le joueur (dévoilés par une ville ou une route) — triés du moins au plus coûteux à
-        /// sacrifier (voir <see cref="MonumentInvestment.OrderByLeastSacrifice"/>). La plupart de ces
-        /// hexes ne touchent aucune ville, donc n'y perdent rien : le tri ne départage vraiment que
-        /// ceux qui en touchent une.
+        /// libres de toute autre feature que la Corruption qu'elle engendre ou le Dominion qui la
+        /// combat (voir CorruptionController.GrowOrSeedCorruptionOnHex — la Source peut donc se
+        /// retrouver temporairement sans Corruption sur son hex, remplacée par du Dominion, sans que
+        /// cela ne l'empêche de recevoir la Spire), et actuellement visibles par le joueur (dévoilés
+        /// par une ville ou une route) — triés du moins au plus coûteux à sacrifier (voir
+        /// <see cref="MonumentInvestment.OrderByLeastSacrifice"/>). La plupart de ces hexes ne
+        /// touchent aucune ville, donc n'y perdent rien : le tri ne départage vraiment que ceux qui en
+        /// touchent une.
         /// </summary>
         public List<HexCoord> GetPlaceableHexes()
         {
@@ -142,7 +145,7 @@ namespace SettlersOfIdlestan.Controller.Expand
                 if (tile == null) continue;
                 if (tile.TerrainType == TerrainType.Water) continue;
 
-                bool hasOtherFeature = _state.GetFeaturesAt(hex).Any(f => f is not Corruption and not CorruptionSource);
+                bool hasOtherFeature = _state.GetFeaturesAt(hex).Any(f => f is not Corruption and not CorruptionSource and not Dominion);
                 if (hasOtherFeature) continue;
 
                 result.Add(hex);
