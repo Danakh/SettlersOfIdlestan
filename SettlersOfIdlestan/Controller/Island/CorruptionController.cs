@@ -122,6 +122,12 @@ public class CorruptionController
                 if (currentTick - temple.LastDominionProductionTick < ProductionIntervalTicks) continue;
                 temple.LastDominionProductionTick = currentTick;
 
+                // Même pénalité de profondeur que la propagation du Dominion (÷2/÷4/÷8) : le
+                // cooldown reste identique, mais chaque tir a une chance sur GetDominionLayerDivisor
+                // d'aboutir.
+                int divisor = GetDominionLayerDivisor(city.Position.Z);
+                if (divisor > 1 && _prng.Next(divisor) != 0) continue;
+
                 var hexes = city.Position.GetHexes().Where(IsValidHex).ToList();
                 if (hexes.Count == 0) continue;
 
@@ -201,7 +207,12 @@ public class CorruptionController
                 + (sourceIsDominion ? GetDominionSpreadChanceBonus() : 0);
 
             int level = GetLevel(source);
-            if (_prng.Next(100) >= level * chancePerLevel) continue;
+
+            // En profondeur, l'Évangélisation du Dominion est plus difficile : ÷2 Inframonde, ÷4
+            // Abysses, ÷8 Pandémonium. La résolution du tirage est multipliée d'autant pour ne pas
+            // perdre de précision par troncature entière sur de petits pourcentages.
+            int divisor = sourceIsDominion ? GetDominionLayerDivisor(source.Position.Z) : 1;
+            if (_prng.Next(100 * divisor) >= level * chancePerLevel) continue;
 
             var candidates = source.Position.Neighbors().Where(IsValidHex).ToList();
             if (candidates.Count == 0) continue;
@@ -248,6 +259,19 @@ public class CorruptionController
     /// <summary>Points de % de chance de débordement supplémentaires par niveau pour le Dominion (Évangélisation).</summary>
     private int GetDominionSpreadChanceBonus()
         => _state!.PlayerCivilization.ModifierAggregator.ApplyModifiers(Modifier.ECategory.DOMINION_SPREAD_CHANCE, "", 0);
+
+    /// <summary>
+    /// Diviseur commun aux chances d'action du Dominion selon la couche (débordement dans
+    /// <see cref="ProcessSpread"/>, production de Temple dans <see cref="ProcessTempleProduction"/>) :
+    /// l'Évangélisation peine à s'exporter en profondeur.
+    /// </summary>
+    private static int GetDominionLayerDivisor(int z) => z switch
+    {
+        LayerState.UnderworldZ => 2,
+        LayerState.AbyssZ => 4,
+        LayerState.PandemoniumZ => 8,
+        _ => 1,
+    };
 
     /// <summary>
     /// Vrai si le Dominion de cet hex échappe (tirage aléatoire) à la perte de niveau d'une annulation
