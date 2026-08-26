@@ -689,8 +689,8 @@ public static class TechnologyDefinitions
 
         // Suite directe de la Magie du Vide : débloque le sort Pont du Vide, qui bâtit d'un coup les
         // trois routes autour d'un vertex bordé de Vide. Contrairement aux routes du Vide classiques,
-        // il ne consomme pas de points de recherche — le prix est en cristaux, et il double à chaque
-        // lancement du run (voir SpellDefinition.CostDoublesPerCast).
+        // il ne consomme pas de points de recherche — le prix est en cristaux, et il est multiplié par 6
+        // à chaque lancement du run (voir SpellDefinition.CostMultiplierPerCast).
         new(TechnologyId.PontDuVide,
             "tech_pont_du_vide_name", "tech_pont_du_vide_desc",
             cost: 418750000,

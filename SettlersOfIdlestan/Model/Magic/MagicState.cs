@@ -34,9 +34,9 @@ public class MagicState
 
     /// <summary>
     /// Nombre de lancements réussis de chaque sort depuis le début du run. Seuls les sorts dont
-    /// <see cref="SpellDefinition.CostDoublesPerCast"/> est vrai (Pont du Vide) s'en servent : leur
-    /// coût en cristaux double à chaque entrée de ce compteur (voir <c>MagicController.GetSpellCost</c>).
-    /// Remis à zéro au prestige, comme tout le <see cref="MagicState"/>.
+    /// <see cref="SpellDefinition.CostMultiplierPerCast"/> est supérieur à 1 (Pont du Vide) s'en servent :
+    /// leur coût en cristaux est multiplié par ce facteur à chaque entrée de ce compteur (voir
+    /// <c>MagicController.GetSpellCost</c>). Remis à zéro au prestige, comme tout le <see cref="MagicState"/>.
     /// </summary>
     public Dictionary<SpellId, int> SpellCastCounts { get; set; } = new();
 }

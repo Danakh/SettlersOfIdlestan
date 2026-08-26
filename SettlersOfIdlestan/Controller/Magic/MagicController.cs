@@ -301,19 +301,19 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         /// <summary>
         /// Coût en cristaux d'un sort, réduit par SPELL_COST_REDUCTION (SubCategory = SpellId name).
-        /// Pour un sort à coût croissant (<see cref="SpellDefinition.CostDoublesPerCast"/>), le coût de
-        /// base double d'abord à chaque lancement déjà effectué dans le run. Le calcul passe par un long
-        /// et sature à <see cref="int.MaxValue"/> : au-delà d'une vingtaine de lancements le coût dépasse
-        /// la capacité d'un int, et un débordement rendrait le sort gratuit.
+        /// Pour un sort à coût croissant (<see cref="SpellDefinition.CostMultiplierPerCast"/>), le coût de
+        /// base est d'abord multiplié par ce facteur à chaque lancement déjà effectué dans le run. Le
+        /// calcul passe par un long et sature à <see cref="int.MaxValue"/> : au-delà de quelques
+        /// lancements le coût dépasse la capacité d'un int, et un débordement rendrait le sort gratuit.
         /// </summary>
         public int GetSpellCost(SpellDefinition def)
         {
             long baseCost = def.CrystalCost;
-            if (def.CostDoublesPerCast)
+            if (def.CostMultiplierPerCast > 1)
             {
                 int casts = GetSpellCastCount(def.Id);
                 for (int i = 0; i < casts && baseCost < int.MaxValue; i++)
-                    baseCost *= 2;
+                    baseCost *= def.CostMultiplierPerCast;
             }
 
             double reduction = GetPlayerCiv()?.ModifierAggregator

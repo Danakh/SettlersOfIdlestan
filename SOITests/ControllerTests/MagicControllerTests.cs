@@ -810,7 +810,7 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void CastSpellOnVoidVertex_DoublesTheCostAtEachCast()
+        public void CastSpellOnVoidVertex_MultipliesTheCostAtEachCast()
         {
             var (state, controller, voidVertex) = CreateVoidSetup();
             var civ = state.PlayerCivilization;
@@ -822,14 +822,14 @@ namespace SOITests.ControllerTests
             Assert.Equal(VoidBridgeCost, controller.GetSpellCost(def));
 
             Assert.True(controller.CastSpellOnVoidVertex(SpellId.VoidBridge, voidVertex));
-            Assert.Equal(VoidBridgeCost * 2, controller.GetSpellCost(def));
+            Assert.Equal(VoidBridgeCost * 6, controller.GetSpellCost(def));
 
             // Le vertex voisin, révélé par les routes qui viennent d'être bâties, borde lui aussi le Vide.
             var nextTarget = controller.GetVoidBridgeTargets().First(v => !v.Equals(voidVertex));
             Assert.True(controller.CastSpellOnVoidVertex(SpellId.VoidBridge, nextTarget));
-            Assert.Equal(VoidBridgeCost * 4, controller.GetSpellCost(def));
+            Assert.Equal(VoidBridgeCost * 36, controller.GetSpellCost(def));
 
-            Assert.Equal(100000 - VoidBridgeCost - VoidBridgeCost * 2, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(100000 - VoidBridgeCost - VoidBridgeCost * 6, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         [Fact]

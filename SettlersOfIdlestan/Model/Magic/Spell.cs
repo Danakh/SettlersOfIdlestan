@@ -48,13 +48,13 @@ public class SpellDefinition
     public SpellTargetKind TargetKind { get; }
 
     /// <summary>
-    /// Quand true, le coût en cristaux double à chaque lancement réussi du run
-    /// (voir <c>MagicState.SpellCastCounts</c> et <c>MagicController.GetSpellCost</c>).
+    /// Quand supérieur à 1, le coût en cristaux est multiplié par cette valeur à chaque lancement
+    /// réussi du run (voir <c>MagicState.SpellCastCounts</c> et <c>MagicController.GetSpellCost</c>).
     /// </summary>
-    public bool CostDoublesPerCast { get; }
+    public int CostMultiplierPerCast { get; }
 
     public SpellDefinition(SpellId id, int crystalCost, int goldReward = 0, int troopReward = 0,
-        SpellTargetKind targetKind = SpellTargetKind.None, bool costDoublesPerCast = false)
+        SpellTargetKind targetKind = SpellTargetKind.None, int costMultiplierPerCast = 1)
     {
         Id = id;
         NameKey = $"spell_{id.ToString().ToLower()}_name";
@@ -63,6 +63,6 @@ public class SpellDefinition
         GoldReward = goldReward;
         TroopReward = troopReward;
         TargetKind = targetKind;
-        CostDoublesPerCast = costDoublesPerCast;
+        CostMultiplierPerCast = costMultiplierPerCast;
     }
 }
