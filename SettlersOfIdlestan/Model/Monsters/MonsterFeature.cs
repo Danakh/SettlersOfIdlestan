@@ -127,6 +127,17 @@ public abstract class MonsterFeature : IslandFeature
     [JsonIgnore]
     public virtual bool AttacksOtherMonsters => false;
 
+    /// <summary>
+    /// Opt-in : ce monstre se déplace et attaque normalement même hors du champ de vision du joueur
+    /// (<see cref="IslandFeature.Found"/> à false), au lieu de rester figé sur sa case de spawn comme
+    /// les monstres errants classiques (Bandit, Troll, Ogre — gardiens de butin immobiles tant que non
+    /// découverts, voir MonsterFeatureController.Update). Pensé pour les Démons (mineur/majeur) : posés
+    /// en bordure de zone explorée par TrySpawnBorderMonsters, ils doivent activement traquer le joueur
+    /// plutôt que de s'accumuler invisiblement jusqu'à apparaître en paquet à la prochaine révélation.
+    /// </summary>
+    [JsonIgnore]
+    public virtual bool ActiveWhileHidden => false;
+
     // ── Génération de Corruption (opt-in) ──────────────────────────────────
     /// <summary>
     /// Opt-in : ce monstre fait monter d'un point la Corruption de son propre hex à chaque

@@ -145,7 +145,7 @@ public class MonsterFeatureController
 
         foreach (var monster in _monsters.ToList())
         {
-            if (!monster.Found)
+            if (!monster.Found && !monster.ActiveWhileHidden)
             {
                 if (monster.CanMove)
                 {
@@ -154,7 +154,9 @@ public class MonsterFeatureController
                     // détruite avant le prochain passage de FeatureController.DiscoverFeatures)
                     // doit activement rentrer vers une ville au lieu de rester bloqué à attendre
                     // une découverte qui ne viendra jamais : contrairement aux monstres errants,
-                    // qui restent volontairement cachés tant que le joueur n'explore pas.
+                    // qui restent volontairement cachés tant que le joueur n'explore pas (sauf
+                    // ActiveWhileHidden — voir MonsterFeature — qui saute ce bloc entièrement pour
+                    // suivre le chemin normal ci-dessous).
                     if (monster.AttacksOtherMonsters)
                     {
                         // Ne jamais réassigner LastMovedTick tant que l'intervalle n'est pas écoulé :
