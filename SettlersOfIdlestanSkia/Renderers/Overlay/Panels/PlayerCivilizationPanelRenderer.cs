@@ -317,7 +317,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     }
 
     /// <summary>Ordre d'affichage fixe des monuments cyclables — les autres features dérivant de
-    /// <see cref="Monument"/> (portes, Os Divins…) ne sont pas des monuments bâtis par le joueur.</summary>
+    /// <see cref="Monument"/> (Os Divins…) ne sont pas des monuments bâtis par le joueur.</summary>
     private static int MonumentCycleOrder(Monument m) => m switch
     {
         Wonder => 0,
@@ -325,7 +325,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         Observatory => 2,
         DeepestMine => 3,
         CorruptionSpire => 4,
-        Necropolis => 5,
+        AbyssGate => 5,
+        Necropolis => 6,
         _ => -1,
     };
 

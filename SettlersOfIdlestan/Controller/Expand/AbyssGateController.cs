@@ -69,6 +69,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             // Comme la Spire : l'investissement reste affiché à 100% une fois la Faille bâtie.
             gate.Built = true;
+            gate.WasEverBuilt = true;
             gate.InvestmentEnabled.Clear();
             _state.EventLog.Add(GameEventType.AbyssGateBuilt, toast: true);
             OnAbyssGateBuilt?.Invoke(this, EventArgs.Empty);
@@ -193,8 +194,11 @@ namespace SettlersOfIdlestan.Controller.Expand
                 var cost = gate.GetInvestmentCost(playerCiv);
                 foreach (var kvp in cost)
                     gate.InvestedResources[kvp.Key] = kvp.Value / 2;
-                if (_harvestController != null)
-                    MonumentInvestment.TryAutoStartInvestment(gate, cost, playerCiv, _harvestController, _state);
+                // Contrairement à la construction initiale, on ne relance jamais l'investissement
+                // automatique ici (même si "Automatiser les Monuments" est actif) : perdre la dernière
+                // ville des Abysses est un revers que le joueur doit choisir de réparer explicitement,
+                // pas quelque chose qui se referme tout seul en tâche de fond. Voir WasEverBuilt côté
+                // panneau pour le message de reconstruction.
             }
 
             _state.EventLog.Add(GameEventType.AbyssGateLost, toast: true);

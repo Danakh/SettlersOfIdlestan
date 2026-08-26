@@ -145,8 +145,11 @@ namespace SettlersOfIdlestan.Controller.Island
             var cost = mine.GetInvestmentCost(_state.PlayerCivilization);
             foreach (var kvp in cost)
                 mine.InvestedResources[kvp.Key] = kvp.Value / 2;
-            if (_harvestController != null)
-                MonumentInvestment.TryAutoStartInvestment(mine, cost, _state.PlayerCivilization, _harvestController, _state);
+            // Contrairement au premier creusement, on ne relance jamais l'investissement automatique
+            // ici (même si "Automatiser les Monuments" est actif) : perdre la dernière ville de
+            // l'Inframonde est un revers que le joueur doit choisir de réparer explicitement, pas
+            // quelque chose qui se referme tout seul en tâche de fond. Voir WasEverDug côté panneau
+            // pour le message de reconstruction.
 
             _state.EventLog.Add(GameEventType.UnderworldLost);
             _state.Visibility.Recalculate();

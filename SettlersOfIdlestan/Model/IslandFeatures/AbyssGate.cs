@@ -28,6 +28,11 @@ public class AbyssGate : Monument
     /// <summary>True une fois l'investissement terminé.</summary>
     public bool Built { get; set; } = false;
 
+    /// <summary>Reste true une fois la Faille bâtie pour la première fois, même après une perte
+    /// (voir AbyssGateController.OnCityDestroyed) — distingue "jamais construite" de "accès perdu,
+    /// à reconstruire" pour l'affichage du panneau.</summary>
+    public bool WasEverBuilt { get; set; } = false;
+
     public static ResourceSet GetGateCost() => new ResourceSet
     {
         { Resource.Gold,     50000 },

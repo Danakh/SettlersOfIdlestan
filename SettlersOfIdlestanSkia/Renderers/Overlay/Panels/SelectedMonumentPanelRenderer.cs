@@ -135,13 +135,20 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             case DeepestMine mine:
                 lines.Add(mine.Dug
                     ? (_localization.Get("monument_bonus_deepest_mine_current"), true)
-                    : (_localization.Get("monument_bonus_deepest_mine_next"), false));
+                    : mine.WasEverDug
+                        ? (_localization.Get("monument_bonus_deepest_mine_lost"), false)
+                        : (_localization.Get("monument_bonus_deepest_mine_next"), false));
                 break;
             case CorruptionSpire spire:
                 lines.Add((_localization.GetFormated("monument_bonus_corruption_spire_decay_radius", spire.Radius), true));
                 AddCorruptionClearPotentialLine(lines, spire.Position);
                 break;
             case AbyssGate gate:
+                lines.Add(gate.Built
+                    ? (_localization.Get("monument_bonus_abyss_gate_current"), true)
+                    : gate.WasEverBuilt
+                        ? (_localization.Get("monument_bonus_abyss_gate_lost"), false)
+                        : (_localization.Get("monument_bonus_abyss_gate_next"), false));
                 lines.Add((_localization.Get("monument_bonus_corruption_spire_decay"), true));
                 AddCorruptionClearPotentialLine(lines, gate.Position);
                 break;
