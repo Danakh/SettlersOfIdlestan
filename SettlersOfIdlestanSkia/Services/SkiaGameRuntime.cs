@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Core;
@@ -217,12 +218,18 @@ public sealed class SkiaGameRuntime : IDisposable
         catch { return null; }
     }
 
+    /// <summary>
+    /// Extrait les réglages embarqués dans une sauvegarde. `json` est le contenu brut renvoyé par
+    /// LoadAuto — chiffré (XOR+Base64) comme settings.json/playerstats.json, mais LoadAuto ne le
+    /// débrouille pas lui-même (contrairement à LoadSettings/LoadStats) car ImportMainState a
+    /// besoin de la chaîne brute. Il faut donc débrouiller ici avant de parser.
+    /// </summary>
     private static GameSettings ExtractSettings(string? json)
     {
         if (string.IsNullOrEmpty(json)) return new GameSettings();
         try
         {
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            using var doc = System.Text.Json.JsonDocument.Parse(SaveController.DecodeToJson(json));
             if (doc.RootElement.TryGetProperty("Settings", out var prop))
             {
                 var s = System.Text.Json.JsonSerializer.Deserialize<GameSettings>(prop);
