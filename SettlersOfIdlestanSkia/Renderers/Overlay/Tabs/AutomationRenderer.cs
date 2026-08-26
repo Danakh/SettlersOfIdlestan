@@ -736,6 +736,7 @@ public sealed class AutomationRenderer : IDisposable
                 Preset1: presets.GetCap(1, type),
                 Preset2: presets.GetCap(2, type),
                 Preset3: presets.GetCap(3, type)))
+            .OrderBy(row => row.Name, StringComparer.CurrentCulture)
             .ToList();
 
         return new AutomationPresetPopupSnapshot(
