@@ -1005,7 +1005,7 @@
   "tech_pont_du_vide_name": "Void Bridge",
   "tech_pont_du_vide_desc": "Unlocks the Void Bridge spell: for a price in crystals, the three roads around a void-bordered vertex rise at once, without costing a single research point.",
   "tech_cartes_des_etoiles_name": "Star Charts",
-  "tech_cartes_des_etoiles_desc": "Unlocks the Observatory, a monument built on a surface Mountain. Each level lowers the research-point cost multiplier of Void routes, from × 4 down to × 3 once the Observatory is complete.",
+  "tech_cartes_des_etoiles_desc": "Unlocks the Observatory, a monument built on a surface Mountain. Each level lowers the research-point cost multiplier of Void routes, from × 3 down to × 2 once the Observatory is complete.",
   "tech_necropole_divine_name": "Divine Necropolis",
   "tech_necropole_divine_desc": "Unlocks the Necropolis, a monument built on unpurified Divine Bones — construction consumes them, sacrificing the Divine Essence they held. Each level raises the Divine Points earned on Ascension by 15%.",
   "tech_coeur_de_la_terre_name": "Heart of the Earth",

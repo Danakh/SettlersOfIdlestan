@@ -160,7 +160,7 @@ public enum TechnologyId
     // autour d'un vertex bordé de Vide contre des cristaux, sans coût en points de recherche.
     PontDuVide,
     // Seconde suite de la Magie du Vide : débloque l'Observatoire, monument de Montagne dont chaque
-    // niveau abaisse le multiplicateur du coût en points de recherche des routes du Vide (×4 → ×3).
+    // niveau abaisse le multiplicateur du coût en points de recherche des routes du Vide (×3 → ×2).
     CartesDesEtoiles,
     CoeurDeLaTerre,
     // Baissée de 2 tiers (coût / 16) puis d'un tier supplémentaire (coût / 4), tier 9, pour la rendre

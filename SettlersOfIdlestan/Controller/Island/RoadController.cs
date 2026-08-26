@@ -830,8 +830,8 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
-        /// Multiplicateur exponentiel courant du coût des routes du Vide : ×4 sans Observatoire,
-        /// abaissé d'un pas par niveau jusqu'à ×3 une fois l'Observatoire complet. L'Observatoire est
+        /// Multiplicateur exponentiel courant du coût des routes du Vide : ×3 sans Observatoire,
+        /// abaissé d'un pas par niveau jusqu'à ×2 une fois l'Observatoire complet. L'Observatoire est
         /// unique sur la carte (monument du joueur) : le multiplicateur vaut donc pour toutes les
         /// civilisations, comme les bonus de portée du Grand Phare.
         /// </summary>

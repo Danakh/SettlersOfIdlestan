@@ -1005,7 +1005,7 @@
   "tech_pont_du_vide_name": "Pont du Vide",
   "tech_pont_du_vide_desc": "Débloque le sort Pont du Vide : contre des cristaux, les trois routes autour d'un vertex bordé de Vide s'élèvent d'un coup, sans coûter le moindre point de recherche.",
   "tech_cartes_des_etoiles_name": "Cartes des Étoiles",
-  "tech_cartes_des_etoiles_desc": "Débloque l'Observatoire, un monument bâti sur une Montagne de la surface. Chaque niveau abaisse le multiplicateur du coût en points de recherche des routes du Vide, de × 4 à × 3 une fois l'Observatoire complet.",
+  "tech_cartes_des_etoiles_desc": "Débloque l'Observatoire, un monument bâti sur une Montagne de la surface. Chaque niveau abaisse le multiplicateur du coût en points de recherche des routes du Vide, de × 3 à × 2 une fois l'Observatoire complet.",
   "tech_necropole_divine_name": "Nécropole Divine",
   "tech_necropole_divine_desc": "Débloque la Nécropole, un monument bâti sur des Os Divins non purifiés — la construction les consume, sacrifiant l'essence divine qu'ils recelaient. Chaque niveau augmente de 15% le nombre de points divins obtenus lors de l'Ascension.",
   "tech_coeur_de_la_terre_name": "Cœur de la Terre",

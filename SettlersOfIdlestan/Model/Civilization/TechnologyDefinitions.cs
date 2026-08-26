@@ -700,7 +700,7 @@ public static class TechnologyDefinitions
 
         // Seconde suite de la Magie du Vide : débloque l'Observatoire, monument bâti sur une Montagne
         // de la surface. Chaque niveau abaisse le multiplicateur exponentiel du coût en points de
-        // recherche des routes du Vide, de ×4 à ×3 une fois l'Observatoire complet (voir Observatory).
+        // recherche des routes du Vide, de ×3 à ×2 une fois l'Observatoire complet (voir Observatory).
         new(TechnologyId.CartesDesEtoiles,
             "tech_cartes_des_etoiles_name", "tech_cartes_des_etoiles_desc",
             cost: 418750000,
