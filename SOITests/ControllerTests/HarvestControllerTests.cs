@@ -138,8 +138,8 @@ namespace SOITests.ControllerTests
             var city = civ.Cities[0];
             city.AddBuilding(new Sawmill());
 
-            // Dominion niveau 5 (+20%/niveau = +100%) amplifié par 2 vertex de prestige (×1.2)
-            // ⇒ +120% de vitesse, cooldown effectif = 500 / 2.2 = 227 ticks.
+            // Dominion niveau 5 (+10%/niveau = +50%) amplifié par 2 vertex de prestige (×1.2)
+            // ⇒ +60% de vitesse, cooldown effectif = 500 / 1.6 = 312 ticks.
             state.AddFeature(new Dominion(a, level: 5));
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
@@ -153,12 +153,12 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(10);
             Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
 
-            // Cooldown effectif = 227 ticks : toujours rien à +190 ticks (200 écoulés).
-            clock.SimulateAdvance(190);
+            // Récolte au tick 10. Cooldown effectif = 312 ticks : toujours rien à 300 ticks écoulés depuis (tick 310).
+            clock.SimulateAdvance(300);
             Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
 
-            // 250 ticks écoulés depuis la première récolte ⩾ 227 ⇒ nouvelle récolte.
-            clock.SimulateAdvance(50);
+            // 320 ticks écoulés depuis la première récolte (tick 330) ⩾ 312 ⇒ nouvelle récolte.
+            clock.SimulateAdvance(20);
             Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
         }
 
@@ -187,7 +187,7 @@ namespace SOITests.ControllerTests
             var city = civ.Cities[0];
             city.AddBuilding(new Sawmill());
 
-            // Bonus intrinsèque seul : Dominion niveau 5 ⇒ +100% de vitesse, cooldown = 500 / 2 = 250 ticks.
+            // Bonus intrinsèque seul : Dominion niveau 5 ⇒ +50% de vitesse, cooldown = 500 / 1.5 = 333 ticks.
             state.AddFeature(new Dominion(a, level: 5));
 
             var clock = new GameClock();
@@ -197,12 +197,12 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(10);
             Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
 
-            // Toujours rien à +100 ticks (110 écoulés < 250).
-            clock.SimulateAdvance(100);
+            // Récolte au tick 10. Cooldown effectif = 333 ticks : toujours rien à 320 ticks écoulés depuis (tick 330).
+            clock.SimulateAdvance(320);
             Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
 
-            // 310 ticks écoulés depuis la première récolte ⩾ 250 ⇒ nouvelle récolte.
-            clock.SimulateAdvance(200);
+            // 335 ticks écoulés depuis la première récolte (tick 345) ⩾ 333 ⇒ nouvelle récolte.
+            clock.SimulateAdvance(15);
             Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
         }
 

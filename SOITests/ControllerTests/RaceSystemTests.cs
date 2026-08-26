@@ -988,49 +988,4 @@ public class RaceSystemTests
         Assert.True(controller.BuildBuilding(city, BuildingType.WarRoom));
     }
 
-    // ── Ziggourat : production instantanée de Dominion ──────────────────────
-
-    [Fact]
-    public void ApplyZigguratInstantProduction_SeedsDominionOnAllCityHexesAndDispelsCorruption()
-    {
-        var state = IslandTestFactory.CreateSevenHexIslandState();
-        var civ = state.Civilizations[0];
-        var city = civ.Cities[0];
-        city.AddBuilding(new Temple { Level = 1 });
-
-        var cityHexes = city.Position.GetHexes().ToList();
-        state.AddFeature(new Corruption(cityHexes[0], level: 2));
-
-        var corruptionController = new CorruptionController();
-        corruptionController.Initialize(state, clock: null, new GamePRNG(1));
-
-        corruptionController.ApplyZigguratInstantProduction(city);
-
-        // Hex corrompu : un point de Corruption dissipé, pas encore de Dominion.
-        Assert.Equal(1, state.GetFeaturesAt(cityHexes[0]).OfType<Corruption>().Single().Level);
-        Assert.Empty(state.GetFeaturesAt(cityHexes[0]).OfType<Dominion>());
-        // Les deux autres hexs reçoivent chacun un Dominion niveau 1.
-        Assert.Equal(1, state.GetFeaturesAt(cityHexes[1]).OfType<Dominion>().Single().Level);
-        Assert.Equal(1, state.GetFeaturesAt(cityHexes[2]).OfType<Dominion>().Single().Level);
-    }
-
-    [Fact]
-    public void ApplyZigguratInstantProduction_RespectsTempleDominionCap()
-    {
-        var state = IslandTestFactory.CreateSevenHexIslandState();
-        var civ = state.Civilizations[0];
-        var city = civ.Cities[0];
-        city.AddBuilding(new Temple { Level = 1 });
-
-        // Temple niveau 1 : plafond 2 par hex — un Dominion déjà au plafond ne monte plus.
-        var cappedHex = city.Position.GetHexes().First();
-        state.AddFeature(new Dominion(cappedHex, level: 2));
-
-        var corruptionController = new CorruptionController();
-        corruptionController.Initialize(state, clock: null, new GamePRNG(1));
-
-        corruptionController.ApplyZigguratInstantProduction(city);
-
-        Assert.Equal(2, state.GetFeaturesAt(cappedHex).OfType<Dominion>().Single().Level);
-    }
 }

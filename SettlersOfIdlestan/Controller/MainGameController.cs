@@ -459,14 +459,12 @@ namespace SettlersOfIdlestan.Controller
                 MagicController.OnRitualsChanged -= OnRitualsChangedInvalidateHarvestCache;
                 MagicController.OnRitualsChanged += OnRitualsChangedInvalidateHarvestCache;
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
-                BuildingController.OnBuildingBuilt -= OnBuildingBuiltZigguratTrigger;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
                 CityBuilderController.OnCityDestroyed -= OnCityDestroyedHandler;
                 CityBuilderController.OnCityRelocated -= OnCityRelocatedDestroyNearbyCamps;
                 RoadController.OnRoadBuilt -= OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt -= OnRoadBuiltExtendMap;
                 BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
-                BuildingController.OnBuildingBuilt += OnBuildingBuiltZigguratTrigger;
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
                 CityBuilderController.OnCityDestroyed += OnCityDestroyedHandler;
                 CityBuilderController.OnCityRelocated += OnCityRelocatedDestroyNearbyCamps;
@@ -507,26 +505,6 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         private void OnBuildingChangedInvalidateHarvestCache(object? sender, BuildingBuiltEventArgs e)
             => HarvestController.InvalidateProductionCache(e.City.CivilizationIndex);
-
-        /// <summary>
-        /// Effet de la Ziggourat (bâtiment racial des Humains, flag TEMPLE_INSTANT_DOMINION) :
-        /// chaque Temple du joueur construit ou amélioré produit instantanément du Dominion sur les
-        /// hexs de sa ville, jusqu'à Ziggurat.MaxTriggersPerCity fois par ville.
-        /// </summary>
-        private void OnBuildingBuiltZigguratTrigger(object? sender, BuildingBuiltEventArgs e)
-        {
-            if (e.BuildingType != Model.Buildings.BuildingType.Temple) return;
-
-            var worldState = CurrentMainState?.CurrentWorldState;
-            if (worldState == null || e.City.CivilizationIndex != worldState.PlayerCivilization.Index) return;
-
-            var civ = worldState.PlayerCivilization;
-            if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.TEMPLE_INSTANT_DOMINION)) return;
-            if (e.City.ZigguratTriggersUsed >= Model.Buildings.Ziggurat.MaxTriggersPerCity) return;
-
-            e.City.ZigguratTriggersUsed++;
-            CorruptionController.ApplyZigguratInstantProduction(e.City);
-        }
 
         private void OnRitualsChangedInvalidateHarvestCache(object? sender, EventArgs e)
             => HarvestController.InvalidateProductionCache();

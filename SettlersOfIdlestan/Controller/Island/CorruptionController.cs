@@ -167,25 +167,6 @@ public class CorruptionController
         return capPerLevel * templeLevel;
     }
 
-    /// <summary>
-    /// Effet de la Ziggourat (TEMPLE_INSTANT_DOMINION) : à la construction ou l'amélioration d'un
-    /// Temple, applique instantanément l'action de Temple sur les 3 hexs de la ville, à 100 %
-    /// (contre 1 hex aléatoire toutes les 10 s en production normale). L'appelant
-    /// (MainGameController) vérifie le flag et consomme un déclenchement de
-    /// City.ZigguratTriggersUsed (max <see cref="Ziggurat.MaxTriggersPerCity"/> par ville).
-    /// </summary>
-    public void ApplyZigguratInstantProduction(City city)
-    {
-        if (_state == null) return;
-
-        var civ = _state.GetCivilization(city.CivilizationIndex);
-        var temple = city.FindBuilding<Temple>(BuildingType.Temple) is { Level: >= 1 } tp ? tp : null;
-        if (civ == null || temple == null) return;
-
-        foreach (var hex in city.Position.GetHexes().Where(IsValidHex))
-            ApplyTempleActionOnHex(civ, temple, hex);
-    }
-
     private void ProcessSpread(long currentTick)
     {
         if (_state == null || _prng == null) return;

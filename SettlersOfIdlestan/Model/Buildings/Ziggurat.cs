@@ -5,10 +5,9 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
-/// Bâtiment unique racial des Humains (voir RaceDefinitions). Émet le flag TEMPLE_INSTANT_DOMINION :
-/// chaque Temple construit ou amélioré déclenche instantanément une production de Dominion sur les
-/// 3 hexs de sa ville, à 100 %, jusqu'à <see cref="MaxTriggersPerCity"/> fois par ville (voir
-/// City.ZigguratTriggersUsed et CorruptionController.ApplyZigguratInstantProduction).
+/// Bâtiment unique racial des Humains (voir RaceDefinitions). Émet le flag
+/// DOMINION_HARVEST_SPEED_DOUBLED : double le bonus de vitesse de récolte du Dominion pour la
+/// civilisation (voir Dominion.GetHarvestTimeMultiplier).
 /// Niveau max par défaut 0 : constructible uniquement quand la race Humaine fournit son
 /// BUILDING_MAX_LEVEL +1 (même patron que les uniques débloqués par prestige).
 /// Prérequis de construction : Dominion débloqué (pouvoir divin Foi) ET un Temple niveau 4 dans
@@ -16,9 +15,6 @@ namespace SettlersOfIdlestan.Model.Buildings;
 /// </summary>
 public class Ziggurat : Building, IUniqueBuilding
 {
-    /// <summary>Temple max niveau 4 (avec Foi) : construction + 3 améliorations = 4 déclenchements par ville.</summary>
-    public const int MaxTriggersPerCity = 4;
-
     public Ziggurat() : base(BuildingType.Ziggurat)
     {
         AvailableAtLevel = 4;
@@ -57,6 +53,6 @@ public class Ziggurat : Building, IUniqueBuilding
     public IEnumerable<Modifier> GetUniqueBuildingModifiers()
     {
         if (Level <= 0) yield break;
-        yield return new Modifier(ECategory.TEMPLE_INSTANT_DOMINION, EType.ADDITIVE, 1.0);
+        yield return new Modifier(ECategory.DOMINION_HARVEST_SPEED_DOUBLED, EType.ADDITIVE, 1.0);
     }
 }

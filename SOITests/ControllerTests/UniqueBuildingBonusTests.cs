@@ -13,8 +13,8 @@ namespace SOITests.ControllerTests;
 /// raciaux) atteint réellement la civilisation une fois construit — pas seulement que
 /// GetUniqueBuildingModifiers() le retourne en isolation, mais que Civilization.RebuildUniqueBuildingsModifiers
 /// le propage jusqu'aux propriétés/agrégateur civ-wide effectivement consultés par le reste du jeu.
-/// Ziggurat (déclenchement TEMPLE_INSTANT_DOMINION), ThroneOfWinds (portée d'attaque) et GreatBurrow
-/// (coût des nouvelles villes) sont déjà couverts par RaceSystemTests.cs.
+/// ThroneOfWinds (portée d'attaque) et GreatBurrow (coût des nouvelles villes) sont déjà couverts
+/// par RaceSystemTests.cs.
 /// </summary>
 public class UniqueBuildingBonusTests
 {
@@ -107,6 +107,17 @@ public class UniqueBuildingBonusTests
 
         Assert.Equal(3, civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
         Assert.Equal(5, civ.ModifierAggregator.ApplyModifiers(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Food), 0));
+    }
+
+    [Fact]
+    public void Ziggurat_DoublesDominionHarvestSpeedBonus()
+    {
+        var (_, city, civ) = CreateSetup();
+        Assert.False(civ.ModifierAggregator.HasModifier(ECategory.DOMINION_HARVEST_SPEED_DOUBLED));
+
+        BuildUnique(city, civ, new Ziggurat { Level = 1 });
+
+        Assert.True(civ.ModifierAggregator.HasModifier(ECategory.DOMINION_HARVEST_SPEED_DOUBLED));
     }
 
     [Fact]

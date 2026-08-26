@@ -195,8 +195,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CITY_MIN_DISTANCE,
             /// <summary>Restriction raciale de placement : tout nouveau vertex de ville en surface doit toucher au moins un hex du terrain indiqué. SubCategory = nom du TerrainType (voir CityBuilderController.GetBuildableVertices).</summary>
             CITY_PLACEMENT_REQUIRES_TERRAIN,
-            /// <summary>Flags que chaque Temple construit ou amélioré produit instantanément du Dominion sur les 3 hexs de sa ville, jusqu'à Ziggurat.MaxTriggersPerCity fois par ville (Ziggourat — voir CorruptionController.ApplyZigguratInstantProduction).</summary>
-            TEMPLE_INSTANT_DOMINION,
+            /// <summary>Flags que le bonus de vitesse de récolte du Dominion (intrinsèque + DOMINION_HARVEST_SPEED_PER_LEVEL) est doublé pour la civilisation (Ziggourat — voir Dominion.GetHarvestTimeMultiplier).</summary>
+            DOMINION_HARVEST_SPEED_DOUBLED,
             /// <summary>Fraction de réduction du coût en ressources des nouvelles villes. Base = 0.0 ; 0.25 = -25% (voir CityBuilderController.NewCityBuildingCostFor).</summary>
             NEW_CITY_COST_REDUCTION,
             /// <summary>Bonus additif de vitesse de construction automatique des bâtiments par les guildes (Artisans, Récolteurs, Marchands, etc.), par ville possédée. Base = 0.0 ; agrégé puis multiplié par le nombre de villes de la civilisation (voir BuildingController.TickGuildAutomation). 0.1 = +10% par ville.</summary>
