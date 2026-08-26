@@ -223,8 +223,12 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// toutes les ressources du coût donné — mais seulement si la civilisation dispose d'un
         /// moyen de production pour CHACUNE d'entre elles ; sinon rien n'est activé (aucune ressource
         /// ne doit être investie pour un palier qu'on ne pourra jamais compléter, ex. le Verre au
-        /// niveau 3 de la Merveille sans Verrerie). N'écrase jamais une sélection manuelle existante.
-        /// À appeler à la création du Monument et après chaque palier franchi.
+        /// niveau 3 de la Merveille sans Verrerie). Active aussi l'investissement en points de
+        /// recherche pour les monuments concernés (<see cref="Monument.UsesResearchInvestment"/>,
+        /// ex. l'Observatoire) une fois les ressources validées — sinon ce prélèvement doit être
+        /// activé à la main à chaque palier, ce qu'un joueur en automatisation ne pense pas à faire.
+        /// N'écrase jamais une sélection manuelle existante. À appeler à la création du Monument et
+        /// après chaque palier franchi.
         /// </summary>
         public static void TryAutoStartInvestment(Monument monument, ResourceSet cost, Civilization playerCiv, HarvestController harvestController, WorldState state)
         {
@@ -239,6 +243,9 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             foreach (var resource in cost.Keys)
                 monument.InvestmentEnabled.Add(resource);
+
+            if (monument.UsesResearchInvestment)
+                monument.ResearchInvestmentEnabled = true;
         }
 
         /// <summary>
