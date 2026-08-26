@@ -821,7 +821,10 @@ namespace SettlersOfIdlestan.Controller.Island
             else if (targetVertex.Z == LayerState.UnderworldZ)
             {
                 cost[Resource.Gold] = 10;
-                multiplier = 1.0 + 0.5 * (effectiveSurfaceOverCostCapped + effectiveUnderworldOverCost);
+                // Facteur exponentiel additionnel : le coût des villes d'Inframonde double tous les 100
+                // villes d'Inframonde, en plus de la progression existante en Math.Pow(...,1.5).
+                double underworldExponentialFactor = Math.Pow(2, underworldCities / 100.0);
+                multiplier = 1.0 + 0.5 * (effectiveSurfaceOverCostCapped + effectiveUnderworldOverCost * underworldExponentialFactor);
             }
             else
             {

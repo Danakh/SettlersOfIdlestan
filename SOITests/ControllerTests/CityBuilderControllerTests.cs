@@ -274,14 +274,44 @@ public class CityBuilderControllerTests
         civ.AddCity(new City(underworldTarget) { CivilizationIndex = 0 });
         civ.AddCity(new City(Vertex.Create(hu3, hu4, hu5)) { CivilizationIndex = 0 });
 
-        // 2 villes d'Inframonde -> surcharge en Math.Pow(2, 1.5) ≈ 2.828 ->
-        // multiplicateur 1 + 0.5 * 2.828 ≈ 2.414.
+        // 2 villes d'Inframonde -> surcharge en Math.Pow(2, 1.5) ≈ 2.828, avec un facteur exponentiel
+        // additionnel 2^(2/100) ≈ 1.014 (doublement tous les 100 villes) -> multiplicateur
+        // 1 + 0.5 * 2.828 * 1.014 ≈ 2.434.
         var cost = Controller(state).NewCityBuildingCostFor(underworldTarget, civ);
 
         Assert.Equal(24, cost[Resource.Gold]);
         Assert.Equal(24, cost[Resource.Brick]);
         Assert.Equal(24, cost[Resource.Wood]);
-        Assert.Equal(36, cost[Resource.Food]);
+        Assert.Equal(37, cost[Resource.Food]);
+    }
+
+    [Fact]
+    public void NewCityBuildingCostFor_UnderworldCities_DoublesEvery100Cities()
+    {
+        var (state, civ, v1, _, _) = RibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+
+        Vertex? target = null;
+        for (int i = 0; i < 100; i++)
+        {
+            int q = i * 10; // Espacé pour que les triangles de villes successives ne partagent aucun hexagone.
+            var vertex = Vertex.Create(
+                new HexCoord(q, 0, LayerState.UnderworldZ),
+                new HexCoord(q + 1, 0, LayerState.UnderworldZ),
+                new HexCoord(q, 1, LayerState.UnderworldZ));
+            civ.AddCity(new City(vertex) { CivilizationIndex = 0 });
+            target ??= vertex;
+        }
+
+        // 100 villes d'Inframonde -> surcharge en Math.Pow(100, 1.5) = 1000, avec le facteur
+        // exponentiel additionnel 2^(100/100) = 2 (doublement tous les 100 villes) ->
+        // multiplicateur 1 + 0.5 * 1000 * 2 = 1001.
+        var cost = Controller(state).NewCityBuildingCostFor(target!, civ);
+
+        Assert.Equal(10010, cost[Resource.Gold]);
+        Assert.Equal(10010, cost[Resource.Brick]);
+        Assert.Equal(10010, cost[Resource.Wood]);
+        Assert.Equal(15015, cost[Resource.Food]);
     }
 
     [Fact]
@@ -327,12 +357,14 @@ public class CityBuilderControllerTests
         civ.AddCity(new City(Vertex.Create(hu3, hu4, hu5)) { CivilizationIndex = 0 });
 
         // Avec la Guilde des Bâtisseurs (facteur 0.5), la surcharge de 2 villes d'Inframonde devient
-        // Math.Pow(0.5 * 2, 1.5) = 1 -> multiplicateur 1 + 0.5 * 1 = 1.5, contre 2.414 sans la guilde.
+        // Math.Pow(0.5 * 2, 1.5) = 1. Le facteur exponentiel additionnel se base sur le nombre réel de
+        // villes (2, non réduit par la guilde) -> 2^(2/100) ≈ 1.014 -> multiplicateur
+        // 1 + 0.5 * 1 * 1.014 ≈ 1.507, contre 2.434 sans la guilde.
         var cost = Controller(state).NewCityBuildingCostFor(underworldTarget, civ);
 
         Assert.Equal(15, cost[Resource.Gold]);
         Assert.Equal(15, cost[Resource.Brick]);
         Assert.Equal(15, cost[Resource.Wood]);
-        Assert.Equal(22, cost[Resource.Food]); // 22.5 arrondi au pair le plus proche (Math.Round par défaut).
+        Assert.Equal(23, cost[Resource.Food]);
     }
 }
