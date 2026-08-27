@@ -127,6 +127,15 @@ namespace SOITests.ControllerTests
                 },
                 WarEnemyCivIndices = { 0 },
             };
+            // Une ville est nécessaire : MainGameController.SetGameFromSave retire au chargement
+            // toute civ PNJ à 0 ville (nettoyage des civs éliminées, voir RemoveEliminatedCivilization/
+            // PruneEliminatedCivilizations) — sans ville, cette civ de test disparaîtrait avant même
+            // l'assertion, alors que ce test vise justement à vérifier qu'elle survit au round-trip.
+            var npcCityVertex = SettlersOfIdlestan.Model.HexGrid.Vertex.Create(
+                new HexCoord(0, 0, IslandMap.SurfaceLayer),
+                new HexCoord(-1, 0, IslandMap.SurfaceLayer),
+                new HexCoord(0, -1, IslandMap.SurfaceLayer));
+            npcCiv.AddCity(new SettlersOfIdlestan.Model.Civilization.City(npcCityVertex) { CivilizationIndex = npcCiv.Index });
             mainState.CurrentWorldState.Civilizations.Add(npcCiv);
 
             var json = JsonSerializer.Serialize(mainState, SaveController.SerializationOptions());

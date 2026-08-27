@@ -801,7 +801,11 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.Civilizations[civilizationIndex];
+            // Civilizations[civilizationIndex] supposait Index == position dans la liste — plus vrai
+            // depuis que les civs PNJ éliminées (0 ville) sont retirées de WorldState.Civilizations,
+            // ce qui décale les positions suivantes. GetCivilization fait la recherche par Index.
+            var civ = _state.GetCivilization(civilizationIndex)
+                ?? throw new InvalidOperationException($"No civilization with index {civilizationIndex}.");
             return GetMaxLevel(building, civ);
         }
 

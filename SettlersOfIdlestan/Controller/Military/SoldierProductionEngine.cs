@@ -23,8 +23,11 @@ internal class SoldierProductionEngine
         _state = state;
     }
 
+    // Civilizations[index] supposait Index == position dans la liste — plus vrai depuis que les civs
+    // PNJ éliminées (0 ville) sont retirées de WorldState.Civilizations. GetCivilization cherche par
+    // Index, robuste au décalage des positions suivantes.
     internal int GetMaximumSoldierCapacity(IMilitaryVertex vertex)
-        => vertex.MaxSoldiers + _state!.Civilizations[vertex.CivilizationIndex].CityMaxSoldiersBonus;
+        => vertex.MaxSoldiers + (_state!.GetCivilization(vertex.CivilizationIndex)?.CityMaxSoldiersBonus ?? 0);
 
     /// <summary>
     /// Seules les villes produisent des soldats (Caserne requise) — une Flotte de Guerre n'a pas de

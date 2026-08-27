@@ -51,20 +51,12 @@ namespace SettlersOfIdlestan.Controller
             return options;
         }
 
-        public string Export(MainGameState state) => Encrypt(ExportRaw(state));
-
-        /// <summary>
-        /// Sérialise <paramref name="state"/> en JSON brut, sans chiffrement XOR+Base64. Permet à
-        /// l'appelant (GameScreen.Tick, sur le thread de jeu verrouillé avec le rendu) de ne payer
-        /// que le coût de la sérialisation — qui doit lire l'état en cours, donc rester sous le
-        /// verrou — et de reporter <see cref="Encrypt"/> (qui n'a plus besoin de l'état vivant,
-        /// juste de la chaîne déjà produite) sur un thread d'arrière-plan.
-        /// </summary>
-        public string ExportRaw(MainGameState state)
+        public string Export(MainGameState state)
         {
             state.Clock.LastSaveTime = DateTimeOffset.UtcNow;
             state.Clock.WasPausedAtSave = state.Clock.SpeedMultiplier == 0;
-            return JsonSerializer.Serialize(state, _serializationOptions);
+            var json = JsonSerializer.Serialize(state, _serializationOptions);
+            return Encrypt(json);
         }
 
         public MainGameState Import(string data)

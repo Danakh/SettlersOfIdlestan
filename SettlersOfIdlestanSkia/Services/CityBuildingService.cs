@@ -86,11 +86,10 @@ public class CityBuildingService
         if (SelectedCity == null)
             return null;
 
-        var worldState = State;
-        if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count)
+        var civilization = SelectedCivilization;
+        if (civilization == null)
             return null;
 
-        var civilization = worldState.Civilizations[SelectedCity.CivilizationIndex];
         return civilization.Cities.FirstOrDefault(c => c != SelectedCity && c.Buildings.Any(b => b.Type == type));
     }
 
@@ -117,10 +116,9 @@ public class CityBuildingService
             return false;
 
         var worldState = State;
-        if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count)
+        var civilization = SelectedCivilization;
+        if (worldState == null || civilization == null)
             return false;
-
-        var civilization = worldState.Civilizations[SelectedCity.CivilizationIndex];
 
         // Check if at max level
         if (IsAtMaxLevel(building))
@@ -148,24 +146,10 @@ public class CityBuildingService
     }
 
     public int GetSelectedCivilizationForgeBonus(Forge building)
-    {
-        if (SelectedCity == null)
-            return 0;
-        var worldState = State;
-        if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count)
-            return 0;
-        return worldState.Civilizations[SelectedCity.CivilizationIndex].ForgeDoubleHarvestBonus * building.Level;
-    }
+        => (SelectedCivilization?.ForgeDoubleHarvestBonus ?? 0) * building.Level;
 
     public int GetSelectedCivilizationMineGoldChancePercent()
-    {
-        if (SelectedCity == null)
-            return 0;
-        var worldState = State;
-        if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count)
-            return 0;
-        return worldState.Civilizations[SelectedCity.CivilizationIndex].MineGoldChancePercent;
-    }
+        => SelectedCivilization?.MineGoldChancePercent ?? 0;
 
     /// <summary>Plafond de Dominion par hex du Temple donné (voir CorruptionController.GetTempleDominionCap), pour la civilisation sélectionnée.</summary>
     public int GetTempleDominionCap(Temple temple, int? atLevel = null)
@@ -219,9 +203,10 @@ public class CityBuildingService
         get
         {
             if (SelectedCity == null) return null;
-            var worldState = State;
-            if (worldState == null || SelectedCity.CivilizationIndex >= worldState.Civilizations.Count) return null;
-            return worldState.Civilizations[SelectedCity.CivilizationIndex];
+            // Civilizations[index] supposait Index == position dans la liste — plus vrai depuis que
+            // les civs PNJ éliminées (0 ville) sont retirées de WorldState.Civilizations, ce qui
+            // décale les positions suivantes. GetCivilization cherche par Index.
+            return State?.GetCivilization(SelectedCity.CivilizationIndex);
         }
     }
 

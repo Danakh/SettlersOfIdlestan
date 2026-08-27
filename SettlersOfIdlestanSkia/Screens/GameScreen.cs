@@ -731,21 +731,18 @@ public sealed class GameScreen : IDisposable
             _autoSaveTimer = 0;
             if (!_corruptSavePending && _gameControllerService.MainGameController.CurrentMainState is { } mainState)
             {
-                // Seule la sérialisation JSON (ExportMainStateRaw) doit lire l'état vivant, donc
-                // rester ici sous le verrou de GameRuntimeHost (partagé avec le rendu). Le
-                // chiffrement XOR+Base64 et l'écriture disque/cloud n'ont plus besoin que de la
-                // chaîne déjà produite : les reporter sur un thread d'arrière-plan évite de geler
-                // le rendu pendant leur durée, en plus de celle — bien plus grosse — de la
-                // sérialisation elle-même, qui elle reste inévitablement dans ce Tick.
-                var rawJson         = _gameControllerService.MainGameController.ExportMainStateRaw();
-                bool cloudSaveEnabled = mainState.Settings.CloudSaveEnabled;
-                _ = Task.Run(() =>
-                {
-                    var encrypted = SettlersOfIdlestan.Controller.SaveController.Encrypt(rawJson);
-                    _fileSystemService.SaveAuto(encrypted);
-                    if (cloudSaveEnabled)
-                        _storeController?.SaveCloudFile(CloudSaveFileName, encrypted);
-                });
+                // ExportMainState (sérialisation JSON + XOR/Base64) doit lire l'état vivant, donc
+                // reste ici sous le verrou de GameRuntimeHost (partagé avec le rendu) — le XOR est
+                // rapide depuis sa vectorisation (~5 ms au lieu de ~26 ms) et la sauvegarde cloud
+                // Steam a besoin du résultat chiffré avant de partir. Seule l'écriture disque
+                // locale (SaveAuto, du I/O pur, pas d'API tierce) part en tâche de fond : c'est
+                // elle qui pouvait geler le rendu si le dossier saves est sur un disque lent ou
+                // scanné par un antivirus. SaveCloudFile (API Steamworks native, affinité de
+                // thread non vérifiée) reste volontairement sur le thread principal.
+                var encrypted = _gameControllerService.MainGameController.ExportMainState();
+                _ = Task.Run(() => _fileSystemService.SaveAuto(encrypted));
+                if (mainState.Settings.CloudSaveEnabled)
+                    _storeController?.SaveCloudFile(CloudSaveFileName, encrypted);
             }
 
             var statsJson = System.Text.Json.JsonSerializer.Serialize(_gameControllerService.MainGameController.LifetimeStats);

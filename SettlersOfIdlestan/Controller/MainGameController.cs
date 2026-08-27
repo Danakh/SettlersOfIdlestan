@@ -131,17 +131,6 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Comme <see cref="ExportMainState"/>, mais sans le chiffrement XOR+Base64 : à utiliser
-        /// quand l'appelant veut chiffrer/écrire sur un thread d'arrière-plan (voir
-        /// <see cref="SaveController.ExportRaw"/>).
-        /// </summary>
-        public string ExportMainStateRaw()
-        {
-            if (CurrentMainState == null) throw new InvalidOperationException("No main state available to export.");
-            return _saveController.ExportRaw(CurrentMainState);
-        }
-
-        /// <summary>
         /// Importe un MainGameState depuis une sauvegarde chiffrée (ou JSON brut pour les anciennes sauvegardes).
         /// Retourne le MainGameState désérialisé et connecte les contrôleurs.
         /// </summary>
@@ -353,8 +342,23 @@ namespace SettlersOfIdlestan.Controller
             else
                 Clock.Start();
 
+            PruneEliminatedCivilizations(mainGame.CurrentWorldState);
             InitializeControllersForCurrentIsland();
         }
+
+        /// <summary>
+        /// Retire les civilisations PNJ à 0 ville qui traînent dans une sauvegarde antérieure à
+        /// l'introduction du nettoyage automatique à l'élimination (voir
+        /// <see cref="RemoveEliminatedCivilization"/>) : sans ce passage ponctuel au chargement, ces
+        /// cadavres resteraient scannés indéfiniment par les boucles per-civ de chaque tick
+        /// (RoadController, BuildingController, NpcGameController…) sans jamais disparaître, la
+        /// sauvegarde ayant été produite avant ce correctif. Aucune civilisation PNJ n'est jamais
+        /// ajoutée à <c>Civilizations</c> avant d'avoir au moins une ville (voir
+        /// <see cref="AutoExtendController.SpawnAggressiveCivilization"/>) : 0 ville signifie
+        /// toujours « éliminée », jamais « pas encore installée ».
+        /// </summary>
+        private static void PruneEliminatedCivilizations(WorldState? worldState)
+            => worldState?.Civilizations.RemoveAll(c => c.IsNpc && c.Cities.Count == 0);
 
         /// <summary>Ticks correspondant aux 8 h de <see cref="ClampDemoIslandPlaytime"/> (1 tick = 0.01 s).</summary>
         private const long DemoMaxIslandTicks = 8L * 60 * 60 * 100;
@@ -497,6 +501,14 @@ namespace SettlersOfIdlestan.Controller
                     RoadController, CityBuilderController, BuildingController, TradeController);
 
                 TradeHistoryController.Initialize(WorldState, Clock, TradeController);
+
+                // Doit rester le DERNIER abonné à OnCityDestroyed (souscrit après tous les autres
+                // ci-dessus) : TaskRecordController.HandleCityDestroyed refait encore
+                // GetCivilization(e.CivilizationIndex) pendant ce même événement pour compter les
+                // civilisations détruites (bonus de prestige) — la retirer plus tôt la rendrait
+                // introuvable pour lui.
+                CityBuilderController.OnCityDestroyed -= RemoveEliminatedCivilization;
+                CityBuilderController.OnCityDestroyed += RemoveEliminatedCivilization;
             }
         }
 
@@ -562,6 +574,24 @@ namespace SettlersOfIdlestan.Controller
 
             if (civ != null && civ.IsNpc && civ.Cities.Count == 0)
                 worldState?.EventLog.Add(GameEventType.CivilizationDestroyed, toast: true);
+        }
+
+        /// <summary>
+        /// Retire de WorldState.Civilizations toute civilisation PNJ qui vient de perdre sa dernière
+        /// ville. Sans ce nettoyage, une civilisation éliminée restait indéfiniment dans la liste
+        /// avec 0 ville et 0 route — coût CPU inutile dans toutes les boucles per-civ exécutées
+        /// chaque tick (RoadController, BuildingController, NpcGameController…), et sur une longue
+        /// partie où l'Inframonde regénère régulièrement de nouvelles civs PNJ (AutoExtendController)
+        /// à mesure que les précédentes sont éliminées, la liste ne fait que croître.
+        /// Voir l'abonnement en fin d'InitializeControllersForCurrentIsland pour pourquoi ce
+        /// gestionnaire doit rester le dernier appelé sur cet événement.
+        /// </summary>
+        private void RemoveEliminatedCivilization(object? sender, CityDestroyedEventArgs e)
+        {
+            var worldState = CurrentMainState?.CurrentWorldState;
+            var civ = worldState?.GetCivilization(e.CivilizationIndex);
+            if (civ != null && civ.IsNpc && civ.Cities.Count == 0)
+                worldState!.Civilizations.Remove(civ);
         }
 
         private void SetupModifierAggregators()
