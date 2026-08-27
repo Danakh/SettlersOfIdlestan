@@ -690,13 +690,15 @@ public static class TechnologyDefinitions
         // Suite directe de la Magie du Vide : débloque le sort Pont du Vide, qui bâtit d'un coup les
         // trois routes autour d'un vertex bordé de Vide. Contrairement aux routes du Vide classiques,
         // il ne consomme pas de points de recherche — le prix est en cristaux, et il est multiplié par 6
-        // à chaque lancement du run (voir SpellDefinition.CostMultiplierPerCast).
+        // à chaque lancement du run (voir SpellDefinition.CostMultiplierPerCast). Montée d'un tier
+        // (coût ×4) : les routes qu'il pose ne comptent plus dans l'exposant du coût des routes du Vide
+        // classiques (voir Road.BuiltBySpell), ce qui rendait le sort trop accessible pour son impact.
         new(TechnologyId.PontDuVide,
             "tech_pont_du_vide_name", "tech_pont_du_vide_desc",
-            cost: 418750000,
+            cost: 1687500000,
             prerequisites: new[] { TechnologyId.MagieDuVide },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "VoidBridge", EType.ADDITIVE, 1) },
-            tier: 11, line: 10),
+            tier: 12, line: 10),
 
         // Seconde suite de la Magie du Vide : débloque l'Observatoire, monument bâti sur une Montagne
         // de la surface. Chaque niveau abaisse le multiplicateur exponentiel du coût en points de
