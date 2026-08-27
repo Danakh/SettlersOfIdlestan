@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
+using System.Numerics;
 using System.Text;
 using System.Text.Json;
 
@@ -50,12 +51,20 @@ namespace SettlersOfIdlestan.Controller
             return options;
         }
 
-        public string Export(MainGameState state)
+        public string Export(MainGameState state) => Encrypt(ExportRaw(state));
+
+        /// <summary>
+        /// Sérialise <paramref name="state"/> en JSON brut, sans chiffrement XOR+Base64. Permet à
+        /// l'appelant (GameScreen.Tick, sur le thread de jeu verrouillé avec le rendu) de ne payer
+        /// que le coût de la sérialisation — qui doit lire l'état en cours, donc rester sous le
+        /// verrou — et de reporter <see cref="Encrypt"/> (qui n'a plus besoin de l'état vivant,
+        /// juste de la chaîne déjà produite) sur un thread d'arrière-plan.
+        /// </summary>
+        public string ExportRaw(MainGameState state)
         {
             state.Clock.LastSaveTime = DateTimeOffset.UtcNow;
             state.Clock.WasPausedAtSave = state.Clock.SpeedMultiplier == 0;
-            var json = JsonSerializer.Serialize(state, _serializationOptions);
-            return Encrypt(json);
+            return JsonSerializer.Serialize(state, _serializationOptions);
         }
 
         public MainGameState Import(string data)
@@ -109,11 +118,42 @@ namespace SettlersOfIdlestan.Controller
             return Convert.ToBase64String(xored);
         }
 
+        /// <summary>
+        /// Brouillage XOR à clé cyclique. Sur une sauvegarde de fin de partie (~3 Mo de JSON), la
+        /// version octet-par-octet avec modulo (<c>i % key.Length</c>) coûtait à elle seule ~14 ms —
+        /// quasiment autant que la sérialisation JSON — car la longueur de clé (21 octets) n'est pas
+        /// une puissance de 2 et chaque octet payait une division. On matérialise ici la clé répétée
+        /// sur toute la longueur du buffer (copie doublante, O(n) séquentiel) puis on XOR par blocs
+        /// SIMD (<see cref="Vector{T}"/>) ; le résultat reste identique octet pour octet à l'ancienne
+        /// implémentation, seule la méthode de calcul change.
+        /// </summary>
         private static byte[] XorCycle(byte[] data, byte[] key)
         {
-            var result = new byte[data.Length];
-            for (int i = 0; i < data.Length; i++)
-                result[i] = (byte)(data[i] ^ key[i % key.Length]);
+            int len = data.Length;
+            var result = new byte[len];
+            if (len == 0) return result;
+
+            var keyStream = new byte[len];
+            int filled = Math.Min(key.Length, len);
+            Array.Copy(key, keyStream, filled);
+            while (filled < len)
+            {
+                int toCopy = Math.Min(filled, len - filled);
+                Array.Copy(keyStream, 0, keyStream, filled, toCopy);
+                filled += toCopy;
+            }
+
+            int vectorSize = Vector<byte>.Count;
+            int i = 0;
+            for (; i <= len - vectorSize; i += vectorSize)
+            {
+                var vData = new Vector<byte>(data, i);
+                var vKey = new Vector<byte>(keyStream, i);
+                (vData ^ vKey).CopyTo(result, i);
+            }
+            for (; i < len; i++)
+                result[i] = (byte)(data[i] ^ keyStream[i]);
+
             return result;
         }
 

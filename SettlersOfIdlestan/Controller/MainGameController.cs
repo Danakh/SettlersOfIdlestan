@@ -131,6 +131,17 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
+        /// Comme <see cref="ExportMainState"/>, mais sans le chiffrement XOR+Base64 : à utiliser
+        /// quand l'appelant veut chiffrer/écrire sur un thread d'arrière-plan (voir
+        /// <see cref="SaveController.ExportRaw"/>).
+        /// </summary>
+        public string ExportMainStateRaw()
+        {
+            if (CurrentMainState == null) throw new InvalidOperationException("No main state available to export.");
+            return _saveController.ExportRaw(CurrentMainState);
+        }
+
+        /// <summary>
         /// Importe un MainGameState depuis une sauvegarde chiffrée (ou JSON brut pour les anciennes sauvegardes).
         /// Retourne le MainGameState désérialisé et connecte les contrôleurs.
         /// </summary>

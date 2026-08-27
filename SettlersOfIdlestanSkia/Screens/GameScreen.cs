@@ -731,10 +731,21 @@ public sealed class GameScreen : IDisposable
             _autoSaveTimer = 0;
             if (!_corruptSavePending && _gameControllerService.MainGameController.CurrentMainState is { } mainState)
             {
-                var json = _gameControllerService.MainGameController.ExportMainState();
-                _fileSystemService.SaveAuto(json);
-                if (mainState.Settings.CloudSaveEnabled)
-                    _storeController?.SaveCloudFile(CloudSaveFileName, json);
+                // Seule la sérialisation JSON (ExportMainStateRaw) doit lire l'état vivant, donc
+                // rester ici sous le verrou de GameRuntimeHost (partagé avec le rendu). Le
+                // chiffrement XOR+Base64 et l'écriture disque/cloud n'ont plus besoin que de la
+                // chaîne déjà produite : les reporter sur un thread d'arrière-plan évite de geler
+                // le rendu pendant leur durée, en plus de celle — bien plus grosse — de la
+                // sérialisation elle-même, qui elle reste inévitablement dans ce Tick.
+                var rawJson         = _gameControllerService.MainGameController.ExportMainStateRaw();
+                bool cloudSaveEnabled = mainState.Settings.CloudSaveEnabled;
+                _ = Task.Run(() =>
+                {
+                    var encrypted = SettlersOfIdlestan.Controller.SaveController.Encrypt(rawJson);
+                    _fileSystemService.SaveAuto(encrypted);
+                    if (cloudSaveEnabled)
+                        _storeController?.SaveCloudFile(CloudSaveFileName, encrypted);
+                });
             }
 
             var statsJson = System.Text.Json.JsonSerializer.Serialize(_gameControllerService.MainGameController.LifetimeStats);
