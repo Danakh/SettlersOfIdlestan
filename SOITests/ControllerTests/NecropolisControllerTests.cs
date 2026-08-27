@@ -20,7 +20,7 @@ namespace SOITests.ControllerTests
     /// <summary>
     /// Tests de la Nécropole (voir NecropolisController) : placement réservé aux Os Divins non
     /// purifiés adjacents à une ville, destruction des ossements à la construction, montée de niveau
-    /// par investissement, et majoration des points divins de l'Ascension (+15% par niveau, voir
+    /// par investissement, et majoration des points divins de l'Ascension (+10% par niveau, voir
     /// AscensionController.GetGodPointsGain).
     /// </summary>
     public class NecropolisControllerTests
@@ -294,11 +294,11 @@ namespace SOITests.ControllerTests
         // ── Effet sur les points divins de l'Ascension ───────────────────────
 
         [Fact]
-        public void AscensionGainBonus_Is15PercentPerLevel()
+        public void AscensionGainBonus_Is10PercentPerLevel()
         {
             Assert.Equal(0.0, Necropolis.GetAscensionGainBonusForLevel(0), 6);
-            Assert.Equal(0.15, Necropolis.GetAscensionGainBonusForLevel(1), 6);
-            Assert.Equal(0.15 * Necropolis.MaxLevel, Necropolis.GetAscensionGainBonusForLevel(Necropolis.MaxLevel), 6);
+            Assert.Equal(0.10, Necropolis.GetAscensionGainBonusForLevel(1), 6);
+            Assert.Equal(0.10 * Necropolis.MaxLevel, Necropolis.GetAscensionGainBonusForLevel(Necropolis.MaxLevel), 6);
 
             // Jamais au-delà du niveau maximum
             Assert.Equal(Necropolis.GetAscensionGainBonusForLevel(Necropolis.MaxLevel),
@@ -322,12 +322,12 @@ namespace SOITests.ControllerTests
 
             necropolis.Level = 2;
             Assert.Equal(2, ascension.GetNecropolisLevel());
-            Assert.Equal(0.30, ascension.GetNecropolisAscensionBonus(), 6);
-            Assert.Equal(13, ascension.GetGodPointsGain(godState));
+            Assert.Equal(0.20, ascension.GetNecropolisAscensionBonus(), 6);
+            Assert.Equal(12, ascension.GetGodPointsGain(godState));
 
-            // Au niveau maximum (4), le bonus plafonne à +60%
+            // Au niveau maximum (4), le bonus plafonne à +40%
             necropolis.Level = Necropolis.MaxLevel;
-            Assert.Equal(16, ascension.GetGodPointsGain(godState));
+            Assert.Equal(14, ascension.GetGodPointsGain(godState));
         }
     }
 }

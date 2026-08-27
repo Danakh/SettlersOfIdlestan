@@ -272,18 +272,12 @@ public sealed class AscensionRenderer : IDisposable
         // Essence divine (gagnée en purifiant les Os Divins des Abysses, voir DivineBonesController),
         // convertie en points divins via une Ascension (voir DrawAscendSection ci-dessous). N'inclut
         // pas les essences du Reliquaire (affichées séparément ci-dessous) : voir GodState.DivineEssence.
-        // Une Nécropole bâtie sur l'île courante majore la conversion : le libellé affiche alors le
-        // gain réel (voir AscensionController.GetGodPointsGain, qui lui inclut le Reliquaire), qui est
-        // ce que le bouton créditera.
-        double necropolisBonus = ascension.GetNecropolisAscensionBonus();
+        // Le gain réel (majoré par la Nécropole, voir AscensionController.GetGodPointsGain) n'est
+        // affiché que sur le bouton d'Ascension ci-dessous, pas ici.
         int corruptionLevel = Math.Max(0, godState.PrestigeState?.CurrentCorruptionLevel ?? 0);
         int unlockedPowers = godState.AscensionState.UnlockedPowers.Count;
         int essenceCap = ascension.GetDivineEssenceCap();
-        string essenceText = necropolisBonus > 0
-            ? _localization.GetFormated("ascension_divine_essence_necropolis_label",
-                godState.DivineEssence, essenceCap, ascension.GetGodPointsGain(godState),
-                ascension.GetNecropolisLevel(), (int)Math.Round(necropolisBonus * 100))
-            : _localization.GetFormated("ascension_divine_essence_label", godState.DivineEssence, essenceCap);
+        string essenceText = _localization.GetFormated("ascension_divine_essence_label", godState.DivineEssence, essenceCap);
         SkiaTextUtils.DrawText(canvas, essenceText, x + contentWidth, y + 2, SKTextAlign.Right, _nameFont, _accentPaint);
         float essenceZoneRight = x + contentWidth;
         float essenceZoneWidth = _nameFont.MeasureText(essenceText);
@@ -850,13 +844,16 @@ public sealed class AscensionRenderer : IDisposable
         canvas.DrawRoundRect(rect, 6, 6, bg);
         canvas.DrawRoundRect(rect, 6, 6, _buttonBorderPaint);
 
-        // Le bouton affiche toujours l'essence effective totale (essences du cycle + Reliquaire,
-        // voir AscensionController.GetEffectiveDivineEssence) — sous forme de progression tant que
-        // le seuil n'est pas atteint, puis à côté du libellé une fois l'Ascension possible.
-        int effectiveEssence = ascension.GetEffectiveDivineEssence(godState);
-        string label = effectiveEssence < AscensionController.MinDivineEssenceForAscension
-            ? _localization.GetFormated("ascension_action_button_progress", effectiveEssence, AscensionController.MinDivineEssenceForAscension)
-            : _localization.GetFormated("ascension_action_button_with_total", effectiveEssence);
+        // Le bouton affiche toujours le gain de points divins projeté (essences du cycle +
+        // Reliquaire, majorées par la Nécropole — voir AscensionController.GetGodPointsGain) — sous
+        // forme de progression tant que le seuil n'est pas atteint, puis à côté du libellé une fois
+        // l'Ascension possible. C'est ce même nombre, et non l'essence brute, qui détermine le seuil
+        // (voir AscensionController.CanAscend) : la Nécropole fait donc progresser ce compteur plus
+        // vite que l'essence collectée.
+        int projectedGain = ascension.GetGodPointsGain(godState);
+        string label = projectedGain < AscensionController.MinDivineEssenceForAscension
+            ? _localization.GetFormated("ascension_action_button_progress", projectedGain, AscensionController.MinDivineEssenceForAscension)
+            : _localization.GetFormated("ascension_action_button_with_total", projectedGain);
         SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5f, SKTextAlign.Center, _buttonFont, canAscend ? _buttonTextPaint : _mutedPaint);
 
         if (!canAscend && hovered)

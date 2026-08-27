@@ -702,6 +702,27 @@ public class AscensionControllerTests
     }
 
     [Fact]
+    public void ApplyWalkOfGod_OnAbyssOrPandemoniumHex_IsRejectedEvenWithSufficientDominion()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+
+        foreach (int z in new[] { LayerState.AbyssZ, LayerState.PandemoniumZ })
+        {
+            var layer = LayerState.EstablishOupostInNewAutoExpandLayer(state.PlayerCivilization, z, surroundWithVoid: true);
+            state.AddLayer(z, layer);
+
+            var hex = new HexCoord(0, 0, z);
+            state.AddFeature(new Dominion(hex, level: 5));
+
+            Assert.False(ascension.ApplyWalkOfGod(hex));
+            Assert.Equal(TerrainType.Mountain, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+            Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+            Assert.Equal(0, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
+        }
+    }
+
+    [Fact]
     public void GetWalkOfGodCost_DoublesFromWalkOfGodUsesSinceLastPrestige()
     {
         var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);

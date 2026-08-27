@@ -10,7 +10,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// Nécropole — Monument débloqué par la recherche Nécropole Divine, bâti uniquement sur un hex
 /// portant des Os Divins non purifiés : la construction consomme les ossements (voir
 /// NecropolisController.PlaceNecropolis), qui ne pourront donc plus être purifiés en essence divine.
-/// En échange, chaque niveau augmente de 15% le nombre de points divins obtenus lors de l'Ascension
+/// En échange, chaque niveau augmente de 10% le nombre de points divins obtenus lors de l'Ascension
 /// (voir <see cref="GetAscensionGainMultiplierForLevel"/> et AscensionController.GetGodPointsGain).
 /// Comme tout Monument, elle disparaît avec son île au prestige : c'est un investissement de fin de
 /// cycle, à bâtir juste avant d'ascensionner.
@@ -27,16 +27,16 @@ public class Necropolis : Monument
 
     public int Level { get; set; } = 0;
 
-    /// <summary>Niveau maximum — dernière étape d'icône (nécropole complète) et bonus d'Ascension plafonné à +60%.</summary>
+    /// <summary>Niveau maximum — dernière étape d'icône (nécropole complète) et bonus d'Ascension plafonné à +40%.</summary>
     public const int MaxLevel = 4;
 
     /// <summary>Part de points divins supplémentaires accordée par niveau de Nécropole.</summary>
-    public const double AscensionGainBonusPerLevel = 0.15;
+    public const double AscensionGainBonusPerLevel = 0.10;
 
     [JsonIgnore]
     public bool IsMaxLevel => Level >= MaxLevel;
 
-    /// <summary>Bonus cumulé au niveau donné : +15% par niveau (0 au niveau 0).</summary>
+    /// <summary>Bonus cumulé au niveau donné : +10% par niveau (0 au niveau 0).</summary>
     public static double GetAscensionGainBonusForLevel(int level)
         => AscensionGainBonusPerLevel * Math.Clamp(level, 0, MaxLevel);
 

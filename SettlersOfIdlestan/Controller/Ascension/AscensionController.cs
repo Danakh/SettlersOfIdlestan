@@ -27,7 +27,11 @@ namespace SettlersOfIdlestan.Controller.Ascension;
 /// </summary>
 public class AscensionController : IModifierProvider
 {
-    /// <summary>Nombre minimum d'essences divines requis pour pouvoir déclencher une Ascension.</summary>
+    /// <summary>
+    /// Nombre minimum de points divins requis pour pouvoir déclencher une Ascension — comparé au
+    /// gain projeté (<see cref="GetGodPointsGain"/>), Nécropole incluse, et non à l'essence divine
+    /// brute : une Nécropole bien avancée permet donc d'ascensionner avec moins de 5 essences.
+    /// </summary>
     public const int MinDivineEssenceForAscension = 5;
 
     /// <summary>
@@ -390,7 +394,12 @@ public class AscensionController : IModifierProvider
             chosen.Remove(chosen.Last());
     }
 
-    public bool CanAscend(GodState godState) => GetEffectiveDivineEssence(godState) >= MinDivineEssenceForAscension;
+    /// <summary>
+    /// Vrai si le gain de points divins projeté (<see cref="GetGodPointsGain"/>, Nécropole incluse)
+    /// atteint <see cref="MinDivineEssenceForAscension"/> — pas l'essence divine brute : le bonus de
+    /// Nécropole abaisse donc de fait l'essence nécessaire pour ascensionner.
+    /// </summary>
+    public bool CanAscend(GodState godState) => GetGodPointsGain(godState) >= MinDivineEssenceForAscension;
 
     /// <summary>
     /// Vrai entre RequestAscension et ConfirmAscensionRace : l'essence a déjà été convertie en
@@ -438,19 +447,19 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Niveau de la Nécropole bâtie sur l'île courante (0 s'il n'y en a pas) — chaque niveau majore
-    /// de 15% les points divins de l'Ascension (voir <see cref="GetGodPointsGain"/>).
+    /// de 10% les points divins de l'Ascension (voir <see cref="GetGodPointsGain"/>).
     /// </summary>
     public int GetNecropolisLevel() => _state?.Features.OfType<Necropolis>().FirstOrDefault()?.Level ?? 0;
 
     /// <summary>
-    /// Bonus de points divins accordé par la Nécropole de l'île courante (0.15 par niveau, 0 sans
+    /// Bonus de points divins accordé par la Nécropole de l'île courante (0.10 par niveau, 0 sans
     /// Nécropole) — voir <see cref="GetGodPointsGain"/>.
     /// </summary>
     public double GetNecropolisAscensionBonus() => Necropolis.GetAscensionGainBonusForLevel(GetNecropolisLevel());
 
     /// <summary>
     /// Points divins qu'une Ascension immédiate rapporterait : 1 par essence divine effective détenue
-    /// (<see cref="GetEffectiveDivineEssence"/>, Reliquaire inclus), majorés de 15% par niveau de la
+    /// (<see cref="GetEffectiveDivineEssence"/>, Reliquaire inclus), majorés de 10% par niveau de la
     /// Nécropole bâtie sur l'île courante (arrondi à l'entier inférieur, voir <see cref="Necropolis"/>).
     /// Utilisé par <see cref="PerformAscension"/> et par l'écran Ascension, qui doivent afficher et
     /// créditer exactement le même nombre.
@@ -550,7 +559,7 @@ public class AscensionController : IModifierProvider
     /// </summary>
     private void CreditAscensionPointsAndArchiveCycle(MainGameState mainGameState, GodState godState)
     {
-        // La Nécropole de l'île courante majore la conversion (+15% par niveau) : elle doit donc être
+        // La Nécropole de l'île courante majore la conversion (+10% par niveau) : elle doit donc être
         // lue avant que l'île ne soit remplacée (ou, choix de race différé, avant que le joueur n'ait
         // la moindre chance de la perdre de vue).
         int godPointsGained = GetGodPointsGain(godState);
@@ -793,6 +802,11 @@ public class AscensionController : IModifierProvider
     public bool ApplyWalkOfGod(HexCoord hex)
     {
         if (_state == null || _prng == null || !CanUseWalkOfGod()) return false;
+
+        // Marche de Dieu ne cible que la carte de surface (voir GetWalkOfGodTargetHexes) : ce garde-fou
+        // ne dépend pas seulement du filtrage de l'UI, il rend l'invariant vrai même pour un appelant
+        // direct (test, futur code) qui passerait un hex d'Inframonde/Abysse/Pandémonium.
+        if (hex.Z != IslandMap.SurfaceLayer) return false;
 
         var map = _state.GetMapFor(hex);
         var tile = map?.GetTile(hex);

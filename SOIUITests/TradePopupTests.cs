@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
@@ -195,6 +196,78 @@ public class TradePopupViewTests
         Dispatcher.UIThread.RunJobs();
 
         return (window, map, view);
+    }
+}
+
+/// <summary>
+/// Un curseur de l'onglet Auto qui garde le focus clavier au moment ou son conteneur redevient
+/// invisible (changement d'onglet, fermeture du popup) bloque durablement le FocusManager
+/// d'Avalonia : plus aucun controle ne peut alors regagner le focus dans la fenetre, et Ctrl/Maj
+/// cessent de fonctionner meme apres avoir rouvert le popup. TradePopupView recoit donc un
+/// callback <c>reclaimFocus</c>, appele avant toute action qui ferme le popup ou change d'onglet,
+/// pour rendre la main a un porteur de focus durable (la carte, cote GameView) pendant que le
+/// curseur est encore visible.
+/// </summary>
+public class TradePopupFocusReclaimTests
+{
+    /// <summary>
+    /// Force la visibilite du curseur d'or de l'onglet Auto, normalement conditionnee a
+    /// l'instantane du jeu (AutoGoldKeepUnlocked) — voir le meme motif dans
+    /// TradePopupViewTests.L_historique_affiche_ses_entrees.
+    /// </summary>
+    private static List<Visual> ForceVisible(Slider slider)
+    {
+        var hidden = new List<Visual>();
+        for (Visual? v = slider; v != null; v = v.GetVisualParent())
+        {
+            if (v is Control { IsVisible: false } c)
+            {
+                hidden.Add(c);
+                c.IsVisible = true;
+            }
+        }
+        return hidden;
+    }
+
+    [AvaloniaFact]
+    public void Fermer_le_popup_apres_avoir_touche_un_curseur_ne_bloque_pas_le_clavier()
+    {
+        var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
+        var icons = new SvgIconCache();
+        var vm = new TradePopupViewModel(host);
+
+        var mapStandIn = new Button { Focusable = true };
+        var view = new TradePopupView(vm, icons, () => mapStandIn.Focus()) { IsVisible = true };
+
+        int bubbleCount = 0;
+        var root = new Panel { Children = { mapStandIn, view } };
+        root.AddHandler(InputElement.KeyDownEvent, (_, _) => bubbleCount++,
+            Avalonia.Interactivity.RoutingStrategies.Bubble, handledEventsToo: true);
+
+        var window = new Window { Width = 900, Height = 700, Content = root };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var slider = view.GetVisualDescendants().OfType<Slider>().First();
+        var hidden = ForceVisible(slider);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(slider.Focus(), "le curseur doit pouvoir prendre le focus");
+
+        // Simule la fermeture du popup (bouton "X") pendant que le curseur a le focus : le
+        // gestionnaire de clic doit d'abord rendre la main via reclaimFocus.
+        var closeButton = view.GetVisualDescendants().OfType<Button>()
+            .First(b => b.Content is TextBlock { Text: "X" });
+        closeButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Dispatcher.UIThread.RunJobs();
+
+        foreach (var c in hidden) c.IsVisible = false;
+        Dispatcher.UIThread.RunJobs();
+
+        window.KeyPress(Key.LeftCtrl, RawInputModifiers.None, PhysicalKey.ControlLeft, null);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(1, bubbleCount);
     }
 }
 

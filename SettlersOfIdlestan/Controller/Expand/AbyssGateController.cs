@@ -122,6 +122,14 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             var abyssLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv, LayerState.AbyssZ, surroundWithVoid: true);
             _state.AddLayer(LayerState.AbyssZ, abyssLayer);
+
+            // L'avant-poste est posé directement par EstablishOupostInNewAutoExpandLayer, en dehors du
+            // chemin normal CityBuilderController.BuildCity/CreateCityAt — il faut donc lui accorder ici
+            // les bâtiments NEW_CITY_BUILDING (p. ex. la Tour de Guet offerte par une recherche), sans
+            // quoi ce premier avant-poste en serait dépourvu malgré son autorisation dans les Abysses.
+            var outpost = playerCiv.Cities.First(c => c.Position.Z == LayerState.AbyssZ);
+            PrestigeMapController.GrantNewCityBuildings(_state, outpost, playerCiv);
+
             _state.Visibility.RecalculateFor(playerCiv.Index);
         }
 

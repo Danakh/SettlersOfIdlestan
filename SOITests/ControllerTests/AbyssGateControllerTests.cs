@@ -215,6 +215,33 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void Investment_CompletingAllResources_GrantsNewCityBuildingToAbyssOutpost()
+        {
+            // L'avant-poste des Abysses est posé directement par
+            // LayerState.EstablishOupostInNewAutoExpandLayer, en dehors du chemin normal
+            // CityBuilderController.BuildCity — il doit malgré tout recevoir les bâtiments offerts par
+            // les modifiers NEW_CITY_BUILDING actifs (ex. Tour de Guet via WatchtowerConstruction),
+            // au même titre que tout autre nouvel avant-poste.
+            var (state, clock, spireController, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
+            state.PlayerCivilization.TechnologyTree.CompleteResearch(TechnologyId.WatchtowerConstruction);
+            var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
+            BuildSpireInstantly(state, spire);
+            var gate = gateController.PlaceAbyssGate()!;
+
+            var cost = AbyssGate.GetGateCost();
+            foreach (var kvp in cost)
+            {
+                gate.InvestedResources[kvp.Key] = kvp.Value;
+                gate.InvestmentEnabled.Add(kvp.Key);
+            }
+
+            clock.SimulateAdvance(AbyssGateController.InvestmentIntervalTicks);
+
+            var outpost = state.PlayerCivilization.Cities.Single(c => c.Position.Z == LayerState.AbyssZ);
+            Assert.Contains(outpost.Buildings, b => b.Type == BuildingType.Watchtower);
+        }
+
+        [Fact]
         public void Abyss_NotOpened_WhileGateNotBuilt()
         {
             var (state, clock, spireController, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);

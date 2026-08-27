@@ -170,6 +170,13 @@ public class CameraService
     }
 
     /// <summary>
+    /// Point du monde actuellement affiché au centre de l'écran — l'inverse de <see cref="CenterOn"/>.
+    /// </summary>
+    public SKPoint GetCenterWorld() => new SKPoint(
+        _position.X + _canvasSize.Width / 2 / _zoomLevel,
+        _position.Y + _canvasSize.Height / 2 / _zoomLevel);
+
+    /// <summary>
     /// Indique si la caméra a été modifiée depuis la dernière lecture.
     /// </summary>
     public bool IsDirty

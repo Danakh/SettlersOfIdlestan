@@ -19,6 +19,7 @@ public sealed class GameView : Panel, IDisposable
     private readonly GameRuntimeHost _host;
     private readonly SvgIconCache _icons = new();
 
+    private readonly GameRuntimeControl _mapControl;
     private readonly ZoomControlView _zoomControl;
     private readonly TopBarView _topBar;
     private readonly TabBarView _bottomTabBar;
@@ -84,6 +85,7 @@ public sealed class GameView : Panel, IDisposable
     public GameView(GameRuntimeHost host)
     {
         _host = host;
+        _mapControl = new GameRuntimeControl(host);
 
         _tabs = new TabBarViewModel(host);
 
@@ -148,14 +150,14 @@ public sealed class GameView : Panel, IDisposable
         _rituals = new RitualsView(_ritualsModel);
         _automation = new AutomationView(_automationModel);
         _settingsMenu = new SettingsMenuView(_settingsMenuModel, TopBarView.BarHeight + 5);
-        _tradePopup = new TradePopupView(_tradeModel, _icons);
+        _tradePopup = new TradePopupView(_tradeModel, _icons, () => _mapControl.Focus());
         _prestigePopup = new PrestigePopupView(_prestigeModel);
         _settingsPopup = new SettingsPopupView(_settingsModel);
         _automationPresetPopup = new AutomationPresetPopupView(_automationPresetModel);
         _titleScreen = new TitleScreenView(_titleModel);
         _tooltipLayer = new TooltipLayerControl(host);
 
-        Children.Add(new GameRuntimeControl(host));
+        Children.Add(_mapControl);
 
         // Avant les panneaux et la barre du haut : l'onglet plein ecran couvre la carte, mais
         // reste sous le reste de l'overlay.
@@ -222,6 +224,10 @@ public sealed class GameView : Panel, IDisposable
     {
         if (e.Key == Key.Escape && _tradeModel.IsOpen)
         {
+            // Rendre la main a la carte avant de fermer : un curseur de l'onglet Auto qui avait le
+            // focus clavier bloquerait durablement le FocusManager d'Avalonia des que son
+            // conteneur redevient invisible (voir le commentaire equivalent dans TradePopupView).
+            _mapControl.Focus();
             _tradeModel.Close();
             e.Handled = true;
             return;

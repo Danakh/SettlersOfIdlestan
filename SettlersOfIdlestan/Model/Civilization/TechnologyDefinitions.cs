@@ -764,7 +764,7 @@ public static class TechnologyDefinitions
 
         // Suite du Reliquaire Sacré : débloque la Nécropole, bâtie sur des Os Divins non purifiés
         // qu'elle consomme (l'essence divine qu'ils auraient donnée est sacrifiée). Chaque niveau
-        // augmente de 15% les points divins gagnés à l'Ascension (voir Necropolis).
+        // augmente de 10% les points divins gagnés à l'Ascension (voir Necropolis).
         new(TechnologyId.NecropoleDivine,
             "tech_necropole_divine_name", "tech_necropole_divine_desc",
             cost: 418750000,

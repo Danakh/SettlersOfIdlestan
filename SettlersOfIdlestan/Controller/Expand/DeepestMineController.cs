@@ -88,6 +88,13 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv);
             _state.AddLayer(LayerState.UnderworldZ, underworldLayer);
+
+            // Avant-poste posé directement par EstablishOupostInNewAutoExpandLayer, hors du chemin normal
+            // CityBuilderController.BuildCity/CreateCityAt — voir AbyssGateController.TryInitializeAbyss
+            // pour le même correctif côté Abysse.
+            var outpost = playerCiv.Cities.First(c => c.Position.Z == LayerState.UnderworldZ);
+            PrestigeMapController.GrantNewCityBuildings(_state, outpost, playerCiv);
+
             _state.Visibility.RecalculateFor(playerCiv.Index);
         }
 

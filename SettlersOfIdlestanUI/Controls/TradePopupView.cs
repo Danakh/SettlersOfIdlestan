@@ -48,8 +48,15 @@ public sealed class TradePopupView : UserControl
     /// varier la hauteur totale du popup d'un onglet a l'autre.
     private static readonly IValueConverter BoolToOpacity = new FuncValueConverter<bool, double>(v => v ? 1.0 : 0.0);
 
-    public TradePopupView(TradePopupViewModel viewModel, SvgIconCache icons)
+    public TradePopupView(TradePopupViewModel viewModel, SvgIconCache icons, Action? reclaimFocus = null)
     {
+        // Rendre la main a un porteur de focus durable (la carte) avant de fermer le popup ou de
+        // changer d'onglet : un curseur d'onglet Auto qui avait le focus clavier au moment ou son
+        // conteneur redevient invisible bloque durablement le FocusManager d'Avalonia — plus aucun
+        // controle ne peut alors regagner le focus dans cette fenetre, et Ctrl/Maj cessent de
+        // fonctionner meme apres avoir rouvert le popup. Voir TradeFocusRepro dans SOIUITests.
+        reclaimFocus ??= () => { };
+
         DataContext = viewModel;
         this[!IsVisibleProperty] = new Binding(nameof(TradePopupViewModel.IsOpen));
 
@@ -73,11 +80,12 @@ public sealed class TradePopupView : UserControl
             Margin = new Thickness(0, 10, 0, 10),
         };
         tabs.Children.Add(TabButton(nameof(TradePopupViewModel.TradeTabLabel),
-            nameof(TradePopupViewModel.ShowingTrade), viewModel.ShowTrade));
+            nameof(TradePopupViewModel.ShowingTrade), () => { reclaimFocus(); viewModel.ShowTrade(); }));
         tabs.Children.Add(TabButton(nameof(TradePopupViewModel.HistoryTabLabel),
-            nameof(TradePopupViewModel.ShowingHistory), viewModel.ShowHistory));
+            nameof(TradePopupViewModel.ShowingHistory), () => { reclaimFocus(); viewModel.ShowHistory(); }));
         tabs.Children.Add(TabButton(nameof(TradePopupViewModel.AutoTabLabel),
-            nameof(TradePopupViewModel.ShowingAuto), viewModel.ShowAuto, nameof(TradePopupViewModel.AutoTabUnlocked)));
+            nameof(TradePopupViewModel.ShowingAuto), () => { reclaimFocus(); viewModel.ShowAuto(); },
+            nameof(TradePopupViewModel.AutoTabUnlocked)));
 
         // ── Onglet d'echange : deux colonnes ──
         var columns = new Grid
@@ -257,7 +265,7 @@ public sealed class TradePopupView : UserControl
             },
         };
         close.Classes.Add(GameControlStyles.ToneButton);
-        close.Click += (_, _) => viewModel.Close();
+        close.Click += (_, _) => { reclaimFocus(); viewModel.Close(); };
 
         var stack = new StackPanel { Orientation = Orientation.Vertical };
         stack.Children.Add(title);

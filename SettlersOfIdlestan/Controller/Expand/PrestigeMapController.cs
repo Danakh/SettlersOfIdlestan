@@ -129,6 +129,21 @@ public class PrestigeMapController
             tree.NotifyModifiersChanged();
     }
 
+    /// <summary>
+    /// Accorde à <paramref name="city"/> tous les bâtiments offerts par les modifiers NEW_CITY_BUILDING
+    /// actifs pour <paramref name="civ"/> (recherches/prestige débloquant p. ex. une Tour de Guet
+    /// gratuite pour tout nouvel avant-poste). À appeler pour tout avant-poste créé hors du chemin
+    /// normal <see cref="Island.CityBuilderController.BuildCity"/> — celui-ci applique déjà ces
+    /// modifiers lui-même (voir CreateCityAt) — typiquement le premier avant-poste d'une couche
+    /// auto-étendue posé directement via <see cref="Model.IslandMap.LayerState.EstablishOupostInNewAutoExpandLayer"/>
+    /// (Inframonde, Abysse), qui contourne CityBuilderController.
+    /// </summary>
+    public static void GrantNewCityBuildings(WorldState worldState, City city, Civilization civ)
+    {
+        foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))
+            GrantBuildingToCity(worldState, city, bt);
+    }
+
     private static void GrantBuildingToCity(WorldState worldState, City city, BuildingType bt)
     {
         if (!city.Buildings.Any(b => b.Type == bt))

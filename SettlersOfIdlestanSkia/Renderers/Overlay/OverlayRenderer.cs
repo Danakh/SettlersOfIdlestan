@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -45,6 +47,13 @@ public sealed class OverlayRenderer : IGameRenderer
     private bool _disposed;
     private bool _isVisible = true;
     private bool _suppressNextPress;
+
+    /// <summary>
+    /// Dernière position/zoom caméra vue sur chaque calque (Île/Inframonde/Abysse/Pandémonium),
+    /// indexée par Z — voir ApplyLayerForActiveTab. Non persisté : comme CurrentViewedLayer, ça
+    /// n'a de sens que pour la session en cours.
+    /// </summary>
+    private readonly Dictionary<int, (SKPoint Center, float Zoom)> _layerCameraMemory = new();
 
     public OverlayRenderer(
         InputHandlingService inputService,
@@ -508,9 +517,60 @@ public sealed class OverlayRenderer : IGameRenderer
         };
         if (targetLayer == null || worldState.CurrentViewedLayer == targetLayer.Value) return;
 
+        // Mémorise où on regardait sur le calque qu'on quitte, pour l'y retrouver au retour —
+        // sinon la caméra garde sa position écran telle quelle, qui ne correspond à rien de
+        // particulier sur le nouveau calque (le joueur peut atterrir en pleine zone vide).
+        _layerCameraMemory[worldState.CurrentViewedLayer] = (_cameraService.GetCenterWorld(), _cameraService.ZoomLevel);
+
         worldState.CurrentViewedLayer = targetLayer.Value;
         if (targetLayer.Value == LayerState.UnderworldZ) worldState.HasVisitedUnderworld = true;
         DeselectCityAndMonument();
+
+        if (_layerCameraMemory.TryGetValue(targetLayer.Value, out var saved))
+        {
+            _cameraService.SetZoom(saved.Zoom, keepCenteredOnScreen: false);
+            _cameraService.CenterOn(saved.Center.X, saved.Center.Y);
+        }
+        else
+        {
+            CenterCameraOnLayerDefault(targetLayer.Value);
+        }
+    }
+
+    /// <summary>
+    /// Première visite d'un calque (rien en mémoire) : recentre sur une ville du joueur qui s'y
+    /// trouve, sinon sur l'ensemble de la carte du calque — même repli que
+    /// GameScreen.CenterCameraOnStartingCity au lancement de la partie.
+    /// </summary>
+    private void CenterCameraOnLayerDefault(int layer)
+    {
+        var worldState = _gameControllerService.CurrentWorldState;
+        var city = worldState?.PlayerCivilization.Cities.FirstOrDefault(c => c.Position.Z == layer);
+        if (city != null)
+        {
+            var (wx, wy) = VertexToWorld(city.Position);
+            _cameraService.CenterOn(wx, wy);
+            return;
+        }
+
+        var hexCoords = worldState?.GetMapForZ(layer)?.Tiles.Keys ?? Enumerable.Empty<HexCoord>();
+        _cameraService.FitMapToView(hexCoords);
+    }
+
+    private static (float x, float y) HexToWorld(HexCoord hex)
+    {
+        float sqrt3 = MathF.Sqrt(3f);
+        float x = GameConstants.HexSize * sqrt3 * (hex.Q + hex.R / 2f);
+        float y = GameConstants.HexSize * -3f / 2f * hex.R;
+        return (x, y);
+    }
+
+    private static (float x, float y) VertexToWorld(Vertex v)
+    {
+        var (x1, y1) = HexToWorld(v.Hex1);
+        var (x2, y2) = HexToWorld(v.Hex2);
+        var (x3, y3) = HexToWorld(v.Hex3);
+        return ((x1 + x2 + x3) / 3f, (y1 + y2 + y3) / 3f);
     }
 
     /// Switches to the tab matching layer <paramref name="z"/> and centers the camera on a world position within it.

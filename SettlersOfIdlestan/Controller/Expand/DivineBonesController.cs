@@ -24,6 +24,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private GameClock? _clock;
         private GodState? _godState;
         private GamePRNG? _prng;
+        private HarvestController? _harvestController;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -31,7 +32,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         internal DivineBonesController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock, GodState? godState, GamePRNG? prng)
+        internal void Initialize(WorldState? state, GameClock? clock, GodState? godState, GamePRNG? prng, HarvestController? harvestController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -40,6 +41,7 @@ namespace SettlersOfIdlestan.Controller.Island
             _clock = clock;
             _godState = godState;
             _prng = prng;
+            _harvestController = harvestController;
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
@@ -76,6 +78,14 @@ namespace SettlersOfIdlestan.Controller.Island
                 bones.EssenceAlreadyCollected = _godState.DivineEssence;
 
                 var investmentCost = bones.GetInvestmentCost(playerCiv);
+
+                // La Purification d'un autre Os Divin peut avoir fait grimper N (voir
+                // EssenceAlreadyCollected) et donc le coût ci-dessus depuis le dernier tick : une
+                // ressource déjà couverte à l'ancien coût, désélectionnée par ProcessTick, doit
+                // reprendre l'investissement automatique si elle ne suffit plus au nouveau coût.
+                if (_harvestController != null)
+                    MonumentInvestment.ResumeAutoInvestmentIfUnderfunded(bones, investmentCost, playerCiv, _harvestController, _state);
+
                 bool investmentDone = MonumentInvestment.ProcessTick(bones, investmentCost, playerCiv, now);
 
                 if (!investmentDone) continue;

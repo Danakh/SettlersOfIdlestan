@@ -376,7 +376,14 @@ public class MonsterFeatureController
                 // position de ville (SpawnCityPosition), un seul Relais par ville (voir BuildBuilding).
                 if (_monsters.Any(m => m is Adventurer a && city.Position.Equals(a.SpawnCityPosition))) continue;
 
-                _state.AddFeature(new Adventurer(city.Position.GetHexes().First(), waypost.Level) { SpawnCityPosition = city.Position });
+                // Une ville a toujours au moins un hex non-void parmi ses trois hexes adjacents ; on
+                // l'apparaît dessus quitte à ce qu'il soit déjà occupé (par un autre monstre/aventurier),
+                // ce qui reste acceptable — seul le Void est strictement interdit.
+                var map = _state.GetMapFor(city.Position);
+                var spawnHexes = city.Position.GetHexes();
+                var spawnHex = spawnHexes.FirstOrDefault(h => map != null && map.HasTile(h) && !map.GetTile(h)!.TerrainType.IsVoid(), spawnHexes[0]);
+
+                _state.AddFeature(new Adventurer(spawnHex, waypost.Level) { SpawnCityPosition = city.Position });
             }
         }
     }

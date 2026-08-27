@@ -237,7 +237,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNIQUE_BUILDING_PREREQUISITE_REDUCTION,
             /// <summary>Flags que la construction de l'Observatoire (Monument, uniquement sur une Montagne de la surface) est déverrouillée pour la civilisation. Chaque niveau de l'Observatoire abaisse le multiplicateur du coût en points de recherche des routes du Vide (voir Observatory et RoadController.GetVoidRouteResearchCost). SubCategory unused.</summary>
             UNLOCK_OBSERVATORY,
-            /// <summary>Flags que la construction de la Nécropole (Monument, uniquement sur un hex portant des Os Divins non purifiés, qu'elle consomme) est déverrouillée pour la civilisation. Chaque niveau de la Nécropole augmente de 15% les points divins gagnés à l'Ascension (voir Necropolis et AscensionController.GetGodPointsGain). SubCategory unused.</summary>
+            /// <summary>Flags que la construction de la Nécropole (Monument, uniquement sur un hex portant des Os Divins non purifiés, qu'elle consomme) est déverrouillée pour la civilisation. Chaque niveau de la Nécropole augmente de 10% les points divins gagnés à l'Ascension (voir Necropolis et AscensionController.GetGodPointsGain). SubCategory unused.</summary>
             UNLOCK_NECROPOLIS,
             /// <summary>Dégâts infligés par une attaque de soldat, contre les monstres comme contre les villes ennemies. Base = 1 ; +1 = 2 dégâts par attaque. S'ajoute au dégât supplémentaire des Armes en Acier (voir MonsterCombatEngine et CityAttackEngine). SubCategory unused.</summary>
             SOLDIER_ATTACK_DAMAGE,

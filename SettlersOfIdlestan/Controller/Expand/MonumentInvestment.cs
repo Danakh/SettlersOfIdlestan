@@ -271,6 +271,36 @@ namespace SettlersOfIdlestan.Controller.Expand
         }
 
         /// <summary>
+        /// Complément de <see cref="TryAutoStartInvestment"/> pour les coûts qui peuvent augmenter en
+        /// cours de route (ex. DivineBones, dont le coût grimpe à chaque Purification d'un autre Os
+        /// Divin) : une ressource déjà couverte au coût précédent a été désélectionnée par
+        /// <see cref="ProcessTick"/> (toDeselect) et TryAutoStartInvestment ne rejoue pas tant que
+        /// InvestmentEnabled contient encore une entrée — sans ce complément, une ressource qui
+        /// redevient insuffisante après une hausse de coût reste désélectionnée indéfiniment et
+        /// l'investissement plafonne sous le nouveau coût. Ré-active uniquement les ressources dont
+        /// l'apport déjà versé ne couvre plus le coût actuel, avec la même garde de production que
+        /// TryAutoStartInvestment ; n'écrase jamais une sélection manuelle existante puisqu'elle
+        /// n'ajoute que des ressources absentes de InvestmentEnabled.
+        /// </summary>
+        public static void ResumeAutoInvestmentIfUnderfunded(Monument monument, ResourceSet cost, Civilization playerCiv, HarvestController harvestController, WorldState state)
+        {
+            if (!state.AutomationSettings.IsMonumentInvestmentAutomationActive) return;
+
+            Dictionary<Resource, double>? rates = null;
+            foreach (var resource in cost.Keys)
+            {
+                if (monument.InvestmentEnabled.Contains(resource)) continue;
+                long invested = monument.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
+                if (invested >= cost[resource]) continue;
+
+                rates ??= harvestController.GetAverageProductionRatesPerSecond(playerCiv.Index);
+                if (!CanProduceResource(resource, playerCiv, state, rates)) continue;
+
+                monument.InvestmentEnabled.Add(resource);
+            }
+        }
+
+        /// <summary>
         /// True si la civilisation dispose d'un moyen de production pour la ressource donnée : récolte
         /// automatique ou Marché/Port (couverts par GetAverageProductionRatesPerSecond), génération
         /// passive (PASSIVE_RESOURCE_GENERATION, ex. Verre de la Forge Volcanique) ou conversion dédiée

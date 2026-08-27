@@ -18,7 +18,7 @@ namespace SettlersOfIdlestan.Controller.Island
     /// sacrifiée — sauf sous le pouvoir divin Purification Supérieure, qui la récolte au passage,
     /// voir <see cref="PlaceNecropolis"/>). Il monte ensuite de niveau par investissement
     /// progressif de ressources (Pierre/Brique/Cristal/Mithril, voir <see cref="Necropolis"/>), et
-    /// chaque niveau augmente de 15% les points divins gagnés à l'Ascension (voir
+    /// chaque niveau augmente de 10% les points divins gagnés à l'Ascension (voir
     /// AscensionController.GetGodPointsGain).
     /// </summary>
     public class NecropolisController
