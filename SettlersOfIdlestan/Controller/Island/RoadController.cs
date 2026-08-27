@@ -128,32 +128,40 @@ namespace SettlersOfIdlestan.Controller.Island
                 long effectiveCooldown = guildSpeedBonus > 0
                     ? Math.Max(1L, (long)(AutoRoadBuildCooldownTicks / (1.0 + guildSpeedBonus)))
                     : AutoRoadBuildCooldownTicks;
-                if (now - guild.LastRoadBuildTick < effectiveCooldown) continue;
 
-                var candidates = new List<Road>();
-                if (surfaceEnabled)
-                    for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
-                        candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d).Where(r => r.Position.Z == IslandMap.SurfaceLayer));
+                long lastTick = guild.LastRoadBuildTick;
+                long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, effectiveCooldown);
+                guild.LastRoadBuildTick = lastTick;
+                if (cycles <= 0) continue;
 
-                // La guilde priorise la surface : l'Inframonde n'est considéré que si aucune route
-                // de surface n'est disponible ce tick.
-                if (candidates.Count == 0 && underworldEnabled)
-                    for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
-                        candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d).Where(r => r.Position.Z == LayerState.UnderworldZ));
+                // Un cycle = une route posée (comportement inchangé), rejoué `cycles` fois pour
+                // rattraper un saut de temps. S'arrête dès qu'un cycle ne trouve plus de route
+                // constructible — les cycles suivants échoueraient pour la même raison.
+                for (long c = 0; c < cycles; c++)
+                {
+                    var candidates = new List<Road>();
+                    if (surfaceEnabled)
+                        for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
+                            candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d).Where(r => r.Position.Z == IslandMap.SurfaceLayer));
 
-                guild.LastRoadBuildTick = now;
+                    // La guilde priorise la surface : l'Inframonde n'est considéré que si aucune route
+                    // de surface n'est disponible ce cycle.
+                    if (candidates.Count == 0 && underworldEnabled)
+                        for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
+                            candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d).Where(r => r.Position.Z == LayerState.UnderworldZ));
 
-                if (candidates.Count == 0) continue;
+                    if (candidates.Count == 0) break;
 
-                var chosen = candidates[_prng!.Next(candidates.Count)];
-                TryRemoveEnemyRoadAt(chosen.Position, civ.Index);
-                var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
-                civ.AddRoad(road);
-                ComputeRoadDistancesForCivilization(civ, chosen.Position.Z);
-                InvalidateBuildableRoadsCacheForLayer(chosen.Position.Z);
-                _state.Visibility.RecalculateFor(civ.Index);
+                    var chosen = candidates[_prng!.Next(candidates.Count)];
+                    TryRemoveEnemyRoadAt(chosen.Position, civ.Index);
+                    var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
+                    civ.AddRoad(road);
+                    ComputeRoadDistancesForCivilization(civ, chosen.Position.Z);
+                    InvalidateBuildableRoadsCacheForLayer(chosen.Position.Z);
+                    _state.Visibility.RecalculateFor(civ.Index);
 
-                OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
+                    OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
+                }
             }
         }
 

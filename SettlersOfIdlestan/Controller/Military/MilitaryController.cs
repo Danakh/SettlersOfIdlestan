@@ -362,6 +362,15 @@ public class MilitaryController
         _productionEngine.ProduceSoldiers(currentTick);
         _productionEngine.ProduceArsenalSoldiers(currentTick);
         _productionEngine.ResolveSoldierFeeding(currentTick);
+
+        // Résolution de combat/décisions de flux militaires : laissées volontairement à une seule
+        // passe par événement Advanced (pas de rattrapage par cycles via Model.Game.TickCooldown,
+        // contrairement à la production/consommation ci-dessus et à ResolveDefenseRegen ci-dessous).
+        // Chacune choisit une action (qui attaquer, combien renforcer, quand lancer une vendetta…)
+        // plutôt que de faire progresser un taux ; la rejouer "cycles fois" en rafale pendant un saut
+        // de temps ferait résoudre plusieurs tours de combat coup sur coup sans qu'aucun état
+        // (déplacement, arrivée de renfort…) n'ait eu l'occasion de changer entre deux, ce qui n'a pas
+        // de sens pour une décision plutôt qu'un taux — même raisonnement que NpcGameController.Update.
         _monsterCombatEngine.ResolveMonsterCombat(currentTick,
             args => SoldierAttackedMonster?.Invoke(this, args),
             args => ConsumableConsumed?.Invoke(this, args));
@@ -409,14 +418,20 @@ public class MilitaryController
             for (int v = 0; v < vertices.Count; v++)
             {
                 var vertex = vertices[v];
-                if (vertex.CurrentDefense >= GetDefenseScore(vertex, civDefenseBonus, hasTempleDefenseBonus)) continue;
+                int maxDefense = GetDefenseScore(vertex, civDefenseBonus, hasTempleDefenseBonus);
+                if (vertex.CurrentDefense >= maxDefense) continue;
 
                 double regenSpeed = GetDefenseRegenSpeed(vertex, civRegenSpeed, perDominionLevel, underworldRegenBonus);
                 long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / regenSpeed);
-                if (currentTick - vertex.LastDefenseRegenTick < effectiveRegenInterval) continue;
 
-                vertex.CurrentDefense++;
-                vertex.LastDefenseRegenTick = currentTick;
+                // +1 par cycle, déterministe : le rattrapage de plusieurs cycles (saut de temps) peut
+                // donc être ajouté en une fois, sans rejouer un par un.
+                long lastTick = vertex.LastDefenseRegenTick;
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, effectiveRegenInterval);
+                vertex.LastDefenseRegenTick = lastTick;
+                if (cycles <= 0) continue;
+
+                vertex.CurrentDefense = (int)Math.Min(maxDefense, vertex.CurrentDefense + cycles);
             }
         }
     }

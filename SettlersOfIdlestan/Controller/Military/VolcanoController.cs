@@ -87,10 +87,16 @@ public class VolcanoController
         foreach (var volcano in _volcanoes)
         {
             if (!volcano.Found) continue;
-            if (currentTick - volcano.LastEruptionTick < EruptionIntervalTicks) continue;
 
-            volcano.LastEruptionTick = currentTick;
-            TriggerEruption(volcano, currentTick);
+            long lastTick = volcano.LastEruptionTick;
+            long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, EruptionIntervalTicks);
+            volcano.LastEruptionTick = lastTick;
+            if (cycles <= 0) continue;
+
+            // Rejoué cycle par cycle : chaque éruption est un tirage indépendant par ville (chance
+            // d'anneau 1/2) — une simple multiplication fausserait la distribution.
+            for (long i = 0; i < cycles; i++)
+                TriggerEruption(volcano, currentTick);
         }
     }
 

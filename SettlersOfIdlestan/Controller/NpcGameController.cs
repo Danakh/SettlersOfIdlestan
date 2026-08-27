@@ -84,6 +84,15 @@ public class NpcGameController
     /// </summary>
     private readonly List<Civilization> _npcCivsBuffer = new();
 
+    /// <summary>
+    /// Laissé volontairement à une seule étape de décision par événement <c>Advanced</c> (pas de
+    /// rattrapage par cycles via <see cref="Model.Game.TickCooldown"/>, contrairement aux
+    /// comportements de production/consommation). <see cref="RunNpcStep"/> choisit UNE action
+    /// stratégique (construire, étendre…) pour la civ PNJ, exactement comme le ferait un joueur
+    /// humain à ce rythme — la simuler "cycles fois" en rafale pendant un saut de temps
+    /// (TimeJumpService) ferait jouer plusieurs coups à la suite sans que rien de nouveau ne se
+    /// soit produit entre eux, ce qui n'a pas de sens pour une décision plutôt qu'un taux.
+    /// </summary>
     private void Update(long currentTick)
     {
         if (_state == null || _mainController == null) return;

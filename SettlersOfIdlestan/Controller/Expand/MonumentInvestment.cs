@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
 using System.Collections.Generic;
@@ -28,38 +29,47 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// </summary>
         public static bool ProcessTick(Monument monument, ResourceSet cost, Civilization playerCiv, long now)
         {
-            if (now - monument.LastInvestmentTick < IntervalTicks) return false;
+            long lastTick = monument.LastInvestmentTick;
+            long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, IntervalTicks);
+            monument.LastInvestmentTick = lastTick;
+            if (cycles <= 0) return false;
             if (!HasAdjacentCity(monument.Position, playerCiv)) return false;
-            monument.LastInvestmentTick = now;
 
+            // Rejoué cycle par cycle (pas une multiplication directe) : le montant prélevé par cycle
+            // est un pourcentage du stock courant, donc compose d'un cycle à l'autre — et un stock qui
+            // s'épuise doit stopper les cycles restants au lieu de produire un montant négatif.
             var toDeselect = new List<Resource>();
-            foreach (var resource in monument.InvestmentEnabled)
+            for (long i = 0; i < cycles && monument.InvestmentEnabled.Count > 0; i++)
             {
-                if (!cost.Contains(resource)) continue;
-                long invested = monument.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
-                long required = cost[resource];
-                if (invested >= required) { toDeselect.Add(resource); continue; }
+                toDeselect.Clear();
+                foreach (var resource in monument.InvestmentEnabled)
+                {
+                    if (!cost.Contains(resource)) continue;
+                    long invested = monument.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
+                    long required = cost[resource];
+                    if (invested >= required) { toDeselect.Add(resource); continue; }
 
-                int stock = playerCiv.GetResourceQuantity(resource);
-                if (stock < 1) continue;
-                int amount = Math.Max(1, stock / 100);
+                    int stock = playerCiv.GetResourceQuantity(resource);
+                    if (stock < 1) continue;
+                    int amount = Math.Max(1, stock / 100);
 
-                int maxStock = playerCiv.GetResourceMaxQuantity(resource);
-                if (maxStock > 0 && stock > maxStock * 0.5)
-                    amount = Math.Max(1, (int)(amount * playerCiv.InvestmentSpeedHighStockBonus));
+                    int maxStock = playerCiv.GetResourceMaxQuantity(resource);
+                    if (maxStock > 0 && stock > maxStock * 0.5)
+                        amount = Math.Max(1, (int)(amount * playerCiv.InvestmentSpeedHighStockBonus));
 
-                long remaining = required - invested;
-                if (amount > remaining) amount = (int)remaining;
+                    long remaining = required - invested;
+                    if (amount > remaining) amount = (int)remaining;
 
-                playerCiv.RemoveResource(resource, amount);
-                long newInvested = invested + amount;
-                monument.InvestedResources[resource] = newInvested;
-                if (newInvested >= required)
-                    toDeselect.Add(resource);
+                    playerCiv.RemoveResource(resource, amount);
+                    long newInvested = invested + amount;
+                    monument.InvestedResources[resource] = newInvested;
+                    if (newInvested >= required)
+                        toDeselect.Add(resource);
+                }
+
+                foreach (var r in toDeselect)
+                    monument.InvestmentEnabled.Remove(r);
             }
-
-            foreach (var r in toDeselect)
-                monument.InvestmentEnabled.Remove(r);
 
             return cost.Keys.All(r => (monument.InvestedResources.TryGetValue(r, out var inv) ? inv : 0) >= cost[r]);
         }
@@ -75,20 +85,32 @@ namespace SettlersOfIdlestan.Controller.Expand
         {
             if (monument.InvestedResearch >= required) return true;
             if (!monument.ResearchInvestmentEnabled) return false;
-            if (now - monument.LastResearchInvestmentTick < IntervalTicks) return false;
+
+            long lastTick = monument.LastResearchInvestmentTick;
+            long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, IntervalTicks);
+            monument.LastResearchInvestmentTick = lastTick;
+            if (cycles <= 0) return false;
             if (!HasAdjacentCity(monument.Position, playerCiv)) return false;
-            monument.LastResearchInvestmentTick = now;
 
             var tree = playerCiv.TechnologyTree;
-            long pool = tree.ResearchPoints;
-            if (pool < 1) return false;
 
-            long remaining = required - monument.InvestedResearch;
-            long amount = Math.Min(remaining, Math.Max(1L, pool / 100));
-            amount = Math.Min(amount, pool);
+            // Rejoué cycle par cycle : le montant prélevé par cycle est un pourcentage du pool
+            // courant, donc compose d'un cycle à l'autre.
+            for (long i = 0; i < cycles; i++)
+            {
+                if (monument.InvestedResearch >= required) break;
 
-            tree.ResearchPoints -= amount;
-            monument.InvestedResearch += amount;
+                long pool = tree.ResearchPoints;
+                if (pool < 1) break;
+
+                long remaining = required - monument.InvestedResearch;
+                long amount = Math.Min(remaining, Math.Max(1L, pool / 100));
+                amount = Math.Min(amount, pool);
+
+                tree.ResearchPoints -= amount;
+                monument.InvestedResearch += amount;
+            }
+
             if (monument.InvestedResearch >= required)
                 monument.ResearchInvestmentEnabled = false;
 

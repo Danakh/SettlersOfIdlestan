@@ -65,7 +65,12 @@ namespace SettlersOfIdlestan.Controller.Magic
             _harvestController = harvestController;
             _roadController = roadController;
             _lastPassiveTick = 0;
-            _lastTempleDamageTick = 0;
+            // Non persisté (recréé à chaque Initialize, y compris au chargement d'une sauvegarde) :
+            // seedé au tick courant plutôt qu'à 0, sinon TickCooldown calcule un nombre de cycles de
+            // rattrapage proportionnel à tout le tick courant sur une partie déjà avancée (voir
+            // ProcessTempleMonsterDamage, qui rejoue un cycle par cycle — potentiellement des
+            // millions d'itérations au lieu du léger différé attendu en début de partie).
+            _lastTempleDamageTick = clock?.CurrentTick ?? 0;
 
             if (_state != null && _state.Civilizations.Count > 0)
             {
@@ -533,21 +538,30 @@ namespace SettlersOfIdlestan.Controller.Magic
 
             foreach (var active in _state.Magic.ActiveRituals.ToList())
             {
-                if (now - active.LastUpkeepTick < UpkeepIntervalTicks) continue;
-                active.LastUpkeepTick = now;
+                long lastTick = active.LastUpkeepTick;
+                long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, UpkeepIntervalTicks);
+                active.LastUpkeepTick = lastTick;
+                if (cycles <= 0) continue;
 
                 var def = RitualDefinitions.Get(active.Id);
                 if (def == null) continue;
 
-                int upkeep = GetUpkeepCost(def, active.Power);
-                if (civ.GetResourceQuantity(Resource.Crystal) >= upkeep)
+                // Rejoué cycle par cycle (pas une multiplication directe) : le stock de cristaux peut
+                // s'épuiser avant d'avoir consommé tous les cycles dus, ce qui doit effondrer le rituel
+                // dès le cycle fautif plutôt qu'après coup.
+                for (long i = 0; i < cycles; i++)
                 {
-                    if (upkeep > 0) civ.RemoveResource(Resource.Crystal, upkeep);
-                }
-                else
-                {
-                    CollapseRitual(active);
-                    changed = true;
+                    int upkeep = GetUpkeepCost(def, active.Power);
+                    if (civ.GetResourceQuantity(Resource.Crystal) >= upkeep)
+                    {
+                        if (upkeep > 0) civ.RemoveResource(Resource.Crystal, upkeep);
+                    }
+                    else
+                    {
+                        CollapseRitual(active);
+                        changed = true;
+                        break;
+                    }
                 }
             }
 
@@ -624,8 +638,11 @@ namespace SettlersOfIdlestan.Controller.Magic
         private void ProcessTempleMonsterDamage(long currentTick)
         {
             if (_state == null || _state.Civilizations.Count == 0) return;
-            if (currentTick - _lastTempleDamageTick < TempleMonsterDamageIntervalTicks) return;
-            _lastTempleDamageTick = currentTick;
+
+            long lastTick = _lastTempleDamageTick;
+            long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, TempleMonsterDamageIntervalTicks);
+            _lastTempleDamageTick = lastTick;
+            if (cycles <= 0) return;
 
             var civ = _state.PlayerCivilization;
             int damage = civ.ModifierAggregator.ApplyModifiers(ECategory.TEMPLE_MONSTER_DAMAGE_PER_SECOND, "", 0);
@@ -640,24 +657,34 @@ namespace SettlersOfIdlestan.Controller.Magic
             }
             if (templeHexes.Count == 0) return;
 
-            var deadMonsters = new List<MonsterFeature>();
-            foreach (var monster in _state.Features.OfType<MonsterFeature>())
+            // Rejoué cycle par cycle (pas une multiplication directe) : la réduction d'armure est un
+            // tirage aléatoire indépendant par tir, et un monstre tué en cours de cycles ne doit plus en
+            // encaisser.
+            for (long i = 0; i < cycles; i++)
             {
-                if (monster.AttacksOtherMonsters) continue; // monstres "amis" : jamais ciblés
-                if (!templeHexes.Contains(monster.Position)) continue;
-
-                monster.Hp -= MonsterFeature.ApplyArmorReduction(damage, monster.Armor, _prng!);
-                if (monster.Hp <= 0)
+                var deadMonsters = new List<MonsterFeature>();
+                bool anyTarget = false;
+                foreach (var monster in _state.Features.OfType<MonsterFeature>())
                 {
-                    monster.KilledByCivilizationIndex = civ.Index;
-                    deadMonsters.Add(monster);
-                }
-            }
+                    if (monster.AttacksOtherMonsters) continue; // monstres "amis" : jamais ciblés
+                    if (!templeHexes.Contains(monster.Position)) continue;
+                    anyTarget = true;
 
-            foreach (var m in deadMonsters)
-            {
-                _state.RemoveFeature(m);
-                _state.EventLog.Add(m.RemovedEventType);
+                    monster.Hp -= MonsterFeature.ApplyArmorReduction(damage, monster.Armor, _prng!);
+                    if (monster.Hp <= 0)
+                    {
+                        monster.KilledByCivilizationIndex = civ.Index;
+                        deadMonsters.Add(monster);
+                    }
+                }
+
+                foreach (var m in deadMonsters)
+                {
+                    _state.RemoveFeature(m);
+                    _state.EventLog.Add(m.RemovedEventType);
+                }
+
+                if (!anyTarget) break;
             }
         }
 

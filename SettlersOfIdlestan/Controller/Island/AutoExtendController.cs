@@ -299,25 +299,33 @@ public class AutoExtendController
                     .ApplyModifiers(ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL, "", 1.0);
                 interval = Math.Max(1L, (long)(interval * intervalMultiplier));
             }
-            if (currentTick - layerState.LastBorderMonsterSpawnTick < interval) continue;
-            layerState.LastBorderMonsterSpawnTick = currentTick;
+            long lastTick = layerState.LastBorderMonsterSpawnTick;
+            long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, interval);
+            layerState.LastBorderMonsterSpawnTick = lastTick;
+            if (cycles <= 0) continue;
 
-            int spawnChancePercent = layerState.Map.Z == LayerState.AbyssZ
-                ? BorderMonsterSpawnChancePercent * AbyssBorderMonsterSpawnChanceMultiplier
-                : BorderMonsterSpawnChancePercent;
-            if (_prng.Next(100) >= spawnChancePercent) continue;
+            // Rejoué cycle par cycle : chaque cycle est un tirage indépendant (chance de spawn, choix
+            // de l'hexagone), et les hexagones de bordure disponibles évoluent d'un cycle à l'autre
+            // (un spawn occupe l'hexagone choisi) — pas de simple multiplication.
+            for (long i = 0; i < cycles; i++)
+            {
+                int spawnChancePercent = layerState.Map.Z == LayerState.AbyssZ
+                    ? BorderMonsterSpawnChancePercent * AbyssBorderMonsterSpawnChanceMultiplier
+                    : BorderMonsterSpawnChancePercent;
+                if (_prng.Next(100) >= spawnChancePercent) continue;
 
-            // Anneau sûr des premières îles (Inframonde uniquement — l'Abysse ne se visite pas avant
-            // d'avoir une civilisation debout, voir UnderworldSafeRadiusBonusByIsland).
-            int minSpawnDistance = layerState.Map.Z == LayerState.UnderworldZ
-                ? UnderworldMinSpawnDistance()
-                : MinHexDistanceFromArrival;
+                // Anneau sûr des premières îles (Inframonde uniquement — l'Abysse ne se visite pas avant
+                // d'avoir une civilisation debout, voir UnderworldSafeRadiusBonusByIsland).
+                int minSpawnDistance = layerState.Map.Z == LayerState.UnderworldZ
+                    ? UnderworldMinSpawnDistance()
+                    : MinHexDistanceFromArrival;
 
-            var borderHexes = GetBorderHexes(layerState, minSpawnDistance);
-            if (borderHexes.Count == 0) continue;
+                var borderHexes = GetBorderHexes(layerState, minSpawnDistance);
+                if (borderHexes.Count == 0) continue;
 
-            var hex = borderHexes[_prng.Next(borderHexes.Count)];
-            _state.AddFeature(RollBorderMonster(hex, layerState.Map.Z));
+                var hex = borderHexes[_prng.Next(borderHexes.Count)];
+                _state.AddFeature(RollBorderMonster(hex, layerState.Map.Z));
+            }
         }
     }
 

@@ -118,11 +118,33 @@ public class MonsterFeatureController
     private void RebuildCache()
     {
         _monsters = _state?.Features.OfType<MonsterFeature>().ToList() ?? new();
+        long now = _clock?.CurrentTick ?? 0;
+        foreach (var m in _monsters)
+            SeedNeverTriggeredCooldowns(m, now);
     }
 
     private void OnFeatureAdded(object? sender, IslandFeature feature)
     {
-        if (feature is MonsterFeature m) _monsters.Add(m);
+        if (feature is not MonsterFeature m) return;
+        SeedNeverTriggeredCooldowns(m, _clock?.CurrentTick ?? 0);
+        _monsters.Add(m);
+    }
+
+    /// <summary>
+    /// Amorce à la création (spawn ou chargement d'une sauvegarde) les compteurs jamais déclenchés
+    /// (0 par défaut, voir MonsterFeature) au tick courant plutôt que de les laisser à 0 : sans ça,
+    /// un monstre qui apparaît dans une partie déjà avancée verrait <see cref="NextActiveDueTick"/>
+    /// repartir de l'epoch 0, et la boucle de <see cref="UpdateMonster"/> rejouerait des centaines de
+    /// cycles de régénération/attaque qui n'ont jamais eu lieu (le monstre n'existait pas encore).
+    /// Fait ici plutôt qu'au premier passage de UpdateMonster : une seule fois, à la création, sans
+    /// retarder la toute première action du monstre (contrairement à un garde-fou de type cold-start
+    /// dans la boucle elle-même, qui différerait aussi le cas légitime d'un monstre créé au tick 0).
+    /// </summary>
+    private static void SeedNeverTriggeredCooldowns(MonsterFeature m, long now)
+    {
+        if (m.LastHpRegenTick == 0) m.LastHpRegenTick = now;
+        if (m.LastMovedTick == 0) m.LastMovedTick = now;
+        if (m.LastAttackTick == 0) m.LastAttackTick = now;
     }
 
     private void OnFeatureRemoved(object? sender, IslandFeature feature)
@@ -144,72 +166,165 @@ public class MonsterFeatureController
         UpdateAdventurerSpawns(currentTick);
 
         foreach (var monster in _monsters.ToList())
+            UpdateMonster(monster, currentTick);
+    }
+
+    /// <summary>
+    /// Garde-fou sur le nombre de pas de rattrapage rejoués pour un même monstre au sein d'un seul
+    /// événement <c>Advanced</c>. Un saut de temps (TimeJumpService) ne déclenche qu'un événement par
+    /// tranche de 10 000 ticks ; avec les cooldowns de déplacement/attaque/régénération observés en
+    /// jeu (quelques centaines à quelques milliers de ticks), quelques dizaines de pas suffisent
+    /// largement — ce plafond n'est qu'une protection contre un cooldown mal configuré à 0 ou 1.
+    /// </summary>
+    private const int MaxMonsterCatchUpSteps = 500;
+
+    private void UpdateMonster(MonsterFeature monster, long currentTick)
+    {
+        if (!monster.Found && !monster.ActiveWhileHidden)
         {
-            if (!monster.Found && !monster.ActiveWhileHidden)
+            UpdateHiddenMonster(monster, currentTick);
+            return;
+        }
+
+        // Simulation par événements discrets : à chaque pas, on retrouve le prochain cooldown
+        // (régénération/déplacement/attaque) qui arrive à échéance et on rejoue le comportement à
+        // CETTE échéance précise (pas à `currentTick`) — nécessaire pendant un saut de temps, où un
+        // seul événement Advanced peut couvrir plusieurs échéances de cooldowns différents qui,
+        // suivant leur ordre chronologique réel, changent le résultat (ex. une attaque qui aurait dû
+        // se produire avant un déplacement qui l'aurait rendue hors de portée).
+        long lastDue = long.MinValue;
+        for (int step = 0; step < MaxMonsterCatchUpSteps; step++)
+        {
+            if (monster.Hp <= 0) return;
+
+            long due = NextActiveDueTick(monster);
+            // `due <= lastDue` : aucune échéance n'a progressé depuis le pas précédent (ex. chasseur
+            // invisible dont l'attaque reste indéfiniment hors de portée) — s'arrêter plutôt que
+            // boucler pour rien jusqu'à MaxMonsterCatchUpSteps.
+            if (due > currentTick || due <= lastDue) return;
+
+            lastDue = due;
+            StepActiveMonster(monster, due);
+        }
+    }
+
+    /// <summary>
+    /// Monstre non révélé (jamais passé par une case visible) qui n'agit pas tant que caché : hors
+    /// chasseur en fuite, ce bloc ne fait que tenir à jour les horodatages (pas un comportement
+    /// périodique à rattraper — juste un « repos à now » pour que les cooldowns repartent proprement
+    /// une fois révélé, voir les commentaires historiques ci-dessous).
+    /// </summary>
+    private void UpdateHiddenMonster(MonsterFeature monster, long currentTick)
+    {
+        if (!monster.CanMove) return;
+
+        if (monster.AttacksOtherMonsters)
+        {
+            // Un chasseur (Aventurier) jamais « découvert » (jamais passé par une case visible
+            // depuis son apparition, p. ex. si la ville qui l'a invoqué a été détruite avant le
+            // prochain passage de FeatureController.DiscoverFeatures) doit activement rentrer vers
+            // une ville au lieu de rester bloqué à attendre une découverte qui ne viendra jamais :
+            // contrairement aux monstres errants, qui restent volontairement cachés tant que le
+            // joueur n'explore pas (sauf ActiveWhileHidden — voir MonsterFeature — qui saute ce bloc
+            // entièrement pour suivre le chemin normal de UpdateMonster).
+            //
+            // Rejoué pas à pas (comme UpdateMonster) : `due <= lastDue` arrête dès qu'un pas ne fait
+            // plus progresser LastMovedTick (aucun voisin franchissable, pas de ville la plus proche).
+            long lastDue = long.MinValue;
+            for (int step = 0; step < MaxMonsterCatchUpSteps; step++)
             {
-                if (monster.CanMove)
-                {
-                    // Un chasseur (Aventurier) jamais « découvert » (jamais passé par une case
-                    // visible depuis son apparition, p. ex. si la ville qui l'a invoqué a été
-                    // détruite avant le prochain passage de FeatureController.DiscoverFeatures)
-                    // doit activement rentrer vers une ville au lieu de rester bloqué à attendre
-                    // une découverte qui ne viendra jamais : contrairement aux monstres errants,
-                    // qui restent volontairement cachés tant que le joueur n'explore pas (sauf
-                    // ActiveWhileHidden — voir MonsterFeature — qui saute ce bloc entièrement pour
-                    // suivre le chemin normal ci-dessous).
-                    if (monster.AttacksOtherMonsters)
-                    {
-                        // Ne jamais réassigner LastMovedTick tant que l'intervalle n'est pas écoulé :
-                        // sinon, avec des ticks d'horloge plus fins que MovementIntervalTicks (le cas
-                        // courant en jeu), l'écart repartirait de zéro à chaque passage et
-                        // n'atteindrait jamais le seuil — le chasseur resterait bloqué pour toujours.
-                        if (currentTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
-                            ReturnToVisibleTerritory(monster, currentTick);
-                    }
-                    else
-                    {
-                        monster.LastMovedTick = currentTick;
-                    }
-
-                    monster.LastAttackTick = currentTick;
-                }
-                continue;
+                long due = monster.LastMovedTick + Math.Max(1L, monster.MovementIntervalTicks);
+                if (due > currentTick || due <= lastDue) break;
+                lastDue = due;
+                ReturnToVisibleTerritory(monster, due);
             }
+        }
+        else
+        {
+            // Ne jamais réassigner LastMovedTick tant que l'intervalle n'est pas écoulé : sinon, avec
+            // des ticks d'horloge plus fins que MovementIntervalTicks (le cas courant en jeu),
+            // l'écart repartirait de zéro à chaque passage et n'atteindrait jamais le seuil — le
+            // chasseur resterait bloqué pour toujours. (Ce cas-ci n'est pas un chasseur : le reset
+            // est délibérément inconditionnel, voir le commentaire de classe ci-dessus.)
+            monster.LastMovedTick = currentTick;
+        }
 
-            RegenHp(monster, currentTick);
+        monster.LastAttackTick = currentTick;
+    }
 
-            // Un chasseur (Aventurier) qui se retrouve hors du territoire visible du joueur (ex. la
-            // ville qui le bordait vient d'être détruite, rétrécissant le brouillard de guerre) cesse
-            // immédiatement le combat et rentre vers la ville la plus proche au lieu de rester bloqué :
-            // le filtre de voisins visibles de TryMoveOneHex l'empêcherait sinon de bouger du tout.
-            if (monster.AttacksOtherMonsters && !IsVisibleToPlayer(monster.Position))
-            {
-                if (monster.CanMove && currentTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
-                    ReturnToVisibleTerritory(monster, currentTick);
-                continue;
-            }
+    /// <summary>
+    /// Prochain tick où au moins un des cooldowns actifs du monstre (régénération, déplacement,
+    /// attaque) arrive à échéance. Doit refléter exactement les mêmes conditions de suppression que
+    /// <see cref="StepActiveMonster"/> : un cooldown qui ne déclenchera de toute façon aucune action
+    /// (déplacement gelé par une proie à portée, attaque impossible tant que le chasseur n'est pas
+    /// visible) ne doit pas apparaître dans le calcul, sinon son échéance — qui n'avance jamais tant
+    /// que la condition tient — fige la boucle de rattrapage de <see cref="UpdateMonster"/> dès le
+    /// premier pas (elle s'arrête dès qu'une échéance ne progresse plus), empêchant les cooldowns
+    /// réellement actifs (ex. l'attaque) de jamais être rejoués.
+    /// </summary>
+    private long NextActiveDueTick(MonsterFeature monster)
+    {
+        long due = long.MaxValue;
+        if (monster.HpRegenAmount > 0)
+            due = Math.Min(due, monster.LastHpRegenTick + Math.Max(1L, monster.HpRegenIntervalTicks));
 
-            // Un chasseur (Aventurier) déjà à portée d'une proie reste sur place pour combattre au
-            // lieu de se redéplacer : sinon, avec un intervalle de mouvement plus court que
-            // l'intervalle d'attaque, le mouvement se déclenche systématiquement avant l'attaque et
-            // celle-ci ne se produit jamais (le chasseur tourne autour de sa cible sans l'atteindre).
-            bool preyInRange = monster.AttacksOtherMonsters && monster.AttackRangeInHexes > 0 &&
-                HasPreyInRange(monster);
+        // Chasseur hors de portée visible : seul le retour vers le territoire visible progresse
+        // (voir StepActiveMonster) — l'attaque n'y contribue pas tant que cette condition tient.
+        if (monster.AttacksOtherMonsters && !IsVisibleToPlayer(monster.Position))
+        {
+            if (monster.CanMove)
+                due = Math.Min(due, monster.LastMovedTick + Math.Max(1L, monster.MovementIntervalTicks));
+            return due;
+        }
 
-            bool moved = false;
-            if (!preyInRange && monster.CanMove && currentTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
-            {
-                MoveMonster(monster, currentTick);
-                moved = true;
-            }
+        // Chasseur déjà à portée d'une proie : le déplacement est délibérément gelé (voir
+        // StepActiveMonster) et LastMovedTick n'avance donc jamais tant que ça dure — l'exclure ici
+        // aussi, sinon son échéance figée devient la plus proche pour toujours et empêche l'attaque
+        // (qui, elle, progresse réellement) d'être rejouée.
+        bool preyInRange = monster.AttacksOtherMonsters && monster.AttackRangeInHexes > 0 && HasPreyInRange(monster);
+        if (monster.CanMove && !preyInRange)
+            due = Math.Min(due, monster.LastMovedTick + Math.Max(1L, monster.MovementIntervalTicks));
+        if (monster.AttackRangeInHexes > 0)
+            due = Math.Min(due, monster.LastAttackTick + Math.Max(1L, monster.AttackIntervalTicks));
+        return due;
+    }
 
-            if (!moved && monster.AttackRangeInHexes > 0)
-            {
-                if (monster.AttacksOtherMonsters)
-                    AttackNearbyMonster(monster, currentTick);
-                else
-                    AttackNearbyMilitaryTarget(monster, currentTick);
-            }
+    /// <summary>Un pas de simulation pour un monstre visible/actif, à l'échéance <paramref name="stepTick"/> (voir UpdateMonster).</summary>
+    private void StepActiveMonster(MonsterFeature monster, long stepTick)
+    {
+        RegenHp(monster, stepTick);
+
+        // Un chasseur (Aventurier) qui se retrouve hors du territoire visible du joueur (ex. la
+        // ville qui le bordait vient d'être détruite, rétrécissant le brouillard de guerre) cesse
+        // immédiatement le combat et rentre vers la ville la plus proche au lieu de rester bloqué :
+        // le filtre de voisins visibles de TryMoveOneHex l'empêcherait sinon de bouger du tout.
+        if (monster.AttacksOtherMonsters && !IsVisibleToPlayer(monster.Position))
+        {
+            if (monster.CanMove && stepTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
+                ReturnToVisibleTerritory(monster, stepTick);
+            return;
+        }
+
+        // Un chasseur (Aventurier) déjà à portée d'une proie reste sur place pour combattre au lieu
+        // de se redéplacer : sinon, avec un intervalle de mouvement plus court que l'intervalle
+        // d'attaque, le mouvement se déclenche systématiquement avant l'attaque et celle-ci ne se
+        // produit jamais (le chasseur tourne autour de sa cible sans l'atteindre).
+        bool preyInRange = monster.AttacksOtherMonsters && monster.AttackRangeInHexes > 0 &&
+            HasPreyInRange(monster);
+
+        bool moved = false;
+        if (!preyInRange && monster.CanMove && stepTick - monster.LastMovedTick >= monster.MovementIntervalTicks)
+        {
+            MoveMonster(monster, stepTick);
+            moved = true;
+        }
+
+        if (!moved && monster.AttackRangeInHexes > 0)
+        {
+            if (monster.AttacksOtherMonsters)
+                AttackNearbyMonster(monster, stepTick);
+            else
+                AttackNearbyMilitaryTarget(monster, stepTick);
         }
     }
 
@@ -220,8 +335,12 @@ public class MonsterFeatureController
         int level = MonsterLeveling.LevelForTier(_prestigeState?.Tier ?? 1);
         foreach (var monster in _monsters.ToList())
         {
-            var spawn = monster.TrySpawn(_monsters, currentTick, level);
-            if (spawn != null)
+            // TrySpawn n'avance son cooldown interne que d'un seul cycle par appel (voir
+            // BanditHideout.TrySpawn) : le rappeler tant qu'il produit une créature rattrape tous les
+            // cycles écoulés pendant un saut de temps, au lieu de se limiter à un spawn par tranche.
+            // _monsters est mis à jour de façon synchrone par AddFeature (l.125), donc chaque nouvel
+            // appel voit la population à jour pour le plafond (ex. MaxBanditsOnIsland).
+            while (monster.TrySpawn(_monsters, currentTick, level) is { } spawn)
                 _state!.AddFeature(spawn);
         }
     }

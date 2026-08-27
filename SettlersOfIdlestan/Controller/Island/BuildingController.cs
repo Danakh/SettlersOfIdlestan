@@ -307,21 +307,36 @@ namespace SettlersOfIdlestan.Controller.Island
 
             double guildSpeedBonus = civ.ModifierAggregator.ApplyModifiers(ECategory.GUILD_AUTOMATION_SPEED_PER_CITY, "", 0.0) * civ.Cities.Count;
             long effectiveCooldown = guildSpeedBonus > 0 ? (long)(cooldown / (1.0 + guildSpeedBonus)) : cooldown;
-            if (now - lastTick < effectiveCooldown) return;
 
-            lastTick = now;
+            long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, effectiveCooldown);
+            if (cycles <= 0) return;
 
             var presets = _state.AutomationSettings;
 
-            // New builds first, then upgrade lowest-level existing buildings. Un plafond de preset
-            // à 0 empêche toute construction du type ; un plafond atteint arrête son amélioration
-            // (voir AutomationPresetSettings / TechnologyId.AutomationPreset).
+            // Un cycle = une construction/amélioration (comportement inchangé : au plus une action par
+            // cooldown écoulé), rejoué `cycles` fois pour rattraper un saut de temps. S'arrête dès qu'un
+            // cycle ne trouve plus rien à faire — les cycles suivants échoueraient pour la même raison
+            // (aucune ressource supplémentaire n'est produite entre deux cycles de cette boucle).
+            for (long i = 0; i < cycles; i++)
+                if (!TryPerformOneGuildAction(civ, presets, targets))
+                    break;
+        }
+
+        /// <summary>
+        /// Un cycle de <see cref="TickGuildAutomation"/> : construit le premier bâtiment cible manquant
+        /// (dans l'ordre des villes/types), sinon améliore le bâtiment existant de plus bas niveau parmi
+        /// les cibles. Retourne false si rien n'a pu être fait (rien à construire/améliorer, ou coût non
+        /// couvert). Un plafond de preset à 0 empêche toute construction du type ; un plafond atteint
+        /// arrête son amélioration (voir AutomationPresetSettings / TechnologyId.AutomationPreset).
+        /// </summary>
+        private bool TryPerformOneGuildAction(Model.Civilization.Civilization civ, AutomationSettings presets, BuildingType[] targets)
+        {
             foreach (var city in civ.Cities)
                 foreach (var type in targets)
                     if (presets.GetActivePresetCap(type) > 0
                         && !city.Buildings.Any(b => b.Type == type)
                         && BuildBuilding(city, type))
-                        return;
+                        return true;
 
             var lowestLevelFirst = civ.Cities
                 .SelectMany(city => city.Buildings
@@ -331,7 +346,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var (city, type, _) in lowestLevelFirst)
                 if (BuildBuilding(city, type))
-                    return;
+                    return true;
+
+            return false;
         }
 
         /// <summary>

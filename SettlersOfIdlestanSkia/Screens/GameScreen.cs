@@ -755,12 +755,27 @@ public sealed class GameScreen : IDisposable
         return civ == null ? (0, 0) : (civ.Cities.Count, civ.Roads.Count);
     }
 
+    /// <summary>Couleur de repli affichée sous le voile plein écran pendant un saut de temps (voir <see cref="Render"/>).</summary>
+    private static readonly SKColor TimeJumpBackdropColor = new(15, 8, 30);
+
     public void Render(SKCanvas canvas)
     {
         if (_isDisposed || _renderService == null) return;
 
         var gameState = _gameControllerService.CurrentGameState;
         if (gameState == null) return;
+
+        // Saut de temps en cours : la carte/l'overlay ne changent visuellement rien d'utile sous le
+        // voile plein écran de TimeJumpView (opacité ~63%, tout le reste masqué) — les redessiner à
+        // chaque frame pendant que TimeJumpService fait tourner la simulation à plein régime revenait
+        // à doubler le coût réel du saut pour un rendu que le joueur ne voit quasiment pas. Un simple
+        // aplat sous le voile suffit ; le dernier état réel réapparaît normalement dès le prochain
+        // Render() une fois le saut terminé (IsActive redevient faux avant que ce Tick ne rende la main).
+        if (_gameControllerService.TimeJump.IsActive)
+        {
+            canvas.Clear(TimeJumpBackdropColor);
+            return;
+        }
 
         if (_islandMainRenderer != null && _overlayRenderer != null)
             _islandMainRenderer.IsVisible = _overlayRenderer.IsIslandTabActive;

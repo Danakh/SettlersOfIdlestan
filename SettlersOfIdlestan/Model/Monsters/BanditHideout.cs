@@ -28,9 +28,13 @@ public class BanditHideout : MonsterFeature
     public override MonsterFeature? TrySpawn(IReadOnlyList<MonsterFeature> existingMonsters, long tick, int level = 1)
     {
         if (!Found) return null;
+        if (LastSpawnTick == 0) { LastSpawnTick = tick; return null; }
         if (tick - LastSpawnTick < SpawnIntervalTicks) return null;
         if (existingMonsters.Count(m => m is Bandit) >= MaxBanditsOnIsland) return null;
-        LastSpawnTick = tick;
+        // Avance d'un seul cycle (pas jusqu'à `tick`) : un appelant qui rattrape un saut de temps
+        // peut ainsi rappeler TrySpawn plusieurs fois pour le même `tick` et consommer le reliquat de
+        // cycles restants (voir MonsterController.UpdateSpawns), au lieu d'un unique spawn par saut.
+        LastSpawnTick += SpawnIntervalTicks;
         return new Bandit(Position, tick, level);
     }
 

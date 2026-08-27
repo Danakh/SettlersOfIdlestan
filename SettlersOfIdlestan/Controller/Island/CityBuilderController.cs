@@ -131,35 +131,37 @@ namespace SettlersOfIdlestan.Controller.Island
                 return;
             }
 
-            if (guild.LastOutpostBuildTick == 0)
+            long lastTick = guild.LastOutpostBuildTick;
+            long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, AutoOutpostBuildCooldownTicks);
+            guild.LastOutpostBuildTick = lastTick;
+            if (cycles <= 0) return;
+
+            // Un cycle = un avant-poste construit (comportement inchangé), rejoué `cycles` fois pour
+            // rattraper un saut de temps. Les candidats sont recalculés à chaque cycle — un avant-poste
+            // construit au cycle précédent change le réseau de routes touché, donc les vertex
+            // constructibles suivants. S'arrête dès qu'un cycle ne peut rien construire.
+            for (long c = 0; c < cycles; c++)
             {
-                guild.LastOutpostBuildTick = now;
-                return;
+                var allBuildable = GetBuildableVertices(civ.Index);
+                var buildable = new List<Vertex>();
+                if (surfaceEnabled) buildable.AddRange(allBuildable.Where(v => v.Z == IslandMap.SurfaceLayer));
+
+                // La guilde priorise la surface : l'Inframonde n'est considéré que si aucun avant-poste
+                // de surface n'est disponible ce cycle.
+                if (buildable.Count == 0 && underworldEnabled)
+                    buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.UnderworldZ));
+                if (buildable.Count == 0) break;
+
+                var chosen = buildable[_prng!.Next(buildable.Count)];
+                if (!civ.CanPayResourceCost(NewCityBuildingCostFor(chosen, civ))) break;
+
+                try
+                {
+                    BuildCity(civ.Index, chosen);
+                    OnAutoOutpostBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civ.Index, chosen));
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CityBuilderController] BuildCity at {chosen}: {ex}"); }
             }
-
-            if (now - guild.LastOutpostBuildTick < AutoOutpostBuildCooldownTicks) return;
-
-            guild.LastOutpostBuildTick = now;
-
-            var allBuildable = GetBuildableVertices(civ.Index);
-            var buildable = new List<Vertex>();
-            if (surfaceEnabled) buildable.AddRange(allBuildable.Where(v => v.Z == IslandMap.SurfaceLayer));
-
-            // La guilde priorise la surface : l'Inframonde n'est considéré que si aucun avant-poste
-            // de surface n'est disponible ce tick.
-            if (buildable.Count == 0 && underworldEnabled)
-                buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.UnderworldZ));
-            if (buildable.Count == 0) return;
-
-            var chosen = buildable[_prng!.Next(buildable.Count)];
-            if (!civ.CanPayResourceCost(NewCityBuildingCostFor(chosen, civ))) return;
-
-            try
-            {
-                BuildCity(civ.Index, chosen);
-                OnAutoOutpostBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civ.Index, chosen));
-            }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CityBuilderController] BuildCity at {chosen}: {ex}"); }
         }
 
         /// <summary>

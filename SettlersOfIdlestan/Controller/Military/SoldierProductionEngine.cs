@@ -53,7 +53,11 @@ internal class SoldierProductionEngine
                 var city = cities[i];
                 if (city.Soldiers + city.IncomingSoldiers.Count >= city.MaxSoldiers + maxSoldiersBonus) continue;
                 long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / (civUnitProductionSpeed + city.UnitProductionSpeedBonus));
-                if (currentTick - city.LastSoldierProductionTick < productionInterval) continue;
+
+                long lastTick = city.LastSoldierProductionTick;
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, productionInterval);
+                city.LastSoldierProductionTick = lastTick;
+                if (cycles <= 0) continue;
 
                 // FindBuilding plutôt que OfType<Barracks>().FirstOrDefault() : la chaîne LINQ boxait
                 // l'énumérateur de City.Buildings et allouait une fermeture à chaque ville éligible.
@@ -63,30 +67,36 @@ internal class SoldierProductionEngine
                 bool restrictedToFreeSoldiers = isPlayer
                     && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
 
-                if (barracks.ActivationStatus != ActivationStatus.ACTIVE || restrictedToFreeSoldiers)
+                // Rejoué cycle par cycle : la place disponible et le stock de Minerai peuvent
+                // s'épuiser en cours de route.
+                for (long cyc = 0; cyc < cycles; cyc++)
                 {
-                    // Même désactivée (ou restreinte via AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer),
-                    // la Caserne continue à produire tant que la ville n'a pas atteint son quota de
-                    // soldats nourris gratuitement (SOLDIER_FOOD_FREE_PER_CITY).
-                    if (city.Soldiers >= freePerCity) continue;
-                }
+                    if (city.Soldiers + city.IncomingSoldiers.Count >= city.MaxSoldiers + maxSoldiersBonus) break;
 
-                if (civ.GetResourceQuantity(Resource.Ore) < 1)
-                {
-                    civ.RaiseLowStock(Resource.Ore);
-                    continue;
-                }
+                    if (barracks.ActivationStatus != ActivationStatus.ACTIVE || restrictedToFreeSoldiers)
+                    {
+                        // Même désactivée (ou restreinte via AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer),
+                        // la Caserne continue à produire tant que la ville n'a pas atteint son quota de
+                        // soldats nourris gratuitement (SOLDIER_FOOD_FREE_PER_CITY).
+                        if (city.Soldiers >= freePerCity) break;
+                    }
 
-                civ.RemoveResource(Resource.Ore, 1);
-                city.Soldiers++;
-                city.LastSoldierProductionTick = currentTick;
-
-                if (isPlayer)
-                {
-                    int oreQty = civ.GetResourceQuantity(Resource.Ore);
-                    int oreMax = civ.GetResourceMaxQuantity(Resource.Ore);
-                    if (oreMax > 0 && oreQty * 10 <= oreMax)
+                    if (civ.GetResourceQuantity(Resource.Ore) < 1)
+                    {
                         civ.RaiseLowStock(Resource.Ore);
+                        break;
+                    }
+
+                    civ.RemoveResource(Resource.Ore, 1);
+                    city.Soldiers++;
+
+                    if (isPlayer)
+                    {
+                        int oreQty = civ.GetResourceQuantity(Resource.Ore);
+                        int oreMax = civ.GetResourceMaxQuantity(Resource.Ore);
+                        if (oreMax > 0 && oreQty * 10 <= oreMax)
+                            civ.RaiseLowStock(Resource.Ore);
+                    }
                 }
             }
         }
@@ -123,35 +133,47 @@ internal class SoldierProductionEngine
                 if (room <= 0) continue;
 
                 long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / (civUnitProductionSpeed + city.UnitProductionSpeedBonus));
-                if (currentTick - city.LastArsenalProductionTick < productionInterval) continue;
+
+                long lastTick = city.LastArsenalProductionTick;
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, productionInterval);
+                city.LastArsenalProductionTick = lastTick;
+                if (cycles <= 0) continue;
 
                 var arsenal = city.FindBuilding<Arsenal>(BuildingType.Arsenal) is { Level: >= 1 } ars ? ars : null;
                 if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                 bool restrictedToFreeSoldiers = isPlayer
                     && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
-                if (restrictedToFreeSoldiers)
-                {
-                    if (city.Soldiers >= freePerCity) continue;
-                    room = Math.Min(room, freePerCity - city.Soldiers);
-                }
 
-                if (civ.GetResourceQuantity(Resource.Steel) < Arsenal.SteelInputPerCycle)
+                // Rejoué cycle par cycle : la place disponible et le stock d'Acier peuvent s'épuiser
+                // en cours de route.
+                for (long cyc = 0; cyc < cycles; cyc++)
                 {
-                    civ.RaiseLowStock(Resource.Steel);
-                    continue;
-                }
+                    int cycleRoom = city.MaxSoldiers + maxSoldiersBonus - city.Soldiers - city.IncomingSoldiers.Count;
+                    if (cycleRoom <= 0) break;
 
-                civ.RemoveResource(Resource.Steel, Arsenal.SteelInputPerCycle);
-                city.Soldiers += Math.Min(Arsenal.SoldiersProducedPerCycle, room);
-                city.LastArsenalProductionTick = currentTick;
+                    if (restrictedToFreeSoldiers)
+                    {
+                        if (city.Soldiers >= freePerCity) break;
+                        cycleRoom = Math.Min(cycleRoom, freePerCity - city.Soldiers);
+                    }
 
-                if (isPlayer)
-                {
-                    int steelQty = civ.GetResourceQuantity(Resource.Steel);
-                    int steelMax = civ.GetResourceMaxQuantity(Resource.Steel);
-                    if (steelMax > 0 && steelQty * 10 <= steelMax)
+                    if (civ.GetResourceQuantity(Resource.Steel) < Arsenal.SteelInputPerCycle)
+                    {
                         civ.RaiseLowStock(Resource.Steel);
+                        break;
+                    }
+
+                    civ.RemoveResource(Resource.Steel, Arsenal.SteelInputPerCycle);
+                    city.Soldiers += Math.Min(Arsenal.SoldiersProducedPerCycle, cycleRoom);
+
+                    if (isPlayer)
+                    {
+                        int steelQty = civ.GetResourceQuantity(Resource.Steel);
+                        int steelMax = civ.GetResourceMaxQuantity(Resource.Steel);
+                        if (steelMax > 0 && steelQty * 10 <= steelMax)
+                            civ.RaiseLowStock(Resource.Steel);
+                    }
                 }
             }
         }
@@ -165,10 +187,21 @@ internal class SoldierProductionEngine
     internal void ResolveSoldierFeeding(long currentTick)
     {
         if (_state == null) return;
-        if (currentTick - _state.LastSoldierFeedTick < MilitaryController.SoldierFeedIntervalTicks) return;
-        _state.LastSoldierFeedTick = currentTick;
 
-        foreach (var civ in _state.Civilizations)
+        long lastTick = _state.LastSoldierFeedTick;
+        long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, MilitaryController.SoldierFeedIntervalTicks);
+        _state.LastSoldierFeedTick = lastTick;
+        if (cycles <= 0) return;
+
+        // Rejoué cycle par cycle : la famine peut réduire l'effectif payant d'un cycle à l'autre, donc
+        // le nombre de soldats affamés ne peut pas être simplement multiplié par `cycles`.
+        for (long c = 0; c < cycles; c++)
+            ResolveSoldierFeedingOnce();
+    }
+
+    private void ResolveSoldierFeedingOnce()
+    {
+        foreach (var civ in _state!.Civilizations)
         {
             var vertices = civ.MilitaryVertices.ToList();
             int totalSoldiers = vertices.Sum(v => v.Soldiers);

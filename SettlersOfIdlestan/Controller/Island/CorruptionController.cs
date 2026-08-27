@@ -96,11 +96,19 @@ public class CorruptionController
         _clock = clock;
         _prng = prng;
         _prestigeState = prestigeState;
-        _lastSpreadTick = 0;
-        _lastMonumentDecayTick = 0;
-        _lastDivineBonesGrowthTick = 0;
-        _lastMonsterGrowthTick = 0;
-        _lastCorruptionSourceGrowthTick = 0;
+
+        // Initialisés au tick courant, pas à 0 : ces trackers ne sont pas persistés (recréés à
+        // chaque Initialize, y compris au chargement d'une sauvegarde) et TickCooldown traite 0
+        // littéralement (pas de garde de démarrage à froid ici, voir ses autres appelants). Sur une
+        // partie déjà avancée, les laisser à 0 ferait calculer un nombre de cycles de rattrapage
+        // proportionnel à tout le tick courant (potentiellement des millions), au lieu du léger
+        // différé d'un cooldown attendu au tout début d'une partie neuve.
+        long now = clock?.CurrentTick ?? 0;
+        _lastSpreadTick = now;
+        _lastMonumentDecayTick = now;
+        _lastDivineBonesGrowthTick = now;
+        _lastMonsterGrowthTick = now;
+        _lastCorruptionSourceGrowthTick = now;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -138,20 +146,27 @@ public class CorruptionController
             {
                 var temple = city.FindBuilding<Temple>(BuildingType.Temple) is { } t0 && t0.Level >= TempleMinDominionLevel && t0.Level <= TempleMaxDominionLevel ? t0 : null;
                 if (temple == null) continue;
-                if (currentTick - temple.LastDominionProductionTick < ProductionIntervalTicks) continue;
-                temple.LastDominionProductionTick = currentTick;
+
+                long lastTick = temple.LastDominionProductionTick;
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, ProductionIntervalTicks);
+                temple.LastDominionProductionTick = lastTick;
+                if (cycles <= 0) continue;
 
                 // Même pénalité de profondeur que la propagation du Dominion (÷2/÷4/÷8) : le
                 // cooldown reste identique, mais chaque tir a une chance sur GetDominionLayerDivisor
-                // d'aboutir.
+                // d'aboutir. Rejoué cycle par cycle (pas de multiplication) : chaque cycle est un
+                // tirage indépendant, sur un hex tiré au hasard indépendamment lui aussi.
                 int divisor = GetDominionLayerDivisor(city.Position.Z);
-                if (divisor > 1 && _prng.Next(divisor) != 0) continue;
+                for (long i = 0; i < cycles; i++)
+                {
+                    if (divisor > 1 && _prng.Next(divisor) != 0) continue;
 
-                var hexes = city.Position.GetHexes().Where(IsValidHex).ToList();
-                if (hexes.Count == 0) continue;
+                    var hexes = city.Position.GetHexes().Where(IsValidHex).ToList();
+                    if (hexes.Count == 0) continue;
 
-                var hex = hexes[_prng.Next(hexes.Count)];
-                ApplyTempleActionOnHex(civ, temple, hex);
+                    var hex = hexes[_prng.Next(hexes.Count)];
+                    ApplyTempleActionOnHex(civ, temple, hex);
+                }
             }
         }
     }
@@ -189,69 +204,78 @@ public class CorruptionController
     private void ProcessSpread(long currentTick)
     {
         if (_state == null || _prng == null) return;
-        if (currentTick - _lastSpreadTick < ProductionIntervalTicks) return;
-        _lastSpreadTick = currentTick;
 
-        // Snapshot : ReduceLevel peut retirer des features de _state.Features pendant l'itération.
-        var sources = _state.Features.Where(f => f is Corruption or Dominion).ToList();
+        long lastTick = _lastSpreadTick;
+        long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, ProductionIntervalTicks);
+        _lastSpreadTick = lastTick;
+        if (cycles <= 0) return;
 
-        foreach (var source in sources)
+        // Rejoué cycle par cycle (automate cellulaire) : l'état après le cycle N conditionne le
+        // cycle N+1 (une poche semée par un cycle peut déborder au cycle suivant) — une simple
+        // multiplication par `cycles` donnerait un résultat incohérent.
+        for (long c = 0; c < cycles; c++)
         {
-            if (!_state.Features.Contains(source)) continue; // déjà supprimée plus tôt dans cette passe
+            // Snapshot : ReduceLevel peut retirer des features de _state.Features pendant l'itération.
+            var sources = _state.Features.Where(f => f is Corruption or Dominion).ToList();
 
-            bool sourceIsDominion = source is Dominion;
-
-            // Évangélisation (DOMINION_SPREAD_CHANCE) : le Dominion déborde plus souvent que la
-            // Corruption (points de % supplémentaires par niveau).
-            int chancePerLevel = SpreadChancePercentPerLevel
-                + (sourceIsDominion ? GetDominionSpreadChanceBonus() : 0);
-
-            int level = GetLevel(source);
-
-            // En profondeur, l'Évangélisation du Dominion est plus difficile : ÷2 Inframonde, ÷4
-            // Abysses, ÷8 Pandémonium. La résolution du tirage est multipliée d'autant pour ne pas
-            // perdre de précision par troncature entière sur de petits pourcentages.
-            int divisor = sourceIsDominion ? GetDominionLayerDivisor(source.Position.Z) : 1;
-            if (_prng.Next(100 * divisor) >= level * chancePerLevel) continue;
-
-            var candidates = source.Position.Neighbors().Where(IsValidHex).ToList();
-            if (candidates.Count == 0) continue;
-
-            var neighborHex = candidates[_prng.Next(candidates.Count)];
-
-            var opposite = sourceIsDominion
-                ? (IslandFeature?)_state.GetFeaturesAt(neighborHex).OfType<Corruption>().FirstOrDefault()
-                : _state.GetFeaturesAt(neighborHex).OfType<Dominion>().FirstOrDefault();
-
-            if (opposite != null)
+            foreach (var source in sources)
             {
-                // Terre Consacrée : le Dominion des hexs d'une ville avec Temple a une chance de ne
-                // pas perdre de niveau dans l'annulation mutuelle — la Corruption perd toujours le sien.
-                var dominionSide = sourceIsDominion ? source : opposite;
-                var corruptionSide = sourceIsDominion ? opposite : source;
-                if (!IsDominionSpared(dominionSide.Position))
-                    ReduceLevel(dominionSide);
-                ReduceLevel(corruptionSide);
-                continue;
-            }
+                if (!_state.Features.Contains(source)) continue; // déjà supprimée plus tôt dans cette passe
 
-            var same = sourceIsDominion
-                ? (IslandFeature?)_state.GetFeaturesAt(neighborHex).OfType<Dominion>().FirstOrDefault()
-                : _state.GetFeaturesAt(neighborHex).OfType<Corruption>().FirstOrDefault();
+                bool sourceIsDominion = source is Dominion;
 
-            // Un voisin vide compte comme un "même statut" de niveau 0 : une source suffisamment
-            // forte (écart > SpreadSameStatusLevelGap) sème une nouvelle poche à niveau 1, ce qui
-            // permet au Dominion/à la Corruption de progresser au-delà des poches déjà existantes.
-            // Comparaison directionnelle (pas Math.Abs) : seule la source la PLUS FORTE des deux fait
-            // grandir l'autre. Un voisin plus faible ne doit jamais faire grandir un voisin déjà plus
-            // fort que lui à son propre tour de débordement, sous peine de croissance sans plafond.
-            int sameLevel = same != null ? GetLevel(same) : 0;
-            if (level - sameLevel > SpreadSameStatusLevelGap)
-            {
-                if (same != null)
-                    IncreaseLevel(same);
-                else
-                    SeedFeature(sourceIsDominion, neighborHex);
+                // Évangélisation (DOMINION_SPREAD_CHANCE) : le Dominion déborde plus souvent que la
+                // Corruption (points de % supplémentaires par niveau).
+                int chancePerLevel = SpreadChancePercentPerLevel
+                    + (sourceIsDominion ? GetDominionSpreadChanceBonus() : 0);
+
+                int level = GetLevel(source);
+
+                // En profondeur, l'Évangélisation du Dominion est plus difficile : ÷2 Inframonde, ÷4
+                // Abysses, ÷8 Pandémonium. La résolution du tirage est multipliée d'autant pour ne pas
+                // perdre de précision par troncature entière sur de petits pourcentages.
+                int divisor = sourceIsDominion ? GetDominionLayerDivisor(source.Position.Z) : 1;
+                if (_prng.Next(100 * divisor) >= level * chancePerLevel) continue;
+
+                var candidates = source.Position.Neighbors().Where(IsValidHex).ToList();
+                if (candidates.Count == 0) continue;
+
+                var neighborHex = candidates[_prng.Next(candidates.Count)];
+
+                var opposite = sourceIsDominion
+                    ? (IslandFeature?)_state.GetFeaturesAt(neighborHex).OfType<Corruption>().FirstOrDefault()
+                    : _state.GetFeaturesAt(neighborHex).OfType<Dominion>().FirstOrDefault();
+
+                if (opposite != null)
+                {
+                    // Terre Consacrée : le Dominion des hexs d'une ville avec Temple a une chance de ne
+                    // pas perdre de niveau dans l'annulation mutuelle — la Corruption perd toujours le sien.
+                    var dominionSide = sourceIsDominion ? source : opposite;
+                    var corruptionSide = sourceIsDominion ? opposite : source;
+                    if (!IsDominionSpared(dominionSide.Position))
+                        ReduceLevel(dominionSide);
+                    ReduceLevel(corruptionSide);
+                    continue;
+                }
+
+                var same = sourceIsDominion
+                    ? (IslandFeature?)_state.GetFeaturesAt(neighborHex).OfType<Dominion>().FirstOrDefault()
+                    : _state.GetFeaturesAt(neighborHex).OfType<Corruption>().FirstOrDefault();
+
+                // Un voisin vide compte comme un "même statut" de niveau 0 : une source suffisamment
+                // forte (écart > SpreadSameStatusLevelGap) sème une nouvelle poche à niveau 1, ce qui
+                // permet au Dominion/à la Corruption de progresser au-delà des poches déjà existantes.
+                // Comparaison directionnelle (pas Math.Abs) : seule la source la PLUS FORTE des deux fait
+                // grandir l'autre. Un voisin plus faible ne doit jamais faire grandir un voisin déjà plus
+                // fort que lui à son propre tour de débordement, sous peine de croissance sans plafond.
+                int sameLevel = same != null ? GetLevel(same) : 0;
+                if (level - sameLevel > SpreadSameStatusLevelGap)
+                {
+                    if (same != null)
+                        IncreaseLevel(same);
+                    else
+                        SeedFeature(sourceIsDominion, neighborHex);
+                }
             }
         }
     }
@@ -406,9 +430,14 @@ public class CorruptionController
     private void ProcessMonumentCorruptionDecay(long currentTick)
     {
         if (_state == null) return;
-        if (currentTick - _lastMonumentDecayTick < ProductionIntervalTicks) return;
-        _lastMonumentDecayTick = currentTick;
 
+        long lastTick = _lastMonumentDecayTick;
+        long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, ProductionIntervalTicks);
+        _lastMonumentDecayTick = lastTick;
+        if (cycles <= 0) return;
+
+        // Les hexes concernés (Faille/Spires) ne changent pas d'un cycle à l'autre dans le même
+        // événement : seule la Corruption qui s'y trouve décroît, donc recalculé une seule fois.
         var decayHexes = new HashSet<HexCoord>();
         foreach (var gate in _state.Features.OfType<AbyssGate>())
             decayHexes.Add(gate.Position);
@@ -416,12 +445,13 @@ public class CorruptionController
             foreach (var hex in GetHexesInRadius(spire.Position, spire.Radius))
                 decayHexes.Add(hex);
 
-        foreach (var hex in decayHexes)
-        {
-            var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
-            if (corruption != null)
-                ReduceLevel(corruption);
-        }
+        for (long i = 0; i < cycles; i++)
+            foreach (var hex in decayHexes)
+            {
+                var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
+                if (corruption != null)
+                    ReduceLevel(corruption);
+            }
     }
 
     /// <summary>
@@ -443,15 +473,19 @@ public class CorruptionController
     private void ProcessDivineBonesCorruptionGrowth(long currentTick)
     {
         if (_state == null) return;
-        if (currentTick - _lastDivineBonesGrowthTick < ProductionIntervalTicks) return;
-        _lastDivineBonesGrowthTick = currentTick;
+
+        long lastTick = _lastDivineBonesGrowthTick;
+        long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, ProductionIntervalTicks);
+        _lastDivineBonesGrowthTick = lastTick;
+        if (cycles <= 0) return;
 
         // Snapshot : semer une Corruption ajoute une feature à _state.Features pendant l'itération.
-        foreach (var bones in _state.Features.OfType<DivineBones>().ToList())
-        {
-            if (bones.Purified) continue;
-            GrowOrSeedCorruptionOnHex(bones.Position, bones.GetCorruptionCap());
-        }
+        // La liste des Os elle-même (et leur statut Purified) ne change pas d'un cycle à l'autre dans
+        // le même événement — seule la Corruption qu'ils sèment progresse.
+        var bonesList = _state.Features.OfType<DivineBones>().Where(b => !b.Purified).ToList();
+        for (long i = 0; i < cycles; i++)
+            foreach (var bones in bonesList)
+                GrowOrSeedCorruptionOnHex(bones.Position, bones.GetCorruptionCap());
     }
 
     /// <summary>Multiplicateur appliqué au niveau de corruption de l'île pour obtenir le plafond de génération des monstres (miroir de <see cref="DivineBones.CorruptionCapMultiplier"/>).</summary>
@@ -526,14 +560,20 @@ public class CorruptionController
     private void ProcessMonsterCorruptionGrowth(long currentTick)
     {
         if (_state == null) return;
-        if (currentTick - _lastMonsterGrowthTick < ProductionIntervalTicks) return;
-        _lastMonsterGrowthTick = currentTick;
+
+        long lastTick = _lastMonsterGrowthTick;
+        long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, ProductionIntervalTicks);
+        _lastMonsterGrowthTick = lastTick;
+        if (cycles <= 0) return;
 
         int cap = GetMonsterCorruptionCap();
 
         // Snapshot : semer une Corruption ajoute une feature à _state.Features pendant l'itération.
-        foreach (var monster in _state.Features.OfType<MonsterFeature>().Where(m => m.GeneratesCorruption).ToList())
-            GrowOrSeedCorruptionOnHex(monster.Position, cap);
+        // La liste des monstres elle-même ne change pas d'un cycle à l'autre dans le même événement.
+        var monsters = _state.Features.OfType<MonsterFeature>().Where(m => m.GeneratesCorruption).ToList();
+        for (long i = 0; i < cycles; i++)
+            foreach (var monster in monsters)
+                GrowOrSeedCorruptionOnHex(monster.Position, cap);
     }
 
     /// <summary>
@@ -550,12 +590,18 @@ public class CorruptionController
     private void ProcessCorruptionSourceGrowth(long currentTick)
     {
         if (_state == null) return;
-        if (currentTick - _lastCorruptionSourceGrowthTick < ProductionIntervalTicks) return;
-        _lastCorruptionSourceGrowthTick = currentTick;
+
+        long lastTick = _lastCorruptionSourceGrowthTick;
+        long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, ProductionIntervalTicks);
+        _lastCorruptionSourceGrowthTick = lastTick;
+        if (cycles <= 0) return;
 
         // Snapshot : semer une Corruption ajoute une feature à _state.Features pendant l'itération.
-        foreach (var source in _state.Features.OfType<CorruptionSource>().ToList())
-            GrowOrSeedCorruptionOnHex(source.Position, source.GetCorruptionCap());
+        // La liste des Sources elle-même ne change pas d'un cycle à l'autre dans le même événement.
+        var sources = _state.Features.OfType<CorruptionSource>().ToList();
+        for (long i = 0; i < cycles; i++)
+            foreach (var source in sources)
+                GrowOrSeedCorruptionOnHex(source.Position, source.GetCorruptionCap());
     }
 
     /// <summary>Le centre puis, anneau par anneau, tous les hexes à distance ≤ radius de center (BFS via les 6 directions).</summary>

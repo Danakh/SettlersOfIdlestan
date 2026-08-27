@@ -101,15 +101,15 @@ namespace SettlersOfIdlestan.Controller.Expand
                 if (library == null || !library.CanProduceResearch) continue;
 
                 long cooldown = Math.Max(1L, (long)(library.GetResearchCooldownTicks() / productionSpeed));
-                if (library.LastResearchTick == 0)
-                {
-                    library.LastResearchTick = now;
-                    continue;
-                }
-                if (now - library.LastResearchTick < cooldown) continue;
+                long lastTick = library.LastResearchTick;
+                // +1 par cycle, sans aléatoire ni dépendance au stock courant : les cycles rattrapés
+                // pendant un saut de temps peuvent donc être ajoutés en une fois plutôt que rejoués un
+                // par un (voir TickCooldown).
+                long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, cooldown, coldStartOnZero: true);
+                library.LastResearchTick = lastTick;
+                if (cycles <= 0) continue;
 
-                tree.ResearchPoints = Math.Min(tree.ResearchPoints + 1, MaxResearchPoints);
-                library.LastResearchTick = now;
+                tree.ResearchPoints = Math.Min(tree.ResearchPoints + cycles, MaxResearchPoints);
             }
 
             foreach (var city in _state.PlayerCivilization.Cities)
@@ -118,27 +118,32 @@ namespace SettlersOfIdlestan.Controller.Expand
                 if (lab == null || lab.Level < 1 || lab.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                 long cooldown = Math.Max(1L, (long)(lab.GetResearchCooldownTicks() / productionSpeed));
-                if (lab.LastResearchTick == 0)
-                {
-                    lab.LastResearchTick = now;
-                    continue;
-                }
-                if (now - lab.LastResearchTick < cooldown) continue;
-                if (_state.PlayerCivilization.GetResourceQuantity(Resource.Gold) < 1)
-                {
-                    _state.PlayerCivilization.RaiseLowStock(Resource.Gold);
-                    continue;
-                }
+                long lastTick = lab.LastResearchTick;
+                long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, cooldown, coldStartOnZero: true);
+                lab.LastResearchTick = lastTick;
+                if (cycles <= 0) continue;
 
-                _state.PlayerCivilization.RemoveResource(Resource.Gold, 1);
+                // Rejoué cycle par cycle (pas une multiplication directe) : chaque cycle dépend du
+                // stock d'or courant, qui peut s'épuiser avant d'avoir consommé tous les cycles dus.
                 int batch = Laboratory.ResearchPointsPerBatch + _state.PlayerCivilization.LaboratoryResearchBonus;
-                tree.ResearchPoints = Math.Min(tree.ResearchPoints + batch, MaxResearchPoints);
-                lab.LastResearchTick = now;
+                for (long i = 0; i < cycles; i++)
+                {
+                    if (_state.PlayerCivilization.GetResourceQuantity(Resource.Gold) < 1)
+                    {
+                        _state.PlayerCivilization.RaiseLowStock(Resource.Gold);
+                        break;
+                    }
 
-                int goldQty = _state.PlayerCivilization.GetResourceQuantity(Resource.Gold);
-                int goldMax = _state.PlayerCivilization.GetResourceMaxQuantity(Resource.Gold);
-                if (goldMax > 0 && goldQty * 10 <= goldMax)
-                    _state.PlayerCivilization.RaiseLowStock(Resource.Gold);
+                    _state.PlayerCivilization.RemoveResource(Resource.Gold, 1);
+                    tree.ResearchPoints = Math.Min(tree.ResearchPoints + batch, MaxResearchPoints);
+
+                    int goldQty = _state.PlayerCivilization.GetResourceQuantity(Resource.Gold);
+                    int goldMax = _state.PlayerCivilization.GetResourceMaxQuantity(Resource.Gold);
+                    if (goldMax > 0 && goldQty * 10 <= goldMax)
+                        _state.PlayerCivilization.RaiseLowStock(Resource.Gold);
+
+                    if (tree.ResearchPoints >= MaxResearchPoints) break;
+                }
             }
         }
 
@@ -190,62 +195,78 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (tree.ActiveResearch == null || tree.ResearchPoints <= 0) return;
 
             long now = _clock.CurrentTick;
-            if (tree.ActiveResearchLastConsumptionTick == 0)
-            {
-                tree.ActiveResearchLastConsumptionTick = now;
-                return;
-            }
-            if (now - tree.ActiveResearchLastConsumptionTick < ResearchConsumptionCooldownTicks) return;
-
-            var techId = tree.ActiveResearch.Value;
-            var tech = TechnologyDefinitions.Get(techId);
-            if (tech == null) { tree.ActiveResearch = null; return; }
+            long lastTick = tree.ActiveResearchLastConsumptionTick;
+            long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, ResearchConsumptionCooldownTicks, coldStartOnZero: true);
+            tree.ActiveResearchLastConsumptionTick = lastTick;
+            if (cycles <= 0) return;
 
             double speed = _state.PlayerCivilization.ResearchInvestmentSpeed;
-            long consumed = Math.Max(1L, (long)(tree.ResearchPoints / 100.0 * speed));
-            consumed = Math.Min(consumed, tree.ResearchPoints);
-            tree.ResearchPoints -= consumed;
-            tree.ActiveResearchConsumed += consumed;
-            tree.ActiveResearchLastConsumptionTick = now;
 
-            long effectiveCost = GetEffectiveCost(tech);
-            if (tree.ActiveResearchConsumed >= effectiveCost)
+            // Rejoué cycle par cycle (pas une formule fermée) : le montant consommé par cycle est un
+            // pourcentage du pool courant, donc compose d'un cycle à l'autre — et un cycle peut faire
+            // franchir un palier, ce qui bascule ActiveResearch vers la recherche suivante (file ou
+            // répétition) pour les cycles restants du même événement.
+            for (long i = 0; i < cycles; i++)
             {
-                // Compte le coût de BASE (non réduit) de la recherche terminée, pas la progression en cours
-                // ni le coût réellement payé (voir commentaire sur _totalBaseResearchCostCompleted). Pour une
-                // recherche répétable, ce coût de base croît à chaque relance (voir GetRepeatCostFactor) : il
-                // faut donc le coût du palier qui vient d'être complété, pas le coût de base du palier 1.
-                long baseCostCompleted = tech.Cost;
-                if (tech.Repeatable)
-                {
-                    int repeatCount = tree.RepeatCounts.TryGetValue(techId, out var rc) ? rc : 0;
-                    baseCostCompleted = (long)(tech.Cost * GetRepeatCostFactor(repeatCount));
-                }
-                _totalBaseResearchCostCompleted += baseCostCompleted;
-                tree.CompleteResearch(techId);
-                OnResearchCompleted?.Invoke(this, techId);
+                if (tree.ActiveResearch == null || tree.ResearchPoints <= 0) break;
 
-                // Recherche répétable en boucle : se relance elle-même indéfiniment (reste sa propre "file")
-                if (tech.Repeatable && tree.LoopResearch == techId)
-                {
-                    StartResearch(techId);
-                    return;
-                }
+                var techId = tree.ActiveResearch.Value;
+                var tech = TechnologyDefinitions.Get(techId);
+                if (tech == null) { tree.ActiveResearch = null; break; }
 
-                // Auto-démarrer la recherche suivante si elle est en file d'attente
-                if (tree.QueuedResearch.HasValue)
-                {
-                    var queued = tree.QueuedResearch.Value;
-                    tree.QueuedResearch = null;
-                    StartResearch(queued);
+                long consumed = Math.Max(1L, (long)(tree.ResearchPoints / 100.0 * speed));
+                consumed = Math.Min(consumed, tree.ResearchPoints);
+                tree.ResearchPoints -= consumed;
+                tree.ActiveResearchConsumed += consumed;
 
-                    // Si la recherche qui prend le relais est répétable, elle devient la nouvelle
-                    // répétition par défaut (comportement attendu : file et répétition ne coexistent
-                    // jamais, donc la file "se transforme" en répétition une fois lancée).
-                    var queuedTech = TechnologyDefinitions.Get(queued);
-                    if (queuedTech?.Repeatable == true)
-                        tree.LoopResearch = queued;
-                }
+                long effectiveCost = GetEffectiveCost(tech);
+                if (tree.ActiveResearchConsumed >= effectiveCost)
+                    CompleteActiveResearch(tree, techId, tech);
+            }
+        }
+
+        /// <summary>
+        /// Palier de recherche active atteint (coût couvert) : comptabilise le coût de base, marque
+        /// la recherche complétée et enchaîne — répétition en boucle ou recherche en file. Factorisé
+        /// hors de <see cref="AdvanceActiveResearch"/> pour être rejouable plusieurs fois par
+        /// événement <c>Advanced</c> quand un saut de temps fait franchir plusieurs paliers d'affilée.
+        /// </summary>
+        private void CompleteActiveResearch(TechnologyTree tree, TechnologyId techId, Technology tech)
+        {
+            // Compte le coût de BASE (non réduit) de la recherche terminée, pas la progression en cours
+            // ni le coût réellement payé (voir commentaire sur _totalBaseResearchCostCompleted). Pour une
+            // recherche répétable, ce coût de base croît à chaque relance (voir GetRepeatCostFactor) : il
+            // faut donc le coût du palier qui vient d'être complété, pas le coût de base du palier 1.
+            long baseCostCompleted = tech.Cost;
+            if (tech.Repeatable)
+            {
+                int repeatCount = tree.RepeatCounts.TryGetValue(techId, out var rc) ? rc : 0;
+                baseCostCompleted = (long)(tech.Cost * GetRepeatCostFactor(repeatCount));
+            }
+            _totalBaseResearchCostCompleted += baseCostCompleted;
+            tree.CompleteResearch(techId);
+            OnResearchCompleted?.Invoke(this, techId);
+
+            // Recherche répétable en boucle : se relance elle-même indéfiniment (reste sa propre "file")
+            if (tech.Repeatable && tree.LoopResearch == techId)
+            {
+                StartResearch(techId);
+                return;
+            }
+
+            // Auto-démarrer la recherche suivante si elle est en file d'attente
+            if (tree.QueuedResearch.HasValue)
+            {
+                var queued = tree.QueuedResearch.Value;
+                tree.QueuedResearch = null;
+                StartResearch(queued);
+
+                // Si la recherche qui prend le relais est répétable, elle devient la nouvelle
+                // répétition par défaut (comportement attendu : file et répétition ne coexistent
+                // jamais, donc la file "se transforme" en répétition une fois lancée).
+                var queuedTech = TechnologyDefinitions.Get(queued);
+                if (queuedTech?.Repeatable == true)
+                    tree.LoopResearch = queued;
             }
         }
 

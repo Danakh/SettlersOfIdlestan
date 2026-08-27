@@ -1082,6 +1082,6 @@ public class AscensionController : IModifierProvider
                 hexes.Add(hex);
 
         foreach (var hex in hexes)
-            _harvestController.ManualHarvest(civ.Index, hex);
+            _harvestController.PerformPeriodicHandOfGodHarvest(civ.Index, hex);
     }
 }
