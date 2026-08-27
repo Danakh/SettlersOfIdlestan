@@ -1295,8 +1295,12 @@ namespace SettlersOfIdlestan.Controller.Island
             long now = _clock.CurrentTick;
             var perHex = _state.GetOrCreateHarvestTimesForCiv(civilizationIndex);
             long lastTick = perHex.TryGetValue(hex, out var t) ? t : 0;
-            long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, HarvestCooldownTicks);
-            if (cycles <= 0) return;
+            long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, HarvestCooldownTicks, coldStartOnZero: true);
+            if (cycles <= 0)
+            {
+                perHex[hex] = lastTick;
+                return;
+            }
 
             for (long i = 0; i < cycles; i++)
                 if (!TryHarvestHexOnce(civilizationIndex, civ, hex, now))

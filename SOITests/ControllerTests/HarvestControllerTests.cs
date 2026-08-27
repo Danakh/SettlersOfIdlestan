@@ -113,6 +113,52 @@ namespace SOITests.ControllerTests
             Assert.Equal(6, civ.GetResourceQuantity(Resource.Wood));
         }
 
+        /// <summary>
+        /// Régression : sur un hexagone jamais récolté manuellement, le tracker de cooldown partagé
+        /// vaut 0 par défaut. Sans <c>coldStartOnZero</c>, le premier appel après un déblocage tardif
+        /// de "Main de Dieu" (tick courant très avancé) calculait <c>cycles = now / cooldownTicks</c> et
+        /// rejouait cette récolte des centaines de milliers de fois de façon synchrone (freeze à l'achat).
+        /// </summary>
+        [Fact]
+        public void PeriodicHandOfGodHarvest_FirstCallOnLateGameTick_DoesNotCatchUpFromTickZero()
+        {
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+
+            var tiles = new[]
+            {
+                new HexTile(a, TerrainType.Forest),
+                new HexTile(b, TerrainType.Plain),
+                new HexTile(c, TerrainType.Plain),
+            };
+
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var civs = new List<Civilization> { civ };
+            var state = new WorldState(map, civs, AtlasController.InvalidIslandId);
+
+            var vertex = Vertex.Create(a, b, c);
+            IslandMapGenerator generator = new IslandMapGenerator(new GamePRNG(42));
+            generator.PopulatePlayerCivilization(map, civ, vertex);
+
+            var clock = new GameClock();
+            clock.Start();
+            var harvestController = new HarvestController(state, clock);
+
+            // Simule une partie déjà très avancée (bien au-delà du cooldown de récolte) avant que le
+            // joueur n'obtienne "Main de Dieu" : l'hexagone "a" n'a jamais été récolté manuellement.
+            clock.SimulateAdvance(50_000_000);
+
+            harvestController.PerformPeriodicHandOfGodHarvest(civ.Index, a);
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
+
+            // Le cooldown reprend normalement à partir de maintenant : une seule récolte après un cycle complet.
+            clock.SimulateAdvance(HarvestController.HarvestCooldownTicks);
+            harvestController.PerformPeriodicHandOfGodHarvest(civ.Index, a);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
+        }
+
         [Fact]
         public void AutomaticHarvest_WithDominionOnHex_HarvestsFaster()
         {
