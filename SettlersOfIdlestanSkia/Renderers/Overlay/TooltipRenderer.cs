@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestanSkia.Renderers.Island;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.Monsters;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay
 {
@@ -346,9 +347,14 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             var autoResources = harvestController.GetAutomaticHarvestableResources(playerIdx, coord);
 
             var tile = WorldState.GetMapForZ(coord.Z)?.GetTile(coord);
-            if (tile != null && tile.TerrainType == TerrainType.Void) return;
+            bool tileIsHidden = tile == null || tile.TerrainType == TerrainType.Void;
+            var allFeaturesAtCoord = WorldState.Features.Where(f => f.Position.Equals(coord)).ToList();
+            // Hex non affiché (Void) : seuls les monstres (ex. Démon mineur, ActiveWhileHidden) ont une
+            // présence indépendante de la case ; Dominion/Corruption ne sont que des halos superposés au
+            // rendu de la case et n'ont donc rien à afficher tant que celle-ci n'est pas rendue.
+            var featuresAtCoord = tileIsHidden ? allFeaturesAtCoord.Where(f => f is MonsterFeature).ToList() : allFeaturesAtCoord;
+            if (tileIsHidden && featuresAtCoord.Count == 0) return;
 
-            var featuresAtCoord = WorldState.Features.Where(f => f.Position.Equals(coord));
             var featureTooltipEntries = featuresAtCoord.Select(f => f.GetTooltipEntry(WorldState.PlayerCivilization)).Where(e => e != null);
             bool harvestBlockedByFeature = featuresAtCoord.Any(f => f.BlocksHarvestFor(WorldState.PlayerCivilization));
             bool plunderCooldownActive = WorldState.PlunderCooldownUntil.TryGetValue(coord, out var plunderUntil)
@@ -356,7 +362,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             if (manualResources.Count == 0 && autoResources.Count == 0 && featureTooltipEntries.Count() == 0 && !plunderCooldownActive)
             {
-                if (tile == null) return;
+                if (tile == null || tileIsHidden) return;
                 var terrainKey = $"hex_tooltip_terrain_{tile.TerrainType.ToString().ToLower()}";
                 var earlyLines = new List<string> { _localizationService.Get(terrainKey) };
                 if (!harvestBlockedByFeature)
@@ -370,7 +376,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             var lines = new List<string>();
 
-            if (tile != null)
+            if (tile != null && !tileIsHidden)
             {
                 var terrainKey = $"hex_tooltip_terrain_{tile.TerrainType.ToString().ToLower()}";
                 lines.Add(_localizationService.Get(terrainKey));
