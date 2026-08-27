@@ -9,7 +9,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// <summary>
 /// Observatoire — Monument débloqué par la recherche Cartes des Étoiles, placé uniquement sur une
 /// Montagne de la surface. Chaque niveau abaisse le multiplicateur exponentiel du coût en points de
-/// recherche des routes du Vide, de ×3 sans Observatoire à ×2 une fois complet (voir
+/// recherche des routes du Vide, de ×3 sans Observatoire à ×2.4 une fois complet (voir
 /// <see cref="GetVoidRouteCostMultiplierForLevel"/> et RoadController.GetVoidRouteResearchCost).
 /// L'investissement combine des ressources (Verre et Acier en masse, un peu de Mithril) et des
 /// points de recherche (voir <see cref="GetLevelResearchCost"/>).
@@ -32,14 +32,14 @@ public class Observatory : Monument
     public const double BaseVoidRouteCostMultiplier = 3.0;
 
     /// <summary>Multiplicateur atteint quand l'Observatoire est complet.</summary>
-    public const double CompletedVoidRouteCostMultiplier = 2.0;
+    public const double CompletedVoidRouteCostMultiplier = 2.4;
 
     [JsonIgnore]
     public bool IsMaxLevel => Level >= MaxLevel;
 
     /// <summary>
     /// Multiplicateur appliqué au coût exponentiel de la prochaine route du Vide : ×3 au niveau 0
-    /// (aucun effet), puis un pas de 1/<see cref="MaxLevel"/> par niveau jusqu'à ×2 une fois
+    /// (aucun effet), puis un pas de 1/<see cref="MaxLevel"/> par niveau jusqu'à ×2.4 une fois
     /// l'Observatoire complet.
     /// </summary>
     public static double GetVoidRouteCostMultiplierForLevel(int level)

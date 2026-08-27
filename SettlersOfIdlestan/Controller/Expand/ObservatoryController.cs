@@ -15,7 +15,7 @@ namespace SettlersOfIdlestan.Controller.Island
     /// Monument débloqué par la recherche Cartes des Étoiles : bâti sur une Montagne de la surface,
     /// il monte de niveau par investissement progressif (Verre/Acier/Mithril + points de recherche,
     /// voir <see cref="Observatory"/>). Chaque niveau abaisse le multiplicateur exponentiel du coût
-    /// en points de recherche des routes du Vide, de ×3 à ×2 une fois l'Observatoire complet
+    /// en points de recherche des routes du Vide, de ×3 à ×2.4 une fois l'Observatoire complet
     /// (voir RoadController.GetVoidRouteResearchCost).
     /// </summary>
     public class ObservatoryController
