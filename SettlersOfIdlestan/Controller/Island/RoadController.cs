@@ -824,7 +824,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Coût de la prochaine route du Vide pour cette civilisation. Avec Cartographie du Vide
-        /// (VOID_ROUTE_COST_REDUCTION), les routes déjà bâties ne comptent que pour moitié
+        /// (VOID_ROUTE_COST_REDUCTION), les routes déjà bâties ne comptent que pour deux tiers
         /// (arrondi en faveur du joueur) dans l'exposant de <see cref="GetVoidRouteResearchCost"/> ;
         /// l'Observatoire, lui, abaisse le multiplicateur lui-même (voir
         /// <see cref="GetVoidRouteCostMultiplier"/>).
@@ -833,7 +833,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             int alreadyBuilt = civ.Roads.Count(r => IsEdgeBetweenVoidHexes(r.Position));
             if (civ.ModifierAggregator.HasModifier(Modifier.ECategory.VOID_ROUTE_COST_REDUCTION))
-                alreadyBuilt /= 2;
+                alreadyBuilt = alreadyBuilt * 2 / 3;
             return GetVoidRouteResearchCost(alreadyBuilt, GetVoidRouteCostMultiplier());
         }
 

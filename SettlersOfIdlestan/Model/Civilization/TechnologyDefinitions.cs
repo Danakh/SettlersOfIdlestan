@@ -772,8 +772,8 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_NECROPOLIS, EType.ADDITIVE, 1) },
             tier: 11, line: 5),
 
-        // Les routes du Vide déjà bâties ne comptent que pour moitié dans le coût exponentiel de la
-        // suivante : 1M × 4^n devient 1M × 4^(n/2) (voir RoadController.GetVoidRouteResearchCost).
+        // Les routes du Vide déjà bâties ne comptent que pour deux tiers dans le coût exponentiel de
+        // la suivante : 1M × 4^n devient 1M × 4^(2n/3) (voir RoadController.GetVoidRouteResearchCost).
         // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.CartographieDuVide,
             "tech_cartographie_du_vide_name", "tech_cartographie_du_vide_desc",
