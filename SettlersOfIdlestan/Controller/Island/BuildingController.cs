@@ -89,6 +89,12 @@ namespace SettlersOfIdlestan.Controller.Island
                 RecalculateStorageCapacity(civ);
                 civ.RebuildUniqueBuildingCache();
             }
+
+            // Nouvelle île (prestige/ascension) : les index de civ sont réutilisés, mais rien ne
+            // garantit que le cache "rien à construire" d'une civ de l'île précédente reste valide
+            // pour son homonyme sur la nouvelle — on repart propre plutôt que de risquer un faux
+            // positif qui bloquerait silencieusement une automatisation.
+            _guildNothingToDoCache.Clear();
         }
 
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
@@ -128,7 +134,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.IsProductionBuildingAutomationActive;
                 long tick = guild.LastProductionBuildTick;
-                TickGuildAutomation(civ, ref tick, guild.GetAutoProductionCooldownTicks(), enabled, targets, now);
+                TickGuildAutomation(civ, ref tick, guild.GetAutoProductionCooldownTicks(), enabled, targets, now, GuildAutomationKind.Harvesters);
                 guild.LastProductionBuildTick = tick;
             }
         }
@@ -146,7 +152,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.IsArtisanBuildingAutomationActive;
                 long tick = guild.LastArtisanBuildTick;
-                TickGuildAutomation(civ, ref tick, guild.GetAutoArtisanCooldownTicks(), enabled, targets, now);
+                TickGuildAutomation(civ, ref tick, guild.GetAutoArtisanCooldownTicks(), enabled, targets, now, GuildAutomationKind.Artisans);
                 guild.LastArtisanBuildTick = tick;
             }
         }
@@ -164,7 +170,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.IsLibraryBuildingAutomationActive;
                 long tick = academy.LastLibraryBuildTick;
-                TickGuildAutomation(civ, ref tick, academy.GetAutoLibraryCooldownTicks(), enabled, targets, now);
+                TickGuildAutomation(civ, ref tick, academy.GetAutoLibraryCooldownTicks(), enabled, targets, now, GuildAutomationKind.Academy);
                 academy.LastLibraryBuildTick = tick;
             }
         }
@@ -182,7 +188,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.IsMarketBuildingAutomationActive;
                 long tick = guild.LastMarketBuildTick;
-                TickGuildAutomation(civ, ref tick, guild.GetAutoMarketCooldownTicks(), enabled, targets, now);
+                TickGuildAutomation(civ, ref tick, guild.GetAutoMarketCooldownTicks(), enabled, targets, now, GuildAutomationKind.Trader);
                 guild.LastMarketBuildTick = tick;
             }
         }
@@ -200,7 +206,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.IsMilitaryBuildingAutomationActive;
                 long tick = warRoom.LastMilitaryBuildTick;
-                TickGuildAutomation(civ, ref tick, warRoom.GetAutoMilitaryCooldownTicks(), enabled, targets, now);
+                TickGuildAutomation(civ, ref tick, warRoom.GetAutoMilitaryCooldownTicks(), enabled, targets, now, GuildAutomationKind.WarRoom);
                 warRoom.LastMilitaryBuildTick = tick;
             }
         }
@@ -218,7 +224,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.IsTownHallAutomationActive;
                 long tick = guild.LastTownHallBuildTick;
-                TickGuildAutomation(civ, ref tick, guild.GetAutoTownHallCooldownTicks(), enabled, targets, now);
+                TickGuildAutomation(civ, ref tick, guild.GetAutoTownHallCooldownTicks(), enabled, targets, now, GuildAutomationKind.TownHall);
                 guild.LastTownHallBuildTick = tick;
             }
         }
@@ -236,7 +242,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.IsTempleAutomationActive;
                 long tick = grandTemple.LastTempleBuildTick;
-                TickGuildAutomation(civ, ref tick, grandTemple.GetAutoTempleCooldownTicks(), enabled, targets, now);
+                TickGuildAutomation(civ, ref tick, grandTemple.GetAutoTempleCooldownTicks(), enabled, targets, now, GuildAutomationKind.GrandTemple);
                 grandTemple.LastTempleBuildTick = tick;
             }
         }
@@ -254,7 +260,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.IsMithrilMineBuildingAutomationActive;
                 long tick = forge.LastMithrilMineBuildTick;
-                TickGuildAutomation(civ, ref tick, forge.GetAutoMithrilMineCooldownTicks(), enabled, targets, now);
+                TickGuildAutomation(civ, ref tick, forge.GetAutoMithrilMineCooldownTicks(), enabled, targets, now, GuildAutomationKind.VolcanicForge);
                 forge.LastMithrilMineBuildTick = tick;
             }
         }
@@ -272,7 +278,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.IsArcaneTowerBuildingAutomationActive;
                 long tick = arcaneTower.LastMagicBuildTick;
-                TickGuildAutomation(civ, ref tick, arcaneTower.GetAutoMagicCooldownTicks(), enabled, targets, now);
+                TickGuildAutomation(civ, ref tick, arcaneTower.GetAutoMagicCooldownTicks(), enabled, targets, now, GuildAutomationKind.ArcaneTower);
                 arcaneTower.LastMagicBuildTick = tick;
             }
         }
@@ -289,9 +295,30 @@ namespace SettlersOfIdlestan.Controller.Island
 
             bool enabled = _state.AutomationSettings.IsSeaportBuildingAutomationActive;
             long tick = imperialPort.LastSeaportBuildTick;
-            TickGuildAutomation(civ, ref tick, imperialPort.GetAutoSeaportCooldownTicks(), enabled, [BuildingType.Seaport], now);
+            TickGuildAutomation(civ, ref tick, imperialPort.GetAutoSeaportCooldownTicks(), enabled, [BuildingType.Seaport], now, GuildAutomationKind.ImperialPort);
             imperialPort.LastSeaportBuildTick = tick;
         }
+
+        /// <summary>
+        /// Une entrée par méthode d'automatisation de guilde (voir les 10 <c>PerformXAutomation</c>
+        /// ci-dessus) — sert de clé au cache <see cref="_guildNothingToDoCache"/>, indépendant du
+        /// tableau <c>targets</c> passé à chaque appel (qui n'a pas d'identité stable à comparer).
+        /// </summary>
+        private enum GuildAutomationKind
+        {
+            Harvesters, Artisans, Academy, Trader, WarRoom, TownHall, GrandTemple, VolcanicForge, ArcaneTower, ImperialPort
+        }
+
+        /// <summary>
+        /// Mémorise, par (civ, guilde), le triplet de versions (bâtiments/modifiers/presets) sous
+        /// lequel un dernier passage n'a rien trouvé à construire/améliorer pour cette guilde. Tant
+        /// qu'aucun des trois n'a bougé, un nouveau passage donnerait exactement le même résultat :
+        /// <see cref="TryPerformOneGuildAction"/> (balayage ville×type, coûteux en fin de partie avec
+        /// des centaines de villes) peut être sauté. Volontairement pas de suivi par abonnement à un
+        /// événement : les civs PNJ peuvent apparaître/disparaître en cours de partie
+        /// (AutoExtendController), et un abonnement oublié à la désinscription fuirait.
+        /// </summary>
+        private readonly Dictionary<(int CivIndex, GuildAutomationKind Kind), (int Buildings, int Modifiers, int Presets)> _guildNothingToDoCache = new();
 
         private void TickGuildAutomation(
             Model.Civilization.Civilization civ,
@@ -299,7 +326,8 @@ namespace SettlersOfIdlestan.Controller.Island
             long cooldown,
             bool enabled,
             BuildingType[] targets,
-            long now)
+            long now,
+            GuildAutomationKind kind)
         {
             if (!enabled) { lastTick = now; return; }
             if (lastTick == 0) { lastTick = now; return; }
@@ -313,13 +341,25 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var presets = _state.AutomationSettings;
 
+            var cacheKey = (civ.Index, kind);
+            var versions = (civ.BuildingsVersion, civ.ModifierAggregator.Version, presets.PresetsVersion);
+            if (_guildNothingToDoCache.TryGetValue(cacheKey, out var cachedVersions) && cachedVersions == versions)
+                return;
+
             // Un cycle = une construction/amélioration (comportement inchangé : au plus une action par
             // cooldown écoulé), rejoué `cycles` fois pour rattraper un saut de temps. S'arrête dès qu'un
             // cycle ne trouve plus rien à faire — les cycles suivants échoueraient pour la même raison
             // (aucune ressource supplémentaire n'est produite entre deux cycles de cette boucle).
             for (long i = 0; i < cycles; i++)
                 if (!TryPerformOneGuildAction(civ, presets, targets))
+                {
+                    // Rien trouvé à ce triplet de versions (celui d'après un éventuel build réussi
+                    // plus tôt dans cette même rafale de cycles, cf. BuildingsVersion incrémenté par
+                    // BuildBuilding) : un futur appel peut sauter le balayage tant que rien de ça ne
+                    // change — nouvelle ville, modifier (recherche/prestige/rituel...) ou preset.
+                    _guildNothingToDoCache[cacheKey] = (civ.BuildingsVersion, civ.ModifierAggregator.Version, presets.PresetsVersion);
                     break;
+                }
         }
 
         /// <summary>

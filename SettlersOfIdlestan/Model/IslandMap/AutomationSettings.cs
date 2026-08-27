@@ -39,6 +39,11 @@ public class AutomationSettings
     public int GetActivePresetCap(BuildingType type) =>
         _presetSource?.AutomationPresets.GetActiveCap(type) ?? AutomationPresetSettings.DefaultCap;
 
+    /// <summary>Version courante des plafonds de preset (voir AutomationPresetSettings.Version),
+    /// consultée par BuildingController.TickGuildAutomation pour son cache "rien à construire".</summary>
+    [JsonIgnore]
+    public int PresetsVersion => _presetSource?.AutomationPresets.Version ?? 0;
+
     public bool RoadAutomationEnabled { get; set; } = true;
     [JsonIgnore] public bool IsRoadAutomationActive => Active(RoadAutomationEnabled);
 

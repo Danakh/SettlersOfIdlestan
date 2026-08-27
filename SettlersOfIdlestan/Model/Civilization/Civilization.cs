@@ -685,6 +685,18 @@ public class Civilization
     }
 
     /// <summary>
+    /// Compteur incrémenté à chaque <see cref="InvalidateBuildingDerivedCaches"/> — permet à un
+    /// appelant externe (ex. BuildingController.TickGuildAutomation) de savoir, par simple
+    /// comparaison d'entier, si quelque chose a changé côté bâtiments depuis son dernier passage,
+    /// sans avoir à s'abonner/désabonner à un événement (risque de fuite si la civ est créée puis
+    /// détruite en cours de partie, ex. AutoExtendController). Non sérialisé : redémarre à 0 à
+    /// chaque chargement, ce qui est sans effet puisque les caches qui le consultent redémarrent
+    /// vides aussi.
+    /// </summary>
+    [JsonIgnore]
+    public int BuildingsVersion { get; private set; }
+
+    /// <summary>
     /// Invalide les caches dérivés des bâtiments des villes. Appelé automatiquement à toute mutation
     /// de bâtiments et à tout ajout/retrait de ville ; à appeler manuellement après un changement de
     /// <c>Building.Level</c>, que la liste des bâtiments ne reflète pas.
@@ -693,6 +705,7 @@ public class Civilization
     {
         _hasMarket = null;
         _citiesByBuildingType = null;
+        BuildingsVersion++;
     }
 
     [JsonIgnore]

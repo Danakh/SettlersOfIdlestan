@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Buildings;
 
 namespace SettlersOfIdlestan.Model.Prestige;
@@ -26,6 +27,15 @@ public class AutomationPresetSettings
     public Dictionary<BuildingType, int> Preset2Caps { get; set; } = new();
     public Dictionary<BuildingType, int> Preset3Caps { get; set; } = new();
 
+    /// <summary>
+    /// Incrémenté à toute mutation d'un plafond ou du preset actif — permet à
+    /// BuildingController.TickGuildAutomation de savoir si son cache "rien à construire" pour cette
+    /// civ est encore valide sans s'abonner à un événement. Non sérialisé : redémarre à 0 à chaque
+    /// chargement, sans effet puisque le cache qui le consulte redémarre vide aussi.
+    /// </summary>
+    [JsonIgnore]
+    public int Version { get; private set; }
+
     private Dictionary<BuildingType, int> CapsFor(int preset) => preset switch
     {
         2 => Preset2Caps,
@@ -36,12 +46,19 @@ public class AutomationPresetSettings
     public int GetCap(int preset, BuildingType type) =>
         CapsFor(preset).TryGetValue(type, out var v) ? v : DefaultCap;
 
-    public void SetCap(int preset, BuildingType type, int value) =>
+    public void SetCap(int preset, BuildingType type, int value)
+    {
         CapsFor(preset)[type] = Math.Clamp(value, MinCap, MaxCap);
+        Version++;
+    }
 
     public int GetActiveCap(BuildingType type) => GetCap(ActivePreset, type);
 
-    public void SetActivePreset(int preset) => ActivePreset = Math.Clamp(preset, 1, PresetCount);
+    public void SetActivePreset(int preset)
+    {
+        ActivePreset = Math.Clamp(preset, 1, PresetCount);
+        Version++;
+    }
 
     /// <summary>
     /// Ramène chaque plafond stocké au niveau max théorique courant du bâtiment concerné, s'il le
@@ -66,5 +83,6 @@ public class AutomationPresetSettings
         ClampCaps(Preset1Caps);
         ClampCaps(Preset2Caps);
         ClampCaps(Preset3Caps);
+        Version++;
     }
 }

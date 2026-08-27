@@ -17,6 +17,13 @@ public class ModifierAggregator
     public event Action? Changed;
 
     /// <summary>
+    /// Incrémenté à chaque <see cref="Invalidate"/> — permet à un appelant externe de détecter un
+    /// changement par simple comparaison d'entier plutôt qu'en s'abonnant à <see cref="Changed"/>
+    /// (voir Civilization.BuildingsVersion pour la même idée côté bâtiments).
+    /// </summary>
+    public int Version { get; private set; }
+
+    /// <summary>
     /// Enregistre un provider. Idempotent pour la même instance : un appelant réinvoqué sur une
     /// civilisation déjà initialisée (ex. MainGameController.SetupModifierAggregators rappelé sur le
     /// même WorldState via SetGame/SetGameFromSave sans régénération d'île) ne doit pas compter ses
@@ -49,6 +56,7 @@ public class ModifierAggregator
     private void Invalidate()
     {
         _dirty = true;
+        Version++;
         Changed?.Invoke();
     }
 
