@@ -722,6 +722,78 @@ public class AscensionControllerTests
         }
     }
 
+    /// <summary>Crée une couche Inframonde (triangle Montagne par défaut) et l'attache à l'état de test.</summary>
+    private static HexCoord AddUnderworldLayerWithDominion(WorldState state, int dominionLevel)
+    {
+        var layer = LayerState.EstablishOupostInNewAutoExpandLayer(state.PlayerCivilization, LayerState.UnderworldZ);
+        state.AddLayer(LayerState.UnderworldZ, layer);
+
+        var hex = new HexCoord(0, 0, LayerState.UnderworldZ);
+        state.AddFeature(new Dominion(hex, dominionLevel));
+        return hex;
+    }
+
+    [Fact]
+    public void ApplyWalkOfGod_OnUnderworldHex_WithSufficientDominion_Succeeds()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+        var hex = AddUnderworldLayerWithDominion(state, dominionLevel: 5);
+
+        Assert.Contains(hex, ascension.GetWalkOfGodTargetHexes());
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.NotEqual(TerrainType.Mountain, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints); // Première marche : gratuite.
+    }
+
+    /// <summary>Le pool aléatoire souterrain (AscensionController.UnderworldRandomTerrainPool) ne contient ni Forêt ni Plaine, absentes sous terre.</summary>
+    [Fact]
+    public void ApplyWalkOfGod_OnUnderworldHex_NeverGrowsForestOrPlain()
+    {
+        for (int seed = 1; seed <= 10; seed++)
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var godState = new GodState { GodPoints = 100 };
+            godState.PrestigeState = new PrestigeState(state) { PrestigePoints = 10 };
+            var ascension = new AscensionController();
+            ascension.Initialize(state, clock: null, new GamePRNG(seed), new HarvestController(), godState);
+            UnlockWalkOfGod(ascension);
+            var hex = AddUnderworldLayerWithDominion(state, dominionLevel: 5);
+
+            Assert.True(ascension.ApplyWalkOfGod(hex));
+            var terrain = state.GetMapFor(hex)!.GetTile(hex)!.TerrainType;
+            Assert.NotEqual(TerrainType.Forest, terrain);
+            Assert.NotEqual(TerrainType.Plain, terrain);
+        }
+    }
+
+    /// <summary>
+    /// Sous terre, il n'y a pas de Forêt : pour un Elfe, le terrain de prédilection traduit via
+    /// TerrainTypeExtensions.UnderworldEquivalent devient la Caverne aux champignons.
+    /// </summary>
+    [Fact]
+    public void ApplyWalkOfGod_ElfInUnderworld_GrowsMushroomCaveInsteadOfForest()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        godState.AscensionState.SelectedRace = RaceId.Elf;
+        UnlockWalkOfGod(ascension);
+        var hex = AddUnderworldLayerWithDominion(state, dominionLevel: 5);
+
+        Assert.Equal(TerrainType.Mountain, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.Equal(TerrainType.MushroomCave, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+    }
+
+    [Fact]
+    public void GetWalkOfGodTargetHexes_IncludesUnderworldHexesWithSufficientDominion()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+        var hex = AddUnderworldLayerWithDominion(state, dominionLevel: 2);
+
+        Assert.Contains(hex, ascension.GetWalkOfGodTargetHexes());
+    }
+
     [Fact]
     public void GetWalkOfGodCost_DoublesFromWalkOfGodUsesSinceLastPrestige()
     {

@@ -552,6 +552,64 @@ public class RaceSystemTests
         Assert.Contains(vertices, v => v.Equals(v3));
     }
 
+    // ── Restriction de terrain en Inframonde (Elfes / Caverne aux champignons) ──────────
+    //
+    // Même layout "ruban" que RibbonIsland, mais sur la couche Inframonde et avec la Caverne aux
+    // champignons à la place de la Forêt (absente sous terre — voir TerrainTypeExtensions.UnderworldEquivalent).
+
+    private static HexCoord HU(int q, int r) => new(q, r, LayerState.UnderworldZ);
+
+    private static (WorldState state, Civilization civ, Vertex v1, Vertex v2) UnderworldRibbonIsland()
+    {
+        var h1 = HU(0, 0);
+        var h2 = HU(1, 0);
+        var h3 = HU(0, 1);
+        var h4 = HU(1, 1);
+        var h5 = HU(0, 2);
+
+        var underworldMap = new IslandMap(new HexTile[]
+        {
+            new(h1, TerrainType.Mountain),
+            new(h2, TerrainType.Mountain),
+            new(h3, TerrainType.Mountain),
+            new(h4, TerrainType.Mountain),
+            new(h5, TerrainType.MushroomCave),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(new IslandMap(Array.Empty<HexTile>()), new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        state.AddLayer(LayerState.UnderworldZ, new LayerState(underworldMap));
+
+        return (state, civ, Vertex.Create(h1, h2, h3), Vertex.Create(h3, h4, h5));
+    }
+
+    [Fact]
+    public void BuildCityPlacementTerrainFilter_ElfInUnderworld_RequiresMushroomCaveAdjacency()
+    {
+        var (state, civ, v1, v2) = UnderworldRibbonIsland();
+        AddRaceModifiers(civ, new Modifier(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN, nameof(TerrainType.Forest), EType.ADDITIVE, 1));
+
+        var filter = Controller(state).BuildCityPlacementTerrainFilter(civ);
+
+        // v1 ne touche aucune Caverne aux champignons ; v2 touche h5 (Caverne aux champignons).
+        Assert.False(filter(v1));
+        Assert.True(filter(v2));
+    }
+
+    [Fact]
+    public void BuildCityPlacementTerrainFilter_DwarfInUnderworld_RemainsUnrestricted()
+    {
+        // Comportement préservé : seule la Forêt (Elfes) a un équivalent souterrain. La Montagne
+        // (Nains) existe déjà sous terre littéralement, mais aucune restriction n'y est ajoutée —
+        // seul le cas explicitement demandé (Elfes) change de comportement.
+        var (state, civ, v1, _) = UnderworldRibbonIsland();
+        AddRaceModifiers(civ, new Modifier(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN, nameof(TerrainType.Mountain), EType.ADDITIVE, 1));
+
+        var filter = Controller(state).BuildCityPlacementTerrainFilter(civ);
+
+        Assert.True(filter(v1));
+    }
+
     [Fact]
     public void GetBuildableVertices_TerrainRestriction_CacheInvalidatedByNotifyTerrainChanged()
     {

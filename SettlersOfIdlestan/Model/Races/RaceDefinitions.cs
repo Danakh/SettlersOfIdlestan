@@ -75,7 +75,11 @@ public static class RaceDefinitions
             }),
 
         // Elfes : nouvelles villes uniquement adjacentes à une Forêt ; en échange, scieries et
-        // recherche accélérées. Déblocage : Marche de Dieu, Ascension Prestigieuse, Mémoire de Dieu.
+        // recherche accélérées. En Inframonde, où la Forêt n'existe pas, l'exigence porte sur son
+        // équivalent souterrain, la Caverne aux champignons (voir
+        // TerrainTypeExtensions.UnderworldEquivalent et CityBuilderController.SatisfiesCityTerrainRestriction) ;
+        // Marche de Dieu y fait pousser ce même équivalent (AscensionController.ApplyWalkOfGod).
+        // Déblocage : Marche de Dieu, Ascension Prestigieuse, Mémoire de Dieu.
         new RaceDefinition(RaceId.Elf, RaceTier.Base,
             requiredAdjacentTerrain: TerrainType.Forest,
             racialBuilding: BuildingType.HeartTree,

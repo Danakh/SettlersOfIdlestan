@@ -92,6 +92,19 @@ public class AscensionController : IModifierProvider
         TerrainType.Forest, TerrainType.Hill, TerrainType.Plain, TerrainType.Mountain, TerrainType.Desert
     };
 
+    /// <summary>
+    /// Terrains pouvant pousser en Inframonde (voir <see cref="ApplyWalkOfGod"/>) : ni Forêt ni
+    /// Plaine, absentes du pool sous terre (voir AutoExtendController.TerrainPool).
+    /// </summary>
+    private static readonly TerrainType[] UnderworldRandomTerrainPool =
+    {
+        TerrainType.Hill, TerrainType.Mountain, TerrainType.Desert, TerrainType.MushroomCave,
+        TerrainType.MithrilVein, TerrainType.CrystalCave
+    };
+
+    /// <summary>Couches ciblables par Marche de Dieu (voir <see cref="GetWalkOfGodTargetHexes"/>) : surface et Inframonde, jamais l'Abysse ni le Pandémonium.</summary>
+    private static readonly int[] WalkOfGodLayers = { IslandMap.SurfaceLayer, LayerState.UnderworldZ };
+
     private WorldState? _state;
     private GameClock? _clock;
     private GamePRNG? _prng;
@@ -720,22 +733,29 @@ public class AscensionController : IModifierProvider
     public const int WalkOfGodMinDominionLevel = 2;
 
     /// <summary>
-    /// Hexs ciblables par Marche de Dieu : les hexs de la carte de surface (Eau incluse) portant un
-    /// Dominion de niveau <see cref="WalkOfGodMinDominionLevel"/> ou plus — Dieu ne marche que là où
-    /// son emprise est déjà établie. Le Dominion pouvant s'étendre sur l'eau, c'est ainsi qu'on
+    /// Hexs ciblables par Marche de Dieu : les hexs de la surface et de l'Inframonde (Eau incluse,
+    /// voir <see cref="WalkOfGodLayers"/>) portant un Dominion de niveau
+    /// <see cref="WalkOfGodMinDominionLevel"/> ou plus — Dieu ne marche que là où son emprise est
+    /// déjà établie. L'Abysse et le Pandémonium restent hors de portée (voir
+    /// <see cref="ApplyWalkOfGod"/>). Le Dominion pouvant s'étendre sur l'eau, c'est ainsi qu'on
     /// terraforme la mer : y faire croître le Dominion, puis y marcher.
     /// </summary>
     public IReadOnlyList<HexCoord> GetWalkOfGodTargetHexes()
     {
         if (_state == null) return Array.Empty<HexCoord>();
 
-        var map = _state.GetMapForZ(IslandMap.SurfaceLayer);
-        if (map == null) return Array.Empty<HexCoord>();
+        var result = new List<HexCoord>();
+        foreach (var z in WalkOfGodLayers)
+        {
+            var map = _state.GetMapForZ(z);
+            if (map == null) continue;
 
-        return map.Tiles.Values
-            .Select(t => t.Coord)
-            .Where(c => GetWalkOfGodDominion(c) != null)
-            .ToList();
+            result.AddRange(map.Tiles.Values
+                .Select(t => t.Coord)
+                .Where(c => GetWalkOfGodDominion(c) != null));
+        }
+
+        return result;
     }
 
     /// <summary>Dominion de niveau suffisant (voir <see cref="WalkOfGodMinDominionLevel"/>) sur l'hex, ou null.</summary>
@@ -796,6 +816,13 @@ public class AscensionController : IModifierProvider
     /// déterminisme et retombe sur un terrain tiré au sort : la marche transforme, elle ne conserve
     /// pas. Pour une race sans contrainte, tout tirage est aléatoire, comme avant.</para>
     ///
+    /// <para>En Inframonde, le pool de terrains tirés au sort change
+    /// (<see cref="UnderworldRandomTerrainPool"/> : ni Forêt ni Plaine, absentes sous terre) et le
+    /// terrain de prédilection est traduit via <see cref="TerrainTypeExtensions.UnderworldEquivalent"/>
+    /// — Forêt devient Caverne aux champignons pour un Elfe ; une race dont le terrain de
+    /// prédilection n'a pas d'équivalent souterrain (Eau des Sirènes) retombe sur un tirage aléatoire,
+    /// comme une race sans contrainte.</para>
+    ///
     /// <para>Si l'hex ciblé était de l'eau, les hexs voisins qui n'existaient pas encore sont créés en
     /// tant qu'eau.</para>
     /// </summary>
@@ -803,10 +830,11 @@ public class AscensionController : IModifierProvider
     {
         if (_state == null || _prng == null || !CanUseWalkOfGod()) return false;
 
-        // Marche de Dieu ne cible que la carte de surface (voir GetWalkOfGodTargetHexes) : ce garde-fou
-        // ne dépend pas seulement du filtrage de l'UI, il rend l'invariant vrai même pour un appelant
-        // direct (test, futur code) qui passerait un hex d'Inframonde/Abysse/Pandémonium.
-        if (hex.Z != IslandMap.SurfaceLayer) return false;
+        // Marche de Dieu ne cible que la surface et l'Inframonde (voir GetWalkOfGodTargetHexes) : ce
+        // garde-fou ne dépend pas seulement du filtrage de l'UI, il rend l'invariant vrai même pour un
+        // appelant direct (test, futur code) qui passerait un hex d'Abysse/Pandémonium.
+        bool isUnderworld = hex.Z == LayerState.UnderworldZ;
+        if (hex.Z != IslandMap.SurfaceLayer && !isUnderworld) return false;
 
         var map = _state.GetMapFor(hex);
         var tile = map?.GetTile(hex);
@@ -817,14 +845,17 @@ public class AscensionController : IModifierProvider
 
         bool wasWater = tile.TerrainType == TerrainType.Water;
 
+        var pool = isUnderworld ? UnderworldRandomTerrainPool : RandomTerrainPool;
+        var favouredTerrain = isUnderworld ? FavouredTerrain?.UnderworldEquivalent() : FavouredTerrain;
+
         TerrainType newType;
-        if (FavouredTerrain is { } favoured && tile.TerrainType != favoured)
+        if (favouredTerrain is { } favoured && tile.TerrainType != favoured)
         {
             newType = favoured;
         }
         else
         {
-            do { newType = RandomTerrainPool[_prng.Next(RandomTerrainPool.Length)]; }
+            do { newType = pool[_prng.Next(pool.Length)]; }
             while (newType == tile.TerrainType);
         }
 

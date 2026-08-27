@@ -36,4 +36,16 @@ public static class TerrainTypeExtensions
     public static bool IsWater(this TerrainType terrain) => terrain is TerrainType.Water or TerrainType.DeepWater;
 
     public static bool IsVoid(this TerrainType terrain) => terrain == TerrainType.Void;
+
+    /// <summary>
+    /// Équivalent souterrain d'un terrain de surface exigé par une restriction raciale de placement
+    /// de ville ou par Marche de Dieu (voir CityBuilderController.SatisfiesCityTerrainRestriction et
+    /// AscensionController.ApplyWalkOfGod) : seule la Forêt a un équivalent en Inframonde (Caverne
+    /// aux champignons — le pool de terrains souterrains ne contient ni Forêt ni Eau, voir
+    /// AutoExtendController.TerrainPool). Tout autre terrain retourne <c>null</c>, ce qui laisse la
+    /// restriction/la croissance déterministe inopérante sous terre plutôt que de forcer un terrain
+    /// qui n'y existe pas.
+    /// </summary>
+    public static TerrainType? UnderworldEquivalent(this TerrainType terrain)
+        => terrain == TerrainType.Forest ? TerrainType.MushroomCave : null;
 }

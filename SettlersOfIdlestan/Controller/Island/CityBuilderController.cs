@@ -445,8 +445,14 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Vrai si le vertex respecte la restriction raciale de terrain (adjacence stricte OU
-        /// portée). Seule la surface est concernée : l'Inframonde et l'Abysse restent libres (leurs
-        /// terrains propres rendraient toute restriction de surface injouable).
+        /// portée).
+        ///
+        /// <para>En surface, exigence et portées sont vérifiées telles quelles. En Inframonde, seule
+        /// l'adjacence stricte est réévaluée via son équivalent souterrain (voir
+        /// <see cref="TerrainTypeExtensions.UnderworldEquivalent"/> — seule la Forêt des Elfes en a
+        /// un, la Caverne aux champignons ; les portées de terrain (Eau des Sirènes) restent sans
+        /// effet sous terre faute d'équivalent). L'Abysse et le Pandémonium restent toujours libres :
+        /// aucun de leurs terrains n'a d'équivalent racial connu.</para>
         /// </summary>
         /// <param name="terrainRangeSets">Ensembles pré-calculés par <see cref="BuildTerrainRangeSets"/>,
         /// ou <c>null</c> si aucune portée de terrain n'est exigée.</param>
@@ -454,21 +460,39 @@ namespace SettlersOfIdlestan.Controller.Island
             List<HashSet<Vertex>>? terrainRangeSets)
         {
             if (requiredTerrains.Count == 0 && terrainRangeSets == null) return true;
-            if (vertex.Z != IslandMap.SurfaceLayer) return true;
 
-            var map = _state!.GetMapFor(vertex);
-            if (map == null) return false;
+            if (vertex.Z == IslandMap.SurfaceLayer)
+            {
+                var map = _state!.GetMapFor(vertex);
+                if (map == null) return false;
 
-            foreach (var terrain in requiredTerrains)
-                if (map.VertexHasTerrainType(vertex, terrain))
-                    return true;
-
-            if (terrainRangeSets != null)
-                foreach (var set in terrainRangeSets)
-                    if (set.Contains(vertex))
+                foreach (var terrain in requiredTerrains)
+                    if (map.VertexHasTerrainType(vertex, terrain))
                         return true;
 
-            return false;
+                if (terrainRangeSets != null)
+                    foreach (var set in terrainRangeSets)
+                        if (set.Contains(vertex))
+                            return true;
+
+                return false;
+            }
+
+            if (vertex.Z != LayerState.UnderworldZ) return true;
+
+            var underworldMap = _state!.GetMapFor(vertex);
+            if (underworldMap == null) return true;
+
+            bool hasUnderworldRequirement = false;
+            foreach (var terrain in requiredTerrains)
+            {
+                if (terrain.UnderworldEquivalent() is not { } equivalent) continue;
+                hasUnderworldRequirement = true;
+                if (underworldMap.VertexHasTerrainType(vertex, equivalent))
+                    return true;
+            }
+
+            return !hasUnderworldRequirement;
         }
 
         /// <summary>
