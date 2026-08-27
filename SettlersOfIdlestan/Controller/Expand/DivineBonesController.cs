@@ -76,6 +76,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 // panneau affiche un coût à jour dès qu'une autre Purification a fait progresser N
                 // — ou qu'une Ascension l'a remis à zéro.
                 bones.EssenceAlreadyCollected = _godState.DivineEssence;
+                bones.UnlockedPowersBonus = _godState.AscensionState.UnlockedPowers.Count;
 
                 var investmentCost = bones.GetInvestmentCost(playerCiv);
 
@@ -101,7 +102,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 // GodState.DivineEssence ne compte déjà pas les essences garanties par le Reliquaire
                 // (GodState.DivineEssenceReliquaryFloor, distinct) : un Reliquaire plein n'interdit
                 // donc jamais de nouvelles essences en début de cycle.
-                int essenceCap = bones.GetEssenceCap() + _godState.AscensionState.UnlockedPowers.Count;
+                int essenceCap = bones.GetEssenceCap();
                 bones.EssenceGranted = _godState.DivineEssence < essenceCap;
                 if (bones.EssenceGranted)
                 {

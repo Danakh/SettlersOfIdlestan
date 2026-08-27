@@ -14,8 +14,9 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// retirée de la carte (voir DivineBonesController.ProcessInvestment) — Purified/EssenceGranted ne
 /// sont donc observables que de manière transitoire, avant suppression. La Purification octroie
 /// directement 1 essence divine (GodState.DivineEssence),
-/// sauf si le plafond de la feature (voir <see cref="GetEssenceCap"/>, lié au niveau de corruption)
-/// est déjà atteint — auquel cas la Purification a quand même lieu, mais n'accorde aucune essence.
+/// sauf si le plafond de la feature (voir <see cref="GetEssenceCap"/>, lié au niveau de corruption et
+/// au nombre de pouvoirs divins débloqués) est déjà atteint — auquel cas la Purification a quand même
+/// lieu, mais n'accorde aucune essence.
 /// Les essences divines sont normalement perdues au prestige (sauf un nombre limité conservé par
 /// ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE — voir Reliquaire Sacré/Renforcé et
 /// PrestigeController.PerformPrestige).
@@ -59,6 +60,16 @@ public class DivineBones : Monument
     /// </summary>
     public int EssenceAlreadyCollected { get; set; } = 0;
 
+    /// <summary>
+    /// Nombre de pouvoirs divins débloqués (GodState.AscensionState.UnlockedPowers.Count), resynchronisé
+    /// à chaque tick par DivineBonesController comme <see cref="EssenceAlreadyCollected"/>. Vient
+    /// s'ajouter au niveau de corruption dans <see cref="GetEssenceCap"/> — stocké sur la feature pour
+    /// la même raison que EssenceAlreadyCollected (GetEssenceCap n'a accès qu'à la civilisation/à
+    /// elle-même, pas au GodState cross-prestige, et c'est de cette valeur que dépendent aussi bien le
+    /// tooltip que le panneau de Monument sélectionné).
+    /// </summary>
+    public int UnlockedPowersBonus { get; set; } = 0;
+
     public const long BaseCrystalCost = 250;
 
     /// <summary>Coût en Mithril (indépendant du coût en Cristal depuis sa réduction de moitié).</summary>
@@ -69,11 +80,13 @@ public class DivineBones : Monument
 
     /// <summary>
     /// Nombre maximum d'essences divines que le joueur peut détenir (GodState.DivineEssence) au
-    /// niveau de corruption de cette feature : égal au niveau de corruption lui-même. Pour en
-    /// obtenir davantage, il faut prestige afin d'augmenter le niveau de corruption (voir
-    /// PrestigeState.CurrentCorruptionLevel).
+    /// niveau de corruption de cette feature : le niveau de corruption lui-même, plus 1 par pouvoir
+    /// divin déjà débloqué (voir <see cref="UnlockedPowersBonus"/>, et
+    /// AscensionController.GetDivineEssenceCap pour l'équivalent cross-feature). Pour en obtenir
+    /// davantage, il faut donc soit prestige pour relever la corruption, soit débloquer un nouveau
+    /// pouvoir divin.
     /// </summary>
-    public int GetEssenceCap() => Math.Max(0, CorruptionLevel);
+    public int GetEssenceCap() => Math.Max(0, CorruptionLevel) + UnlockedPowersBonus;
 
     /// <summary>Multiplicateur appliqué au niveau de corruption de l'île pour obtenir le plafond de génération.</summary>
     public const int CorruptionCapMultiplier = 2;
