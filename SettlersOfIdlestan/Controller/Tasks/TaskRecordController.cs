@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
@@ -40,6 +41,7 @@ public class TaskRecordController
     private TradeController? _tradeController;
     private WonderController? _wonderController;
     private CorruptionSpireController? _corruptionSpireController;
+    private DivineBonesController? _divineBonesController;
 
     public event EventHandler<TutorialTaskId>? OnTaskCompleted;
     public event EventHandler<GameRecord>? PrestigeRecorded;
@@ -66,6 +68,7 @@ public class TaskRecordController
         TradeController tradeController,
         WonderController wonderController,
         CorruptionSpireController corruptionSpireController,
+        DivineBonesController divineBonesController,
         GodState godState,
         PlayerLifetimeStats lifetimeStats)
     {
@@ -85,6 +88,7 @@ public class TaskRecordController
         _tradeController = tradeController;
         _wonderController = wonderController;
         _corruptionSpireController = corruptionSpireController;
+        _divineBonesController = divineBonesController;
         _godState = godState;
         _lifetimeStats = lifetimeStats;
         _lastSyncedGodPointsEarned = godState.TotalGodPointsEarned;
@@ -102,6 +106,7 @@ public class TaskRecordController
         _wonderController.OnWonderPlaced += HandleWonderPlaced;
         _wonderController.OnWonderLevelUp += HandleWonderLevelUp;
         _corruptionSpireController.OnCorruptionSpireBuilt += HandleCorruptionSpireBuilt;
+        _divineBonesController.OnDivineBonesPurified += HandleDivineBonesPurified;
 
         RebuildPendingTaskIndices();
     }
@@ -121,6 +126,7 @@ public class TaskRecordController
         if (_wonderController != null) _wonderController.OnWonderPlaced -= HandleWonderPlaced;
         if (_wonderController != null) _wonderController.OnWonderLevelUp -= HandleWonderLevelUp;
         if (_corruptionSpireController != null) _corruptionSpireController.OnCorruptionSpireBuilt -= HandleCorruptionSpireBuilt;
+        if (_divineBonesController != null) _divineBonesController.OnDivineBonesPurified -= HandleDivineBonesPurified;
     }
 
     /// <summary>
@@ -156,6 +162,11 @@ public class TaskRecordController
     {
         if (_lifetimeStats != null)
             _lifetimeStats.TotalGodPointsEarned += godPointsGained;
+        if (_gameRecord != null)
+        {
+            _gameRecord.HasPerformedAscension = true;
+            CheckTaskCompletions();
+        }
     }
 
     /// <summary>
@@ -184,6 +195,41 @@ public class TaskRecordController
             if (_runRecord.CitiesBuilt > _lifetimeStats.MaxCitiesFoundedInSingleRun)
                 _lifetimeStats.MaxCitiesFoundedInSingleRun = _runRecord.CitiesBuilt;
         }
+    }
+
+    /// <summary>
+    /// Tient à jour GameRecord.MaxEffectiveDivineEssenceReached et HasChargedDivineReliquary depuis
+    /// GodState (voir AscensionController.GetEffectiveDivineEssence) : appelé à chaque événement
+    /// suivi plutôt que sur un événement dédié, faute d'événement quand le Reliquaire se charge
+    /// (recalculé dans PrestigeController.PerformPrestige, avant même que TaskRecordController n'en
+    /// soit informé — voir MainGameController.PerformPrestige, qui appelle RecordPrestige avant).
+    /// </summary>
+    private void SyncDivineEssenceRecord()
+    {
+        if (_gameRecord == null || _godState == null) return;
+
+        int effective = _godState.DivineEssence + _godState.DivineEssenceReliquaryFloor;
+        if (effective > _gameRecord.MaxEffectiveDivineEssenceReached)
+            _gameRecord.MaxEffectiveDivineEssenceReached = effective;
+
+        if (_godState.DivineEssenceReliquaryFloor > 0)
+            _gameRecord.HasChargedDivineReliquary = true;
+    }
+
+    private void HandleDivineBonesPurified(object? sender, DivineBones e)
+    {
+        if (_gameRecord == null) return;
+        _gameRecord.HasPurifiedDivineBones = true;
+        CheckTaskCompletions();
+    }
+
+    /// <summary>Vrai si les deux hexes de cette arête sont du Vide (voir RoadController.IsEdgeBetweenVoidHexes, privée).</summary>
+    private bool IsVoidRoad(Edge edge)
+    {
+        var map = _islandState?.GetMapFor(edge);
+        if (map == null) return false;
+        return map.GetTile(edge.Hex1)?.TerrainType == TerrainType.Void
+            && map.GetTile(edge.Hex2)?.TerrainType == TerrainType.Void;
     }
 
     /// <summary>
@@ -276,6 +322,8 @@ public class TaskRecordController
 
         _gameRecord.TotalRoadsBuilt++;
         _runRecord.RoadsBuilt++;
+        if (!_gameRecord.HasBuiltVoidRoad && IsVoidRoad(e.RoadPosition))
+            _gameRecord.HasBuiltVoidRoad = true;
         CheckTaskCompletions();
     }
 
@@ -452,6 +500,7 @@ public class TaskRecordController
     {
         if (_gameRecord == null) return;
         SyncLifetimeStats();
+        SyncDivineEssenceRecord();
 
         // Compactage en place, dans l'ordre de définition : l'ordre d'émission de OnTaskCompleted
         // est celui de l'ancienne boucle.

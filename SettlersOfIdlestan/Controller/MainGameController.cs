@@ -503,7 +503,7 @@ namespace SettlersOfIdlestan.Controller
                 TaskRecordController.Initialize(gameRecord, WorldState.RunRecord, WorldState,
                     BuildingController, RoadController, CityBuilderController,
                     PrestigeMapController, ResearchController, MilitaryController, HarvestController,
-                    TradeController, WonderController, CorruptionSpireController,
+                    TradeController, WonderController, CorruptionSpireController, DivineBonesController,
                     CurrentMainState!.GodState, LifetimeStats);
 
                 CivilizationHistoryController.Initialize(

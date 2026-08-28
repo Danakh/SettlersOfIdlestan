@@ -271,5 +271,49 @@ public static class TutorialStepDefinitions
                 Task(TutorialTaskId.BuildCorruptionSpireOnLevel4Source),
             }
         ),
+
+        new TutorialStep(
+            "tutorial_step_void_road_title",
+            "tutorial_step_void_road_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildVoidRoad),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
+
+        new TutorialStep(
+            "tutorial_step_purify_divine_bones_title",
+            "tutorial_step_purify_divine_bones_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.PurifyDivineBones),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
+
+        new TutorialStep(
+            "tutorial_step_five_divine_essence_title",
+            "tutorial_step_five_divine_essence_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.ReachFiveDivineEssence),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.ChargeDivineReliquary),
+                Task(TutorialTaskId.ReachCorruptionLevel5),
+            }
+        ),
+
+        new TutorialStep(
+            "tutorial_step_ascension_title",
+            "tutorial_step_ascension_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.PerformAscension),
+            },
+            secondaryTasks: System.Array.Empty<TutorialTask>()
+        ),
     };
 }

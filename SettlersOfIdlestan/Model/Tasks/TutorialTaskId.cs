@@ -55,4 +55,10 @@ public enum TutorialTaskId
     PerformThirdCorruptedPrestige,
     BuildCorruptionSpireOnLevel4Source,
     OpenAbyssGate,
+    BuildVoidRoad,
+    PurifyDivineBones,
+    ReachFiveDivineEssence,
+    ChargeDivineReliquary,
+    ReachCorruptionLevel5,
+    PerformAscension,
 }

@@ -346,5 +346,31 @@ public static class TutorialTaskDefinitions
             "task_open_abyss_gate_name", "task_open_abyss_gate_desc",
             (g, _, island) => g.HasBuiltAbyssGate
                 || island?.Features.OfType<AbyssGate>().Any(a => a.Built) == true),
+
+        new TutorialTask(TutorialTaskId.BuildVoidRoad,
+            "task_build_void_road_name", "task_build_void_road_desc",
+            (g, _, _) => g.HasBuiltVoidRoad),
+
+        new TutorialTask(TutorialTaskId.PurifyDivineBones,
+            "task_purify_divine_bones_name", "task_purify_divine_bones_desc",
+            (g, _, _) => g.HasPurifiedDivineBones),
+
+        new TutorialTask(TutorialTaskId.ReachFiveDivineEssence,
+            "task_reach_five_divine_essence_name", "task_reach_five_divine_essence_desc",
+            (g, _, _) => g.MaxEffectiveDivineEssenceReached >= 5,
+            (g, _, _) => (g.MaxEffectiveDivineEssenceReached, 5)),
+
+        new TutorialTask(TutorialTaskId.ChargeDivineReliquary,
+            "task_charge_divine_reliquary_name", "task_charge_divine_reliquary_desc",
+            (g, _, _) => g.HasChargedDivineReliquary),
+
+        new TutorialTask(TutorialTaskId.ReachCorruptionLevel5,
+            "task_reach_corruption_level5_name", "task_reach_corruption_level5_desc",
+            (g, _, _) => g.MaxCorruptionLevelReached >= 5,
+            (g, _, _) => (g.MaxCorruptionLevelReached, 5)),
+
+        new TutorialTask(TutorialTaskId.PerformAscension,
+            "task_perform_ascension_name", "task_perform_ascension_desc",
+            (g, _, _) => g.HasPerformedAscension),
     };
 }

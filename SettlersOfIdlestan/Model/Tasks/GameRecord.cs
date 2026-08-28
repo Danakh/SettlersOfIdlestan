@@ -111,6 +111,26 @@ public class GameRecord
     /// <summary>True si une Spire de Corruption a déjà été entièrement bâtie sur une Source de Corruption de niveau 4 ou plus.</summary>
     public bool HasBuiltCorruptionSpireOnLevel4Source { get; set; }
 
+    /// <summary>True si une route du Vide (entre deux hexes de Vide) a déjà été bâtie.</summary>
+    public bool HasBuiltVoidRoad { get; set; }
+
+    /// <summary>True si un Os Divin a déjà été purifié.</summary>
+    public bool HasPurifiedDivineBones { get; set; }
+
+    /// <summary>
+    /// Maximum jamais atteint de GodState.DivineEssence + GodState.DivineEssenceReliquaryFloor
+    /// (essence divine effective, voir AscensionController.GetEffectiveDivineEssence). Cross-prestige,
+    /// ne diminue jamais — y compris à travers une Ascension, qui remet les deux compteurs sous-jacents
+    /// à zéro.
+    /// </summary>
+    public int MaxEffectiveDivineEssenceReached { get; set; }
+
+    /// <summary>True si le Reliquaire (GodState.DivineEssenceReliquaryFloor) a déjà été chargé d'au moins une essence divine.</summary>
+    public bool HasChargedDivineReliquary { get; set; }
+
+    /// <summary>True si le joueur a déjà effectué une Ascension.</summary>
+    public bool HasPerformedAscension { get; set; }
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 
