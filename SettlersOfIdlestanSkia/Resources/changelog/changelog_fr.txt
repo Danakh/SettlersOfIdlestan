@@ -3,6 +3,10 @@ Le changelog n'est pas activement mis à jour pour le moment.
 
 ---
 
+v0.18
+
+---
+
 v0.17
 • Simulation plus précise lors des sauts de temps (rattrapage hors-ligne, avance rapide), suivie de plusieurs optimisations de performance (cache des routes, des guildes, de la sauvegarde, nettoyage des civilisations PNJ éliminées)
 • Nombreux ajustements de l'équilibrage en fin de partie (Inframonde, Abysses, corruption, démons)
