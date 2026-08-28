@@ -987,18 +987,19 @@ public class AscensionController : IModifierProvider
     public const int FistOfGodDamage = 100;
 
     /// <summary>
-    /// Hexs ciblables par Poing de Dieu : tous les hexs du calque actuellement affiché. Contrairement
-    /// à Marche de Dieu et Présence de Dieu, le pouvoir n'est pas limité à la surface — les monstres
-    /// des profondeurs sont précisément ceux contre lesquels il vaut le plus.
+    /// Hexs ciblables par Poing de Dieu : les hexs actuellement <b>visibles</b> par le joueur sur le
+    /// calque affiché. Contrairement à Marche de Dieu et Présence de Dieu, le pouvoir n'est pas limité
+    /// à la surface — les monstres des profondeurs sont précisément ceux contre lesquels il vaut le
+    /// plus — mais il reste borné au brouillard de guerre : Dieu ne frappe pas à l'aveugle.
     /// </summary>
     public IReadOnlyList<HexCoord> GetFistOfGodTargetHexes()
     {
         if (_state == null) return Array.Empty<HexCoord>();
 
-        var map = _state.GetMapForZ(_state.CurrentViewedLayer);
-        if (map == null) return Array.Empty<HexCoord>();
+        if (!_state.Visibility.GetForZ(_state.CurrentViewedLayer).TryGetValue(_state.PlayerCivilization.Index, out var visibleMap))
+            return Array.Empty<HexCoord>();
 
-        return map.Tiles.Values
+        return visibleMap.Tiles.Values
             .Select(t => t.Coord)
             .ToList();
     }
@@ -1033,6 +1034,12 @@ public class AscensionController : IModifierProvider
         if (_state == null || _prng == null || !CanUseFistOfGod()) return false;
 
         if (_state.GetMapFor(hex)?.GetTile(hex) == null) return false;
+
+        // Poing de Dieu ne cible que le brouillard de guerre découvert (voir
+        // GetFistOfGodTargetHexes) : ce garde-fou rend l'invariant vrai même pour un appelant direct
+        // qui passerait un hex non visible.
+        if (!_state.Visibility.GetForZ(hex.Z).TryGetValue(_state.PlayerCivilization.Index, out var visibleMap) || !visibleMap.HasTile(hex))
+            return false;
 
         StrikeMonsterAt(hex);
         StrikeCitiesAdjacentTo(hex);

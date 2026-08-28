@@ -1208,15 +1208,36 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void GetFistOfGodTargetHexes_CoversTheWholeViewedLayer()
+    public void GetFistOfGodTargetHexes_OnlyCoversVisibleHexesOfTheViewedLayer()
     {
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockFistOfGod(ascension);
 
         var targets = ascension.GetFistOfGodTargetHexes();
 
-        Assert.Equal(state.GetMapForZ(state.CurrentViewedLayer)!.Tiles.Count, targets.Count);
+        // Carte de 7 hexs, ville sans Tour de Guet (rayon de vision 1) : seuls les 3 hexs du sommet
+        // de la ville (Center, NE, E) sont visibles, pas les 4 hexs restants de la carte.
+        var expectedVisible = state.Visibility.GetForZ(state.CurrentViewedLayer)[state.PlayerCivilization.Index].Tiles.Keys;
+        Assert.Equal(expectedVisible.Count(), targets.Count);
+        Assert.True(targets.Count < state.GetMapForZ(state.CurrentViewedLayer)!.Tiles.Count);
         Assert.Contains(Center, targets);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_HexNotVisible_FailsAndLeavesStateUntouched()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        // W est hors de la vision de la ville (rayon 1, pas de Tour de Guet) sur cette carte de 7 hexs.
+        var w = new HexCoord(-1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var rats = new Rats(w);
+        state.AddFeature(rats);
+
+        Assert.False(ascension.ApplyFistOfGod(w));
+
+        Assert.Equal(rats.MaxHp, rats.Hp);
+        Assert.Equal(0, godState.PrestigeState!.FistOfGodUsesSinceLastPrestige);
     }
 
     // ── Mémoire de Dieu ──────────────────────────────────────────────────────

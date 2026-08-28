@@ -195,6 +195,16 @@ namespace SettlersOfIdlestan.Controller
             var worldId = CurrentMainState.CurrentWorldState?.WorldId ?? AtlasController.GetFirstWorldId();
             var parameters = AtlasController.GetIslandParameters(worldId);
 
+            // Compteurs d'usage des pouvoirs divins ciblés, remis à zéro par PrestigeController.
+            // PerformPrestige à chaque changement d'île — un restart repart tout autant d'une île
+            // vierge, ces compteurs doivent donc suivre (voir PrestigeState.FistOfGodUsesSinceLastPrestige
+            // et consorts). Contrairement à un vrai Prestige, aucune monnaie n'est gagnée ni perdue ici
+            // (PrestigePoints, essence divine, recherches, carte de prestige restent inchangés — voir
+            // restart_island_line2/line3).
+            CurrentMainState.PrestigeState.WalkOfGodUsesSinceLastPrestige = 0;
+            CurrentMainState.PrestigeState.PresenceOfGodUsesSinceLastPrestige = 0;
+            CurrentMainState.PrestigeState.FistOfGodUsesSinceLastPrestige = 0;
+
             CurrentMainState.PrestigeState.WorldState = null;
             var generator = new Generator.IslandMapGenerator(CurrentMainState.WorldPRNG);
             var newWorldState = generator.GenerateWorldState(

@@ -287,6 +287,36 @@ namespace SOITests.ControllerTests
             Assert.Equal(0, controller.CurrentMainState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
         }
 
+        /// <summary>
+        /// RestartIsland régénère l'île courante sans être un vrai Prestige (aucun point gagné, voir
+        /// restart_island_line2) mais repart tout autant d'une île vierge : les compteurs d'usage des
+        /// pouvoirs divins ciblés (coût croissant depuis le dernier Prestige) doivent donc se remettre
+        /// à zéro exactement comme lors d'un Prestige, sans quoi leur coût resterait figé au niveau
+        /// atteint sur l'île abandonnée. Les monnaies persistantes (points de prestige, essence divine),
+        /// elles, restent inchangées — un restart n'en rapporte ni n'en coûte.
+        /// </summary>
+        [Fact]
+        public void MainGameController_RestartIsland_ResetsTargetedGodPowerUseCountersButKeepsCurrencies()
+        {
+            var controller = new MainGameController();
+            controller.CreateNewGame();
+            var prestigeState = controller.CurrentMainState!.PrestigeState!;
+            prestigeState.WalkOfGodUsesSinceLastPrestige = 3;
+            prestigeState.PresenceOfGodUsesSinceLastPrestige = 2;
+            prestigeState.FistOfGodUsesSinceLastPrestige = 4;
+            prestigeState.PrestigePoints = 10;
+            controller.CurrentMainState.GodState.DivineEssence = 5;
+
+            controller.RestartIsland();
+
+            var newPrestigeState = controller.CurrentMainState.PrestigeState!;
+            Assert.Equal(0, newPrestigeState.WalkOfGodUsesSinceLastPrestige);
+            Assert.Equal(0, newPrestigeState.PresenceOfGodUsesSinceLastPrestige);
+            Assert.Equal(0, newPrestigeState.FistOfGodUsesSinceLastPrestige);
+            Assert.Equal(10, newPrestigeState.PrestigePoints);
+            Assert.Equal(5, controller.CurrentMainState.GodState.DivineEssence);
+        }
+
         // ── Essences divines conservées au prestige (Reliquaire Sacré / Renforcé) ────
 
         [Fact]
