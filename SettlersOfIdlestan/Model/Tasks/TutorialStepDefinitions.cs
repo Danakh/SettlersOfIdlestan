@@ -232,5 +232,44 @@ public static class TutorialStepDefinitions
             },
             secondaryTasks: System.Array.Empty<TutorialTask>()
         ),
+
+        new TutorialStep(
+            "tutorial_step_corrupted_prestige_title",
+            "tutorial_step_corrupted_prestige_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.PerformCorruptedPrestige),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildCorruptionSpireLevel1),
+            }
+        ),
+
+        new TutorialStep(
+            "tutorial_step_corruption_level_title",
+            "tutorial_step_corruption_level_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.ReachCorruptionLevel4),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.PerformThirdCorruptedPrestige),
+            }
+        ),
+
+        new TutorialStep(
+            "tutorial_step_abyss_gate_title",
+            "tutorial_step_abyss_gate_desc",
+            primaryTasks: new[]
+            {
+                Task(TutorialTaskId.OpenAbyssGate),
+            },
+            secondaryTasks: new[]
+            {
+                Task(TutorialTaskId.BuildCorruptionSpireOnLevel4Source),
+            }
+        ),
     };
 }

@@ -49,4 +49,10 @@ public enum TutorialTaskId
     DestroyBanditHideout,
     PlaceWonder,
     BuildWonder,
+    BuildCorruptionSpireLevel1,
+    PerformCorruptedPrestige,
+    ReachCorruptionLevel4,
+    PerformThirdCorruptedPrestige,
+    BuildCorruptionSpireOnLevel4Source,
+    OpenAbyssGate,
 }

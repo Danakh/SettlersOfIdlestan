@@ -127,10 +127,12 @@ public class TaskRecordController
     /// Appelé par MainGameController.PerformPrestige() avant la réinitialisation des controllers.
     /// <paramref name="earnedPrestigePoints"/> est le nombre de points gagnés pour cette partie.
     /// </summary>
-    internal void RecordPrestige(int earnedPrestigePoints)
+    internal void RecordPrestige(int earnedPrestigePoints, bool corrupted = false)
     {
         if (_gameRecord == null) return;
         _gameRecord.TotalPrestigesPerformed++;
+        if (corrupted)
+            _gameRecord.TotalCorruptedPrestigesPerformed++;
         if (earnedPrestigePoints > _gameRecord.MaxPrestigePointsInSingleRun)
             _gameRecord.MaxPrestigePointsInSingleRun = earnedPrestigePoints;
         if (_lifetimeStats != null)
@@ -353,10 +355,12 @@ public class TaskRecordController
         CheckTaskCompletions();
     }
 
-    private void HandleCorruptionSpireBuilt(object? sender, EventArgs e)
+    private void HandleCorruptionSpireBuilt(object? sender, int sourceLevel)
     {
         if (_gameRecord == null) return;
         _gameRecord.HasBuiltCorruptionSpire = true;
+        if (sourceLevel >= 4)
+            _gameRecord.HasBuiltCorruptionSpireOnLevel4Source = true;
         CheckTaskCompletions();
     }
 

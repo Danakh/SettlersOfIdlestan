@@ -29,7 +29,8 @@ namespace SettlersOfIdlestan.Controller.Expand
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
         public event EventHandler? OnCorruptionSpirePlaced;
-        public event EventHandler? OnCorruptionSpireBuilt;
+        /// <summary>Argument : niveau de la Source de Corruption consommée par la construction (voir CorruptionSource.CorruptionLevel).</summary>
+        public event EventHandler<int>? OnCorruptionSpireBuilt;
         public event EventHandler<int>? OnCorruptionSpireRadiusUpgraded;
         public event EventHandler? OnCorruptionSpireDestroyed;
 
@@ -81,11 +82,12 @@ namespace SettlersOfIdlestan.Controller.Expand
                 // La Source de Corruption ayant permis ce placement (voir GetPlaceableHexes) est
                 // consommée dès que la Spire atteint son premier niveau.
                 var source = _state.GetFeaturesAt(spire.Position).OfType<CorruptionSource>().FirstOrDefault();
+                int sourceLevel = source?.CorruptionLevel ?? 0;
                 if (source != null)
                     _state.RemoveFeature(source);
 
                 _state.EventLog.Add(GameEventType.CorruptionSpireBuilt, toast: true);
-                OnCorruptionSpireBuilt?.Invoke(this, EventArgs.Empty);
+                OnCorruptionSpireBuilt?.Invoke(this, sourceLevel);
 
                 // Si le meilleur nettoyage de Corruption réalisé sur l'île courante (n'importe où, y
                 // compris par annulation avec le Dominion — voir CorruptionController.ReduceLevel) a

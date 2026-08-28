@@ -230,7 +230,7 @@ namespace SettlersOfIdlestan.Controller
 
             var nextIslandId = AtlasController.GetNextWorldId(CurrentMainState);
             var parameters = AtlasController.GetIslandParameters(nextIslandId);
-            TaskRecordController.RecordPrestige(PrestigeController.CalculatePrestigePoints());
+            TaskRecordController.RecordPrestige(PrestigeController.CalculatePrestigePoints(), corrupted);
             PrestigeController.PerformPrestige(CurrentMainState, parameters, corrupted);
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
@@ -248,7 +248,7 @@ namespace SettlersOfIdlestan.Controller
 
             var currentIslandId = CurrentMainState.CurrentWorldState?.WorldId ?? AtlasController.GetFirstWorldId();
             var parameters = AtlasController.GetIslandParameters(currentIslandId);
-            TaskRecordController.RecordPrestige(PrestigeController.CalculatePrestigePoints());
+            TaskRecordController.RecordPrestige(PrestigeController.CalculatePrestigePoints(), corrupted);
             PrestigeController.PerformPrestige(CurrentMainState, parameters, corrupted);
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);

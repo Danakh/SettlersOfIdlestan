@@ -102,6 +102,15 @@ public class GameRecord
     /// <summary>True si une Faille des Abysses a été construite au moins une fois (cross-prestige).</summary>
     public bool HasBuiltAbyssGate { get; set; }
 
+    /// <summary>Nombre de Prestiges Corrompus effectués (cross-prestige, voir PrestigeController.PerformPrestige).</summary>
+    public int TotalCorruptedPrestigesPerformed { get; set; }
+
+    /// <summary>Niveau de corruption mondial le plus élevé jamais atteint (miroir de PrestigeState.CurrentCorruptionLevel, qui ne redescend jamais).</summary>
+    public int MaxCorruptionLevelReached { get; set; } = 1;
+
+    /// <summary>True si une Spire de Corruption a déjà été entièrement bâtie sur une Source de Corruption de niveau 4 ou plus.</summary>
+    public bool HasBuiltCorruptionSpireOnLevel4Source { get; set; }
+
     /// <summary>IDs des tâches tutoriel complétées (clé = TutorialTaskId.ToString()).</summary>
     public HashSet<string> CompletedTasks { get; set; } = new();
 

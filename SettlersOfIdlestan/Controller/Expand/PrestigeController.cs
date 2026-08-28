@@ -403,6 +403,9 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (corrupted && HasCorruptionSpireBuilt())
                 mainGameState.PrestigeState.CurrentCorruptionLevel++;
 
+            if (mainGameState.PrestigeState.CurrentCorruptionLevel > mainGameState.GameRecord.MaxCorruptionLevelReached)
+                mainGameState.GameRecord.MaxCorruptionLevelReached = mainGameState.PrestigeState.CurrentCorruptionLevel;
+
             var currentIsland = mainGameState.CurrentWorldState;
             if (currentIsland != null)
             {

@@ -318,5 +318,33 @@ public static class TutorialTaskDefinitions
             "task_build_wonder_name", "task_build_wonder_desc",
             (g, _, island) => g.HasBuiltWonder
                 || island?.Features.OfType<Wonder>().Any(w => w.Level >= 1) == true),
+
+        new TutorialTask(TutorialTaskId.BuildCorruptionSpireLevel1,
+            "task_build_corruption_spire_name", "task_build_corruption_spire_desc",
+            (g, _, island) => g.HasBuiltCorruptionSpire
+                || island?.Features.OfType<CorruptionSpire>().Any(s => s.Built) == true),
+
+        new TutorialTask(TutorialTaskId.PerformCorruptedPrestige,
+            "task_perform_corrupted_prestige_name", "task_perform_corrupted_prestige_desc",
+            (g, _, _) => g.TotalCorruptedPrestigesPerformed >= 1),
+
+        new TutorialTask(TutorialTaskId.ReachCorruptionLevel4,
+            "task_reach_corruption_level4_name", "task_reach_corruption_level4_desc",
+            (g, _, _) => g.MaxCorruptionLevelReached >= 4,
+            (g, _, _) => (g.MaxCorruptionLevelReached, 4)),
+
+        new TutorialTask(TutorialTaskId.PerformThirdCorruptedPrestige,
+            "task_perform_third_corrupted_prestige_name", "task_perform_third_corrupted_prestige_desc",
+            (g, _, _) => g.TotalCorruptedPrestigesPerformed >= 3,
+            (g, _, _) => (g.TotalCorruptedPrestigesPerformed, 3)),
+
+        new TutorialTask(TutorialTaskId.BuildCorruptionSpireOnLevel4Source,
+            "task_build_corruption_spire_level4_source_name", "task_build_corruption_spire_level4_source_desc",
+            (g, _, _) => g.HasBuiltCorruptionSpireOnLevel4Source),
+
+        new TutorialTask(TutorialTaskId.OpenAbyssGate,
+            "task_open_abyss_gate_name", "task_open_abyss_gate_desc",
+            (g, _, island) => g.HasBuiltAbyssGate
+                || island?.Features.OfType<AbyssGate>().Any(a => a.Built) == true),
     };
 }
