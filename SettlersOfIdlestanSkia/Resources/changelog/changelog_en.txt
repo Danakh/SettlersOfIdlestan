@@ -4,6 +4,8 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.17
+• More precise simulation for time skips (offline catch-up, fast-forward), followed by several performance optimizations (road cache, guild cache, save cache, cleanup of eliminated NPC civilizations)
+• Numerous late-game balance adjustments (Underworld, Abyss, corruption, demons)
 
 ---
 
