@@ -542,10 +542,14 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             if (ArePrerequisitesMet(tree, techDef)) return true;
 
-            // Visible si tous les prérequis manquants sont eux-mêmes faisables (Available ou InProgress)
+            // Visible si tous les prérequis manquants sont eux-mêmes faisables (Available ou InProgress).
+            // IsPrerequisiteSatisfied (et non tree.CompletedTechnologies.Contains) : un prérequis accordé
+            // gratuitement (bâtiment permanent d'Ascension ou relance restaurée par Mémoire de Dieu) est
+            // marqué Completed sans que son propre prérequis soit satisfait — voir IsPrerequisiteSatisfied.
+            // Une recherche qui en dépend ne doit devenir visible que lorsque ce prérequis-là l'est aussi.
             foreach (var prereqId in techDef.Prerequisites)
             {
-                if (tree.CompletedTechnologies.Contains(prereqId)) continue;
+                if (IsPrerequisiteSatisfied(tree, prereqId)) continue;
                 var prereqStatus = GetStatus(prereqId);
                 if (prereqStatus != TechnologyStatus.Available && prereqStatus != TechnologyStatus.InProgress)
                     return false;

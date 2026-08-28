@@ -587,4 +587,38 @@ public class ResearchControllerTests
 
         Assert.Equal(TechnologyStatus.Available, ctrl.GetStatus(TechnologyId.ResearchMethods));
     }
+
+    /// <summary>
+    /// Même scénario que <see cref="FreeRepeatableGrant_DoesNotSatisfyDownstreamPrerequisite_UntilOwnPrerequisiteIsMet"/>
+    /// mais pour ShouldDisplay (visibilité dans l'arbre) plutôt que GetStatus (disponibilité) :
+    /// ResearchMethods ne doit pas non plus être affichée tant qu'Architecture (prérequis d'Archivage,
+    /// accordée gratuitement) n'est pas satisfait, sinon un nœud apparaîtrait comme sélectionnable
+    /// alors que CanBeQueued le refuserait.
+    /// </summary>
+    [Fact]
+    public void FreeRepeatableGrant_DoesNotMakeDownstreamResearchVisible_UntilOwnPrerequisiteIsMet()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        var godState = new GodState(prestigeState);
+
+        prestigeState.TechnologyTree.RepeatCounts[TechnologyId.Archivage] = 1;
+        prestigeState.TechnologyTree.CompletedTechnologies.Add(TechnologyId.Archivage);
+        godState.AscensionState.BestRepeatCounts[TechnologyId.Archivage] = 1;
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState, settings: null, godState: godState);
+
+        Assert.False(ctrl.ShouldDisplay(TechnologyId.ResearchMethods));
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Architecture);
+
+        Assert.True(ctrl.ShouldDisplay(TechnologyId.ResearchMethods));
+    }
 }
