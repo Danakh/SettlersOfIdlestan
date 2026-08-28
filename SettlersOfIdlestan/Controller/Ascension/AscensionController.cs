@@ -584,8 +584,12 @@ public class AscensionController : IModifierProvider
 
         // La race qui accomplit l'Ascension marque l'histoire : son bâtiment racial devient un
         // choix permanent pour tous les cycles futurs, quelle que soit la race jouée — sauf le tout
-        // premier cycle (voir commentaire de PerformAscension ci-dessus).
-        if (IsRaceSelectionUnlocked)
+        // premier cycle (AscensionsPerformed vient de passer à 1 ci-dessus), où Humains n'est que la
+        // valeur par défaut plutôt qu'un vrai choix du joueur (voir commentaire de PerformAscension
+        // ci-dessus). Ne dépend plus de IsRaceSelectionUnlocked : compter uniquement à partir du
+        // deuxième cycle suffit à exclure le seul cas sans choix réel, qu'une autre race ait déjà été
+        // débloquée ou non à ce moment-là.
+        if (godState.AscensionState.AscensionsPerformed > 1)
             godState.AscensionState.AscendedRaces.Add(godState.AscensionState.SelectedRace);
 
         RecordAscensionCycleStats(mainGameState, godState);

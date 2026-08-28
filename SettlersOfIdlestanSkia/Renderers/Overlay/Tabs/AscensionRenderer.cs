@@ -117,7 +117,9 @@ public sealed class AscensionRenderer : IDisposable
     // RenderPendingRaceChoicePage. Réinitialisée à chaque nouvelle demande d'Ascension
     // (_pendingRaceInitialized remis à faux après confirmation).
     private bool _pendingRaceInitialized;
-    private RaceId _pendingSelectedRace = RaceId.Human;
+    // Aucune race pré-sélectionnée à l'arrivée sur l'écran : le joueur doit cliquer une carte pour
+    // que Confirmer s'active, plutôt que de valider Humains par défaut sans y avoir pensé.
+    private RaceId? _pendingSelectedRace;
     private readonly List<(RaceId id, SKRect rect, bool selectable)> _pendingRaceCardRects = new();
     private SKRect _pendingConfirmRect = SKRect.Empty;
 
@@ -165,6 +167,12 @@ public sealed class AscensionRenderer : IDisposable
     // Race déjà ascensionnée par le joueur (AscensionController.AscendedRaces) : cadre vert plutôt
     // qu'un libellé texte, pour rester lisible dans la hauteur de carte réduite (voir RaceCardHeight).
     private readonly SKPaint _ascendedBorderPaint = new() { Color = new SKColor(90, 200, 110), StrokeWidth = 1.4f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+    // Race disponible mais pas encore sélectionnée (voir DrawPendingRaceCard) : fond et cadre plus
+    // clairs que les races verrouillées, pour qu'elles se distinguent au premier coup d'œil sans
+    // survol — auparavant identiques à _cardLockedPaint/_cardBorderPaint hors survol.
+    private readonly SKPaint _cardAvailablePaint       = new() { Color = new SKColor(38, 42, 52, 225), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _cardAvailableHoverPaint  = new() { Color = new SKColor(48, 52, 65, 230), Style = SKPaintStyle.Fill, IsAntialias = true };
+    private readonly SKPaint _availableBorderPaint     = new() { Color = new SKColor(120, 150, 190), StrokeWidth = 1.4f, Style = SKPaintStyle.Stroke, IsAntialias = true };
     // Bâtiment unique permanent déjà choisi (voir DrawPermanentBuildingCard) : fond vert plutôt que
     // le fond doré générique de _cardActivePaint, le choix étant définitif contrairement aux autres
     // usages de ce dernier (survol/sélection courante réversible).
@@ -434,7 +442,10 @@ public sealed class AscensionRenderer : IDisposable
         var selectable = ascension.GetSelectableRaces();
         if (!_pendingRaceInitialized)
         {
-            _pendingSelectedRace = selectable.Contains(ascension.SelectedRace) ? ascension.SelectedRace : RaceId.Human;
+            // Pas de présélection : le joueur doit choisir explicitement, même s'il ne peut choisir
+            // qu'Humains — voir RequestAscension, qui affiche cet écran justement pour forcer une
+            // validation explicite plutôt que de laisser Humains s'imposer sans confirmation consciente.
+            _pendingSelectedRace = null;
             _pendingRaceInitialized = true;
         }
 
@@ -501,7 +512,7 @@ public sealed class AscensionRenderer : IDisposable
             x + panelWidth / 2f - AscendButtonWidth / 2f, confirmY,
             x + panelWidth / 2f + AscendButtonWidth / 2f, confirmY + AscendButtonHeight);
 
-        bool canConfirm = selectable.Contains(_pendingSelectedRace);
+        bool canConfirm = _pendingSelectedRace is { } chosen && selectable.Contains(chosen);
         bool confirmHovered = _pendingConfirmRect.Contains(_hoverPosition.X, _hoverPosition.Y);
         canvas.DrawRoundRect(_pendingConfirmRect, 6, 6, !canConfirm ? _disabledPaint : (confirmHovered ? _confirmHoverPaint : _confirmPaint));
         canvas.DrawRoundRect(_pendingConfirmRect, 6, 6, _buttonBorderPaint);
@@ -553,8 +564,13 @@ public sealed class AscensionRenderer : IDisposable
         bool selected = selectable && race.Id == _pendingSelectedRace;
         bool ascended = ascension.AscendedRaces.Contains(race.Id);
 
-        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActivePaint : (selectable && hovered ? _cardPaint : _cardLockedPaint));
-        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActiveBorder : (ascended ? _ascendedBorderPaint : _cardBorderPaint));
+        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActivePaint
+            : selectable ? (hovered ? _cardAvailableHoverPaint : _cardAvailablePaint)
+            : _cardLockedPaint);
+        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActiveBorder
+            : ascended ? _ascendedBorderPaint
+            : selectable ? _availableBorderPaint
+            : _cardBorderPaint);
 
         canvas.Save();
         canvas.ClipRect(rect);
@@ -613,9 +629,9 @@ public sealed class AscensionRenderer : IDisposable
         if (!_pendingConfirmRect.IsEmpty && _pendingConfirmRect.Contains(contentPosition.X, contentPosition.Y))
         {
             var ascension = _gameControllerService.MainGameController.AscensionController;
-            if (ascension.GetSelectableRaces().Contains(_pendingSelectedRace))
+            if (_pendingSelectedRace is { } chosen && ascension.GetSelectableRaces().Contains(chosen))
             {
-                _gameControllerService.ConfirmAscensionRace(_pendingSelectedRace);
+                _gameControllerService.ConfirmAscensionRace(chosen);
                 _pendingRaceInitialized = false;
                 _pendingRaceScrollOffsetPx = 0f;
             }

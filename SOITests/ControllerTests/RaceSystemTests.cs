@@ -298,6 +298,11 @@ public class RaceSystemTests
         godState.DivineEssence = 5;
         UnlockFirstRow(controller.AscensionController);
 
+        // Premier cycle (Humains par défaut, pas un vrai choix) : ne compte pas dans AscendedRaces —
+        // voir PerformAscension_SecondAscension_AddsPlayedRaceToAscendedRaces_EvenWithoutAnyRaceUnlocked.
+        controller.PerformAscension();
+        godState.DivineEssence = 5;
+
         controller.PerformAscension(RaceId.Elf);
 
         Assert.Equal(RaceId.Elf, godState.AscensionState.SelectedRace);
@@ -375,8 +380,14 @@ public class RaceSystemTests
         Assert.Equal(1, maxLevelAfter);
     }
 
+    /// <summary>
+    /// AscendedRaces ne dépend plus de IsRaceSelectionUnlocked (voir
+    /// AscensionController.CreditAscensionPointsAndArchiveCycle) : seul le tout premier cycle est
+    /// exclu, qu'une autre race ait ou non été débloquée entretemps — sans quoi un joueur qui ne
+    /// débloque jamais aucune autre race resterait indéfiniment sans son bâtiment racial Humain.
+    /// </summary>
     [Fact]
-    public void PerformAscension_SecondAscensionWithRaceUnlocked_AddsPlayedRaceToAscendedRaces()
+    public void PerformAscension_SecondAscension_AddsPlayedRaceToAscendedRaces_EvenWithoutAnyRaceUnlocked()
     {
         var controller = new MainGameController();
         controller.CreateNewGame();
@@ -386,10 +397,9 @@ public class RaceSystemTests
         // Premier cycle : choix de race verrouillé, ne compte pas dans AscendedRaces.
         controller.PerformAscension();
         Assert.DoesNotContain(RaceId.Human, godState.AscensionState.AscendedRaces);
+        Assert.False(controller.AscensionController.IsRaceSelectionUnlocked);
 
-        // Une fois débloqué, ascensionner (même en restant Humains) marque un vrai choix.
-        godState.GodPoints = 100;
-        UnlockFirstRow(controller.AscensionController);
+        // Deuxième cycle : marque un vrai choix, même sans qu'aucune autre race n'ait jamais été débloquée.
         godState.DivineEssence = 5;
         controller.PerformAscension(RaceId.Human);
 
