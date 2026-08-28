@@ -767,6 +767,22 @@ namespace SettlersOfIdlestan.Controller.Island
             _state?.Visibility.RecalculateFor(civ.Index);
         }
 
+        /// <summary>
+        /// À appeler après qu'une ville a été fondée. Une nouvelle ville peut raccourcir la distance
+        /// jusqu'à des routes déjà construites (raccourci), ce qui les rendrait éligibles à
+        /// l'automatisation de la guilde des bâtisseurs (<see cref="BuildersGuild.MaxAutoRoadDistance"/>)
+        /// alors qu'elles ne l'étaient pas avant. <see cref="BuildRoadsForGuildBurst"/> filtre sur le
+        /// champ <see cref="Road.DistanceToNearestCity"/> figé sur chaque route lors de son dernier
+        /// recalcul : sans cet appel, il reste celui d'avant la nouvelle ville et la construction
+        /// automatique de routes semble ne jamais reprendre autour d'elle, même une fois son propre
+        /// réseau immédiat saturé.
+        /// </summary>
+        public void OnCityBuilt(Civilization civ, Vertex cityVertex)
+        {
+            ComputeRoadDistancesForCivilization(civ, cityVertex.Z);
+            InvalidateBuildableRoadsCacheForLayer(cityVertex.Z);
+        }
+
         private static List<Road> GetRoadsWithinDistanceOfVertex(IReadOnlyList<Road> roads, Vertex vertex, int maxDistance)
         {
             var result = new List<Road>();

@@ -258,7 +258,108 @@ public class BuildersGuildAutomationTests
     }
 
     // =========================================================================
-    // Test 3 — BuildersGuild auto-upgrades the TownHall as soon as guild level 1
+    // Test 3 — A new city can shorten the distance of already-built roads,
+    // unlocking guild automation on a candidate that never touches it directly.
+    // =========================================================================
+
+    /// <summary>
+    /// Regression test: founding a new city used to leave <see cref="Road.DistanceToNearestCity"/>
+    /// untouched on already-built roads. A frontier candidate reached ONLY through such a road (not
+    /// touching the new city's own vertex) therefore kept the distance computed relative to the OLD,
+    /// farther city and stayed excluded from guild automation even though the new city put it well
+    /// within <see cref="BuildersGuild.MaxAutoRoadDistance"/>. See <see cref="RoadController.OnCityBuilt"/>.
+    ///
+    /// Straight 5-road chain from the starting city (dist 1..5). A second city is founded exactly on
+    /// the vertex shared by roads 3 and 4 (already built) — a shortcut that does NOT touch the
+    /// frontier candidate one edge further out, so that candidate's distance can only shrink via a
+    /// recompute of roads 4/5, never via a direct city-vertex check.
+    /// </summary>
+    [Fact]
+    public void AutoRoad_NewCityShortcut_UnlocksFrontierCandidate_ThroughExistingRoad()
+    {
+        var chainC   = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var chainE   = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var chainNE  = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var chainSE  = new HexCoord(1, -1, IslandMap.SurfaceLayer);
+        var chainSSE = new HexCoord(2, -1, IslandMap.SurfaceLayer);
+        var chainESE = new HexCoord(2, -2, IslandMap.SurfaceLayer);
+        var chainFar = new HexCoord(3, -2, IslandMap.SurfaceLayer);
+
+        var tiles = new List<HexTile>
+        {
+            new(chainC,   TerrainType.Plain),
+            new(chainE,   TerrainType.Plain),
+            new(chainNE,  TerrainType.Plain),
+            new(chainSE,  TerrainType.Plain),
+            new(chainSSE, TerrainType.Plain),
+            new(chainESE, TerrainType.Plain),
+            new(chainFar, TerrainType.Plain),
+        };
+        var map = new IslandMap(tiles);
+        var civ = new Civilization { Index = 0 };
+
+        var cityVertex = Vertex.Create(chainC, chainE, chainNE);
+        var city = new City(cityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        city.AddBuilding(new TownHall { Level = 20 });
+        var guild = new BuildersGuild { Level = 4 }; // cheap road costs while building the manual chain
+        city.AddBuilding(guild);
+        BuildingController.RecalculateStorageCapacity(civ);
+        civ.AddResource(Resource.Wood,  1000);
+        civ.AddResource(Resource.Brick, 1000);
+
+        var clock = new GameClock();
+        clock.Start();
+
+        var roadController = new RoadController();
+        var cityController = new CityBuilderController();
+        roadController.Initialize(state, clock, new GamePRNG());
+        cityController.Initialize(state, clock, new GamePRNG());
+
+        // Manual chain, distances 1..5.
+        roadController.BuildRoad(0, Edge.Create(chainC,   chainE));
+        roadController.BuildRoad(0, Edge.Create(chainE,   chainSE));
+        var shortcutVertex = Vertex.Create(chainSE, chainSSE, chainESE);
+        roadController.BuildRoad(0, Edge.Create(chainSE,  chainSSE)); // dist 3, ends on shortcutVertex
+        roadController.BuildRoad(0, Edge.Create(chainSSE, chainESE)); // dist 4
+        roadController.BuildRoad(0, Edge.Create(chainESE, chainFar)); // dist 5
+        Assert.Equal(5, civ.Roads.Count);
+
+        var frontierCandidate = Edge.Create(chainFar, chainSSE);
+
+        // Currently at distance 5 (one hop beyond the dist-4 road) — out of reach even for the
+        // guild's maximum auto-road distance of 3.
+        Assert.DoesNotContain(roadController.GetBuildableRoadsAtDistance(0, 2),
+            r => r.Position.Equals(frontierCandidate));
+
+        // Lower the guild to level 2 (MaxAutoRoadDistance = 2) for the automation phase below.
+        guild.Level = 2;
+
+        // Found a second city exactly where roads 3 and 4 meet. It never touches frontierCandidate
+        // directly, but shortens roads 4 (now dist 1) and 5 (now dist 2), which should bring
+        // frontierCandidate down to distance 2.
+        var newCity = cityController.CreateCityFree(0, shortcutVertex);
+        roadController.OnCityBuilt(civ, newCity.Position); // mirrors MainGameController's wiring
+
+        var updated = roadController.GetBuildableRoadsAtDistance(0, 2)
+            .FirstOrDefault(r => r.Position.Equals(frontierCandidate));
+        Assert.NotNull(updated);
+        Assert.Equal(2, updated!.DistanceToNearestCity);
+
+        // The guild's automatic road building must now actually pick it up.
+        state.AutomationSettings.RoadAutomationEnabled = true;
+        clock.SimulateAdvance(10); // first-fire guard
+        for (int i = 0; i < 10 && !civ.Roads.Any(r => r.Position.Equals(frontierCandidate)); i++)
+            clock.SimulateAdvance(500);
+
+        Assert.Contains(civ.Roads, r => r.Position.Equals(frontierCandidate));
+    }
+
+    // =========================================================================
+    // Test 4 — BuildersGuild auto-upgrades the TownHall as soon as guild level 1
     // =========================================================================
 
     [Fact]
@@ -295,7 +396,7 @@ public class BuildersGuildAutomationTests
     }
 
     // =========================================================================
-    // Test 4 — Guild automation must keep upgrading past level 5
+    // Test 5 — Guild automation must keep upgrading past level 5
     // (regression: TickGuildAutomation used to search only levels 1..5)
     // =========================================================================
 

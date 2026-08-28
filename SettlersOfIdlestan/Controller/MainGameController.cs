@@ -548,6 +548,13 @@ namespace SettlersOfIdlestan.Controller
             HarvestController.InvalidateProductionCache(e.CivilizationIndex);
             MobileCampController.DestroyCampsNear(e.Position, e.CivilizationIndex);
 
+            // Recalcule les distances des routes déjà construites de la civilisation propriétaire :
+            // la nouvelle ville peut en raccourcir certaines (raccourci), ce qui les rend éligibles à
+            // l'automatisation de la guilde des bâtisseurs — voir RoadController.OnCityBuilt.
+            var builderCiv = CurrentMainState?.CurrentWorldState?.GetCivilization(e.CivilizationIndex);
+            if (builderCiv != null)
+                RoadController.OnCityBuilt(builderCiv, e.Position);
+
             // Une nouvelle ville — même celle d'une civilisation ennemie — peut retirer un bord
             // auparavant constructible du cache d'une AUTRE civilisation (le bord touche désormais un
             // vertex avec une ville ennemie, voir RoadController.IsEdgeBuildableByCivilization). La clé
