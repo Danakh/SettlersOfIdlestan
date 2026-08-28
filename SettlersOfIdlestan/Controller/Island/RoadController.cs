@@ -134,35 +134,243 @@ namespace SettlersOfIdlestan.Controller.Island
                 guild.LastRoadBuildTick = lastTick;
                 if (cycles <= 0) continue;
 
-                // Un cycle = une route posée (comportement inchangé), rejoué `cycles` fois pour
-                // rattraper un saut de temps. S'arrête dès qu'un cycle ne trouve plus de route
-                // constructible — les cycles suivants échoueraient pour la même raison.
-                for (long c = 0; c < cycles; c++)
-                {
-                    var candidates = new List<Road>();
-                    if (surfaceEnabled)
-                        for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
-                            candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d).Where(r => r.Position.Z == IslandMap.SurfaceLayer));
-
-                    // La guilde priorise la surface : l'Inframonde n'est considéré que si aucune route
-                    // de surface n'est disponible ce cycle.
-                    if (candidates.Count == 0 && underworldEnabled)
-                        for (int d = 1; d <= guild.MaxAutoRoadDistance; d++)
-                            candidates.AddRange(GetBuildableRoadsAtDistance(civ.Index, d).Where(r => r.Position.Z == LayerState.UnderworldZ));
-
-                    if (candidates.Count == 0) break;
-
-                    var chosen = candidates[_prng!.Next(candidates.Count)];
-                    TryRemoveEnemyRoadAt(chosen.Position, civ.Index);
-                    var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
-                    civ.AddRoad(road);
-                    ComputeRoadDistancesForCivilization(civ, chosen.Position.Z);
-                    InvalidateBuildableRoadsCacheForLayer(chosen.Position.Z);
-                    _state.Visibility.RecalculateFor(civ.Index);
-
-                    OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
-                }
+                BuildRoadsForGuildBurst(civ, guild, cycles, surfaceEnabled, underworldEnabled);
             }
+        }
+
+        /// <summary>
+        /// Pose jusqu'à <paramref name="cycles"/> routes automatiques pour une civilisation en un seul
+        /// appel (rattrapage après un saut de temps ; un cycle = une route posée, comportement
+        /// inchangé). S'arrête dès qu'un cycle ne trouve plus de route constructible — les cycles
+        /// suivants échoueraient pour la même raison.
+        ///
+        /// Les deux layers (surface et Inframonde — l'Abysse n'a pas d'automatisation de routes)
+        /// maintiennent chacun une liste de travail locale des arêtes constructibles, mise à jour de
+        /// proche en proche à chaque route posée (une route n'ouvre que 0 à 2 nouvelles arêtes
+        /// candidates, à son extrémité libre — voir <see cref="PatchCandidatesAfterBuild"/>), au lieu
+        /// de rappeler <see cref="ComputeBuildableRoadsForLayer"/>/
+        /// <see cref="ComputeRoadDistancesForCivilization"/>/
+        /// <see cref="Model.IslandMap.WorldVisibility.RecalculateFor"/> — tous trois O(routes de la
+        /// civilisation sur ce layer) — à chaque route posée. Sur un réseau de plusieurs milliers de
+        /// routes (fin de partie), poser `cycles` routes en rattrapage coûtait O(routes × cycles) au
+        /// lieu de O(routes + cycles) ; c'était le coût dominant restant après les correctifs de
+        /// nettoyage des civs mortes et du cache d'automatisation des guildes (voir mémoire
+        /// endgame_x10_freeze_investigation).
+        ///
+        /// L'Inframonde est une couche AutoExtend : y poser une route peut révéler de nouveaux
+        /// hexagones de carte aux deux sommets de CETTE route (voir
+        /// <see cref="AutoExtendController.TryExtendMapAfterRoad"/>, qui ne touche jamais que les
+        /// hexagones à un pas de l'arête qui vient d'être construite). C'est pour ça que
+        /// <see cref="OnAutoRoadBuilt"/> est levé ICI, avant le patch de la liste de travail, et non
+        /// après comme le reste du contrôleur le fait ailleurs : le patch a besoin que ces hexagones
+        /// existent déjà pour valider/générer correctement les candidats du troisième hexagone de
+        /// cette route (sans ça, TryAddCandidate les rejetterait comme "hors carte"). Un vertex
+        /// appartenant par ailleurs à une tout autre route déjà construite ailleurs sur la carte ne
+        /// peut jamais devenir complet par cette révélation sans l'avoir déjà été : chacun de ses
+        /// hexagones aurait alors déjà été révélé quand CETTE AUTRE route a été construite (même
+        /// mécanisme). Le seul angle mort réel est donc un vertex qui touche à la fois le nouvel
+        /// hexagone ET deux hexagones déjà là mais qui n'appartiennent à AUCUNE route/ville existante
+        /// (candidat désormais valide mais jamais généré ici, puisqu'il ne touche pas la route qu'on
+        /// vient de poser) — rattrapé par le recalcul complet et différé de fin de rafale
+        /// (invalidation du cache ci-dessous), au pire un cycle plus tard.
+        ///
+        /// La visibilité, elle, reste recalculée à CHAQUE route de l'Inframonde (jamais différée) :
+        /// c'est l'instantané "avant" que lit <c>TrySpawnAggressiveCivilization</c> (via
+        /// <c>TryExtendMapAfterRoad</c> → <c>GetPlayerVisibleHexCoords</c>, qui lit directement
+        /// <c>WorldVisibility.GetForZ</c> sans le recalculer) pour décider si un hexagone nouvellement
+        /// révélé était déjà visible du joueur. <c>TryExtendMapAfterRoad</c> ne rappelle lui-même
+        /// <c>RecalculateFor</c> que quand de nouveaux hexagones ont été ajoutés — jamais quand une
+        /// route étend juste son propre rayon de vision sans en révéler — donc différer cet appel
+        /// changerait quels hexagones comptent comme "nouveaux" pour ce mécanisme au fil d'une rafale
+        /// à plusieurs cycles, un changement de comportement de jeu et pas seulement de performance.
+        /// </summary>
+        private void BuildRoadsForGuildBurst(Civilization civ, BuildersGuild guild, long cycles, bool surfaceEnabled, bool underworldEnabled)
+        {
+            LayerBurstContext? surfaceCtx = null;
+            LayerBurstContext? underworldCtx = null;
+            bool surfaceTouched = false;
+            bool underworldTouched = false;
+
+            for (long c = 0; c < cycles; c++)
+            {
+                Road? chosen = null;
+                LayerBurstContext? chosenCtx = null;
+
+                if (surfaceEnabled)
+                {
+                    surfaceCtx ??= SeedLayerBurstContext(civ, IslandMap.SurfaceLayer, guild.MaxAutoRoadDistance);
+                    if (surfaceCtx.Working.Count > 0)
+                    {
+                        chosen = surfaceCtx.Working[_prng!.Next(surfaceCtx.Working.Count)];
+                        chosenCtx = surfaceCtx;
+                    }
+                }
+
+                // La guilde priorise la surface : l'Inframonde n'est considéré que si aucune route
+                // de surface n'est disponible ce cycle.
+                if (chosen == null && underworldEnabled)
+                {
+                    underworldCtx ??= SeedLayerBurstContext(civ, LayerState.UnderworldZ, guild.MaxAutoRoadDistance);
+                    if (underworldCtx.Working.Count > 0)
+                    {
+                        chosen = underworldCtx.Working[_prng!.Next(underworldCtx.Working.Count)];
+                        chosenCtx = underworldCtx;
+                    }
+                }
+
+                if (chosen == null) break;
+
+                TryRemoveEnemyRoadAt(chosen.Position, civ.Index);
+                var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
+                civ.AddRoad(road);
+
+                bool onSurface = chosen.Position.Z == IslandMap.SurfaceLayer;
+                if (onSurface) surfaceTouched = true; else underworldTouched = true;
+
+                // Voir la doc de la méthode : doit être émis avant le patch pour l'Inframonde.
+                OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
+
+                PatchCandidatesAfterBuild(civ, guild, chosenCtx!, road);
+
+                if (!onSurface)
+                    _state!.Visibility.RecalculateFor(civ.Index);
+            }
+
+            if (surfaceTouched)
+            {
+                ComputeRoadDistancesForCivilization(civ, IslandMap.SurfaceLayer);
+                InvalidateBuildableRoadsCacheForLayer(IslandMap.SurfaceLayer);
+                _state!.Visibility.RecalculateFor(civ.Index);
+            }
+            if (underworldTouched)
+            {
+                ComputeRoadDistancesForCivilization(civ, LayerState.UnderworldZ);
+                InvalidateBuildableRoadsCacheForLayer(LayerState.UnderworldZ);
+                // Visibilité déjà tenue à jour route par route ci-dessus (voir doc) : pas de second
+                // appel ici.
+            }
+        }
+
+        /// <summary>
+        /// Liste de travail des arêtes constructibles d'un layer pour une civilisation, maintenue
+        /// pendant une rafale de <see cref="BuildRoadsForGuildBurst"/> et patchée de proche en proche
+        /// au lieu d'être recalculée à chaque route posée.
+        /// </summary>
+        private sealed class LayerBurstContext
+        {
+            public readonly List<Road> Working;
+            public readonly HashSet<Edge> OwnOccupied;
+            public readonly HashSet<Edge> EnemyProtectedEdges;
+            public readonly IReadOnlyDictionary<HexCoord, HexTile>? MapTiles;
+
+            public LayerBurstContext(List<Road> working, HashSet<Edge> ownOccupied, HashSet<Edge> enemyProtectedEdges, IReadOnlyDictionary<HexCoord, HexTile>? mapTiles)
+            {
+                Working = working;
+                OwnOccupied = ownOccupied;
+                EnemyProtectedEdges = enemyProtectedEdges;
+                MapTiles = mapTiles;
+            }
+        }
+
+        /// <summary>
+        /// Calcule le contexte de travail d'un layer pour une rafale : une seule fois par rafale
+        /// (jamais par route posée), et en réutilisant le cache normal quand il est encore valide —
+        /// sans ce HIT, une civilisation dont ce layer est saturé (plus aucune route à construire, cas
+        /// fréquent une fois le territoire couvert) repayerait le calcul complet — le plus coûteux de
+        /// tous, à cause de <see cref="HasEnemyCityAt"/> appelé pour chaque route existante — à CHAQUE
+        /// événement d'horloge pour toujours, alors que rien n'a changé depuis la dernière fois. Sur un
+        /// HIT, seuls ownOccupied/enemyProtectedEdges/mapTiles sont recalculés (nettement moins cher :
+        /// aucun ne passe par <see cref="HasEnemyCityAt"/>), la liste de routes constructibles étant
+        /// déjà bonne telle quelle.
+        /// </summary>
+        private LayerBurstContext SeedLayerBurstContext(Civilization civ, int layer, int maxAutoRoadDistance)
+        {
+            int cityCount = civ.Cities.Count(c => c.Position.Z == layer);
+            int beaconCount = civ.MaritimeBeacons.Count(b => b.Position.Z == layer);
+            var cacheKey = (civ.Index, layer);
+
+            List<Road> roads;
+            HashSet<Edge> ownOccupied;
+            HashSet<Edge> enemyProtectedEdges;
+            IReadOnlyDictionary<HexCoord, HexTile>? mapTiles;
+
+            if (_buildableRoadsCache.TryGetValue(cacheKey, out var cached)
+                && cached.CityCount == cityCount
+                && cached.BeaconCount == beaconCount)
+            {
+                roads = cached.Roads;
+                ownOccupied = new HashSet<Edge>(civ.Roads.Where(r => r.Position.Z == layer).Select(r => r.Position));
+                enemyProtectedEdges = ComputeEnemyProtectedEdgesSet(civ, layer);
+                mapTiles = _state!.GetMapForZ(layer)?.Tiles;
+            }
+            else
+            {
+                var computed = ComputeBuildableRoadsForLayer(civ, layer);
+                _buildableRoadsCache[cacheKey] = (cityCount, beaconCount, computed.Roads);
+                roads = computed.Roads;
+                ownOccupied = computed.OwnOccupied;
+                enemyProtectedEdges = computed.EnemyProtectedEdges;
+                mapTiles = computed.MapTiles;
+            }
+
+            var working = roads.Where(r => r.DistanceToNearestCity <= maxAutoRoadDistance).ToList();
+            return new LayerBurstContext(working, ownOccupied, enemyProtectedEdges, mapTiles);
+        }
+
+        private HashSet<Edge> ComputeEnemyProtectedEdgesSet(Civilization civ, int layer) =>
+            new HashSet<Edge>(
+                _state!.Civilizations
+                    .Where(c => c.Index != civ.Index)
+                    .SelectMany(c => c.Roads)
+                    .Where(r => r.Position.Z == layer && r.DistanceToNearestCity <= 2)
+                    .Select(r => r.Position));
+
+        /// <summary>
+        /// Ajoute à la liste de travail les 0 à 2 nouvelles arêtes candidates ouvertes par la route
+        /// qui vient d'être posée (le troisième hexagone de chacun de ses deux sommets — même logique
+        /// que la boucle "roadsInLayer" de <see cref="ComputeBuildableRoadsForLayer"/>, appliquée à une
+        /// seule route au lieu de tout le réseau).
+        /// </summary>
+        private void PatchCandidatesAfterBuild(Civilization civ, BuildersGuild guild, LayerBurstContext ctx, Road built)
+        {
+            ctx.Working.RemoveAll(r => r.Position.Equals(built.Position));
+            ctx.OwnOccupied.Add(built.Position);
+
+            if (ctx.MapTiles == null) return;
+
+            foreach (var vertex in built.Position.GetVertices())
+            {
+                if (HasEnemyCityAt(vertex, civ)) continue;
+                var thirdHex = vertex.GetHexes().First(h => !h.Equals(built.Position.Hex1) && !h.Equals(built.Position.Hex2));
+                TryAddCandidate(civ, guild, ctx, Edge.Create(built.Position.Hex1, thirdHex), built.DistanceToNearestCity + 1);
+                TryAddCandidate(civ, guild, ctx, Edge.Create(built.Position.Hex2, thirdHex), built.DistanceToNearestCity + 1);
+            }
+        }
+
+        /// <summary>
+        /// Mêmes règles de validité qu'un candidat de <see cref="ComputeBuildableRoadsForLayer"/> (arête
+        /// sur la carte, non occupée par nous, non protégée par un ennemi, terre/Vide/mer débloqué·e
+        /// selon le cas), plus le filtre de distance maximale de la guilde (implicite dans
+        /// <see cref="GetBuildableRoadsAtDistance"/> côté recalcul complet).
+        /// </summary>
+        private void TryAddCandidate(Civilization civ, BuildersGuild guild, LayerBurstContext ctx, Edge edge, int distance)
+        {
+            if (distance > guild.MaxAutoRoadDistance) return;
+            if (ctx.MapTiles == null || !ctx.MapTiles.ContainsKey(edge.Hex1) || !ctx.MapTiles.ContainsKey(edge.Hex2)) return;
+            if (ctx.OwnOccupied.Contains(edge) || ctx.EnemyProtectedEdges.Contains(edge)) return;
+            if (ctx.Working.Any(r => r.Position.Equals(edge))) return;
+
+            if (IsEdgeBetweenVoidHexes(edge))
+            {
+                if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_VOID_ROUTES)) return;
+            }
+            else if (!IsEdgeOnLand(edge))
+            {
+                if (EdgeTouchesDeepWater(edge)) return;
+                if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES) || !IsValidMaritimeEdge(edge, civ)) return;
+            }
+
+            ctx.Working.Add(new Road(edge) { CivilizationIndex = civ.Index, DistanceToNearestCity = distance });
         }
 
         /// <summary>
@@ -196,19 +404,44 @@ namespace SettlersOfIdlestan.Controller.Island
         /// civilisation. Un layer (surface/inframonde/abysse) est un graphe de vertex/edge totalement
         /// indépendant des autres, donc ce calcul n'a besoin de considérer que les villes/routes/balises
         /// de ce layer.
+        ///
+        /// Un HIT de cache doit rester un simple retour de <c>cached.Roads</c>, sans le moindre calcul
+        /// supplémentaire : c'est le chemin emprunté par tous les appelants qui ne posent pas de route
+        /// (UI, IA des PNJ qui n'ont pas de BuildersGuild — voir <see cref="BuildRoadsForGuildBurst"/>
+        /// pour pourquoi seul le joueur en construit une). Un calcul même léger ajouté ici pénaliserait
+        /// TOUS ces appels — mesuré en régression nette sur SOIBench la première fois que
+        /// ownOccupied/enemyProtectedEdges ont été calculés dans cette méthode pour les besoins de la
+        /// rafale de guilde (voir <see cref="ComputeBuildableRoadsForLayer"/>, qui les calcule à part).
         /// </summary>
         private List<Road> GetBuildableRoadsForLayer(Civilization civ, int layer)
         {
-            int civilizationIndex = civ.Index;
             int cityCount = civ.Cities.Count(c => c.Position.Z == layer);
             int beaconCount = civ.MaritimeBeacons.Count(b => b.Position.Z == layer);
-            var cacheKey = (civilizationIndex, layer);
+            var cacheKey = (civ.Index, layer);
 
             if (_buildableRoadsCache.TryGetValue(cacheKey, out var cached)
                 && cached.CityCount == cityCount
                 && cached.BeaconCount == beaconCount)
                 return cached.Roads;
 
+            var computed = ComputeBuildableRoadsForLayer(civ, layer);
+            _buildableRoadsCache[cacheKey] = (cityCount, beaconCount, computed.Roads);
+            return computed.Roads;
+        }
+
+        /// <summary>
+        /// Calcul complet (jamais depuis le cache) des routes constructibles d'un layer, avec les trois
+        /// ensembles intermédiaires utilisés pour les construire (arêtes déjà occupées par nous, arêtes
+        /// protégées par un ennemi proche, tuiles de la carte). <see cref="GetBuildableRoadsForLayer"/>
+        /// n'en garde que la liste de routes (le reste est jeté après un HIT de cache, où il n'a même
+        /// pas été calculé) ; <see cref="BuildRoadsForGuildBurst"/> en a besoin des quatre, une seule
+        /// fois par rafale, pour patcher sa liste de travail de proche en proche au lieu de rappeler
+        /// cette méthode — O(routes de la civilisation + routes des autres civs) — à chaque route posée.
+        /// </summary>
+        private (List<Road> Roads, HashSet<Edge> OwnOccupied, HashSet<Edge> EnemyProtectedEdges, IReadOnlyDictionary<HexCoord, HexTile>? MapTiles)
+            ComputeBuildableRoadsForLayer(Civilization civ, int layer)
+        {
+            int civilizationIndex = civ.Index;
             var citiesInLayer = civ.Cities.Where(c => c.Position.Z == layer).ToList();
             var roadsInLayer = civ.Roads.Where(r => r.Position.Z == layer).ToList();
             var mapTiles = _state!.GetMapForZ(layer)?.Tiles;
@@ -236,12 +469,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
             }
 
-            var enemyProtectedEdges = new HashSet<Edge>(
-                _state!.Civilizations
-                    .Where(c => c.Index != civilizationIndex)
-                    .SelectMany(c => c.Roads)
-                    .Where(r => r.Position.Z == layer && r.DistanceToNearestCity <= 2)
-                    .Select(r => r.Position));
+            var enemyProtectedEdges = ComputeEnemyProtectedEdgesSet(civ, layer);
 
             var result = new List<Road>();
             foreach (var edge in candidates)
@@ -283,8 +511,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 result.Add(road);
             }
 
-            _buildableRoadsCache[cacheKey] = (cityCount, beaconCount, result);
-            return result;
+            return (result, ownOccupied, enemyProtectedEdges, mapTiles);
         }
 
         /// <summary>
