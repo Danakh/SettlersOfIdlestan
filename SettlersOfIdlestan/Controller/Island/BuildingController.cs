@@ -317,6 +317,13 @@ namespace SettlersOfIdlestan.Controller.Island
         /// des centaines de villes) peut être sauté. Volontairement pas de suivi par abonnement à un
         /// événement : les civs PNJ peuvent apparaître/disparaître en cours de partie
         /// (AutoExtendController), et un abonnement oublié à la désinscription fuirait.
+        ///
+        /// <para>Une entrée n'est écrite que si aucun candidat trouvé n'était bloqué uniquement par un
+        /// coût non couvert (voir <c>blockedByResources</c> dans <see cref="TickGuildAutomation"/>) :
+        /// les ressources s'accumulent à chaque tick sans faire bouger aucune des trois versions
+        /// suivies ici, donc les mettre en cache figerait l'automatisation dès la première tentative
+        /// trop précoce, jusqu'à ce qu'un événement sans rapport (nouvelle ville, recherche, preset)
+        /// invalide enfin l'entrée.</para>
         /// </summary>
         private readonly Dictionary<(int CivIndex, GuildAutomationKind Kind), (int Buildings, int Modifiers, int Presets)> _guildNothingToDoCache = new();
 
@@ -351,13 +358,17 @@ namespace SettlersOfIdlestan.Controller.Island
             // cycle ne trouve plus rien à faire — les cycles suivants échoueraient pour la même raison
             // (aucune ressource supplémentaire n'est produite entre deux cycles de cette boucle).
             for (long i = 0; i < cycles; i++)
-                if (!TryPerformOneGuildAction(civ, presets, targets))
+                if (!TryPerformOneGuildAction(civ, presets, targets, out bool blockedByResources))
                 {
                     // Rien trouvé à ce triplet de versions (celui d'après un éventuel build réussi
                     // plus tôt dans cette même rafale de cycles, cf. BuildingsVersion incrémenté par
                     // BuildBuilding) : un futur appel peut sauter le balayage tant que rien de ça ne
-                    // change — nouvelle ville, modifier (recherche/prestige/rituel...) ou preset.
-                    _guildNothingToDoCache[cacheKey] = (civ.BuildingsVersion, civ.ModifierAggregator.Version, presets.PresetsVersion);
+                    // change — nouvelle ville, modifier (recherche/prestige/rituel...) ou preset. Mais
+                    // pas si l'échec vient d'un coût non couvert : les ressources s'accumulent à chaque
+                    // tick sans bouger aucune de ces versions, et mettre en cache figerait
+                    // l'automatisation dès la première tentative trop tôt (voir blockedByResources).
+                    if (!blockedByResources)
+                        _guildNothingToDoCache[cacheKey] = (civ.BuildingsVersion, civ.ModifierAggregator.Version, presets.PresetsVersion);
                     break;
                 }
         }
@@ -369,14 +380,19 @@ namespace SettlersOfIdlestan.Controller.Island
         /// couvert). Un plafond de preset à 0 empêche toute construction du type ; un plafond atteint
         /// arrête son amélioration (voir AutomationPresetSettings / TechnologyId.AutomationPreset).
         /// </summary>
-        private bool TryPerformOneGuildAction(Model.Civilization.Civilization civ, AutomationSettings presets, BuildingType[] targets)
+        private bool TryPerformOneGuildAction(Model.Civilization.Civilization civ, AutomationSettings presets, BuildingType[] targets, out bool blockedByResources)
         {
+            blockedByResources = false;
+
             foreach (var city in civ.Cities)
                 foreach (var type in targets)
-                    if (presets.GetActivePresetCap(type) > 0
-                        && !city.Buildings.Any(b => b.Type == type)
-                        && BuildBuilding(city, type))
+                {
+                    if (presets.GetActivePresetCap(type) <= 0 || city.Buildings.Any(b => b.Type == type))
+                        continue;
+                    if (BuildBuilding(city, type, out bool resourceBlocked))
                         return true;
+                    blockedByResources |= resourceBlocked;
+                }
 
             var lowestLevelFirst = civ.Cities
                 .SelectMany(city => city.Buildings
@@ -385,8 +401,11 @@ namespace SettlersOfIdlestan.Controller.Island
                 .OrderBy(x => x.Level);
 
             foreach (var (city, type, _) in lowestLevelFirst)
-                if (BuildBuilding(city, type))
+            {
+                if (BuildBuilding(city, type, out bool resourceBlocked))
                     return true;
+                blockedByResources |= resourceBlocked;
+            }
 
             return false;
         }
@@ -518,8 +537,19 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Construit (ou am�liore) un b�timent dans la ville sp�cifi�e.
         /// Lance InvalidOperationException si pas assez de ressources ou si l'action n'est pas permise.
         /// </summary>
-        public bool BuildBuilding(City city, BuildingType type)
+        public bool BuildBuilding(City city, BuildingType type) => BuildBuilding(city, type, out _);
+
+        /// <summary>
+        /// Surcharge utilisée par l'automatisation de guilde (<see cref="TryPerformOneGuildAction"/>)
+        /// pour distinguer un échec « rien à construire structurellement » (prérequis non remplis,
+        /// unique déjà bâti, plafond de niveau atteint) d'un échec « coût non couvert » via
+        /// <paramref name="blockedByInsufficientResources"/> : seul le premier cas peut être mis en
+        /// cache sans risque, le second se résout de lui-même à mesure que les ressources s'accumulent,
+        /// sans qu'aucune des versions suivies par <see cref="_guildNothingToDoCache"/> ne bouge.
+        /// </summary>
+        private bool BuildBuilding(City city, BuildingType type, out bool blockedByInsufficientResources)
         {
+            blockedByInsufficientResources = false;
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.GetCivilization(city.CivilizationIndex)
@@ -586,6 +616,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 if (civ.GetResourceQuantity(kv.Key) < kv.Value)
                 {
+                    blockedByInsufficientResources = true;
                     return false;
                 }
             }
