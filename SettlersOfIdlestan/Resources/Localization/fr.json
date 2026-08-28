@@ -869,6 +869,8 @@
   "event_abyss_lost_divine_essence_body": "Votre dernière ville dans les Abysses a été détruite : {0} essence(s) divine(s) récoltée(s) pendant ce run sont perdues.",
   "event_abyss_gate_lost_title": "💀 Faille des Abysses perdue !",
   "event_abyss_gate_lost_body": "Votre dernière ville dans les Abysses a été détruite : toute la carte des Abysses est perdue. La Faille retombe à 50 % d'investissement : réinvestissez pour générer une nouvelle carte.",
+  "event_monument_investment_blocked_title": "⚠ Investissement bloqué",
+  "event_monument_investment_blocked_body": "La ville qui rendait {0} accessible a été détruite : l'investissement est bloqué tant qu'aucune ville ne touche plus son hexagone.",
   "hex_tooltip_pandemonium_gate": "🔥 Portail du Pandémonium — investissez des ressources pour l'ouvrir",
   "hex_tooltip_pandemonium_gate_built": "🔥 Portail du Pandémonium — ouvert",
   "pandemonium_gate_panel_title": "Portail du Pandémonium — Construction",

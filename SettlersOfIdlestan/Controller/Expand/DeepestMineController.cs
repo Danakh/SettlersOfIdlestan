@@ -149,6 +149,7 @@ namespace SettlersOfIdlestan.Controller.Island
             mine.Dug = false;
             mine.InvestmentEnabled.Clear();
             mine.InvestedResources.Clear();
+            mine.CompletedInvestmentCost.Clear();
             var cost = mine.GetInvestmentCost(_state.PlayerCivilization);
             foreach (var kvp in cost)
                 mine.InvestedResources[kvp.Key] = kvp.Value / 2;

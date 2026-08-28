@@ -70,6 +70,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             observatory.Level++;
             observatory.InvestedResources.Clear();
+            observatory.CompletedInvestmentCost.Clear();
             observatory.InvestmentEnabled.Clear();
             observatory.InvestedResearch = 0;
             observatory.ResearchInvestmentEnabled = false;

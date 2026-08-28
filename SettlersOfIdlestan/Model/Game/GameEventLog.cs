@@ -89,6 +89,15 @@ public enum GameEventType
     /// (comme la Mine Profonde/la Percée de Surface) — voir AbyssGateController.OnCityDestroyed.
     /// </summary>
     AbyssGateLost,
+
+    /// <summary>
+    /// La ville qui rendait un Monument (Merveille, Os Divins…) éligible à l'investissement a été
+    /// détruite, et aucune autre ville ne touche plus son hex : l'investissement en cours se fige
+    /// silencieusement (MonumentInvestment.ProcessTick refuse tant qu'aucune ville n'est adjacente)
+    /// sans qu'aucun système ne le signale autrement. Message = clé de localisation du titre du
+    /// panneau du Monument concerné (Monument.PanelTitleKey) — voir MonumentInvestment.OnCityDestroyed.
+    /// </summary>
+    MonumentInvestmentBlockedByCityLoss,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

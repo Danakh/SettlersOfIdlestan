@@ -77,6 +77,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             necropolis.Level++;
             necropolis.InvestedResources.Clear();
+            necropolis.CompletedInvestmentCost.Clear();
             necropolis.InvestmentEnabled.Clear();
             _state.EventLog.Add(GameEventType.NecropolisLevelUp, necropolis.Level.ToString(), toast: true);
             if (_harvestController != null && !necropolis.IsMaxLevel)

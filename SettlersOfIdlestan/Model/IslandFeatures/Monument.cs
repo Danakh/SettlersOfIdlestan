@@ -25,6 +25,17 @@ public abstract class Monument : IslandFeature
     /// <summary>Ressources dont l'investissement automatique est activé par le joueur.</summary>
     public List<Resource> InvestmentEnabled { get; set; } = new();
 
+    /// <summary>
+    /// Coût de chaque ressource au moment où <see cref="Controller.Expand.MonumentInvestment.ProcessTick"/>
+    /// l'a désélectionnée faute de reste à investir (ressource entièrement couverte). Sert de repère à
+    /// <see cref="Controller.Expand.MonumentInvestment.ResumeAutoInvestmentIfUnderfunded"/> pour ne
+    /// reprendre l'investissement automatique que si le coût a réellement augmenté depuis cette
+    /// complétion — jamais si le joueur a simplement arrêté l'investissement en cours de route (auquel
+    /// cas la ressource n'a jamais atteint ce dictionnaire). Vidé partout où InvestedResources l'est
+    /// (palier franchi = nouvel objectif, plus aucune complétion à comparer).
+    /// </summary>
+    public Dictionary<Resource, long> CompletedInvestmentCost { get; set; } = new();
+
     /// <summary>Tick du dernier cycle d'investissement.</summary>
     public long LastInvestmentTick { get; set; } = 0;
 

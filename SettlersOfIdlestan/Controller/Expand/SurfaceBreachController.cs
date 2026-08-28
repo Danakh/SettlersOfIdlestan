@@ -171,6 +171,7 @@ namespace SettlersOfIdlestan.Controller.Island
             breach.Dug = false;
             breach.InvestmentEnabled.Clear();
             breach.InvestedResources.Clear();
+            breach.CompletedInvestmentCost.Clear();
             var cost = breach.GetInvestmentCost(_state.PlayerCivilization);
             foreach (var kvp in cost)
                 breach.InvestedResources[kvp.Key] = kvp.Value / 2;

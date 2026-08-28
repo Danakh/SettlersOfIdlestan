@@ -71,6 +71,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (!MonumentInvestment.ProcessTick(spire, cost, playerCiv, _clock.CurrentTick)) return;
 
             spire.InvestedResources.Clear();
+            spire.CompletedInvestmentCost.Clear();
             spire.InvestmentEnabled.Clear();
 
             if (!spire.Built)

@@ -869,6 +869,8 @@
   "event_abyss_lost_divine_essence_body": "Your last city in the Abyss was destroyed: {0} divine essence(s) harvested this run are lost.",
   "event_abyss_gate_lost_title": "💀 Abyss Gate lost!",
   "event_abyss_gate_lost_body": "Your last city in the Abyss was destroyed: the entire Abyss map is lost. The Gate falls back to 50% investment: reinvest to generate a new map.",
+  "event_monument_investment_blocked_title": "⚠ Investment blocked",
+  "event_monument_investment_blocked_body": "The city that gave access to {0} was destroyed: investment is blocked until a city touches its hex again.",
   "hex_tooltip_pandemonium_gate": "🔥 Pandemonium Gate — invest resources to open it",
   "hex_tooltip_pandemonium_gate_built": "🔥 Pandemonium Gate — open",
   "pandemonium_gate_panel_title": "Pandemonium Gate — Construction",

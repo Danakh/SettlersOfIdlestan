@@ -47,7 +47,7 @@ namespace SettlersOfIdlestan.Controller.Expand
                     if (!cost.Contains(resource)) continue;
                     long invested = monument.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
                     long required = cost[resource];
-                    if (invested >= required) { toDeselect.Add(resource); continue; }
+                    if (invested >= required) { monument.CompletedInvestmentCost[resource] = required; toDeselect.Add(resource); continue; }
 
                     int stock = playerCiv.GetResourceQuantity(resource);
                     if (stock < 1) continue;
@@ -64,7 +64,10 @@ namespace SettlersOfIdlestan.Controller.Expand
                     long newInvested = invested + amount;
                     monument.InvestedResources[resource] = newInvested;
                     if (newInvested >= required)
+                    {
+                        monument.CompletedInvestmentCost[resource] = required;
                         toDeselect.Add(resource);
+                    }
                 }
 
                 foreach (var r in toDeselect)
@@ -123,6 +126,35 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// </summary>
         public static bool HasAdjacentCity(HexCoord position, Civilization playerCiv)
             => playerCiv.Cities.Any(city => city.Position.GetHexes().Any(h => h.Equals(position)));
+
+        /// <summary>
+        /// À appeler depuis <see cref="Controller.MainGameController"/> après qu'une ville du joueur a
+        /// été détruite (CityBuilderController.OnCityDestroyed), quelle qu'en soit la cause. Un
+        /// Monument dont l'investissement était actif (<see cref="Monument.InvestmentEnabled"/> ou
+        /// <see cref="Monument.ResearchInvestmentEnabled"/>) et qui ne touchait plus aucune autre ville
+        /// que celle-ci se retrouve sans <see cref="HasAdjacentCity"/> : <see cref="ProcessTick"/> et
+        /// <see cref="ProcessResearchTick"/> refusent alors silencieusement tout prélèvement, chaque
+        /// tick, sans qu'aucun système ne le signale — l'investissement se fige sans erreur ni log
+        /// visible. Émet un toast + entrée de journal par Monument concerné pour rendre ce blocage
+        /// visible (cas vécu : Purification des Os Divins figée après la perte d'une ville des
+        /// Abysses, alors que l'horloge et le cooldown d'investissement continuaient d'avancer
+        /// normalement).
+        /// </summary>
+        public static void OnCityDestroyed(WorldState state, Vertex cityVertex, int civilizationIndex)
+        {
+            var playerCiv = state.PlayerCivilization;
+            if (civilizationIndex != playerCiv.Index) return;
+
+            var lostHexes = cityVertex.GetHexes();
+            foreach (var monument in state.Features.OfType<Monument>())
+            {
+                if (monument.InvestmentEnabled.Count == 0 && !monument.ResearchInvestmentEnabled) continue;
+                if (Array.IndexOf(lostHexes, monument.Position) < 0) continue;
+                if (HasAdjacentCity(monument.Position, playerCiv)) continue; // une autre ville couvre encore cet hex
+
+                state.EventLog.Add(GameEventType.MonumentInvestmentBlockedByCityLoss, monument.PanelTitleKey, toast: true);
+            }
+        }
 
         /// <summary>
         /// Ordonne des hexagones candidats à l'accueil d'un Monument, du moins au plus coûteux à
@@ -274,13 +306,21 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// Complément de <see cref="TryAutoStartInvestment"/> pour les coûts qui peuvent augmenter en
         /// cours de route (ex. DivineBones, dont le coût grimpe à chaque Purification d'un autre Os
         /// Divin) : une ressource déjà couverte au coût précédent a été désélectionnée par
-        /// <see cref="ProcessTick"/> (toDeselect) et TryAutoStartInvestment ne rejoue pas tant que
-        /// InvestmentEnabled contient encore une entrée — sans ce complément, une ressource qui
+        /// <see cref="ProcessTick"/> (toDeselect, qui note le coût de complétion dans
+        /// <see cref="Monument.CompletedInvestmentCost"/>) et TryAutoStartInvestment ne rejoue pas tant
+        /// que InvestmentEnabled contient encore une entrée — sans ce complément, une ressource qui
         /// redevient insuffisante après une hausse de coût reste désélectionnée indéfiniment et
-        /// l'investissement plafonne sous le nouveau coût. Ré-active uniquement les ressources dont
-        /// l'apport déjà versé ne couvre plus le coût actuel, avec la même garde de production que
-        /// TryAutoStartInvestment ; n'écrase jamais une sélection manuelle existante puisqu'elle
-        /// n'ajoute que des ressources absentes de InvestmentEnabled.
+        /// l'investissement plafonne sous le nouveau coût.
+        ///
+        /// <para>Ne ré-active QUE les ressources dont <see cref="Monument.CompletedInvestmentCost"/>
+        /// contient une entrée strictement inférieure au coût actuel — c'est-à-dire celles que
+        /// ProcessTick a lui-même désélectionnées après les avoir entièrement couvertes, et dont le
+        /// coût a depuis augmenté. Une ressource que le joueur a désélectionnée à la main avant d'avoir
+        /// atteint l'ancien coût n'a jamais d'entrée dans ce dictionnaire : cet arrêt volontaire reste
+        /// donc respecté indéfiniment, y compris si le coût augmente ensuite pour une autre raison
+        /// (bug vécu : impossible d'arrêter l'investissement dans la Purification des Os Divins, cette
+        /// méthode le relançait à chaque tick dès que la ressource n'était pas encore au niveau du
+        /// coût courant).</para>
         /// </summary>
         public static void ResumeAutoInvestmentIfUnderfunded(Monument monument, ResourceSet cost, Civilization playerCiv, HarvestController harvestController, WorldState state)
         {
@@ -290,8 +330,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             foreach (var resource in cost.Keys)
             {
                 if (monument.InvestmentEnabled.Contains(resource)) continue;
+                if (!monument.CompletedInvestmentCost.TryGetValue(resource, out var completedAtCost)) continue;
+
+                long required = cost[resource];
+                if (required <= completedAtCost) continue;
+
                 long invested = monument.InvestedResources.TryGetValue(resource, out var inv) ? inv : 0;
-                if (invested >= cost[resource]) continue;
+                if (invested >= required) continue;
 
                 rates ??= harvestController.GetAverageProductionRatesPerSecond(playerCiv.Index);
                 if (!CanProduceResource(resource, playerCiv, state, rates)) continue;

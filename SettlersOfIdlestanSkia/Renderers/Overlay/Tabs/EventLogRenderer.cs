@@ -380,6 +380,11 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Danger,
             _localization.Get("event_abyss_gate_lost_title"),
             _localization.Get("event_abyss_gate_lost_body")),
+        GameEventType.MonumentInvestmentBlockedByCityLoss => (
+            EventLogTone.Danger,
+            _localization.Get("event_monument_investment_blocked_title"),
+            _localization.GetFormated("event_monument_investment_blocked_body",
+                _localization.Get(entry.Message ?? ""))),
         _ => (EventLogTone.Danger, "?", entry.Message ?? "")
     };
 

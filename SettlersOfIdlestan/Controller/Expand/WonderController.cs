@@ -58,6 +58,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             wonder.Level++;
             wonder.InvestedResources.Clear();
+            wonder.CompletedInvestmentCost.Clear();
             wonder.InvestmentEnabled.Clear();
             _state.EventLog.Add(GameEventType.WonderLevelUp, wonder.Level.ToString(), toast: true);
             if (_harvestController != null && !wonder.IsMaxLevel)

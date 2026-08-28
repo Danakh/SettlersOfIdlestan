@@ -60,11 +60,14 @@ public sealed class MonumentPanelView : UserControl
         };
 
         var content = new StackPanel { Orientation = Orientation.Vertical };
+        // En premiere ligne du panneau, avant les lignes d'investissement : quand l'investissement
+        // est bloque (pas de ville adjacente), le joueur doit le voir sans avoir a chercher plus bas
+        // pourquoi les montants investis ne bougent plus (voir MonumentInvestment.HasAdjacentCity).
+        content.Children.Add(Message(nameof(MonumentPanelViewModel.NoCityWarning), Warning));
         content.Children.Add(rows);
         content.Children.Add(bonuses);
         content.Children.Add(Message(nameof(MonumentPanelViewModel.WonderMaxedMessage), DimText));
         content.Children.Add(Message(nameof(MonumentPanelViewModel.PurifiedMessage), Accent));
-        content.Children.Add(Message(nameof(MonumentPanelViewModel.NoCityWarning), Warning));
         content.Children.Add(Message(nameof(MonumentPanelViewModel.CorruptedPrestigeMessage), Corrupted));
         content.Children.Add(ActionButton(
             nameof(MonumentPanelViewModel.EvolveButtonLabel),

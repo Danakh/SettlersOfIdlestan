@@ -199,6 +199,7 @@ namespace SettlersOfIdlestan.Controller.Expand
                 gate.Built = false;
                 gate.InvestmentEnabled.Clear();
                 gate.InvestedResources.Clear();
+                gate.CompletedInvestmentCost.Clear();
                 var cost = gate.GetInvestmentCost(playerCiv);
                 foreach (var kvp in cost)
                     gate.InvestedResources[kvp.Key] = kvp.Value / 2;

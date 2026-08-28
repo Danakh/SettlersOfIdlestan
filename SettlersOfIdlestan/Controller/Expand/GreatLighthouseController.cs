@@ -64,6 +64,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             greatLighthouse.Level++;
             greatLighthouse.InvestedResources.Clear();
+            greatLighthouse.CompletedInvestmentCost.Clear();
             greatLighthouse.InvestmentEnabled.Clear();
             // Niveau 1 active le bonus de portée des Tours de Guet (WorldVisibility.WatchtowerVisionBonus),
             // qui s'applique à toutes les civilisations : il faut donc un Recalculate() global, pas

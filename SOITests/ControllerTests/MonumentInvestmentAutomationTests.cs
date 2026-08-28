@@ -102,9 +102,10 @@ public class MonumentInvestmentAutomationTests
 
     /// <summary>
     /// Reproduces the DivineBones scenario: a resource already fully covered gets deselected by
-    /// ProcessTick, then a cost hike (another Os Divin being purified, raising N) makes it
-    /// insufficient again. With automation active, ResumeAutoInvestmentIfUnderfunded must re-enable
-    /// it — otherwise it stays deselected forever and the tier can never complete.
+    /// ProcessTick (which records the cost it was completed at in CompletedInvestmentCost), then a
+    /// cost hike (another Os Divin being purified, raising N) makes it insufficient again. With
+    /// automation active, ResumeAutoInvestmentIfUnderfunded must re-enable it — otherwise it stays
+    /// deselected forever and the tier can never complete.
     /// </summary>
     [Fact]
     public void ResumeIfUnderfunded_ResourceNoLongerCoveredAfterCostIncrease_ReEnablesIt()
@@ -113,8 +114,9 @@ public class MonumentInvestmentAutomationTests
         var civ = state.PlayerCivilization;
         state.AutomationSettings.MonumentInvestmentAutomationEnabled = true;
 
-        // Wood was fully funded and deselected under the old (lower) cost.
+        // Wood was fully funded and deselected by ProcessTick under the old (lower) cost.
         wonder.InvestedResources[Resource.Wood] = 10;
+        wonder.CompletedInvestmentCost[Resource.Wood] = 10;
 
         var raisedCost = new ResourceSet { { Resource.Wood, 20 } };
         MonumentInvestment.ResumeAutoInvestmentIfUnderfunded(wonder, raisedCost, civ, harvest, state);
@@ -129,6 +131,7 @@ public class MonumentInvestmentAutomationTests
         var civ = state.PlayerCivilization;
         state.AutomationSettings.MonumentInvestmentAutomationEnabled = false;
         wonder.InvestedResources[Resource.Wood] = 10;
+        wonder.CompletedInvestmentCost[Resource.Wood] = 10;
 
         var raisedCost = new ResourceSet { { Resource.Wood, 20 } };
         MonumentInvestment.ResumeAutoInvestmentIfUnderfunded(wonder, raisedCost, civ, harvest, state);
@@ -143,6 +146,7 @@ public class MonumentInvestmentAutomationTests
         var civ = state.PlayerCivilization;
         state.AutomationSettings.MonumentInvestmentAutomationEnabled = true;
         wonder.InvestedResources[Resource.Wood] = 10;
+        wonder.CompletedInvestmentCost[Resource.Wood] = 10;
 
         var sameCost = new ResourceSet { { Resource.Wood, 10 } };
         MonumentInvestment.ResumeAutoInvestmentIfUnderfunded(wonder, sameCost, civ, harvest, state);
@@ -157,9 +161,34 @@ public class MonumentInvestmentAutomationTests
         var civ = state.PlayerCivilization;
         state.AutomationSettings.MonumentInvestmentAutomationEnabled = true;
         wonder.InvestedResources[Resource.Glass] = 5;
+        wonder.CompletedInvestmentCost[Resource.Glass] = 5;
 
         var raisedCost = new ResourceSet { { Resource.Glass, 20 } };
         MonumentInvestment.ResumeAutoInvestmentIfUnderfunded(wonder, raisedCost, civ, harvest, state);
+
+        Assert.Empty(wonder.InvestmentEnabled);
+    }
+
+    /// <summary>
+    /// Bug fix regression: the player manually stops investing in a resource before it ever reached
+    /// its (then-current) cost — e.g. clicking "stop investing" on Purification des Os Divins mid-way.
+    /// Since ProcessTick never deselected it via completion, CompletedInvestmentCost has no entry for
+    /// it, and ResumeAutoInvestmentIfUnderfunded must leave it off even though it is still
+    /// underfunded and producible — previously this re-enabled it on the very next tick, making it
+    /// impossible to stop investment at all while automation was active.
+    /// </summary>
+    [Fact]
+    public void ResumeIfUnderfunded_NeverCompleted_ManualStopIsRespected()
+    {
+        var (state, wonder, harvest) = CreateSetup();
+        var civ = state.PlayerCivilization;
+        state.AutomationSettings.MonumentInvestmentAutomationEnabled = true;
+
+        // Player deselected Wood manually while underfunded — no ProcessTick completion ever recorded.
+        wonder.InvestedResources[Resource.Wood] = 5;
+
+        var cost = new ResourceSet { { Resource.Wood, 20 } };
+        MonumentInvestment.ResumeAutoInvestmentIfUnderfunded(wonder, cost, civ, harvest, state);
 
         Assert.Empty(wonder.InvestmentEnabled);
     }

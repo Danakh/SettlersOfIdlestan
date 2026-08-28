@@ -1258,6 +1258,11 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_abyss_gate_lost_title"),
                 _localizationService.Get("event_abyss_gate_lost_body"),
                 NotificationIcon.StoreFail),
+            GameEventType.MonumentInvestmentBlockedByCityLoss => (
+                _localizationService.Get("event_monument_investment_blocked_title"),
+                _localizationService.GetFormated("event_monument_investment_blocked_body",
+                    _localizationService.Get(entry.Message ?? "")),
+                NotificationIcon.StoreFail),
             _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
         };
         _notificationToastRenderer.ShowNotification(title, message, icon);
