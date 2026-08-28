@@ -253,6 +253,21 @@ public sealed class AutomationRenderer : IDisposable
             arcaneTower ??= city.Buildings.OfType<ArcaneTower>().FirstOrDefault();
             if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null && traderGuild != null && imperialPort != null && warRoom != null && grandTemple != null && volcanicForge != null && arcaneTower != null) break;
         }
+
+        // Bâtiment unique permanent accordé par l'Ascension (voir
+        // AscensionController.ApplyPermanentUniqueBuildingToCivilization) : ne vit dans aucune ville,
+        // donc invisible à la boucle ci-dessus — seul Civilization.GetUniqueBuilding l'expose.
+        buildersGuild ??= civ.GetUniqueBuilding(BuildingType.BuildersGuild) as BuildersGuild;
+        harvestersGuild ??= civ.GetUniqueBuilding(BuildingType.HarvestersGuild) as HarvestersGuild;
+        artisansGuild ??= civ.GetUniqueBuilding(BuildingType.ArtisansGuild) as ArtisansGuild;
+        academy ??= civ.GetUniqueBuilding(BuildingType.Academy) as Academy;
+        traderGuild ??= civ.GetUniqueBuilding(BuildingType.TraderGuild) as TraderGuild;
+        imperialPort ??= civ.GetUniqueBuilding(BuildingType.ImperialPort) as ImperialPort;
+        warRoom ??= civ.GetUniqueBuilding(BuildingType.WarRoom) as WarRoom;
+        grandTemple ??= civ.GetUniqueBuilding(BuildingType.GrandTemple) as GrandTemple;
+        volcanicForge ??= civ.GetUniqueBuilding(BuildingType.VolcanicForge) as VolcanicForge;
+        arcaneTower ??= civ.GetUniqueBuilding(BuildingType.ArcaneTower) as ArcaneTower;
+
         bool hasSeaportAutomation = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION);
         bool hasBuildersGuildUnderworld = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
 
@@ -340,6 +355,20 @@ public sealed class AutomationRenderer : IDisposable
                 && traderGuild != null && imperialPort != null && warRoom != null && grandTemple != null
                 && volcanicForge != null && arcaneTower != null) break;
         }
+
+        // Bâtiment unique permanent accordé par l'Ascension (voir
+        // AscensionController.ApplyPermanentUniqueBuildingToCivilization) : ne vit dans aucune ville,
+        // donc invisible à la boucle ci-dessus — seul Civilization.GetUniqueBuilding l'expose.
+        buildersGuild ??= civ.GetUniqueBuilding(BuildingType.BuildersGuild) as BuildersGuild;
+        harvestersGuild ??= civ.GetUniqueBuilding(BuildingType.HarvestersGuild) as HarvestersGuild;
+        artisansGuild ??= civ.GetUniqueBuilding(BuildingType.ArtisansGuild) as ArtisansGuild;
+        academy ??= civ.GetUniqueBuilding(BuildingType.Academy) as Academy;
+        traderGuild ??= civ.GetUniqueBuilding(BuildingType.TraderGuild) as TraderGuild;
+        imperialPort ??= civ.GetUniqueBuilding(BuildingType.ImperialPort) as ImperialPort;
+        warRoom ??= civ.GetUniqueBuilding(BuildingType.WarRoom) as WarRoom;
+        grandTemple ??= civ.GetUniqueBuilding(BuildingType.GrandTemple) as GrandTemple;
+        volcanicForge ??= civ.GetUniqueBuilding(BuildingType.VolcanicForge) as VolcanicForge;
+        arcaneTower ??= civ.GetUniqueBuilding(BuildingType.ArcaneTower) as ArcaneTower;
 
         bool hasSeaportAutomation = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION);
         bool hasBuildersGuildUnderworld = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);

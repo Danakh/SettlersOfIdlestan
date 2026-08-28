@@ -323,6 +323,15 @@ public sealed class TabBarRenderer : IDisposable
             foreach (var city in civ.Cities)
                 foreach (var b in city.Buildings)
                     if (b.Level > 0 && (b.ProvidesAutomation || b.ActivationStatus != ActivationStatus.NON_ACTIVABLE)) return true;
+
+            // Bâtiments uniques permanents accordés par l'Ascension (voir
+            // AscensionController.ApplyPermanentUniqueBuildingToCivilization) : ils ne vivent dans
+            // aucune ville, donc invisibles à la boucle ci-dessus — sans ce parcours, l'onglet
+            // resterait caché malgré une automatisation bel et bien disponible.
+            foreach (var type in civ.UniqueBuildings)
+                if (civ.GetUniqueBuilding(type) is { } b && b.Level > 0 &&
+                    (b.ProvidesAutomation || b.ActivationStatus != ActivationStatus.NON_ACTIVABLE)) return true;
+
             var completed = civ.TechnologyTree.CompletedTechnologies;
             return completed.Contains(TechnologyId.AdvancedTactics);
         }
