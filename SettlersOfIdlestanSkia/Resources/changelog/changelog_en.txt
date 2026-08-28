@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.18
+• New tutorial guiding players through Ascension
 
 ---
 

@@ -25,6 +25,7 @@ public class CityBuildingRowViewModelTests
     [InlineData(SkiaLayer.CityBuildingAction.Upgrade, true)]
     [InlineData(SkiaLayer.CityBuildingAction.MaxLevel, true)]
     [InlineData(SkiaLayer.CityBuildingAction.GoToOtherCity, true)]
+    [InlineData(SkiaLayer.CityBuildingAction.PermanentlyGranted, true)]
     public void Le_bouton_n_est_affiche_que_si_une_action_existe(SkiaLayer.CityBuildingAction action, bool expected)
     {
         Assert.Equal(expected, new CityBuildingRowViewModel(Row(action)).HasAction);
@@ -48,12 +49,23 @@ public class CityBuildingRowViewModelTests
     [InlineData(SkiaLayer.CityBuildingAction.Upgrade, false, true)]
     [InlineData(SkiaLayer.CityBuildingAction.MaxLevel, true, false)]
     [InlineData(SkiaLayer.CityBuildingAction.GoToOtherCity, false, true)]
+    [InlineData(SkiaLayer.CityBuildingAction.PermanentlyGranted, false, false)]
     public void Le_niveau_max_remplace_le_bouton_par_le_badge_dore(
         SkiaLayer.CityBuildingAction action, bool isMaxLevel, bool hasButton)
     {
         var row = new CityBuildingRowViewModel(Row(action));
         Assert.Equal(isMaxLevel, row.IsMaxLevel);
         Assert.Equal(hasButton, row.HasActionButton);
+    }
+
+    [Theory]
+    [InlineData(SkiaLayer.CityBuildingAction.GoToOtherCity, false)]
+    [InlineData(SkiaLayer.CityBuildingAction.PermanentlyGranted, true)]
+    [InlineData(SkiaLayer.CityBuildingAction.Build, false)]
+    public void Le_batiment_permanent_remplace_la_fleche_par_le_badge_dore(
+        SkiaLayer.CityBuildingAction action, bool expected)
+    {
+        Assert.Equal(expected, new CityBuildingRowViewModel(Row(action)).IsPermanent);
     }
 
     [Fact]

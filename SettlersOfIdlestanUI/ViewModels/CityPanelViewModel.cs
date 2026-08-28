@@ -82,6 +82,7 @@ public sealed class CityBuildingRowViewModel : ViewModelBase
             RaisePropertyChanged(nameof(HasActionButton));
             RaisePropertyChanged(nameof(IsMaxLevel));
             RaisePropertyChanged(nameof(IsGoToOtherCity));
+            RaisePropertyChanged(nameof(IsPermanent));
         }
     }
 
@@ -90,11 +91,16 @@ public sealed class CityBuildingRowViewModel : ViewModelBase
     /// Le batiment est au niveau maximum : la ligne affiche un badge dore au lieu d'un bouton.
     public bool IsMaxLevel => Action == SkiaLayer.CityBuildingAction.MaxLevel;
 
-    /// Une action cliquable existe. Le niveau max en est exclu : il n'y a plus rien a declencher.
-    public bool HasActionButton => HasAction && !IsMaxLevel;
+    /// Une action cliquable existe. Le niveau max et le batiment permanent en sont exclus : il
+    /// n'y a plus rien a declencher.
+    public bool HasActionButton => HasAction && !IsMaxLevel && !IsPermanent;
 
     /// Le bouton renvoie vers la ville qui possede deja ce batiment unique.
     public bool IsGoToOtherCity => Action == SkiaLayer.CityBuildingAction.GoToOtherCity;
+
+    /// Batiment accorde en permanence par l'Ascension (ne vit dans aucune ville) : badge dore
+    /// "Perm" au lieu d'une fleche "aller a la ville" qui ne menerait nulle part.
+    public bool IsPermanent => Action == SkiaLayer.CityBuildingAction.PermanentlyGranted;
 
     public string ActionLabel { get => _actionLabel; private set => SetProperty(ref _actionLabel, value); }
 

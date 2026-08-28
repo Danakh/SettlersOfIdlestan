@@ -4,6 +4,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.18
+• Nouveau tutoriel guidant les joueurs à travers l'Ascension
 
 ---
 

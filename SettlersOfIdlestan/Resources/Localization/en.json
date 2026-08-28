@@ -300,6 +300,7 @@
   "action_build": "Build",
   "action_upgrade": "Upgrade",
   "action_maxlevel": "Max Level",
+  "action_permanent": "Perm.",
   "trade_action": "Trade",
   "trade_title": "Trade",
   "trade_give": "Sell for Gold",

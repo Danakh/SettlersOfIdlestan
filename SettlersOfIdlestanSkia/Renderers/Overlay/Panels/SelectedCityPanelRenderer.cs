@@ -613,7 +613,16 @@ public class SelectedCityPanelRenderer : PanelRendererBase
             string actionLabel;
             bool actionEnabled;
 
-            if (builtElsewhere)
+            if (builtElsewhere && _cityBuildingService.IsPermanentlyGranted(building.Type))
+            {
+                // Accorde par l'Ascension : ne vit dans aucune ville, donc aucune "autre ville"
+                // vers laquelle naviguer. Sans ce cas, GoToOtherCity afficherait une fleche qui
+                // ne mene nulle part (FindOtherCityWithBuilding renverrait toujours null).
+                action = CityBuildingAction.PermanentlyGranted;
+                actionLabel = _localization.Get("action_permanent");
+                actionEnabled = false;
+            }
+            else if (builtElsewhere)
             {
                 action = CityBuildingAction.GoToOtherCity;
                 actionLabel = "➤";

@@ -300,6 +300,7 @@
   "action_build": "Construire",
   "action_upgrade": "Améliorer",
   "action_maxlevel": "Niveau Max",
+  "action_permanent": "Perm.",
   "trade_action": "Commerce",
   "trade_title": "Commerce",
   "trade_give": "Vendre contre de l'Or",

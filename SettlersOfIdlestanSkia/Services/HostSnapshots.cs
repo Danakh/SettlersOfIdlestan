@@ -114,6 +114,8 @@ public enum CityBuildingAction
     MaxLevel,
     /// Deja bati dans une autre ville : le bouton y recentre la camera.
     GoToOtherCity,
+    /// Accorde en permanence par l'Ascension (ne vit dans aucune ville) : badge dore, pas de bouton.
+    PermanentlyGranted,
 }
 
 /// <summary>Etat de la case d'activation d'un batiment.</summary>

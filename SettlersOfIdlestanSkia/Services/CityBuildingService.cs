@@ -93,6 +93,14 @@ public class CityBuildingService
         return civilization.Cities.FirstOrDefault(c => c != SelectedCity && c.Buildings.Any(b => b.Type == type));
     }
 
+    /// <summary>
+    /// Vrai si ce bâtiment unique est accordé en permanence par l'Ascension : il ne vit dans
+    /// aucune ville (voir Civilization.IsAscensionGrantedUniqueBuilding), donc n'a pas d'"autre
+    /// ville" vers laquelle naviguer malgré un niveau &gt; 0.
+    /// </summary>
+    public bool IsPermanentlyGranted(BuildingType type)
+        => SelectedCivilization?.IsAscensionGrantedUniqueBuilding(type) ?? false;
+
     public void TryExecuteSelectedCityBuildingAction(BuildingType buildingType)
     {
         if (SelectedCity != null)
@@ -124,8 +132,12 @@ public class CityBuildingService
         if (IsAtMaxLevel(building))
             return false;
 
-        // Check build prerequisites (e.g. required other buildings)
-        if (building.Level == 0 && !building.HasBuildPrerequisites(SelectedCity, worldState))
+        // Check build prerequisites (e.g. required other buildings). Contexte du contrôleur, pas
+        // la ville brute : c'est lui qui porte les réductions de prérequis (Grand Terrier gobelin) —
+        // voir CanBuildOrUpgradeIgnoringResources, qui doit poser exactement la même question sous
+        // peine de griser un bâtiment sans qu'aucun tooltip de prérequis manquant ne s'affiche.
+        if (building.Level == 0 &&
+            !building.HasBuildPrerequisites(BuildingController.BuildPrerequisiteContext(SelectedCity), worldState))
             return false;
 
         // Only one unique building per city

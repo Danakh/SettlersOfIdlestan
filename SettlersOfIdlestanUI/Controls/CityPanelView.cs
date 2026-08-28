@@ -159,9 +159,19 @@ public sealed class CityPanelView : UserControl
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 [!TextBlock.TextProperty] = new Binding(nameof(CityBuildingRowViewModel.Label)),
-                [!TextBlock.ForegroundProperty] = new Binding(nameof(CityBuildingRowViewModel.IsGoToOtherCity))
+                [!TextBlock.ForegroundProperty] = new MultiBinding
                 {
-                    Converter = new FuncValueConverter<bool, IBrush>(o => o ? DimText : Brushes.White),
+                    Bindings =
+                    {
+                        new Binding(nameof(CityBuildingRowViewModel.IsGoToOtherCity)),
+                        new Binding(nameof(CityBuildingRowViewModel.IsPermanent)),
+                    },
+                    Converter = new FuncMultiValueConverter<object?, IBrush>(values =>
+                    {
+                        var list = values.ToList();
+                        bool dim = (list.Count > 0 && list[0] is true) || (list.Count > 1 && list[1] is true);
+                        return dim ? DimText : Brushes.White;
+                    }),
                 },
             };
 
@@ -235,6 +245,31 @@ public sealed class CityPanelView : UserControl
                 },
             };
 
+            // Batiment permanent (Ascension) : meme traitement que le niveau max — un badge dore,
+            // pas une fleche "aller a la ville" qui ne menerait nulle part (le batiment ne vit
+            // dans aucune ville).
+            var permanent = new Border
+            {
+                MinWidth = 26,
+                Height = 26,
+                Padding = new Thickness(10, 0),
+                CornerRadius = new CornerRadius(7),
+                Background = MaxLevelBrush,
+                BorderBrush = MaxLevelBorder,
+                BorderThickness = new Thickness(1),
+                VerticalAlignment = VerticalAlignment.Center,
+                [!IsVisibleProperty] = new Binding(nameof(CityBuildingRowViewModel.IsPermanent)),
+                Child = new TextBlock
+                {
+                    FontSize = 12,
+                    FontWeight = FontWeight.SemiBold,
+                    Foreground = MaxLevelText,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    [!TextBlock.TextProperty] = new Binding(nameof(CityBuildingRowViewModel.ActionLabel)),
+                },
+            };
+
             var left = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };
             left.Children.Add(label);
             left.Children.Add(_cost);
@@ -243,9 +278,11 @@ public sealed class CityPanelView : UserControl
             DockPanel.SetDock(checkbox, Dock.Left);
             DockPanel.SetDock(action, Dock.Right);
             DockPanel.SetDock(maxLevel, Dock.Right);
+            DockPanel.SetDock(permanent, Dock.Right);
             layout.Children.Add(checkbox);
             layout.Children.Add(action);
             layout.Children.Add(maxLevel);
+            layout.Children.Add(permanent);
             layout.Children.Add(left);
 
             Child = layout;

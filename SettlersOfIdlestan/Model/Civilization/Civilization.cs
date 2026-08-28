@@ -402,6 +402,15 @@ public class Civilization
         => _uniqueBuildingCache.TryGetValue(type, out var building) ? building : null;
 
     /// <summary>
+    /// Vrai si ce type de bâtiment unique est accordé en permanence par l'Ascension (voir
+    /// <see cref="_ascensionGrantedUniqueBuildings"/>) — il ne vit dans aucune ville, donc
+    /// n'apparaîtra jamais comme "bâti ailleurs" : l'UI doit l'afficher différemment (badge
+    /// "Perm") plutôt qu'un bouton "aller à la ville" qui ne mènerait nulle part.
+    /// </summary>
+    public bool IsAscensionGrantedUniqueBuilding(BuildingType type)
+        => _ascensionGrantedUniqueBuildings.Contains(type);
+
+    /// <summary>
     /// Enregistre un bâtiment unique nouvellement construit dans le cache, sans reparcourir les villes.
     /// </summary>
     public void RegisterUniqueBuildingInCache(Building building)
