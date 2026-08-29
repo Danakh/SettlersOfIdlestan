@@ -676,18 +676,27 @@ public sealed class AutomationRenderer : IDisposable
     /// « Scierie: 3×Niv2 4×Niv1 », ou « Scierie: - » si aucun n'est bati. Partage entre le rendu
     /// Skia et l'instantane destine a l'hote.
     /// </summary>
-    private (string Text, bool IsEmpty) FormatSummaryEntry(IEnumerable<City> cities, BuildingType type)
+    /// <param name="settings">Non-null pour ajouter, a droite de la ligne, le plafond du preset
+    /// actif pour ce type (« (preset 5) ») — uniquement une fois TechnologyId.AutomationPreset
+    /// debloquee (voir GetSnapshot), pour ne pas afficher un plafond que le joueur ne peut pas
+    /// encore configurer (AutomationSettings.GetActivePresetCap retombe de toute facon sur le
+    /// plafond illimite tant que ce n'est pas le cas).</param>
+    private (string Text, bool IsEmpty) FormatSummaryEntry(IEnumerable<City> cities, BuildingType type, Civilization? civ = null, AutomationSettings? settings = null)
     {
         var buildings = cities.SelectMany(c => c.Buildings)
             .Where(b => b.Type == type && b.Level >= 1)
             .ToList();
 
         string bldName = _localization.Get($"building_{type.ToString().ToLower()}_name");
-        if (buildings.Count == 0) return ($"{bldName}: -", true);
+        string text = buildings.Count == 0
+            ? $"{bldName}: -"
+            : $"{bldName}: {string.Join(" ", buildings.GroupBy(b => b.Level).OrderBy(g => g.Key)
+                .Select(g => $"{g.Count()}×{_localization.Get("level_abbrev")}{g.Key}"))}";
 
-        string lv = _localization.Get("level_abbrev");
-        var groups = buildings.GroupBy(b => b.Level).OrderBy(g => g.Key);
-        return ($"{bldName}: {string.Join(" ", groups.Select(g => $"{g.Count()}×{lv}{g.Key}"))}", false);
+        if (settings != null && civ != null)
+            text += $" {_localization.GetFormated("automation_preset_cap_suffix", settings.GetActivePresetCap(type, civ))}";
+
+        return (text, buildings.Count == 0);
     }
 
     // ── Pont vers l'hote Avalonia ─────────────────────────────────────────────
@@ -726,7 +735,8 @@ public sealed class AutomationRenderer : IDisposable
                     IsPinned: pinned.Contains(row.Key),
                     SummaryLines: row.SummaryTypes == null
                         ? []
-                        : row.SummaryTypes.Select(t => FormatSummaryEntry(civ.Cities, t).Text).ToList(),
+                        : row.SummaryTypes.Select(t => FormatSummaryEntry(civ.Cities, t,
+                            presetsUnlocked ? civ : null, presetsUnlocked ? worldState.AutomationSettings : null).Text).ToList(),
                     Category: row.Category))
                     .ToList()))
                 .ToList();

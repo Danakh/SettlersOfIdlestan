@@ -387,7 +387,7 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var city in civ.Cities)
                 foreach (var type in targets)
                 {
-                    if (presets.GetActivePresetCap(type) <= 0 || city.Buildings.Any(b => b.Type == type))
+                    if (presets.GetActivePresetCap(type, civ) <= 0 || city.Buildings.Any(b => b.Type == type))
                         continue;
                     if (BuildBuilding(city, type, out bool resourceBlocked))
                         return true;
@@ -396,7 +396,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var lowestLevelFirst = civ.Cities
                 .SelectMany(city => city.Buildings
-                    .Where(b => targets.Contains(b.Type) && b.Level < presets.GetActivePresetCap(b.Type))
+                    .Where(b => targets.Contains(b.Type) && b.Level < presets.GetActivePresetCap(b.Type, civ))
                     .Select(b => (city, b.Type, b.Level)))
                 .OrderBy(x => x.Level);
 

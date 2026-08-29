@@ -106,6 +106,12 @@ public class AutomationPresetTests
         state.AutomationSettings.BindPresets(godState);
         state.AutomationSettings.ProductionBuildingAutomationEnabled = true;
 
+        // Les plafonds de preset ne s'appliquent qu'une fois TechnologyId.AutomationPreset
+        // débloquée (voir AutomationSettings.GetActivePresetCap) : sans elle, GodState.AutomationPresets
+        // — qui survit à la Prestige et à l'Ascension — continuerait de brider une civilisation qui
+        // ne peut même pas encore consulter ni modifier ses presets.
+        civ.TechnologyTree.CompletedTechnologies.Add(TechnologyId.AutomationPreset);
+
         var controller = new BuildingController(state);
         return (state, controller, civ, godState);
     }
@@ -148,6 +154,30 @@ public class AutomationPresetTests
 
         var sawmill = Assert.Single(city.Buildings, b => b.Type == BuildingType.Sawmill);
         Assert.Equal(2, sawmill.Level);
+    }
+
+    /// <summary>
+    /// Reproduction du bug signalé : un joueur avait débloqué TechnologyId.AutomationPreset lors
+    /// d'une partie précédente, configuré un preset restrictif (cap 1 sur la Scierie), puis Ascend
+    /// — GodState.AutomationPresets survit à l'Ascension (voir sa doc de classe) mais la nouvelle
+    /// civilisation, elle, reperd le déblocage de la recherche. L'automatisation de production
+    /// restait alors bloquée à ce plafond alors que le joueur ne pouvait même plus le consulter ni
+    /// le modifier (le bouton "Changer" du panneau Automatisation exige la recherche débloquée).
+    /// </summary>
+    [Fact]
+    public void GetActivePresetCap_AutomationPresetTechNotUnlocked_IgnoresStoredCap()
+    {
+        var state = IslandTestFactory.CreateSevenHexIslandState();
+        var civ = state.Civilizations[0];
+        var godState = new GodState();
+        state.AutomationSettings.BindPresets(godState);
+        godState.AutomationPresets.SetCap(1, BuildingType.Sawmill, 1);
+
+        // TechnologyId.AutomationPreset volontairement pas ajoutée à civ.TechnologyTree.CompletedTechnologies.
+        Assert.Equal(AutomationPresetSettings.DefaultCap, state.AutomationSettings.GetActivePresetCap(BuildingType.Sawmill, civ));
+
+        civ.TechnologyTree.CompletedTechnologies.Add(TechnologyId.AutomationPreset);
+        Assert.Equal(1, state.AutomationSettings.GetActivePresetCap(BuildingType.Sawmill, civ));
     }
 
     [Fact]

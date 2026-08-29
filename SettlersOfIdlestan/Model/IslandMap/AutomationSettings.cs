@@ -34,10 +34,17 @@ public class AutomationSettings
     public void BindPresets(GodState godState) => _presetSource = godState;
 
     /// <summary>Plafond de niveau du preset actif pour ce type de bâtiment, consulté par
-    /// BuildingController.TickGuildAutomation. 10 (illimité en pratique) tant que le preset
-    /// n'a pas été câblé ou que le joueur n'a pas personnalisé ce type.</summary>
-    public int GetActivePresetCap(BuildingType type) =>
-        _presetSource?.AutomationPresets.GetActiveCap(type) ?? AutomationPresetSettings.DefaultCap;
+    /// BuildingController.TickGuildAutomation. Illimité (AutomationPresetSettings.DefaultCap) tant
+    /// que <paramref name="civ"/> n'a pas débloqué TechnologyId.AutomationPreset — GodState.AutomationPresets
+    /// survit à la Prestige ET à l'Ascension (voir sa doc de classe), donc un preset restrictif
+    /// configuré puis laissé actif lors d'une Ascension continuerait sinon de brider l'automatisation
+    /// de la civilisation suivante alors qu'elle ne peut même pas encore le consulter ni le modifier.
+    /// Sans lien avec le preset n'ayant pas été câblé ou le joueur n'ayant pas personnalisé ce type,
+    /// qui retombent déjà sur DefaultCap via <see cref="AutomationPresetSettings.GetCap"/>.</summary>
+    public int GetActivePresetCap(BuildingType type, Model.Civilization.Civilization civ) =>
+        civ.TechnologyTree.CompletedTechnologies.Contains(Model.Civilization.TechnologyId.AutomationPreset)
+            ? _presetSource?.AutomationPresets.GetActiveCap(type) ?? AutomationPresetSettings.DefaultCap
+            : AutomationPresetSettings.DefaultCap;
 
     /// <summary>Version courante des plafonds de preset (voir AutomationPresetSettings.Version),
     /// consultée par BuildingController.TickGuildAutomation pour son cache "rien à construire".</summary>

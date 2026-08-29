@@ -199,6 +199,7 @@
   "automation_preset_popup_building_header": "Building",
   "automation_preset_column_zero_tooltip": "Set every building in this column to 0 (never auto-built by this preset)",
   "automation_preset_column_max_tooltip": "Set every building in this column to its maximum attainable level",
+  "automation_preset_cap_suffix": "(preset {0})",
   "automation_military_vendetta_name": "Vendetta",
   "automation_military_vendetta_desc": "Automatically raids the civilization that last attacked you or that you last raided",
   "automation_military_vendetta_note": "Only one civilization targeted at a time; the target updates automatically.",
