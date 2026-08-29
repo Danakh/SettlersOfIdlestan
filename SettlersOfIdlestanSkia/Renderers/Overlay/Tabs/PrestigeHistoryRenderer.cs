@@ -345,6 +345,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
     private float DrawAscensionTab(SKCanvas canvas, MainGameState mainGameState, float x, float y, float width)
     {
+        var ascension = _gameControllerService.MainGameController.AscensionController;
         var ascensionState = mainGameState.GodState.AscensionState;
         var prestigeState = mainGameState.PrestigeState;
         float col = width / 3;
@@ -357,6 +358,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
         long playtime = mainGameState.Clock.CurrentTick - ascensionState.CycleStartTick;
         int research = (mainGameState.GameRecord?.TotalResearchCompleted ?? 0) - ascensionState.CycleStartResearchCompleted;
         int prestigePoints = prestigeState?.TotalPrestigePointsEarned ?? 0;
+        int projectedDivinePoints = ascension.GetGodPointsGain(mainGameState.GodState);
 
         float currentCardHeight = CardPadding + RowHeight * 2 + CardPadding;
         var currentRect = new SKRect(x, y, x + width, y + currentCardHeight);
@@ -372,6 +374,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
         DrawStatCell(canvas, x + CardPadding, row2, _localization.Get("stats_research"), research.ToString(), col);
         DrawStatCell(canvas, x + col, row2, _localization.Get("stats_prestige_points"), SkiaTextUtils.FormatNumber(prestigePoints), col);
+        DrawStatCell(canvas, x + col * 2, row2, _localization.Get("stats_divine_points_gained"), SkiaTextUtils.FormatNumber(projectedDivinePoints), col);
 
         y += currentCardHeight + SectionSpacing;
 
@@ -402,6 +405,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
             DrawStatCell(canvas, x + CardPadding, r2, _localization.Get("stats_research"), run.ResearchCompleted.ToString(), col);
             DrawStatCell(canvas, x + col, r2, _localization.Get("stats_prestige_points"), SkiaTextUtils.FormatNumber(run.FinalPrestigePoints), col);
+            DrawStatCell(canvas, x + col * 2, r2, _localization.Get("stats_divine_points_gained"), SkiaTextUtils.FormatNumber(run.DivinePointsGained), col);
 
             y += cardHeight + 8;
         }
@@ -478,6 +482,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
         DrawStatCell(canvas, x + CardPadding, ar2, _localization.Get("stats_research"), ascensionState.MaxResearchInSingleAscension.ToString(), col3);
         DrawStatCell(canvas, x + col3, ar2, _localization.Get("stats_prestige_points"), SkiaTextUtils.FormatNumber(ascensionState.MaxPrestigePointsInSingleAscension), col3);
+        DrawStatCell(canvas, x + col3 * 2, ar2, _localization.Get("stats_divine_points_gained"), SkiaTextUtils.FormatNumber(ascensionState.MaxDivinePointsInSingleAscension), col3);
 
         y += ascCardHeight + SectionSpacing;
 
@@ -628,6 +633,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
     private List<StatSectionSnapshot> BuildAscensionSections(MainGameState state)
     {
+        var ascension = _gameControllerService.MainGameController.AscensionController;
         var ascensionState = state.GodState.AscensionState;
         var prestigeState = state.PrestigeState;
 
@@ -638,6 +644,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
             new(_localization.Get("stats_playtime"), FormatTicks(state.Clock.CurrentTick - ascensionState.CycleStartTick)),
             new(_localization.Get("stats_research"), ((state.GameRecord?.TotalResearchCompleted ?? 0) - ascensionState.CycleStartResearchCompleted).ToString()),
             new(_localization.Get("stats_prestige_points"), SkiaTextUtils.FormatNumber(prestigeState?.TotalPrestigePointsEarned ?? 0)),
+            new(_localization.Get("stats_divine_points_gained"), SkiaTextUtils.FormatNumber(ascension.GetGodPointsGain(state.GodState))),
         };
 
         var sections = new List<StatSectionSnapshot>
@@ -656,6 +663,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
                 new(_localization.Get("stats_playtime"), FormatTicks(run.TickDuration)),
                 new(_localization.Get("stats_research"), run.ResearchCompleted.ToString()),
                 new(_localization.Get("stats_prestige_points"), SkiaTextUtils.FormatNumber(run.FinalPrestigePoints)),
+                new(_localization.Get("stats_divine_points_gained"), SkiaTextUtils.FormatNumber(run.DivinePointsGained)),
             ], 3));
         }
 
@@ -707,6 +715,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
                     new(_localization.Get("stats_playtime"), FormatTicks(ascensionState.MaxPlaytimeInSingleAscension)),
                     new(_localization.Get("stats_research"), ascensionState.MaxResearchInSingleAscension.ToString()),
                     new(_localization.Get("stats_prestige_points"), SkiaTextUtils.FormatNumber(ascensionState.MaxPrestigePointsInSingleAscension)),
+                    new(_localization.Get("stats_divine_points_gained"), SkiaTextUtils.FormatNumber(ascensionState.MaxDivinePointsInSingleAscension)),
                 ], 3),
             ]));
 

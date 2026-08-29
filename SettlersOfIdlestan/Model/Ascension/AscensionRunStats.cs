@@ -14,4 +14,5 @@ public class AscensionRunStats
     public long TickDuration { get; set; }
     public int ResearchCompleted { get; set; }
     public int FinalPrestigePoints { get; set; }
+    public int DivinePointsGained { get; set; }
 }

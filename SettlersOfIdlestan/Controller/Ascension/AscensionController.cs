@@ -592,7 +592,7 @@ public class AscensionController : IModifierProvider
         if (godState.AscensionState.AscensionsPerformed > 1)
             godState.AscensionState.AscendedRaces.Add(godState.AscensionState.SelectedRace);
 
-        RecordAscensionCycleStats(mainGameState, godState);
+        RecordAscensionCycleStats(mainGameState, godState, godPointsGained);
 
         // Meilleurs paliers de recherches répétables du cycle qui s'achève : à relever avant que le
         // PrestigeState ne soit remplacé, c'est la mémoire sur laquelle s'appuie Mémoire de Dieu.
@@ -641,7 +641,7 @@ public class AscensionController : IModifierProvider
     /// Ascension) avant que PerformAscension ne remplace PrestigeState : historique plafonné à 5
     /// entrées, plus mise à jour des records cross-ascension (AscensionState.Max*).
     /// </summary>
-    private static void RecordAscensionCycleStats(MainGameState mainGameState, GodState godState)
+    private static void RecordAscensionCycleStats(MainGameState mainGameState, GodState godState, int godPointsGained)
     {
         var prestigeState = godState.PrestigeState;
         if (prestigeState == null) return;
@@ -654,6 +654,7 @@ public class AscensionController : IModifierProvider
             TickDuration = mainGameState.Clock.CurrentTick - ascensionState.CycleStartTick,
             ResearchCompleted = mainGameState.GameRecord.TotalResearchCompleted - ascensionState.CycleStartResearchCompleted,
             FinalPrestigePoints = prestigeState.TotalPrestigePointsEarned,
+            DivinePointsGained = godPointsGained,
         };
 
         ascensionState.RunHistory.Add(stats);
@@ -665,6 +666,7 @@ public class AscensionController : IModifierProvider
         ascensionState.MaxPlaytimeInSingleAscension = Math.Max(ascensionState.MaxPlaytimeInSingleAscension, stats.TickDuration);
         ascensionState.MaxResearchInSingleAscension = Math.Max(ascensionState.MaxResearchInSingleAscension, stats.ResearchCompleted);
         ascensionState.MaxPrestigePointsInSingleAscension = Math.Max(ascensionState.MaxPrestigePointsInSingleAscension, stats.FinalPrestigePoints);
+        ascensionState.MaxDivinePointsInSingleAscension = Math.Max(ascensionState.MaxDivinePointsInSingleAscension, stats.DivinePointsGained);
     }
 
     /// <summary>

@@ -95,4 +95,7 @@ public class AscensionState
 
     /// <summary>Points de prestige finaux maximum obtenus en un seul cycle d'Ascension (cross-ascension, ne diminue jamais).</summary>
     public int MaxPrestigePointsInSingleAscension { get; set; }
+
+    /// <summary>Points divins maximum gagnés en un seul cycle d'Ascension (cross-ascension, ne diminue jamais).</summary>
+    public int MaxDivinePointsInSingleAscension { get; set; }
 }
