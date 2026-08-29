@@ -287,4 +287,24 @@ public class NpcCivilizationPlacementTests
             }
         }
     }
+
+    /// <summary>
+    /// Régression : PlaceNpcCivilizations pilote NpcCivilizationAutoplayer via un MainGameController
+    /// jetable (voir la ligne <c>mainController.SetGame(new MainGameState(state, clock, prng))</c>),
+    /// dont le GodState par défaut vaut Humains (AscensionState.SelectedRace) — SetGame enregistre par
+    /// effet de bord son AscensionController sur la civilisation RÉELLE du joueur au sein du même
+    /// WorldState partagé. Sans le détachement (MainGameController.DetachModifierProvidersFrom, appelé
+    /// juste après SetGame), le bonus racial Humain BUILDING_MAX_LEVEL Ziggourat +1 restait actif en
+    /// mémoire pour le reste du cycle, quelle que soit la race réellement jouée — la Ziggourat
+    /// devenait alors constructible en jouant une autre race que les Humains, dès qu'une île avec au
+    /// moins un NPC était générée (nouvelle partie, Ascension, Prestige).
+    /// </summary>
+    [Fact]
+    public void GeneratingIslandWithNpcs_DoesNotLeakHumanRacialBonusOntoPlayerCivilization()
+    {
+        var state = CreateIsland(IslandShapeType.Compact, npcCount: 1);
+
+        Assert.False(state.PlayerCivilization.ModifierAggregator.HasModifier(
+            Modifier.ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Ziggurat)));
+    }
 }

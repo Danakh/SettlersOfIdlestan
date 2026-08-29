@@ -83,6 +83,17 @@ namespace SettlersOfIdlestan.Controller.Magic
                 _clock.Advanced += OnClockAdvanced;
         }
 
+        /// <summary>
+        /// Retire le <see cref="MagicModifierProvider"/> de ce contrôleur de l'agrégateur de
+        /// <paramref name="civ"/> (voir MainGameController.DetachModifierProvidersFrom : sert à
+        /// un MainGameController jetable câblé par erreur sur une civilisation qui n'est pas la
+        /// sienne, voir NpcCivilizationPlacer.PlaceNpcCivilizations).
+        /// </summary>
+        internal void DetachModifierProviderFrom(Civilization civ)
+        {
+            if (_provider != null) civ.ModifierAggregator.Unregister(_provider);
+        }
+
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProcessUpkeep(); }

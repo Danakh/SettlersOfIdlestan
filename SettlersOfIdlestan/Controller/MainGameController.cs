@@ -613,6 +613,26 @@ namespace SettlersOfIdlestan.Controller
                 worldState!.Civilizations.Remove(civ);
         }
 
+        /// <summary>
+        /// Retire de <paramref name="civ"/> les providers de modifiers propres à ce contrôleur
+        /// (Ascension, Prestige, Magie) — pour un MainGameController jetable câblé par erreur sur
+        /// une civilisation qui n'est pas la sienne (voir
+        /// NpcCivilizationPlacer.PlaceNpcCivilizations, qui crée un MainGameController à Humains/
+        /// GodState par défaut rien que pour piloter NpcCivilizationAutoplayer, et dont
+        /// SetGame/SetupModifierAggregators enregistre par effet de bord ces providers sur la
+        /// civilisation réelle du joueur passée dans le WorldState partagé — polluant par exemple
+        /// son niveau max de Ziggourat avec le bonus racial Humain +1, même en jouant une autre
+        /// race, tant que ce contrôleur jetable n'a pas été détaché). Sans effet sur les
+        /// enregistrements faits par un vrai MainGameController sur sa propre civilisation.
+        /// </summary>
+        public void DetachModifierProvidersFrom(Civilization civ)
+        {
+            civ.ModifierAggregator.Unregister(AscensionController);
+            if (_prestigeModifierProvider != null)
+                civ.ModifierAggregator.Unregister(_prestigeModifierProvider);
+            MagicController.DetachModifierProviderFrom(civ);
+        }
+
         private void SetupModifierAggregators()
         {
             var prestigeState = CurrentMainState!.PrestigeState;

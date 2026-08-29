@@ -91,6 +91,15 @@ public class NpcCivilizationPlacer
         var mainController = new MainGameController();
         mainController.SetGame(new MainGameState(state, clock, prng));
 
+        // SetGame câble ce MainGameController jetable (race Humaine/GodState par défaut, rien que
+        // pour prêter ses sous-contrôleurs à NpcCivilizationAutoplayer ci-dessous) sur la
+        // civilisation RÉELLE du joueur au sein de `state` — le seul WorldState partagé. Sans ce
+        // détachement, son AscensionController par défaut (Humains) reste enregistré à côté de celui
+        // du vrai MainGameController pour le reste du cycle en mémoire, doublant certains bonus
+        // raciaux Humains (ex. Ziggourat +1 de niveau max) même en jouant une autre race — jusqu'au
+        // prochain rechargement de sauvegarde, qui reconstruit l'agrégateur proprement.
+        mainController.DetachModifierProvidersFrom(state.PlayerCivilization);
+
         foreach (var civ in npcCivs.Take(bestPlacement.Count))
         {
             var level = civ.NpcParameters?.EvolutionLevel ?? NpcEvolutionLevel.Minimum;
