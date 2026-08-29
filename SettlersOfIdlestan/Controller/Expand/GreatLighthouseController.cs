@@ -145,6 +145,8 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) return null;
             if (_state.GetMapFor(position) == null) return null;
             var greatLighthouse = new GreatLighthouse(position);
+            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
+            greatLighthouse.LastInvestmentTick = _clock?.CurrentTick ?? 0;
             _state.AddFeature(greatLighthouse);
             _state.EventLog.Add(GameEventType.GreatLighthousePlaced);
             if (_harvestController != null)

@@ -259,6 +259,8 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) return null;
             var breach = new SurfaceBreach(position);
+            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
+            breach.LastInvestmentTick = _clock?.CurrentTick ?? 0;
             _state.AddFeature(breach);
             _state.EventLog.Add(GameEventType.SurfaceBreachPlaced);
             if (_harvestController != null)

@@ -77,6 +77,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (_state.Features.OfType<PandemoniumGate>().Any()) return;
 
             var gate = new PandemoniumGate(tentacle.Position);
+            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
+            gate.LastInvestmentTick = _clock?.CurrentTick ?? 0;
             _state.AddFeature(gate);
             _state.EventLog.Add(GameEventType.PandemoniumGatePlaced, toast: true);
             if (_harvestController != null)
