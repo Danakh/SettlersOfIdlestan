@@ -142,7 +142,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         double seaportBonus = controller.GetSeaportPrestigeBonus();
         if (seaportBonus > 0)
             rows.Add(new PrestigeRowSnapshot(
-                _localization.GetFormated("prestige_seaport_bonus", controller.GetSeaportLevel4Count()),
+                _localization.GetFormated("prestige_seaport_bonus", controller.GetSeaportMaxLevelCount()),
                 $"+{seaportBonus * 100:0}%", false,
                 [_localization.Get("prestige_tooltip_seaport_bonus")]));
 

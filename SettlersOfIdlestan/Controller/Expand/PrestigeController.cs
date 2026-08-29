@@ -10,6 +10,7 @@ using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Races;
 using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Controller.Generator;
+using SettlersOfIdlestan.Controller.Island;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Expand
@@ -21,19 +22,21 @@ namespace SettlersOfIdlestan.Controller.Expand
         private GameClock? _clock;
         private PrestigeState? _prestigeState;
         private GodState? _godState;
+        private BuildingController? _buildingController;
 
         internal PrestigeController()
         {
             // no op
         }
 
-        internal void Initialize(Civilization playerCivilization, WorldState? WorldState = null, GameClock? clock = null, PrestigeState? prestigeState = null, GodState? godState = null)
+        internal void Initialize(Civilization playerCivilization, WorldState? WorldState = null, GameClock? clock = null, PrestigeState? prestigeState = null, GodState? godState = null, BuildingController? buildingController = null)
         {
             _playerCivilization = playerCivilization;
             _islandState = WorldState;
             _clock = clock;
             _prestigeState = prestigeState;
             _godState = godState;
+            _buildingController = buildingController;
         }
 
         private long GetCurrentTick() => _clock?.CurrentTick ?? 0;
@@ -130,16 +133,31 @@ namespace SettlersOfIdlestan.Controller.Expand
         public double GetRaceGainBonus()
             => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN_RACE, "", 0.0) ?? 0.0;
 
-        public int GetSeaportLevel4Count()
-            => _playerCivilization?.Cities.SelectMany(c => c.Buildings)
-                .Count(b => b.Type == BuildingType.Seaport && b.Level >= 4) ?? 0;
+        /// <summary>Niveau max effectif du Port maritime pour la civilisation courante (dépend de la
+        /// race choisie, ex. 3 pour les Gobelins au lieu de 4 de base) — voir
+        /// BuildingController.GetMaxLevel. Sans BuildingController câblé (tests unitaires legers),
+        /// retombe sur le défaut de base (Seaport.GetDefaultMaxLevel == 4).</summary>
+        public int GetSeaportMaxLevel()
+        {
+            if (_playerCivilization == null) return 0;
+            if (_buildingController == null) return new Seaport().GetDefaultMaxLevel();
+            return _buildingController.GetMaxLevel(new Seaport(), _playerCivilization);
+        }
+
+        public int GetSeaportMaxLevelCount()
+        {
+            int maxLevel = GetSeaportMaxLevel();
+            if (maxLevel <= 0) return 0;
+            return _playerCivilization?.Cities.SelectMany(c => c.Buildings)
+                .Count(b => b.Type == BuildingType.Seaport && b.Level >= maxLevel) ?? 0;
+        }
 
         public double GetSeaportPrestigeBonus()
         {
             if (_playerCivilization == null) return 0.0;
             double perSeaport = _playerCivilization.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4, "", 0.0);
             if (perSeaport <= 0) return 0.0;
-            return GetSeaportLevel4Count() * perSeaport;
+            return GetSeaportMaxLevelCount() * perSeaport;
         }
 
         public int GetTempleCount()

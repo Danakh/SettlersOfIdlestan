@@ -10,6 +10,8 @@ using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.GameplayModifier;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.ControllerTests
 {
@@ -722,6 +724,65 @@ namespace SOITests.ControllerTests
             mainController.PerformPrestige(corrupted: false);
 
             Assert.Equal(expectedPoints, mainState.PrestigeState!.PrestigePoints);
+        }
+
+        // ── Bonus de prestige du Port Impérial : niveau max du Port maritime, pas niveau 4 fixe ──
+
+        [Fact]
+        public void GetSeaportMaxLevelCount_CountsOnlyBuildingsAtCivilizationMaxLevel()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            var buildingController = new BuildingController(state);
+            var controller = new PrestigeController();
+            controller.Initialize(civ, state, buildingController: buildingController);
+
+            civ.Cities[0].AddBuilding(new Seaport { Level = 4 });
+            civ.Cities[0].AddBuilding(new Seaport { Level = 3 });
+
+            // Sans malus racial : niveau max = 4 (Seaport.GetDefaultMaxLevel), un seul Port l'atteint.
+            Assert.Equal(4, controller.GetSeaportMaxLevel());
+            Assert.Equal(1, controller.GetSeaportMaxLevelCount());
+        }
+
+        [Fact]
+        public void GetSeaportMaxLevelCount_GoblinMalus_CountsLevel3InsteadOf4()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Seaport), EType.ADDITIVE, -1),
+            }));
+            var buildingController = new BuildingController(state);
+            var controller = new PrestigeController();
+            controller.Initialize(civ, state, buildingController: buildingController);
+
+            civ.Cities[0].AddBuilding(new Seaport { Level = 4 });
+            civ.Cities[0].AddBuilding(new Seaport { Level = 3 });
+
+            // Malus Gobelin -1 : niveau max effectif = 3, les deux Ports comptent (4 >= 3 et 3 >= 3).
+            Assert.Equal(3, controller.GetSeaportMaxLevel());
+            Assert.Equal(2, controller.GetSeaportMaxLevelCount());
+        }
+
+        [Fact]
+        public void GetSeaportPrestigeBonus_UsesMaxLevelCount()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4, EType.ADDITIVE, 0.05),
+                new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Seaport), EType.ADDITIVE, -1),
+            }));
+            var buildingController = new BuildingController(state);
+            var controller = new PrestigeController();
+            controller.Initialize(civ, state, buildingController: buildingController);
+
+            civ.Cities[0].AddBuilding(new Seaport { Level = 3 }); // max level for Goblins, not 4
+
+            Assert.Equal(0.05, controller.GetSeaportPrestigeBonus(), 3);
         }
     }
 }
