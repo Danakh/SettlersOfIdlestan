@@ -28,6 +28,19 @@ public class GameRuntimeControl : SkiaCanvasControl
     private IDisposable? _loop;
     private SKSize _lastCanvasSize;
 
+    /// <summary>
+    /// Leve juste apres chaque <see cref="GameRuntimeHost.Tick"/>. Le popup de saut de temps s'y
+    /// abonne pour rafraichir sa progression en cadence avec la simulation elle-meme plutot que
+    /// d'attendre le timer de synchronisation general (100 ms, priorite Normal).
+    /// </summary>
+    public event Action? Ticked;
+
+    /// <summary>
+    /// Vrai tant qu'une pompe de saut de temps (<see cref="PumpTimeJumpAsync"/>) tourne, pour ne
+    /// pas en demarrer une seconde en parallele.
+    /// </summary>
+    private bool _timeJumpPumpRunning;
+
     private readonly PinchTracker _pinch = new();
 
     /// Pointeurs encore enfonces, pour pouvoir les relacher cote jeu quand le recognizer de
@@ -75,8 +88,40 @@ public class GameRuntimeControl : SkiaCanvasControl
         // Le Tick tourne meme quand rien n'est dessine (fenetre masquee) pour que le temps de
         // jeu ne derive pas — meme contrat que la boucle OpenTK d'origine.
         _host.Tick();
+        Ticked?.Invoke();
         InvalidateVisual();
+
+        // Sur le head navigateur (un seul thread JS, pas de thread de rendu separe comme sur
+        // desktop), un DispatcherTimer qui reste continuellement en retard — chaque tranche de
+        // saut de temps prend plus que l'intervalle de 16 ms — peut se faire rattraper par le
+        // pompeur de la Dispatcher sans jamais rendre la main au navigateur entre deux tranches :
+        // rien ne peint tant que le saut entier n'est pas termine. `Task.Delay` force un vrai
+        // callback JS (setTimeout), donc un point de rendu reel, entre chaque tranche.
+        if (!_timeJumpPumpRunning && _host.GetTimeJumpSnapshot().IsActive)
+        {
+            _timeJumpPumpRunning = true;
+            _ = PumpTimeJumpAsync();
+        }
+
         return true;
+    }
+
+    private async System.Threading.Tasks.Task PumpTimeJumpAsync()
+    {
+        try
+        {
+            while (_host.GetTimeJumpSnapshot().IsActive)
+            {
+                _host.Tick();
+                Ticked?.Invoke();
+                InvalidateVisual();
+                await System.Threading.Tasks.Task.Delay(1);
+            }
+        }
+        finally
+        {
+            _timeJumpPumpRunning = false;
+        }
     }
 
     protected override void OnRenderSkia(SKCanvas canvas, SKSize size)

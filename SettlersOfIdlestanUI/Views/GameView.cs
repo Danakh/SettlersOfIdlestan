@@ -100,6 +100,10 @@ public sealed class GameView : Panel, IDisposable
         _civ = new CivPanelViewModel(host);
         _modal = new ModalPopupViewModel(host);
         _timeJumpModel = new TimeJumpViewModel(host);
+
+        // Rafraichi a chaque Tick plutot que d'attendre le timer de synchronisation general
+        // (100 ms) : voir le commentaire sur GameRuntimeControl.Ticked.
+        _mapControl.Ticked += () => _timeJumpModel.Refresh();
         _toast = new ToastViewModel(host);
         _events = new EventLogViewModel(host);
         _statsModel = new StatsViewModel(host);
