@@ -43,16 +43,16 @@ public static class RaceDefinitions
     /// C'est aussi la définition de « production » retenue par
     /// <c>CivilizationAutoplayerPriorities.ProductionBuildings</c>, qui exclut le Comptoir.</para>
     ///
-    /// <para>La Verrerie est écartée pour la même raison mécanique : son niveau max par défaut est 0
-    /// et son unique déblocage vaut +1 (vertex Laboratoire), donc un -1 la rendrait définitivement
-    /// inconstructible. Les autres bâtiments partant de 0 gagnent tous +2 ou plus à leur déblocage,
-    /// donc le malus les abaisse sans les bloquer.</para>
+    /// <para>La Verrerie (niveau max par défaut 0, débloquée à +1 seulement par le vertex
+    /// Laboratoire) est incluse malgré ce départ bas : <see cref="BuildingController.GetMaxLevel(Buildings.Building, Civilization)"/>
+    /// applique le malus en dernier et le plafonne à 1 minimum tant que la Verrerie est par ailleurs
+    /// débloquée — jamais 0 par la seule faute du malus.</para>
     /// </summary>
     private static readonly BuildingType[] GarudaLightBuildings =
     {
         // Production — récolte
         BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Mill, BuildingType.Quarry,
-        BuildingType.Mine, BuildingType.MushroomFarm, BuildingType.MithrilMine,
+        BuildingType.Mine, BuildingType.MushroomFarm, BuildingType.MithrilMine, BuildingType.GlassWorks,
         // Production — transformation
         BuildingType.Forge, BuildingType.Smelter, BuildingType.WeaponSmith, BuildingType.ArmorSmith,
         // Recherche
@@ -108,8 +108,11 @@ public static class RaceDefinitions
             requiredPowers: new[] { AscensionPowerId.DivineLegacy, AscensionPowerId.ArmOfGod, AscensionPowerId.WalkOfGod }),
 
         // Gobelins : villes à distance 2 au lieu de 3 (expansion dense), mais « quantité plutôt
-        // que qualité » — niveau max -1 sur les bâtiments standards, défense affaiblie et points
-        // de prestige réduits de 25 %. Déblocage : Ascension Prestigieuse, Main de Dieu, Héritage Divin.
+        // que qualité » — niveau max -1 sur les bâtiments standards (Temple compris : base 1, plafonné
+        // à 3 une fois Foi débloquée au lieu de 4 — voir BuildStandardMaxLevelModifiers, le malus
+        // s'applique en dernier et ne peut jamais rendre un bâtiment inconstructible), défense
+        // affaiblie et points de prestige réduits de 25 %. Déblocage : Ascension Prestigieuse, Main de
+        // Dieu, Héritage Divin.
         new RaceDefinition(RaceId.Goblin, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.GreatBurrow,
@@ -248,9 +251,9 @@ public static class RaceDefinitions
 
     /// <summary>
     /// Modifiers de niveau max (±delta) pour une liste explicite de types de bâtiments. Contrairement
-    /// à <see cref="BuildStandardMaxLevelModifiers"/>, aucun filtre n'est appliqué : c'est à l'appelant
-    /// de vérifier qu'un delta négatif ne ramène pas le niveau max d'un bâtiment à 0 (voir la doc de
-    /// <see cref="GarudaLightBuildings"/>).
+    /// à <see cref="BuildStandardMaxLevelModifiers"/>, aucun filtre n'est appliqué — inutile pour un
+    /// delta négatif, <see cref="BuildingController.GetMaxLevel(Buildings.Building, Civilization)"/>
+    /// l'applique en dernier et le plafonne pour ne jamais rendre un bâtiment inconstructible.
     /// </summary>
     private static IEnumerable<Modifier> BuildMaxLevelModifiers(BuildingType[] types, int delta)
     {
@@ -260,9 +263,11 @@ public static class RaceDefinitions
 
     /// <summary>
     /// Modifiers de niveau max (±delta) pour les bâtiments « standards » : non uniques, hors Hôtel
-    /// de Ville (son niveau pilote le niveau de ville et les seuils AvailableAtLevel) et hors
-    /// bâtiments dont le niveau max par défaut est 0 ou 1 (uniques de prestige partant de 0,
-    /// bâtiments à niveau unique) — un -1 les rendrait inconstructibles.
+    /// de Ville (son niveau pilote le niveau de ville et les seuils AvailableAtLevel). Couvre aussi
+    /// les bâtiments dont le niveau max par défaut est 0 ou 1 (Bibliothèque, Temple, Verrerie...) :
+    /// un malus négatif n'y est jamais destructeur, <see cref="BuildingController.GetMaxLevel(Buildings.Building, Civilization)"/>
+    /// l'applique en dernier et le plafonne pour ne jamais faire passer sous 1 un bâtiment par
+    /// ailleurs atteignable (un bâtiment jamais débloqué par une autre source reste à 0, inchangé).
     /// </summary>
     private static IEnumerable<Modifier> BuildStandardMaxLevelModifiers(int delta)
     {
@@ -272,7 +277,6 @@ public static class RaceDefinitions
 
             var prototype = BuildingController.CreateBuilding(type);
             if (prototype == null || prototype.IsUnique) continue;
-            if (prototype.GetDefaultMaxLevel() < 2) continue;
 
             yield return new Modifier(ECategory.BUILDING_MAX_LEVEL, type.ToString(), EType.ADDITIVE, delta);
         }

@@ -226,7 +226,9 @@ public class RaceSystemTests
     /// <summary>
     /// Le malus de niveau max garuda ne touche que la production, la recherche et la magie. Le
     /// Comptoir en est exclu par construction : le Port Impérial exige un Comptoir niveau 4, qui est
-    /// aussi son plafond par défaut, donc un -1 dessus rendrait le prestige inatteignable.
+    /// aussi son plafond par défaut, donc un -1 dessus rendrait le prestige inatteignable. La Verrerie
+    /// (plafond par défaut 0) est en revanche incluse : BuildingController.GetMaxLevel applique le
+    /// malus en dernier et le plafonne à 1 minimum, jamais 0 par sa seule faute.
     /// </summary>
     [Fact]
     public void GetModifiers_Garuda_LowersProductionResearchAndMagicButNotSeaportOrWarehouse()
@@ -241,7 +243,7 @@ public class RaceSystemTests
                      BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Mill, BuildingType.Quarry,
                      BuildingType.Mine, BuildingType.Forge, BuildingType.Smelter,
                      BuildingType.Library, BuildingType.Laboratory,
-                     BuildingType.MageTower, BuildingType.AlchimistHut,
+                     BuildingType.MageTower, BuildingType.AlchimistHut, BuildingType.GlassWorks,
                  })
             Assert.Contains(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL
                                             && m.SubCategory == lowered.ToString() && (int)m.Value == -1);
@@ -250,8 +252,6 @@ public class RaceSystemTests
                  {
                      BuildingType.Seaport, BuildingType.Warehouse, BuildingType.Market, BuildingType.Temple,
                      BuildingType.TownHall, BuildingType.Palisade, BuildingType.Barracks,
-                     // Verrerie : plafond par défaut 0 et déblocage +1 seulement — un -1 la bloquerait.
-                     BuildingType.GlassWorks,
                  })
             Assert.DoesNotContain(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL
                                                   && m.SubCategory == spared.ToString() && (int)m.Value < 0);
@@ -960,8 +960,39 @@ public class RaceSystemTests
         Assert.DoesNotContain(nameof(BuildingType.TownHall), malus);
         Assert.DoesNotContain(nameof(BuildingType.WarRoom), malus);
         Assert.DoesNotContain(nameof(BuildingType.GreatBurrow), malus);
-        // Temple : niveau max par défaut 1 (le +3 vient de Foi) — jamais pénalisé.
-        Assert.DoesNotContain(nameof(BuildingType.Temple), malus);
+        // Temple : niveau max par défaut 1 (le bonus vient de Foi) — inclus malgré ce départ bas,
+        // BuildingController.GetMaxLevel applique le malus en dernier et le plafonne à 1 minimum
+        // (voir GetMaxLevel_GoblinMalus_NeverDropsBuildingBelowOneButCapsTempleWithFaith).
+        Assert.Contains(nameof(BuildingType.Temple), malus);
+    }
+
+    /// <summary>
+    /// Le malus racial (BUILDING_MAX_LEVEL négatif, ex. Gobelins -1 sur les bâtiments standards)
+    /// s'applique en dernier dans BuildingController.GetMaxLevel et ne peut jamais rendre
+    /// inconstructible un bâtiment par ailleurs atteignable (plafonné à 1 minimum) ni faire apparaître
+    /// un bâtiment jamais débloqué par une autre source (reste à 0, inchangé).
+    /// </summary>
+    [Fact]
+    public void GetMaxLevel_GoblinMalus_NeverDropsBuildingBelowOneButCapsTempleWithFaith()
+    {
+        var state = IslandTestFactory.CreateSevenHexIslandState();
+        var civ = state.Civilizations[0];
+        var controller = new BuildingController(state);
+
+        AddRaceModifiers(civ, new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Temple), EType.ADDITIVE, -1));
+
+        // Sans Foi : Temple reste à son niveau de base (1), le malus ne le fait pas passer à 0.
+        Assert.Equal(1, controller.GetMaxLevel(new Temple(), civ));
+
+        // Avec Foi (+3, simulé ici directement) : 1 + 3 - 1 = 3 au lieu de 4. Enregistrer un nouveau
+        // provider invalide automatiquement le cache de niveau max (ModifierAggregator.Changed).
+        AddRaceModifiers(civ, new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Temple), EType.ADDITIVE, 3));
+        Assert.Equal(3, controller.GetMaxLevel(new Temple(), civ));
+
+        // Un bâtiment jamais débloqué par ailleurs (base 0, aucun bonus positif) reste à 0 : le malus
+        // ne le fait pas apparaître artificiellement à 1.
+        AddRaceModifiers(civ, new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Library), EType.ADDITIVE, -1));
+        Assert.Equal(0, controller.GetMaxLevel(new Library(), civ));
     }
 
     // ── Grand Terrier : réduction des prérequis des bâtiments uniques ───────

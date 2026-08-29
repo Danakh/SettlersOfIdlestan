@@ -945,6 +945,21 @@ public class AscensionControllerTests
     }
 
     [Fact]
+    public void GetModifiers_Faith_GrantsFlatTempleBonusRegardlessOfRace()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        // Le bonus de Foi lui-même ne dépend pas de la race : c'est le malus standard des Gobelins
+        // (RaceDefinitions, appliqué en dernier par BuildingController.GetMaxLevel) qui plafonne
+        // ensuite leur Temple à 3 au lieu de 4 — voir
+        // RaceSystemTests.GetMaxLevel_GoblinMalus_NeverDropsBuildingBelowOneButCapsTempleWithFaith.
+        var modifier = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.BUILDING_MAX_LEVEL && m.SubCategory == "Temple"));
+        Assert.Equal(3, modifier.Value);
+    }
+
+    [Fact]
     public void GetModifiers_WrathOfGod_GrantsAttackSpeedBonus()
     {
         var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);

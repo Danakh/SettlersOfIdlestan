@@ -35,10 +35,13 @@ public class BuildingMaxLevelCalculatorTests
     /// -1 (GarudaLightBuildings) à des types que seule cette race touche (voir RaceDefinitions.cs).
     /// L'ancienne règle "une seule race le définit -> on l'ajoute" retenait ce malus au lieu de
     /// l'ignorer, sous-évaluant le plafond de tous les bâtiments de cette liste d'exactement 1.
+    /// Depuis que BuildStandardMaxLevelModifiers couvre aussi les bâtiments à plafond par défaut 0/1
+    /// (BuildingController.GetMaxLevel garantit qu'un malus négatif ne les rend jamais inconstructibles),
+    /// les Géants (+2) touchent aussi ces deux types et deviennent la meilleure race sur les deux.
     /// </summary>
     [Theory]
-    [InlineData(BuildingType.MushroomFarm, 2)]  // 0 (défaut) + 2 (vertex Culture Fongique) + 0 (Garuda -1 ignoré)
-    [InlineData(BuildingType.MageTower, 4)]     // 0 (défaut) + 1+1+2 (3 vertex) + 0 (Garuda -1 ignoré)
+    [InlineData(BuildingType.MushroomFarm, 4)]  // 0 (défaut) + 2 (vertex Culture Fongique) + 2 (Géant, meilleur que Garuda/Gobelin -1)
+    [InlineData(BuildingType.MageTower, 6)]     // 0 (défaut) + 1+1+2 (3 vertex) + 2 (Géant, meilleur que Garuda/Gobelin -1)
     public void TheoreticalMaxLevel_IgnoresRacePenaltyWhenNoRaceGrantsABonus(BuildingType type, int expected)
     {
         Assert.Equal(expected, BuildingMaxLevelCalculator.GetTheoreticalMaxLevel(type));

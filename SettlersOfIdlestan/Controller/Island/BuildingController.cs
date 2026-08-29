@@ -885,8 +885,26 @@ namespace SettlersOfIdlestan.Controller.Island
             if (civ.TryGetCachedMaxLevel(building.Type, out int cached))
                 return cached;
 
-            int value = civ.ModifierAggregator.ApplyModifiers(
-                ECategory.BUILDING_MAX_LEVEL, BuildingTypeNames.Of(building.Type), building.GetDefaultMaxLevel());
+            string subCategory = BuildingTypeNames.Of(building.Type);
+            var modifiers = civ.ModifierAggregator.GetActiveModifiersUnfiltered(ECategory.BUILDING_MAX_LEVEL);
+
+            // Bonus et malus additifs sommés séparément : les malus raciaux (RaceDefinitions, ex.
+            // Gobelins -1 sur les bâtiments standards) s'appliquent en dernier et sont plafonnés pour
+            // ne jamais rendre inconstructible un bâtiment qui aurait été atteignable sans eux — un
+            // bâtiment jamais débloqué par ailleurs (base + bonus <= 0, ex. Bibliothèque avant sa
+            // recherche) reste à 0, inchangé par le malus.
+            int bonus = 0, malus = 0;
+            for (int i = 0; i < modifiers.Count; i++)
+            {
+                var modifier = modifiers[i];
+                if (!modifier.IsActive || modifier.SubCategory != subCategory) continue;
+                int amount = (int)modifier.Value;
+                if (amount < 0) malus -= amount; else bonus += amount;
+            }
+
+            int beforeMalus = building.GetDefaultMaxLevel() + bonus;
+            int value = beforeMalus > 0 ? Math.Max(1, beforeMalus - malus) : beforeMalus;
+
             civ.SetCachedMaxLevel(building.Type, value);
             return value;
         }
