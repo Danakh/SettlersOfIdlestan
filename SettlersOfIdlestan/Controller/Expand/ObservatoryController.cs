@@ -139,6 +139,10 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) return null;
             if (_state.GetMapFor(position) == null) return null;
             var observatory = new Observatory(position);
+            // Amorce les cooldowns d'investissement (ressources + recherche) sur le tick de pose
+            // (voir WonderController.PlaceWonder).
+            observatory.LastInvestmentTick = _clock?.CurrentTick ?? 0;
+            observatory.LastResearchInvestmentTick = _clock?.CurrentTick ?? 0;
             _state.AddFeature(observatory);
             _state.EventLog.Add(GameEventType.ObservatoryPlaced);
             if (_harvestController != null)

@@ -227,6 +227,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             _state.RemoveFeature(spire);
 
             var gate = new AbyssGate(position);
+            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
+            gate.LastInvestmentTick = _clock?.CurrentTick ?? 0;
             _state.AddFeature(gate);
             _state.EventLog.Add(GameEventType.AbyssGatePlaced);
             if (_harvestController != null)

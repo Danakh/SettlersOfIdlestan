@@ -165,6 +165,8 @@ namespace SettlersOfIdlestan.Controller.Expand
         {
             if (_state == null) return null;
             var spire = new CorruptionSpire(position);
+            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
+            spire.LastInvestmentTick = _clock?.CurrentTick ?? 0;
             _state.AddFeature(spire);
             _state.EventLog.Add(GameEventType.CorruptionSpirePlaced);
             if (_harvestController != null)

@@ -122,6 +122,12 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null) return null;
             if (_state.GetMapFor(position) == null) return null;
             var wonder = new Wonder(position);
+            // Amorce le cooldown d'investissement sur le tick de pose plutôt que de laisser la valeur
+            // par défaut à 0 : sans ça, ProcessTick voit un écart énorme dès le premier cycle
+            // (now - 0) et rattrape d'un coup tous les cycles "manqués" depuis le tick 0 de la partie,
+            // ce qui vide le stock de ressources d'un coup au lieu de démarrer progressivement (bug
+            // vécu après un prestige, où le tick courant est déjà élevé au moment de la pose).
+            wonder.LastInvestmentTick = _clock?.CurrentTick ?? 0;
             _state.AddFeature(wonder);
             _state.EventLog.Add(GameEventType.WonderPlaced);
             if (_harvestController != null)

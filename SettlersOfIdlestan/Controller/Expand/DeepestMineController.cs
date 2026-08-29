@@ -218,6 +218,8 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) return null;
             var mine = new DeepestMine(position);
+            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
+            mine.LastInvestmentTick = _clock?.CurrentTick ?? 0;
             _state.AddFeature(mine);
             _state.EventLog.Add(GameEventType.DeepestMinePlaced);
             if (_harvestController != null)
