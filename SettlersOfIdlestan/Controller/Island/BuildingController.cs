@@ -95,6 +95,7 @@ namespace SettlersOfIdlestan.Controller.Island
             // pour son homonyme sur la nouvelle — on repart propre plutôt que de risquer un faux
             // positif qui bloquerait silencieusement une automatisation.
             _guildNothingToDoCache.Clear();
+            _guildResourceRetryTick.Clear();
         }
 
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
@@ -318,14 +319,39 @@ namespace SettlersOfIdlestan.Controller.Island
         /// événement : les civs PNJ peuvent apparaître/disparaître en cours de partie
         /// (AutoExtendController), et un abonnement oublié à la désinscription fuirait.
         ///
-        /// <para>Une entrée n'est écrite que si aucun candidat trouvé n'était bloqué uniquement par un
-        /// coût non couvert (voir <c>blockedByResources</c> dans <see cref="TickGuildAutomation"/>) :
-        /// les ressources s'accumulent à chaque tick sans faire bouger aucune des trois versions
-        /// suivies ici, donc les mettre en cache figerait l'automatisation dès la première tentative
-        /// trop précoce, jusqu'à ce qu'un événement sans rapport (nouvelle ville, recherche, preset)
-        /// invalide enfin l'entrée.</para>
+        /// <para>Un échec bloqué uniquement par un coût non couvert (voir <c>blockedByResources</c>
+        /// dans <see cref="TickGuildAutomation"/>) est mis en cache comme les autres — sans quoi le
+        /// rattrapage hors-ligne (des dizaines/centaines de milliers d'événements <c>Advanced</c>
+        /// rejoués d'affilée, voir <c>GameClock.SimulateAdvance</c>) refait le balayage complet à
+        /// chaque événement pendant toute la durée de l'absence, ce qui fige le jeu au chargement —
+        /// mais avec une expiration en ticks (<see cref="_guildResourceRetryTick"/>) plutôt
+        /// qu'indéfiniment : les ressources s'accumulent sans faire bouger aucune des trois versions
+        /// suivies ici, donc un cache sans expiration figerait l'automatisation dès la première
+        /// tentative trop précoce jusqu'à ce qu'un événement sans rapport (nouvelle ville, recherche,
+        /// preset) l'invalide enfin (bug d'origine de l'automatisation de l'Hôtel de Ville).</para>
         /// </summary>
         private readonly Dictionary<(int CivIndex, GuildAutomationKind Kind), (int Buildings, int Modifiers, int Presets)> _guildNothingToDoCache = new();
+
+        /// <summary>
+        /// Tick de simulation à partir duquel une entrée de <see cref="_guildNothingToDoCache"/>
+        /// posée pour un échec bloqué par les ressources doit être réévaluée malgré un triplet de
+        /// versions inchangé. Absent (ou expiré) pour une entrée posée pour un échec structurel : ce
+        /// cas-là ne peut se résoudre que par un changement de version, jamais par le temps qui passe.
+        /// </summary>
+        private readonly Dictionary<(int CivIndex, GuildAutomationKind Kind), long> _guildResourceRetryTick = new();
+
+        /// <summary>
+        /// Espacement minimal (en ticks de simulation, 100/s) entre deux réévaluations d'une
+        /// automatisation de guilde bloquée uniquement par manque de ressources — le plancher du
+        /// cooldown de base (identique pour toutes les guildes, voir les <c>GetAutoXCooldownTicks</c>
+        /// dans <c>Model/Buildings/</c>), pour ne pas retarder une guilde non boostée par rapport au
+        /// rythme de relance déjà attendu d'elle (voir
+        /// <c>TownHall_AutomationRetriesAfterInsufficientResourcesOnFirstAttempt</c>). Sans ce
+        /// plancher, <c>GUILD_AUTOMATION_SPEED_PER_CITY</c> réduit l'<c>effectiveCooldown</c> en fin de
+        /// partie au point de retrouver le rythme d'un balayage complet par événement <c>Advanced</c>
+        /// pendant tout un rattrapage hors-ligne — voir le commentaire de <see cref="_guildNothingToDoCache"/>.
+        /// </summary>
+        private const long GuildResourceBlockRetryFloorTicks = 1000;
 
         private void TickGuildAutomation(
             Model.Civilization.Civilization civ,
@@ -351,7 +377,12 @@ namespace SettlersOfIdlestan.Controller.Island
             var cacheKey = (civ.Index, kind);
             var versions = (civ.BuildingsVersion, civ.ModifierAggregator.Version, presets.PresetsVersion);
             if (_guildNothingToDoCache.TryGetValue(cacheKey, out var cachedVersions) && cachedVersions == versions)
-                return;
+            {
+                // Une entrée posée pour un échec structurel n'a pas de tick de relance : seul un
+                // changement de version peut la faire tomber, déjà exclu par la comparaison ci-dessus.
+                if (!_guildResourceRetryTick.TryGetValue(cacheKey, out long retryTick) || now < retryTick)
+                    return;
+            }
 
             // Un cycle = une construction/amélioration (comportement inchangé : au plus une action par
             // cooldown écoulé), rejoué `cycles` fois pour rattraper un saut de temps. S'arrête dès qu'un
@@ -363,12 +394,16 @@ namespace SettlersOfIdlestan.Controller.Island
                     // Rien trouvé à ce triplet de versions (celui d'après un éventuel build réussi
                     // plus tôt dans cette même rafale de cycles, cf. BuildingsVersion incrémenté par
                     // BuildBuilding) : un futur appel peut sauter le balayage tant que rien de ça ne
-                    // change — nouvelle ville, modifier (recherche/prestige/rituel...) ou preset. Mais
-                    // pas si l'échec vient d'un coût non couvert : les ressources s'accumulent à chaque
-                    // tick sans bouger aucune de ces versions, et mettre en cache figerait
-                    // l'automatisation dès la première tentative trop tôt (voir blockedByResources).
-                    if (!blockedByResources)
-                        _guildNothingToDoCache[cacheKey] = (civ.BuildingsVersion, civ.ModifierAggregator.Version, presets.PresetsVersion);
+                    // change — nouvelle ville, modifier (recherche/prestige/rituel...) ou preset. Un
+                    // échec bloqué par un coût non couvert est mis en cache aussi (rattrapage hors-ligne,
+                    // voir le commentaire de _guildNothingToDoCache), mais avec un tick de relance : les
+                    // ressources s'accumulent sans bouger ces versions, et un cache sans expiration
+                    // figerait l'automatisation dès la première tentative trop tôt.
+                    _guildNothingToDoCache[cacheKey] = (civ.BuildingsVersion, civ.ModifierAggregator.Version, presets.PresetsVersion);
+                    if (blockedByResources)
+                        _guildResourceRetryTick[cacheKey] = now + Math.Max(effectiveCooldown, GuildResourceBlockRetryFloorTicks);
+                    else
+                        _guildResourceRetryTick.Remove(cacheKey);
                     break;
                 }
         }
