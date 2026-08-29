@@ -241,6 +241,23 @@ public sealed class AutomationView : UserControl
             };
             pin.Click += (_, _) => { if (_row != null) _owner.TogglePin(_row); };
 
+            // Restriction de production de soldats uniquement : ramene les soldats du layer au
+            // quota nourri gratuitement. En bas a droite de la carte, sur sa propre bande docked
+            // Bottom plutot qu'a l'interieur de "text" : la carte grandit d'autant plutot que de
+            // recouvrir la description.
+            var demobilize = new Button
+            {
+                FontSize = 11,
+                Padding = new Thickness(10, 4),
+                Margin = new Thickness(0, 8, 0, 0),
+                CornerRadius = new CornerRadius(4),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                [!ContentControl.ContentProperty] = new Binding(nameof(AutomationViewModel.DemobilizeButtonLabel)) { Source = owner },
+                [!IsVisibleProperty] = new Binding(nameof(AutomationRowViewModel.CanDemobilize)),
+            };
+            demobilize.Classes.Add(GameControlStyles.ToneButton);
+            demobilize.Click += (_, _) => { if (_row != null) _owner.Demobilize(_row); };
+
             var name = new TextBlock
             {
                 FontSize = 13,
@@ -286,8 +303,10 @@ public sealed class AutomationView : UserControl
             var layout = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(toggle, Dock.Left);
             DockPanel.SetDock(pin, Dock.Right);
+            DockPanel.SetDock(demobilize, Dock.Bottom);
             layout.Children.Add(toggle);
             layout.Children.Add(pin);
+            layout.Children.Add(demobilize);
             layout.Children.Add(text);
 
             Child = layout;

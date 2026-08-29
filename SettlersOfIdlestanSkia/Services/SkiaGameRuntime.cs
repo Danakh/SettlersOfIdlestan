@@ -302,6 +302,7 @@ public sealed class SkiaGameRuntime : IDisposable
     public void ToggleAutomation(string key) => _gameScreen?.ToggleAutomationFromHost(key);
     public void ToggleAutomationPin(string key) => _gameScreen?.ToggleAutomationPinFromHost(key);
     public void ToggleAutomationsGlobally() => _gameScreen?.ToggleAutomationsGloballyFromHost();
+    public void DemobilizeAutomation(string key) => _gameScreen?.DemobilizeAutomationFromHost(key);
     public void SelectAutomationPreset(int preset) => _gameScreen?.SelectAutomationPresetFromHost(preset);
 
     public AutomationPresetPopupSnapshot GetAutomationPresetPopupSnapshot() =>
@@ -402,6 +403,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void ExecuteCivAction(string k) => _gameScreen?.ExecuteCivActionFromHost(k);
     public void ToggleCivPinned(string k) => _gameScreen?.ToggleCivPinnedFromHost(k);
+    public void DemobilizeCivPinned(string k) => _gameScreen?.DemobilizeCivPinnedFromHost(k);
     public void SetCivPanelCollapsed(bool c) => _gameScreen?.SetCivPanelCollapsedFromHost(c);
 
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>

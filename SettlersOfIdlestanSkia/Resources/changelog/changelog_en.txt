@@ -5,6 +5,7 @@ The changelog is not actively maintained at the moment.
 
 v0.18
 • New tutorial guiding players through Ascension
+• New "Demobilize" button on the soldier limit setting: instantly sends excess soldiers back down to the free-fed quota
 • Fixed: an automation preset cap could remain applied even without unlocking the corresponding research
 
 ---

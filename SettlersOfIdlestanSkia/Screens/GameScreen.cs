@@ -489,6 +489,7 @@ public sealed class GameScreen : IDisposable
     public void ToggleAutomationFromHost(string key) => _overlayRenderer?.ToggleAutomationFromHost(key);
     public void ToggleAutomationPinFromHost(string key) => _overlayRenderer?.ToggleAutomationPinFromHost(key);
     public void ToggleAutomationsGloballyFromHost() => _overlayRenderer?.ToggleAutomationsGloballyFromHost();
+    public void DemobilizeAutomationFromHost(string key) => _overlayRenderer?.DemobilizeAutomationFromHost(key);
     public void SelectAutomationPresetFromHost(int preset) => _overlayRenderer?.SelectAutomationPresetFromHost(preset);
 
     public AutomationPresetPopupSnapshot GetAutomationPresetPopupSnapshot() =>
@@ -544,6 +545,7 @@ public sealed class GameScreen : IDisposable
 
     public void ExecuteCivActionFromHost(string k) => _overlayRenderer?.ExecuteCivActionFromHost(k);
     public void ToggleCivPinnedFromHost(string k) => _overlayRenderer?.ToggleCivPinnedFromHost(k);
+    public void DemobilizeCivPinnedFromHost(string k) => _overlayRenderer?.DemobilizeCivPinnedFromHost(k);
     public void SetCivPanelCollapsedFromHost(bool c) => _overlayRenderer?.SetCivPanelCollapsedFromHost(c);
 
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>

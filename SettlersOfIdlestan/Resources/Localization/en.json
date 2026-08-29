@@ -216,6 +216,7 @@
   "automation_restrict_soldier_production_pandemonium_name": "Soldier limit (Pandemonium)",
   "automation_restrict_soldier_production_pandemonium_desc": "Pandemonium Barracks stop producing once they reach the free-fed soldier quota, even while active.",
   "automation_restrict_soldier_production_note": "Current limit: {0} soldiers per city.",
+  "automation_demobilize_button": "Demobilize",
   "level_abbrev": "lv",
   "automation_on": "ON",
   "automation_off": "OFF",

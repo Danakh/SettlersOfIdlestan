@@ -413,6 +413,31 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private static bool IsRestrictSoldierProductionByLayer(AutomationSettings settings, int layerZ)
         => settings.RestrictSoldierProductionToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v;
 
+    private static bool IsRestrictSoldierProductionKey(string key) => key is
+        AutomationRenderer.PinKeyRestrictSoldierProduction or
+        AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld or
+        AutomationRenderer.PinKeyRestrictSoldierProductionAbyss or
+        AutomationRenderer.PinKeyRestrictSoldierProductionPandemonium;
+
+    private static int? RestrictSoldierProductionLayerZ(string key) => key switch
+    {
+        AutomationRenderer.PinKeyRestrictSoldierProduction           => IslandMap.SurfaceLayer,
+        AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld => LayerState.UnderworldZ,
+        AutomationRenderer.PinKeyRestrictSoldierProductionAbyss      => LayerState.AbyssZ,
+        AutomationRenderer.PinKeyRestrictSoldierProductionPandemonium => LayerState.PandemoniumZ,
+        _ => null,
+    };
+
+    /// <summary>Bouton "Demobiliser" d'une bascule epinglee de restriction de production de
+    /// soldats, depuis une vue portee par l'hote.</summary>
+    public void DemobilizeFromHost(string key)
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        var layerZ = RestrictSoldierProductionLayerZ(key);
+        if (civ == null || layerZ == null) return;
+        _gameControllerService.MainGameController.MilitaryController.DemobilizeSoldiersAboveFreeLimit(civ, layerZ.Value);
+    }
+
     private static bool IsKeyShowable(string key,
         SettlersOfIdlestan.Model.IslandMap.WorldState? worldState,
         bool hasBarracks, bool hasArsenal, bool hasLabs, bool hasSmelters,
@@ -913,7 +938,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             var (value, nameKey, tooltipKey) = ResolvePinnedToggle(key, civ, worldState);
             var category = AutomationRenderer.PinKeyCategories.GetValueOrDefault(key, AutomationCategory.Construction);
-            toggles.Add(new CivToggleSnapshot(key, _localization.Get(nameKey), value, _localization.Get(tooltipKey), category));
+            toggles.Add(new CivToggleSnapshot(key, _localization.Get(nameKey), value, _localization.Get(tooltipKey), category,
+                CanDemobilize: IsRestrictSoldierProductionKey(key)));
         }
 
         // Regroupees par famille (construction, comportement, activation) plutot que dans l'ordre
@@ -930,6 +956,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             IsCollapsed: Collapsed,
             ActionsTitle: _localization.Get("panel_civ_actions"),
             ControlsTitle: _localization.Get("panel_civ_controls"),
+            DemobilizeButtonLabel: _localization.Get("automation_demobilize_button"),
             IconActions: iconActions,
             Actions: actions,
             Toggles: toggles);

@@ -420,6 +420,8 @@ public sealed record SettingsMenuSnapshot(bool IsOpen, IReadOnlyList<SettingsMen
 /// <param name="SummaryLines">Etat de construction par type de batiment concerne, deja formate.</param>
 /// <param name="Category">Famille de l'automatisme (voir <see cref="AutomationCategory"/>), pour
 /// colorer sa case a cocher comme celle du panneau civilisation.</param>
+/// <param name="CanDemobilize">Ligne de restriction de production de soldats : affiche un bouton
+/// "Demobiliser" qui ramene les soldats du layer au quota nourri gratuitement.</param>
 public sealed record AutomationRowSnapshot(
     string Key,
     string Name,
@@ -430,7 +432,8 @@ public sealed record AutomationRowSnapshot(
     bool CanPin,
     bool IsPinned,
     IReadOnlyList<string> SummaryLines,
-    AutomationCategory Category);
+    AutomationCategory Category,
+    bool CanDemobilize = false);
 
 public sealed record AutomationSectionSnapshot(string Header, IReadOnlyList<AutomationRowSnapshot> Rows);
 
@@ -453,7 +456,8 @@ public sealed record AutomationSnapshot(
     int ActivePreset,
     string PresetChangeButtonLabel,
     IReadOnlyList<AutomationSectionSnapshot> LeftColumn,
-    IReadOnlyList<AutomationSectionSnapshot> RightColumn)
+    IReadOnlyList<AutomationSectionSnapshot> RightColumn,
+    string DemobilizeButtonLabel = "")
 {
     public static readonly AutomationSnapshot Hidden = new(false, "", "", false, "", false, 1, "", [], []);
 }
@@ -772,7 +776,9 @@ public enum AutomationCategory { Construction, Behavior, Activation }
 /// </summary>
 /// <param name="IsOn">Trois etats : tous actifs, tous inactifs, ou null pour un etat mixte
 /// (certains batiments du type actifs, d'autres non).</param>
-public sealed record CivToggleSnapshot(string Key, string Label, bool? IsOn, string Tooltip, AutomationCategory Category);
+/// <param name="CanDemobilize">Restriction de production de soldats : affiche un bouton
+/// "Demobiliser" a droite de la bascule (voir AutomationRenderer.DemobilizeFromHost).</param>
+public sealed record CivToggleSnapshot(string Key, string Label, bool? IsOn, string Tooltip, AutomationCategory Category, bool CanDemobilize = false);
 
 /// <summary>
 /// Panneau lateral de la civilisation du joueur : actions disponibles et bascules epinglees
@@ -787,7 +793,8 @@ public sealed record CivPanelSnapshot(
     string ControlsTitle,
     IReadOnlyList<CivActionSnapshot> IconActions,
     IReadOnlyList<CivActionSnapshot> Actions,
-    IReadOnlyList<CivToggleSnapshot> Toggles)
+    IReadOnlyList<CivToggleSnapshot> Toggles,
+    string DemobilizeButtonLabel = "")
 {
     public static readonly CivPanelSnapshot Hidden = new(false, false, "", "", [], [], []);
 

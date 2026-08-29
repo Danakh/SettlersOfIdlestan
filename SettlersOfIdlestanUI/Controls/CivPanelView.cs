@@ -290,9 +290,27 @@ public sealed class CivPanelView : UserControl
                 [!TextBlock.TextProperty] = new Binding(nameof(CivToggleViewModel.Label)),
             };
 
+            // Restriction de production de soldats uniquement : ramene les soldats du layer au
+            // quota nourri gratuitement. A droite de la ligne, comme demande pour cette bascule
+            // epinglee — les autres bascules n'en ont pas besoin.
+            var demobilize = new Button
+            {
+                FontSize = 11,
+                Padding = new Thickness(8, 2),
+                Margin = new Thickness(8, 0, 0, 0),
+                CornerRadius = new CornerRadius(4),
+                VerticalAlignment = VerticalAlignment.Center,
+                [!ContentControl.ContentProperty] = new Binding(nameof(CivPanelViewModel.DemobilizeButtonLabel)) { Source = owner },
+                [!IsVisibleProperty] = new Binding(nameof(CivToggleViewModel.CanDemobilize)),
+            };
+            demobilize.Classes.Add(GameControlStyles.ToneButton);
+            demobilize.Click += (_, _) => { if (_toggle != null) _owner.Demobilize(_toggle); };
+
             var layout = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(square, Dock.Left);
+            DockPanel.SetDock(demobilize, Dock.Right);
             layout.Children.Add(square);
+            layout.Children.Add(demobilize);
             layout.Children.Add(label);
             Child = layout;
         }

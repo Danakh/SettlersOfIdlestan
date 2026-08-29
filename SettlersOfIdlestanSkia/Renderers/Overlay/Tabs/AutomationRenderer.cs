@@ -303,6 +303,8 @@ public sealed class AutomationRenderer : IDisposable
     /// <param name="Key">Cle d'epinglage de la ligne, qui lui sert aussi d'identifiant.</param>
     /// <param name="IsOn">Null pour un etat mixte (certains batiments du type actifs, d'autres non).</param>
     /// <param name="IsLocked">Ligne verrouillee : pas de bascule, Desc porte la raison du verrouillage.</param>
+    /// <param name="CanDemobilize">Ligne de restriction de production de soldats : affiche un
+    /// bouton "Demobiliser" qui ramene les soldats du layer au quota nourri gratuitement.</param>
     private sealed record RowModel(
         string Key,
         string Name,
@@ -312,7 +314,8 @@ public sealed class AutomationRenderer : IDisposable
         bool IsLocked,
         bool CanPin,
         BuildingType[]? SummaryTypes,
-        AutomationCategory Category);
+        AutomationCategory Category,
+        bool CanDemobilize = false);
 
     private sealed record SectionModel(string Header, List<RowModel> Rows);
 
@@ -473,7 +476,7 @@ public sealed class AutomationRenderer : IDisposable
                 string key = RestrictSoldierProductionPinKey(layerZ);
                 bool isRestricted = settings.RestrictSoldierProductionToFreeSoldiersByLayer.TryGetValue(layerZ, out var v) && v;
                 controls.Add(new RowModel(key, _localization.Get(root + "_name"), _localization.Get(root + "_desc"),
-                    note, isRestricted, IsLocked: false, CanPin: true, null, CategoryOf(key)));
+                    note, isRestricted, IsLocked: false, CanPin: true, null, CategoryOf(key), CanDemobilize: true));
             }
         }
 
@@ -737,7 +740,8 @@ public sealed class AutomationRenderer : IDisposable
                         ? []
                         : row.SummaryTypes.Select(t => FormatSummaryEntry(civ.Cities, t,
                             presetsUnlocked ? civ : null, presetsUnlocked ? worldState.AutomationSettings : null).Text).ToList(),
-                    Category: row.Category))
+                    Category: row.Category,
+                    CanDemobilize: row.CanDemobilize))
                     .ToList()))
                 .ToList();
 
@@ -747,6 +751,7 @@ public sealed class AutomationRenderer : IDisposable
             GlobalToggleLabel: _localization.Get("settings_automations_enabled"),
             GlobalToggleOn: gameState.Settings.AutomationsEnabled,
             PinTooltip: _localization.Get("tooltip_pin_to_civ_panel"),
+            DemobilizeButtonLabel: _localization.Get("automation_demobilize_button"),
             PresetBarVisible: presetsUnlocked,
             ActivePreset: gameState.GodState.AutomationPresets.ActivePreset,
             PresetChangeButtonLabel: _localization.Get("automation_preset_change_button"),
@@ -877,6 +882,26 @@ public sealed class AutomationRenderer : IDisposable
             if (RestrictSoldierProductionPinKey(layerZ) != key) continue;
             var byLayer = settings.RestrictSoldierProductionToFreeSoldiersByLayer;
             byLayer[layerZ] = !(byLayer.TryGetValue(layerZ, out var current) && current);
+            return;
+        }
+    }
+
+    /// <summary>
+    /// Bouton "Demobiliser" d'une ligne de restriction de production de soldats : ramene les
+    /// soldats du layer correspondant au quota nourri gratuitement. Cle de layer resolue de la
+    /// meme facon que dans <see cref="ToggleByKey"/> — un layer inexistant (cle perimee) ne fait
+    /// simplement rien.
+    /// </summary>
+    public void DemobilizeFromHost(string key)
+    {
+        var state = _gameControllerService.CurrentWorldState;
+        var civ = _gameControllerService.PlayerCivilization;
+        if (state == null || civ == null) return;
+
+        foreach (var layerZ in state.Layers.Keys)
+        {
+            if (RestrictSoldierProductionPinKey(layerZ) != key) continue;
+            _gameControllerService.MainGameController.MilitaryController.DemobilizeSoldiersAboveFreeLimit(civ, layerZ);
             return;
         }
     }

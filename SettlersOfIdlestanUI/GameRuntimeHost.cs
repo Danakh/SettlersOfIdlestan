@@ -189,6 +189,7 @@ public sealed class GameRuntimeHost : IDisposable
     public void ToggleAutomation(string key) => Invoke(r => r.ToggleAutomation(key));
     public void ToggleAutomationPin(string key) => Invoke(r => r.ToggleAutomationPin(key));
     public void ToggleAutomationsGlobally() => Invoke(r => r.ToggleAutomationsGlobally());
+    public void DemobilizeAutomation(string key) => Invoke(r => r.DemobilizeAutomation(key));
     public void SelectAutomationPreset(int preset) => Invoke(r => r.SelectAutomationPreset(preset));
 
     public SkiaLayer.AutomationPresetPopupSnapshot GetAutomationPresetPopupSnapshot() =>
@@ -260,6 +261,7 @@ public sealed class GameRuntimeHost : IDisposable
 
     public void ExecuteCivAction(string k) => Invoke(r => r.ExecuteCivAction(k));
     public void ToggleCivPinned(string k) => Invoke(r => r.ToggleCivPinned(k));
+    public void DemobilizeCivPinned(string k) => Invoke(r => r.DemobilizeCivPinned(k));
     public void SetCivPanelCollapsed(bool c) => Invoke(r => r.SetCivPanelCollapsed(c));
 
     public SkiaLayer.MonumentPanelSnapshot GetMonumentPanelSnapshot() =>

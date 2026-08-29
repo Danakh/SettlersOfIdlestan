@@ -472,6 +472,23 @@ public class MilitaryController
     public IMilitaryVertex? FindNearbyEnemyCity(IMilitaryVertex attackerVertex, IReadOnlyCollection<int>? targetCivIndices = null)
         => _cityAttackEngine.FindNearbyEnemyCity(attackerVertex, targetCivIndices);
 
+    /// <summary>
+    /// Ramène les soldats de chaque ville du layer donné au quota nourri gratuitement
+    /// (SOLDIER_FOOD_FREE_PER_CITY) — bouton "Démobiliser" du réglage de restriction de production.
+    /// Sans effet si le quota est nul ou déjà respecté.
+    /// </summary>
+    public void DemobilizeSoldiersAboveFreeLimit(Civilization civ, int layerZ)
+    {
+        int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+        if (freePerCity <= 0) return;
+
+        foreach (var city in civ.Cities)
+        {
+            if (city.Position.Z != layerZ) continue;
+            if (city.Soldiers > freePerCity) city.Soldiers = freePerCity;
+        }
+    }
+
     // ── Raid ─────────────────────────────────────────────────────────────────
 
     public bool IsRaidUnlocked(Civilization civ) => _raidEngine.IsRaidUnlocked(civ);

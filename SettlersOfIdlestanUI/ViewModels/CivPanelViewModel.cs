@@ -91,6 +91,7 @@ public sealed class CivToggleViewModel : ViewModelBase
     {
         Key = snapshot.Key;
         Category = snapshot.Category;
+        CanDemobilize = snapshot.CanDemobilize;
         _label = snapshot.Label;
         _isOn = snapshot.IsOn;
         _tooltip = snapshot.Tooltip;
@@ -102,6 +103,10 @@ public sealed class CivToggleViewModel : ViewModelBase
     /// styler chaque bascule differemment. Fixe pour la duree de vie de la ligne — une bascule
     /// epinglee ne change jamais de famille — donc pas repercutee dans Apply.
     public SkiaLayer.AutomationCategory Category { get; }
+
+    /// Restriction de production de soldats : affiche le bouton "Demobiliser" a droite de la
+    /// bascule. Fixe pour la duree de vie de la ligne, comme Category.
+    public bool CanDemobilize { get; }
 
     public string Label { get => _label; private set => SetProperty(ref _label, value); }
 
@@ -131,6 +136,7 @@ public sealed class CivPanelViewModel : ViewModelBase
     private bool _isCollapsed;
     private string _actionsTitle = "";
     private string _controlsTitle = "";
+    private string _demobilizeButtonLabel = "";
 
     public CivPanelViewModel(GameRuntimeHost host)
     {
@@ -161,6 +167,7 @@ public sealed class CivPanelViewModel : ViewModelBase
 
     public string ActionsTitle { get => _actionsTitle; private set => SetProperty(ref _actionsTitle, value); }
     public string ControlsTitle { get => _controlsTitle; private set => SetProperty(ref _controlsTitle, value); }
+    public string DemobilizeButtonLabel { get => _demobilizeButtonLabel; private set => SetProperty(ref _demobilizeButtonLabel, value); }
 
     /// La section Actions n'apparait que si elle a du contenu — titre compris.
     public bool HasActions => IconActions.Count > 0 || Actions.Count > 0;
@@ -178,6 +185,7 @@ public sealed class CivPanelViewModel : ViewModelBase
         IsCollapsed = snapshot.IsCollapsed;
         ActionsTitle = snapshot.ActionsTitle;
         ControlsTitle = snapshot.ControlsTitle;
+        DemobilizeButtonLabel = snapshot.DemobilizeButtonLabel;
 
         SyncActions(IconActions, snapshot.IconActions);
         SyncActions(Actions, snapshot.Actions);
@@ -230,6 +238,12 @@ public sealed class CivPanelViewModel : ViewModelBase
     public void Toggle(CivToggleViewModel toggle)
     {
         _host.ToggleCivPinned(toggle.Key);
+        Refresh();
+    }
+
+    public void Demobilize(CivToggleViewModel toggle)
+    {
+        _host.DemobilizeCivPinned(toggle.Key);
         Refresh();
     }
 

@@ -384,6 +384,7 @@ public sealed class OverlayRenderer : IGameRenderer
     public void ToggleAutomationFromHost(string key) => _automationRenderer.ToggleByKey(key);
     public void ToggleAutomationPinFromHost(string key) => _automationRenderer.TogglePinFromHost(key);
     public void ToggleAutomationsGloballyFromHost() => _automationRenderer.ToggleGlobalFromHost();
+    public void DemobilizeAutomationFromHost(string key) => _automationRenderer.DemobilizeFromHost(key);
     public void SelectAutomationPresetFromHost(int preset) => _automationRenderer.SelectAutomationPresetFromHost(preset);
 
     /// <summary>Instantane du popup d'edition des presets d'automatisation pour une vue portee par l'hote.</summary>
@@ -452,6 +453,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
     public void ExecuteCivActionFromHost(string key) => _playerCivPanel.ExecuteActionFromHost(key);
     public void ToggleCivPinnedFromHost(string key) => _playerCivPanel.ToggleFromHost(key);
+    public void DemobilizeCivPinnedFromHost(string key) => _playerCivPanel.DemobilizeFromHost(key);
     public void SetCivPanelCollapsedFromHost(bool collapsed) => _playerCivPanel.SetCollapsedFromHost(collapsed);
 
     /// <summary>Instantané du panneau monument pour une vue portée par l'hôte.</summary>

@@ -5,6 +5,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 
 v0.18
 • Nouveau tutoriel guidant les joueurs à travers l'Ascension
+• Nouveau bouton « Démobiliser » sur la limite de soldats : renvoie d'un clic les soldats excédentaires au quota nourri gratuitement
 • Correction : un plafond de préréglage d'automatisation restait appliqué même sans avoir débloqué la recherche correspondante
 
 ---
