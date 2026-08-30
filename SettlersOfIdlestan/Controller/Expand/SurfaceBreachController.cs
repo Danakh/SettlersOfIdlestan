@@ -60,9 +60,11 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             var breach = _state.Features.OfType<SurfaceBreach>().FirstOrDefault();
-            if (breach == null || breach.Dug || breach.InvestmentEnabled.Count == 0) return;
-            if (_clock.CurrentTick - breach.LastInvestmentTick < InvestmentIntervalTicks) return;
+            if (breach == null || breach.Dug) return;
 
+            // Pas de garde sur InvestmentEnabled avant ProcessTick — voir le commentaire de
+            // WonderController.ProcessInvestment pour la raison (évite de figer LastInvestmentTick
+            // pendant une désactivation, et le rattrapage massif que ça provoquerait à la réactivation).
             var playerCiv = _state.PlayerCivilization;
             var cost = breach.GetInvestmentCost(playerCiv);
             if (!MonumentInvestment.ProcessTick(breach, cost, playerCiv, _clock.CurrentTick)) return;

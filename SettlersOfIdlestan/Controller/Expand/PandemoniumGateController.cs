@@ -90,9 +90,11 @@ namespace SettlersOfIdlestan.Controller.Expand
         {
             if (_state == null || _clock == null) return;
             var gate = _state.Features.OfType<PandemoniumGate>().FirstOrDefault();
-            if (gate == null || gate.Built || gate.InvestmentEnabled.Count == 0) return;
-            if (_clock.CurrentTick - gate.LastInvestmentTick < InvestmentIntervalTicks) return;
+            if (gate == null || gate.Built) return;
 
+            // Pas de garde sur InvestmentEnabled avant ProcessTick — voir le commentaire de
+            // WonderController.ProcessInvestment pour la raison (évite de figer LastInvestmentTick
+            // pendant une désactivation, et le rattrapage massif que ça provoquerait à la réactivation).
             var playerCiv = _state.PlayerCivilization;
             var cost = gate.GetInvestmentCost(playerCiv);
             if (!MonumentInvestment.ProcessTick(gate, cost, playerCiv, _clock.CurrentTick)) return;

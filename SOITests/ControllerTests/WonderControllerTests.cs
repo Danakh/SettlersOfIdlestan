@@ -99,6 +99,28 @@ namespace SOITests.ControllerTests
             Assert.Empty(wonder.InvestedResources);
         }
 
+        [Fact]
+        public void Wonder_Investment_ReactivatedAfterLongIdle_DoesNotCatchUpMissedCycles()
+        {
+            var (state, wonder, clock, _) = CreateSetup();
+            var civ = state.PlayerCivilization;
+
+            // Longue période avec l'investissement désactivé : sans le correctif, ProcessTick
+            // n'était jamais appelé pendant cette pause et LastInvestmentTick restait figé au tick
+            // de création (0 ici) — la réactivation qui suit rattraperait alors d'un coup tous les
+            // cycles de cette période au lieu de repartir d'un cooldown propre.
+            clock.SimulateAdvance(WonderController.InvestmentIntervalTicks * 50);
+
+            civ.AddResource(Resource.Food, 110); // max = 110, amount = 110/100 = 1 par cycle
+            wonder.InvestmentEnabled.Add(Resource.Food);
+
+            clock.SimulateAdvance(WonderController.InvestmentIntervalTicks);
+
+            // Un seul cycle consommé malgré les 50 intervalles écoulés pendant la désactivation.
+            Assert.Equal(109, civ.GetResourceQuantity(Resource.Food));
+            Assert.Equal(1L, wonder.InvestedResources[Resource.Food]);
+        }
+
         // ── Passage de niveau ────────────────────────────────────────────────
 
         [Fact]

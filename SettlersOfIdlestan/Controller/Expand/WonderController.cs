@@ -49,9 +49,16 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             var wonder = _state.Features.OfType<Wonder>().FirstOrDefault();
-            if (wonder == null || wonder.IsMaxLevel || wonder.InvestmentEnabled.Count == 0) return;
-            if (_clock.CurrentTick - wonder.LastInvestmentTick < InvestmentIntervalTicks) return;
+            if (wonder == null || wonder.IsMaxLevel) return;
 
+            // Pas de garde sur InvestmentEnabled ici (contrairement à l'ancien code) : la retirer
+            // ferait geler LastInvestmentTick pendant que l'investissement est désactivé, et le
+            // réactiver des heures plus tard rattraperait d'un coup tous les cycles "manqués" durant
+            // la pause — même bug que celui corrigé sur AutoExtendController.TrySpawnBorderMonsters,
+            // mais ici résolu en appelant ProcessTick à chaque tick (comme ObservatoryController et
+            // NecropolisController le font déjà) : son cooldown interne (TickCooldown) ne coûte rien
+            // tant qu'il n'est pas écoulé, et sa boucle d'investissement est déjà un no-op si
+            // InvestmentEnabled est vide.
             var playerCiv = _state.PlayerCivilization;
             var cost = wonder.GetInvestmentCost(playerCiv);
             if (!MonumentInvestment.ProcessTick(wonder, cost, playerCiv, _clock.CurrentTick)) return;

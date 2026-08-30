@@ -55,9 +55,11 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             var greatLighthouse = _state.Features.OfType<GreatLighthouse>().FirstOrDefault();
-            if (greatLighthouse == null || greatLighthouse.IsMaxLevel || greatLighthouse.InvestmentEnabled.Count == 0) return;
-            if (_clock.CurrentTick - greatLighthouse.LastInvestmentTick < InvestmentIntervalTicks) return;
+            if (greatLighthouse == null || greatLighthouse.IsMaxLevel) return;
 
+            // Pas de garde sur InvestmentEnabled avant ProcessTick — voir le commentaire de
+            // WonderController.ProcessInvestment pour la raison (évite de figer LastInvestmentTick
+            // pendant une désactivation, et le rattrapage massif que ça provoquerait à la réactivation).
             var playerCiv = _state.PlayerCivilization;
             var cost = greatLighthouse.GetInvestmentCost(playerCiv);
             if (!MonumentInvestment.ProcessTick(greatLighthouse, cost, playerCiv, _clock.CurrentTick)) return;

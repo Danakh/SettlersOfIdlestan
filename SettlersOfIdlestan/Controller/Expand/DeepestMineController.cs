@@ -54,9 +54,11 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null || _clock == null) return;
             var mine = _state.Features.OfType<DeepestMine>().FirstOrDefault();
-            if (mine == null || mine.Dug || mine.InvestmentEnabled.Count == 0) return;
-            if (_clock.CurrentTick - mine.LastInvestmentTick < InvestmentIntervalTicks) return;
+            if (mine == null || mine.Dug) return;
 
+            // Pas de garde sur InvestmentEnabled avant ProcessTick — voir le commentaire de
+            // WonderController.ProcessInvestment pour la raison (évite de figer LastInvestmentTick
+            // pendant une désactivation, et le rattrapage massif que ça provoquerait à la réactivation).
             var playerCiv = _state.PlayerCivilization;
             var cost = mine.GetInvestmentCost(playerCiv);
             if (!MonumentInvestment.ProcessTick(mine, cost, playerCiv, _clock.CurrentTick)) return;
