@@ -752,6 +752,7 @@ public sealed class AutomationRenderer : IDisposable
             GlobalToggleOn: gameState.Settings.AutomationsEnabled,
             PinTooltip: _localization.Get("tooltip_pin_to_civ_panel"),
             DemobilizeButtonLabel: _localization.Get("automation_demobilize_button"),
+            DemobilizeButtonTooltip: _localization.Get("tooltip_demobilize"),
             PresetBarVisible: presetsUnlocked,
             ActivePreset: gameState.GodState.AutomationPresets.ActivePreset,
             PresetChangeButtonLabel: _localization.Get("automation_preset_change_button"),

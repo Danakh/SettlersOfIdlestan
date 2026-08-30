@@ -217,6 +217,7 @@
   "automation_restrict_soldier_production_pandemonium_desc": "Les Casernes du Pandémonium s'arrêtent au quota de soldats nourris gratuitement, même actives.",
   "automation_restrict_soldier_production_note": "Limite actuelle : {0} soldats par ville.",
   "automation_demobilize_button": "Démobiliser",
+  "tooltip_demobilize": "Ramène immédiatement les soldats de chaque ville excédant le quota nourri gratuitement jusqu'à ce quota.",
   "level_abbrev": "nv",
   "automation_on": "ACT.",
   "automation_off": "DÉS.",

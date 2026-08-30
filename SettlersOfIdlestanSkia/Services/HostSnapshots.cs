@@ -457,7 +457,8 @@ public sealed record AutomationSnapshot(
     string PresetChangeButtonLabel,
     IReadOnlyList<AutomationSectionSnapshot> LeftColumn,
     IReadOnlyList<AutomationSectionSnapshot> RightColumn,
-    string DemobilizeButtonLabel = "")
+    string DemobilizeButtonLabel = "",
+    string DemobilizeButtonTooltip = "")
 {
     public static readonly AutomationSnapshot Hidden = new(false, "", "", false, "", false, 1, "", [], []);
 }
@@ -794,7 +795,8 @@ public sealed record CivPanelSnapshot(
     IReadOnlyList<CivActionSnapshot> IconActions,
     IReadOnlyList<CivActionSnapshot> Actions,
     IReadOnlyList<CivToggleSnapshot> Toggles,
-    string DemobilizeButtonLabel = "")
+    string DemobilizeButtonLabel = "",
+    string DemobilizeButtonTooltip = "")
 {
     public static readonly CivPanelSnapshot Hidden = new(false, false, "", "", [], [], []);
 

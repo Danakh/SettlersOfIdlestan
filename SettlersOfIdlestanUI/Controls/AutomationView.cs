@@ -254,6 +254,7 @@ public sealed class AutomationView : UserControl
                 HorizontalAlignment = HorizontalAlignment.Right,
                 [!ContentControl.ContentProperty] = new Binding(nameof(AutomationViewModel.DemobilizeButtonLabel)) { Source = owner },
                 [!IsVisibleProperty] = new Binding(nameof(AutomationRowViewModel.CanDemobilize)),
+                [!ToolTip.TipProperty] = new Binding(nameof(AutomationViewModel.DemobilizeButtonTooltip)) { Source = owner },
             };
             demobilize.Classes.Add(GameControlStyles.ToneButton);
             demobilize.Click += (_, _) => { if (_row != null) _owner.Demobilize(_row); };

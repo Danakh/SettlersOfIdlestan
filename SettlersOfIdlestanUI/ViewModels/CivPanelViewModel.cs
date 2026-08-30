@@ -137,6 +137,7 @@ public sealed class CivPanelViewModel : ViewModelBase
     private string _actionsTitle = "";
     private string _controlsTitle = "";
     private string _demobilizeButtonLabel = "";
+    private string _demobilizeButtonTooltip = "";
 
     public CivPanelViewModel(GameRuntimeHost host)
     {
@@ -168,6 +169,7 @@ public sealed class CivPanelViewModel : ViewModelBase
     public string ActionsTitle { get => _actionsTitle; private set => SetProperty(ref _actionsTitle, value); }
     public string ControlsTitle { get => _controlsTitle; private set => SetProperty(ref _controlsTitle, value); }
     public string DemobilizeButtonLabel { get => _demobilizeButtonLabel; private set => SetProperty(ref _demobilizeButtonLabel, value); }
+    public string DemobilizeButtonTooltip { get => _demobilizeButtonTooltip; private set => SetProperty(ref _demobilizeButtonTooltip, value); }
 
     /// La section Actions n'apparait que si elle a du contenu — titre compris.
     public bool HasActions => IconActions.Count > 0 || Actions.Count > 0;
@@ -186,6 +188,7 @@ public sealed class CivPanelViewModel : ViewModelBase
         ActionsTitle = snapshot.ActionsTitle;
         ControlsTitle = snapshot.ControlsTitle;
         DemobilizeButtonLabel = snapshot.DemobilizeButtonLabel;
+        DemobilizeButtonTooltip = snapshot.DemobilizeButtonTooltip;
 
         SyncActions(IconActions, snapshot.IconActions);
         SyncActions(Actions, snapshot.Actions);

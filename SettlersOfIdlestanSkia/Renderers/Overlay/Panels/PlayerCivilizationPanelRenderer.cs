@@ -957,6 +957,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             ActionsTitle: _localization.Get("panel_civ_actions"),
             ControlsTitle: _localization.Get("panel_civ_controls"),
             DemobilizeButtonLabel: _localization.Get("automation_demobilize_button"),
+            DemobilizeButtonTooltip: _localization.Get("tooltip_demobilize"),
             IconActions: iconActions,
             Actions: actions,
             Toggles: toggles);

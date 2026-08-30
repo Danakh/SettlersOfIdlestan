@@ -104,6 +104,7 @@ public sealed class AutomationViewModel : ViewModelBase
     private bool _globalToggleOn;
     private string _pinTooltip = "";
     private string _demobilizeButtonLabel = "";
+    private string _demobilizeButtonTooltip = "";
     private bool _showPresetBar;
     private int _activePreset = 1;
     private string _presetChangeButtonLabel = "";
@@ -119,6 +120,7 @@ public sealed class AutomationViewModel : ViewModelBase
     public bool GlobalToggleOn { get => _globalToggleOn; private set => SetProperty(ref _globalToggleOn, value); }
     public string PinTooltip { get => _pinTooltip; private set => SetProperty(ref _pinTooltip, value); }
     public string DemobilizeButtonLabel { get => _demobilizeButtonLabel; private set => SetProperty(ref _demobilizeButtonLabel, value); }
+    public string DemobilizeButtonTooltip { get => _demobilizeButtonTooltip; private set => SetProperty(ref _demobilizeButtonTooltip, value); }
 
     /// Visible une fois TechnologyId.AutomationPreset debloquee.
     public bool ShowPresetBar { get => _showPresetBar; private set => SetProperty(ref _showPresetBar, value); }
@@ -148,6 +150,7 @@ public sealed class AutomationViewModel : ViewModelBase
         GlobalToggleOn = snapshot.GlobalToggleOn;
         PinTooltip = snapshot.PinTooltip;
         DemobilizeButtonLabel = snapshot.DemobilizeButtonLabel;
+        DemobilizeButtonTooltip = snapshot.DemobilizeButtonTooltip;
         ShowPresetBar = snapshot.PresetBarVisible;
         ActivePreset = snapshot.ActivePreset;
         PresetChangeButtonLabel = snapshot.PresetChangeButtonLabel;

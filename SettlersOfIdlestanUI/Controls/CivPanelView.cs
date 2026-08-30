@@ -302,6 +302,7 @@ public sealed class CivPanelView : UserControl
                 VerticalAlignment = VerticalAlignment.Center,
                 [!ContentControl.ContentProperty] = new Binding(nameof(CivPanelViewModel.DemobilizeButtonLabel)) { Source = owner },
                 [!IsVisibleProperty] = new Binding(nameof(CivToggleViewModel.CanDemobilize)),
+                [!ToolTip.TipProperty] = new Binding(nameof(CivPanelViewModel.DemobilizeButtonTooltip)) { Source = owner },
             };
             demobilize.Classes.Add(GameControlStyles.ToneButton);
             demobilize.Click += (_, _) => { if (_toggle != null) _owner.Demobilize(_toggle); };
