@@ -584,7 +584,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             m.Category != Modifier.ECategory.NEW_CITY_BUILDING &&
             m.Category != Modifier.ECategory.UNLOCK_RESEARCH &&
             m.Category != Modifier.ECategory.UNLOCK_HEALING_POTION))
-            lines.Add(FormatModifier(mod));
+            lines.Add(FormatModifier(mod, _localization));
 
         foreach (var mod in vertex.Modifiers.Where(m => m.Category == Modifier.ECategory.UNLOCK_RESEARCH))
             lines.Add($"{_localization.Get("prestige_tooltip_unlocks_research")}: {UnlockResearchName(mod.SubCategory)}");
@@ -661,7 +661,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         var lines = new List<string> { _localization.Get(hex.LocalizationKey), "" };
 
         foreach (var mod in hex.PerVertexModifiers)
-            lines.Add($"{FormatModifier(mod)} {_localization.Get("prestige_tooltip_per_vertex")}");
+            lines.Add($"{FormatModifier(mod, _localization)} {_localization.Get("prestige_tooltip_per_vertex")}");
 
         if (hex.StartingResourceBonusPerVertex > 0)
             lines.Add($"+{hex.StartingResourceBonusPerVertex} {_localization.Get("prestige_tooltip_resources_per_vertex")}");
@@ -696,7 +696,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
                         totalStr = isPct ? $"+{(int)(total * 100)}%" : isFloat ? $"{total:0.##}" : $"+{(int)total}";
                     }
                     lines.Add($"{_localization.Get("prestige_tooltip_current_bonus")}: {totalStr}");
-                    lines.Add($"({FormatModifier(mod)} × {adjCount})");
+                    lines.Add($"({FormatModifier(mod, _localization)} × {adjCount})");
                 }
             }
             else if (hex.StartingResourceBonusPerVertex > 0)
@@ -719,120 +719,120 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         return subCategory;
     }
 
-    private string FormatModifier(Modifier mod) => mod.Category switch
+    internal static string FormatModifier(Modifier mod, LocalizationService localization) => mod.Category switch
     {
         Modifier.ECategory.BUILDING_MAX_LEVEL => string.IsNullOrEmpty(mod.SubCategory)
-            ? $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_max_level")}"
-            : $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_max_level")} — {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")}",
+            ? $"+{(int)mod.Value} {localization.Get("prestige_tooltip_max_level")}"
+            : $"+{(int)mod.Value} {localization.Get("prestige_tooltip_max_level")} — {localization.Get($"building_{mod.SubCategory.ToLower()}_name")}",
         Modifier.ECategory.HARVEST_SPEED            => string.IsNullOrEmpty(mod.SubCategory)
-            ? $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")}"
-            : $"+{(int)(mod.Value * 100)}% {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {_localization.Get("prestige_tooltip_harvest_speed")}",
-        Modifier.ECategory.MANUAL_HARVEST_AMOUNT    => $"×{mod.Value:0.##} {_localization.Get("prestige_tooltip_manual_harvest_amount")}",
-        Modifier.ECategory.RESEARCH_PRODUCTION_SPEED  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_production_speed")}",
-        Modifier.ECategory.RESEARCH_INVESTMENT_SPEED  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_investment_speed")}",
-        Modifier.ECategory.UNIT_PRODUCTION_SPEED    => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_unit_speed")}",
-        Modifier.ECategory.RESEARCH_COST_REDUCTION  => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_cost")}",
-        Modifier.ECategory.STORAGE_CAPACITY_BASIC    => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_storage_basic")}",
-        Modifier.ECategory.STORAGE_CAPACITY_ADVANCED => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_storage_advanced")}",
-        Modifier.ECategory.TRADE_GOLD_PACKAGES       => $"{mod.Value:0.##} {_localization.Get("prestige_tooltip_gold_packages")}",
-        Modifier.ECategory.CITY_DEFENSE              => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_defense")}",
-        Modifier.ECategory.CITY_MAX_SOLDIERS_BONUS   => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_max_soldiers")}",
-        Modifier.ECategory.CITY_DEFENSE_REGEN_SPEED  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_city_defense_regen")}",
-        Modifier.ECategory.UNDERWORLD_CITY_DEFENSE_REGEN_SPEED => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_underworld_defense_regen")}",
+            ? $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_harvest_speed")}"
+            : $"+{(int)(mod.Value * 100)}% {localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {localization.Get("prestige_tooltip_harvest_speed")}",
+        Modifier.ECategory.MANUAL_HARVEST_AMOUNT    => $"×{mod.Value:0.##} {localization.Get("prestige_tooltip_manual_harvest_amount")}",
+        Modifier.ECategory.RESEARCH_PRODUCTION_SPEED  => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_research_production_speed")}",
+        Modifier.ECategory.RESEARCH_INVESTMENT_SPEED  => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_research_investment_speed")}",
+        Modifier.ECategory.UNIT_PRODUCTION_SPEED    => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_unit_speed")}",
+        Modifier.ECategory.RESEARCH_COST_REDUCTION  => $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_research_cost")}",
+        Modifier.ECategory.STORAGE_CAPACITY_BASIC    => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_storage_basic")}",
+        Modifier.ECategory.STORAGE_CAPACITY_ADVANCED => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_storage_advanced")}",
+        Modifier.ECategory.TRADE_GOLD_PACKAGES       => $"{mod.Value:0.##} {localization.Get("prestige_tooltip_gold_packages")}",
+        Modifier.ECategory.CITY_DEFENSE              => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_city_defense")}",
+        Modifier.ECategory.CITY_MAX_SOLDIERS_BONUS   => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_city_max_soldiers")}",
+        Modifier.ECategory.CITY_DEFENSE_REGEN_SPEED  => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_city_defense_regen")}",
+        Modifier.ECategory.UNDERWORLD_CITY_DEFENSE_REGEN_SPEED => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_underworld_defense_regen")}",
         Modifier.ECategory.BUILDING_PRODUCTION       => string.IsNullOrEmpty(mod.SubCategory)
-            ? $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_production")}"
-            : $"+{(int)mod.Value} {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {_localization.Get("prestige_tooltip_production")}",
-        Modifier.ECategory.UNLOCK_RESEARCH           => _localization.Get("prestige_tooltip_unlocks_research"),
-        Modifier.ECategory.UNLOCK_MARITIME_ROUTES    => _localization.Get("prestige_tooltip_unlocks_maritime_routes"),
-        Modifier.ECategory.UNLOCK_RESEARCH_SYSTEM    => _localization.Get("prestige_tooltip_unlocks_research_system"),
-        Modifier.ECategory.UNLOCK_RESEARCH_QUEUE     => _localization.Get("prestige_tooltip_unlocks_research_queue"),
-        Modifier.ECategory.UNLOCK_RESEARCH_CANCEL    => _localization.Get("prestige_tooltip_unlocks_research_cancel"),
-        Modifier.ECategory.UNLOCK_RESOURCE            => $"{_localization.Get("prestige_tooltip_unlocks_resource")} {_localization.Get($"resource_{mod.SubCategory.ToLower()}")}",
-        Modifier.ECategory.PRESTIGE_GAIN              => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_gain")}",
-        Modifier.ECategory.PRESTIGE_GAIN_RACE         => $"{(mod.Value >= 0 ? "+" : "")}{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_gain_race")}",
-        Modifier.ECategory.SMELTER_SPEED              => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_smelter_speed")}",
-        Modifier.ECategory.SMELTER_ORE_INPUT          => $"{(int)mod.Value} {_localization.Get("prestige_tooltip_smelter_ore_input")}",
-        Modifier.ECategory.CITY_ATTACK_RANGE          => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_city_attack_range")}",
-        Modifier.ECategory.REINFORCEMENT_RANGE        => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_reinforcement_range")}",
+            ? $"+{(int)mod.Value} {localization.Get("prestige_tooltip_production")}"
+            : $"+{(int)mod.Value} {localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {localization.Get("prestige_tooltip_production")}",
+        Modifier.ECategory.UNLOCK_RESEARCH           => localization.Get("prestige_tooltip_unlocks_research"),
+        Modifier.ECategory.UNLOCK_MARITIME_ROUTES    => localization.Get("prestige_tooltip_unlocks_maritime_routes"),
+        Modifier.ECategory.UNLOCK_RESEARCH_SYSTEM    => localization.Get("prestige_tooltip_unlocks_research_system"),
+        Modifier.ECategory.UNLOCK_RESEARCH_QUEUE     => localization.Get("prestige_tooltip_unlocks_research_queue"),
+        Modifier.ECategory.UNLOCK_RESEARCH_CANCEL    => localization.Get("prestige_tooltip_unlocks_research_cancel"),
+        Modifier.ECategory.UNLOCK_RESOURCE            => $"{localization.Get("prestige_tooltip_unlocks_resource")} {localization.Get($"resource_{mod.SubCategory.ToLower()}")}",
+        Modifier.ECategory.PRESTIGE_GAIN              => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_prestige_gain")}",
+        Modifier.ECategory.PRESTIGE_GAIN_RACE         => $"{(mod.Value >= 0 ? "+" : "")}{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_prestige_gain_race")}",
+        Modifier.ECategory.SMELTER_SPEED              => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_smelter_speed")}",
+        Modifier.ECategory.SMELTER_ORE_INPUT          => $"{(int)mod.Value} {localization.Get("prestige_tooltip_smelter_ore_input")}",
+        Modifier.ECategory.CITY_ATTACK_RANGE          => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_city_attack_range")}",
+        Modifier.ECategory.REINFORCEMENT_RANGE        => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_reinforcement_range")}",
         Modifier.ECategory.PASSIVE_RESOURCE_GENERATION => mod.SubCategory == "Crystal"
-            ? $"+{(int)mod.Value} {_localization.Get($"resource_{mod.SubCategory.ToLower()}")}{_localization.GetFormated("prestige_tooltip_passive_generation_interval", (int)(SettlersOfIdlestan.Controller.Island.HarvestController.PassiveCrystalGenerationIntervalTicks / 100))}"
-            : $"+{(int)mod.Value} {_localization.Get($"resource_{mod.SubCategory.ToLower()}")}{_localization.Get("prestige_tooltip_passive_generation")}",
-        Modifier.ECategory.UNLOCK_DEEPEST_MINE        => _localization.Get("prestige_tooltip_unlocks_deepest_mine"),
-        Modifier.ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_underworld_treasure")}",
-        Modifier.ECategory.MINE_GOLD_CHANCE_PERCENT   => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_mine_gold_chance")}",
-        Modifier.ECategory.MINE_GOLD_PRODUCTION_MULTIPLIER => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_mine_gold_production_multiplier")}",
-        Modifier.ECategory.NEW_CITY_BUILDING          => $"{_localization.Get("prestige_tooltip_new_city_building")} {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")}",
-        Modifier.ECategory.UNLOCK_MAGIC               => _localization.Get("prestige_tooltip_unlocks_magic"),
-        Modifier.ECategory.UNLOCK_INVOCATIONS         => _localization.Get("prestige_tooltip_unlocks_invocations"),
-        Modifier.ECategory.UNLOCK_ABYSS               => _localization.Get("prestige_tooltip_unlocks_abyss"),
-        Modifier.ECategory.RITUAL_MAX_COUNT           => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_ritual_max_count")}",
-        Modifier.ECategory.RITUAL_TOTAL_POWER         => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_ritual_total_power")}",
-        Modifier.ECategory.RITUAL_UPKEEP_REDUCTION    => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_ritual_upkeep")}",
+            ? $"+{(int)mod.Value} {localization.Get($"resource_{mod.SubCategory.ToLower()}")}{localization.GetFormated("prestige_tooltip_passive_generation_interval", (int)(SettlersOfIdlestan.Controller.Island.HarvestController.PassiveCrystalGenerationIntervalTicks / 100))}"
+            : $"+{(int)mod.Value} {localization.Get($"resource_{mod.SubCategory.ToLower()}")}{localization.Get("prestige_tooltip_passive_generation")}",
+        Modifier.ECategory.UNLOCK_DEEPEST_MINE        => localization.Get("prestige_tooltip_unlocks_deepest_mine"),
+        Modifier.ECategory.UNDERWORLD_TREASURE_CHANCE_PERCENT => $"+{(int)mod.Value}% {localization.Get("prestige_tooltip_underworld_treasure")}",
+        Modifier.ECategory.MINE_GOLD_CHANCE_PERCENT   => $"+{(int)mod.Value}% {localization.Get("prestige_tooltip_mine_gold_chance")}",
+        Modifier.ECategory.MINE_GOLD_PRODUCTION_MULTIPLIER => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_mine_gold_production_multiplier")}",
+        Modifier.ECategory.NEW_CITY_BUILDING          => $"{localization.Get("prestige_tooltip_new_city_building")} {localization.Get($"building_{mod.SubCategory.ToLower()}_name")}",
+        Modifier.ECategory.UNLOCK_MAGIC               => localization.Get("prestige_tooltip_unlocks_magic"),
+        Modifier.ECategory.UNLOCK_INVOCATIONS         => localization.Get("prestige_tooltip_unlocks_invocations"),
+        Modifier.ECategory.UNLOCK_ABYSS               => localization.Get("prestige_tooltip_unlocks_abyss"),
+        Modifier.ECategory.RITUAL_MAX_COUNT           => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_ritual_max_count")}",
+        Modifier.ECategory.RITUAL_TOTAL_POWER         => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_ritual_total_power")}",
+        Modifier.ECategory.RITUAL_UPKEEP_REDUCTION    => $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_ritual_upkeep")}",
         Modifier.ECategory.MAGIC_FEATURE_COUNT        => mod.SubCategory == "FairyCircle"
-            ? _localization.Get("prestige_tooltip_magic_feature_fairycircle")
-            : $"+{(int)mod.Value} {_localization.Get($"prestige_tooltip_magic_feature_{mod.SubCategory.ToLower()}")}",
-        Modifier.ECategory.MARKET_GOLD_SPEED               => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_market_gold_speed")}",
-        Modifier.ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS => _localization.Get("prestige_tooltip_city_defense_protects_soldiers"),
-        Modifier.ECategory.BUILDING_DEFENSE_ON_CONSTRUCT  => _localization.Get("prestige_tooltip_building_defense_on_construct"),
-        Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION  => _localization.Get("prestige_tooltip_unlocks_seaport_automation"),
-        Modifier.ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4 => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_prestige_per_seaport")}",
-        Modifier.ECategory.PRESTIGE_GAIN_PER_TEMPLE          => $"+{mod.Value * 100:0.#}% {_localization.Get("prestige_tooltip_prestige_per_temple")}",
-        Modifier.ECategory.UNDERWORLD_ROAD_BASE_REDUCTION   => _localization.Get("prestige_tooltip_underworld_road_reduction"),
-        Modifier.ECategory.UNLOCK_RAID                      => _localization.Get("prestige_tooltip_unlocks_raid"),
-        Modifier.ECategory.SOLDIER_FOOD_FREE_PER_CITY       => $"{(int)mod.Value} {_localization.Get("prestige_tooltip_soldier_food_free_per_city")}",
-        Modifier.ECategory.UNLOCK_AUTO_MARKET_TRADE         => _localization.Get("prestige_tooltip_unlocks_auto_market_trade"),
-        Modifier.ECategory.UNLOCK_AUTO_BUY_TRADE            => _localization.Get("prestige_tooltip_unlocks_auto_buy_trade"),
-        Modifier.ECategory.UNLOCK_MARKET_SPECIALIZATION     => _localization.Get("prestige_tooltip_unlocks_market_specialization"),
-        Modifier.ECategory.UNLOCK_HEALING_POTION            => _localization.Get("prestige_tooltip_unlocks_healing_potion"),
+            ? localization.Get("prestige_tooltip_magic_feature_fairycircle")
+            : $"+{(int)mod.Value} {localization.Get($"prestige_tooltip_magic_feature_{mod.SubCategory.ToLower()}")}",
+        Modifier.ECategory.MARKET_GOLD_SPEED               => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_market_gold_speed")}",
+        Modifier.ECategory.CITY_DEFENSE_PROTECTS_SOLDIERS => localization.Get("prestige_tooltip_city_defense_protects_soldiers"),
+        Modifier.ECategory.BUILDING_DEFENSE_ON_CONSTRUCT  => localization.Get("prestige_tooltip_building_defense_on_construct"),
+        Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION  => localization.Get("prestige_tooltip_unlocks_seaport_automation"),
+        Modifier.ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4 => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_prestige_per_seaport")}",
+        Modifier.ECategory.PRESTIGE_GAIN_PER_TEMPLE          => $"+{mod.Value * 100:0.#}% {localization.Get("prestige_tooltip_prestige_per_temple")}",
+        Modifier.ECategory.UNDERWORLD_ROAD_BASE_REDUCTION   => localization.Get("prestige_tooltip_underworld_road_reduction"),
+        Modifier.ECategory.UNLOCK_RAID                      => localization.Get("prestige_tooltip_unlocks_raid"),
+        Modifier.ECategory.SOLDIER_FOOD_FREE_PER_CITY       => $"{(int)mod.Value} {localization.Get("prestige_tooltip_soldier_food_free_per_city")}",
+        Modifier.ECategory.UNLOCK_AUTO_MARKET_TRADE         => localization.Get("prestige_tooltip_unlocks_auto_market_trade"),
+        Modifier.ECategory.UNLOCK_AUTO_BUY_TRADE            => localization.Get("prestige_tooltip_unlocks_auto_buy_trade"),
+        Modifier.ECategory.UNLOCK_MARKET_SPECIALIZATION     => localization.Get("prestige_tooltip_unlocks_market_specialization"),
+        Modifier.ECategory.UNLOCK_HEALING_POTION            => localization.Get("prestige_tooltip_unlocks_healing_potion"),
         Modifier.ECategory.SPELL_COST_REDUCTION             => mod.SubCategory == ""
-            ? $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_spell_cost_all")}"
-            : $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_spell_cost")} — {_localization.Get($"spell_{mod.SubCategory.ToLower()}_name")}",
-        Modifier.ECategory.UNLOCK_RANGED_MONSTER_ATTACK     => _localization.Get("prestige_tooltip_unlocks_ranged_monster_attack"),
-        Modifier.ECategory.ATTACK_SPEED                     => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_attack_speed")}",
-        Modifier.ECategory.SOLDIER_ATTACK_DAMAGE            => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_soldier_attack_damage")}",
-        Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_repeatable_research_scaling")}",
-        Modifier.ECategory.WONDER_COST_REDUCTION            => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_wonder_cost_reduction")}",
-        Modifier.ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_investment_speed_high_stock")}",
-        Modifier.ECategory.UNLOCK_RELOCATION                 => _localization.Get("prestige_tooltip_unlocks_relocation"),
-        Modifier.ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_dominion_bonus")}",
-        Modifier.ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL  => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_dominion_defense_regen")}",
-        Modifier.ECategory.DIVINE_BONES_COST_REDUCTION       => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_divine_bones_cost")}",
-        Modifier.ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE   => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_divine_essence_kept")}",
-        Modifier.ECategory.UNLOCK_DOMINION                   => _localization.Get("prestige_tooltip_unlocks_dominion"),
-        Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER       => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_storage_multiplier")}",
-        Modifier.ECategory.UNLOCK_INTERMEDIATE_TRADE         => _localization.Get("prestige_tooltip_unlocks_intermediate_trade"),
-        Modifier.ECategory.UNLOCK_CONTESTED_HARVEST          => _localization.Get("prestige_tooltip_unlocks_contested_harvest"),
-        Modifier.ECategory.RESEARCH_CANCEL_REFUND_BONUS      => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_cancel_refund_bonus")}",
-        Modifier.ECategory.UNLOCK_VENDETTA                   => _localization.Get("prestige_tooltip_unlocks_vendetta"),
-        Modifier.ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_underworld_monster_spawn_interval")}",
-        Modifier.ECategory.CORRUPTION_LEVEL_REDUCTION        => $"-{(int)mod.Value} {_localization.Get("prestige_tooltip_corruption_level_reduction")}",
-        Modifier.ECategory.UNLOCK_VOID_ROUTES                => _localization.Get("prestige_tooltip_unlocks_void_routes"),
-        Modifier.ECategory.UNLOCK_DIVINE_BONES               => _localization.Get("prestige_tooltip_unlocks_divine_bones"),
-        Modifier.ECategory.TEMPLE_DOMINION_CAP               => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_temple_dominion_cap")}",
-        Modifier.ECategory.DOMINION_SPREAD_CHANCE            => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_dominion_spread_chance")}",
-        Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE => $"{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_temple_dominion_protection")}",
-        Modifier.ECategory.VOID_ROUTE_COST_REDUCTION         => _localization.Get("prestige_tooltip_void_route_cost_reduction"),
-        Modifier.ECategory.UNLOCK_OBSERVATORY                => _localization.Get("prestige_tooltip_unlocks_observatory"),
-        Modifier.ECategory.UNLOCK_NECROPOLIS                 => _localization.Get("prestige_tooltip_unlocks_necropolis"),
-        Modifier.ECategory.TEMPLE_DEFENSE_BONUS              => _localization.Get("prestige_tooltip_temple_defense_bonus"),
-        Modifier.ECategory.CITY_MIN_DISTANCE                 => $"{_localization.Get("prestige_tooltip_city_min_distance")}: {(int)mod.Value}",
-        Modifier.ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN   => $"{_localization.Get("prestige_tooltip_city_placement_terrain")} {_localization.Get($"hex_tooltip_terrain_{mod.SubCategory.ToLower()}")}",
-        Modifier.ECategory.DOMINION_HARVEST_SPEED_DOUBLED    => _localization.Get("prestige_tooltip_dominion_harvest_speed_doubled"),
-        Modifier.ECategory.NEW_CITY_COST_REDUCTION           => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_new_city_cost")}",
-        Modifier.ECategory.UNIQUE_BUILDING_PREREQUISITE_REDUCTION => _localization.GetFormated("prestige_tooltip_unique_building_prerequisite_reduction", (int)mod.Value),
-        Modifier.ECategory.GUILD_AUTOMATION_SPEED_PER_CITY   => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_guild_automation_speed_per_city")}",
-        Modifier.ECategory.CITY_PLACEMENT_FLYING             => _localization.GetFormated("prestige_tooltip_city_placement_flying", (int)mod.Value),
-        Modifier.ECategory.CITY_PLACEMENT_TERRAIN_RANGE      => _localization.GetFormated("prestige_tooltip_city_placement_terrain_range", (int)mod.Value, _localization.Get($"hex_tooltip_terrain_{mod.SubCategory.ToLower()}")),
-        Modifier.ECategory.INLAND_CITY_LEVEL_CAP             => _localization.GetFormated("prestige_tooltip_inland_city_level_cap", (int)mod.Value, _localization.Get($"hex_tooltip_terrain_{mod.SubCategory.ToLower()}")),
-        Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD  => _localization.Get("prestige_tooltip_unlocks_builders_guild_underworld"),
-        Modifier.ECategory.UNLOCK_WAR_HERALD                 => _localization.Get("prestige_tooltip_unlocks_war_herald"),
-        Modifier.ECategory.VOLCANO_DAMAGE_REDUCTION          => $"-{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_volcano_damage_reduction")}",
-        Modifier.ECategory.TEMPLE_MONSTER_DAMAGE_PER_SECOND  => $"+{(int)mod.Value} {_localization.Get("prestige_tooltip_temple_monster_damage")}",
-        Modifier.ECategory.UNLOCK_ARSENAL_PRODUCTION         => _localization.Get("prestige_tooltip_unlocks_arsenal_production"),
-        Modifier.ECategory.RESEARCH_SPEED_PER_MAGE_TOWER     => $"+{(int)(mod.Value * 100)}% {_localization.Get("prestige_tooltip_research_speed_per_mage_tower")}",
-        Modifier.ECategory.CRYSTAL_GENERATION_PER_LABORATORY => $"+{mod.Value:0.#} {_localization.Get("prestige_tooltip_crystal_generation_per_laboratory")}",
-        Modifier.ECategory.SMITH_DOUBLE_PROD_CHANCE_PERCENT  => $"+{(int)mod.Value}% {_localization.Get("prestige_tooltip_smith_double_prod_chance")}",
-        Modifier.ECategory.AUTO_CAMP_ON_CONQUEST             => _localization.Get("prestige_tooltip_auto_camp_on_conquest"),
+            ? $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_spell_cost_all")}"
+            : $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_spell_cost")} — {localization.Get($"spell_{mod.SubCategory.ToLower()}_name")}",
+        Modifier.ECategory.UNLOCK_RANGED_MONSTER_ATTACK     => localization.Get("prestige_tooltip_unlocks_ranged_monster_attack"),
+        Modifier.ECategory.ATTACK_SPEED                     => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_attack_speed")}",
+        Modifier.ECategory.SOLDIER_ATTACK_DAMAGE            => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_soldier_attack_damage")}",
+        Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION => $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_repeatable_research_scaling")}",
+        Modifier.ECategory.WONDER_COST_REDUCTION            => $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_wonder_cost_reduction")}",
+        Modifier.ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_investment_speed_high_stock")}",
+        Modifier.ECategory.UNLOCK_RELOCATION                 => localization.Get("prestige_tooltip_unlocks_relocation"),
+        Modifier.ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL  => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_dominion_bonus")}",
+        Modifier.ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL  => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_dominion_defense_regen")}",
+        Modifier.ECategory.DIVINE_BONES_COST_REDUCTION       => $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_divine_bones_cost")}",
+        Modifier.ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE   => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_divine_essence_kept")}",
+        Modifier.ECategory.UNLOCK_DOMINION                   => localization.Get("prestige_tooltip_unlocks_dominion"),
+        Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER       => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_storage_multiplier")}",
+        Modifier.ECategory.UNLOCK_INTERMEDIATE_TRADE         => localization.Get("prestige_tooltip_unlocks_intermediate_trade"),
+        Modifier.ECategory.UNLOCK_CONTESTED_HARVEST          => localization.Get("prestige_tooltip_unlocks_contested_harvest"),
+        Modifier.ECategory.RESEARCH_CANCEL_REFUND_BONUS      => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_research_cancel_refund_bonus")}",
+        Modifier.ECategory.UNLOCK_VENDETTA                   => localization.Get("prestige_tooltip_unlocks_vendetta"),
+        Modifier.ECategory.UNDERWORLD_MONSTER_SPAWN_INTERVAL => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_underworld_monster_spawn_interval")}",
+        Modifier.ECategory.CORRUPTION_LEVEL_REDUCTION        => $"-{(int)mod.Value} {localization.Get("prestige_tooltip_corruption_level_reduction")}",
+        Modifier.ECategory.UNLOCK_VOID_ROUTES                => localization.Get("prestige_tooltip_unlocks_void_routes"),
+        Modifier.ECategory.UNLOCK_DIVINE_BONES               => localization.Get("prestige_tooltip_unlocks_divine_bones"),
+        Modifier.ECategory.TEMPLE_DOMINION_CAP               => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_temple_dominion_cap")}",
+        Modifier.ECategory.DOMINION_SPREAD_CHANCE            => $"+{(int)mod.Value}% {localization.Get("prestige_tooltip_dominion_spread_chance")}",
+        Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE => $"{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_temple_dominion_protection")}",
+        Modifier.ECategory.VOID_ROUTE_COST_REDUCTION         => localization.Get("prestige_tooltip_void_route_cost_reduction"),
+        Modifier.ECategory.UNLOCK_OBSERVATORY                => localization.Get("prestige_tooltip_unlocks_observatory"),
+        Modifier.ECategory.UNLOCK_NECROPOLIS                 => localization.Get("prestige_tooltip_unlocks_necropolis"),
+        Modifier.ECategory.TEMPLE_DEFENSE_BONUS              => localization.Get("prestige_tooltip_temple_defense_bonus"),
+        Modifier.ECategory.CITY_MIN_DISTANCE                 => $"{localization.Get("prestige_tooltip_city_min_distance")}: {(int)mod.Value}",
+        Modifier.ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN   => $"{localization.Get("prestige_tooltip_city_placement_terrain")} {localization.Get($"hex_tooltip_terrain_{mod.SubCategory.ToLower()}")}",
+        Modifier.ECategory.DOMINION_HARVEST_SPEED_DOUBLED    => localization.Get("prestige_tooltip_dominion_harvest_speed_doubled"),
+        Modifier.ECategory.NEW_CITY_COST_REDUCTION           => $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_new_city_cost")}",
+        Modifier.ECategory.UNIQUE_BUILDING_PREREQUISITE_REDUCTION => localization.GetFormated("prestige_tooltip_unique_building_prerequisite_reduction", (int)mod.Value),
+        Modifier.ECategory.GUILD_AUTOMATION_SPEED_PER_CITY   => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_guild_automation_speed_per_city")}",
+        Modifier.ECategory.CITY_PLACEMENT_FLYING             => localization.GetFormated("prestige_tooltip_city_placement_flying", (int)mod.Value),
+        Modifier.ECategory.CITY_PLACEMENT_TERRAIN_RANGE      => localization.GetFormated("prestige_tooltip_city_placement_terrain_range", (int)mod.Value, localization.Get($"hex_tooltip_terrain_{mod.SubCategory.ToLower()}")),
+        Modifier.ECategory.INLAND_CITY_LEVEL_CAP             => localization.GetFormated("prestige_tooltip_inland_city_level_cap", (int)mod.Value, localization.Get($"hex_tooltip_terrain_{mod.SubCategory.ToLower()}")),
+        Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD  => localization.Get("prestige_tooltip_unlocks_builders_guild_underworld"),
+        Modifier.ECategory.UNLOCK_WAR_HERALD                 => localization.Get("prestige_tooltip_unlocks_war_herald"),
+        Modifier.ECategory.VOLCANO_DAMAGE_REDUCTION          => $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_volcano_damage_reduction")}",
+        Modifier.ECategory.TEMPLE_MONSTER_DAMAGE_PER_SECOND  => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_temple_monster_damage")}",
+        Modifier.ECategory.UNLOCK_ARSENAL_PRODUCTION         => localization.Get("prestige_tooltip_unlocks_arsenal_production"),
+        Modifier.ECategory.RESEARCH_SPEED_PER_MAGE_TOWER     => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_research_speed_per_mage_tower")}",
+        Modifier.ECategory.CRYSTAL_GENERATION_PER_LABORATORY => $"+{mod.Value:0.#} {localization.Get("prestige_tooltip_crystal_generation_per_laboratory")}",
+        Modifier.ECategory.SMITH_DOUBLE_PROD_CHANCE_PERCENT  => $"+{(int)mod.Value}% {localization.Get("prestige_tooltip_smith_double_prod_chance")}",
+        Modifier.ECategory.AUTO_CAMP_ON_CONQUEST             => localization.Get("prestige_tooltip_auto_camp_on_conquest"),
         _ => $"+{mod.Value}"
     };
 
