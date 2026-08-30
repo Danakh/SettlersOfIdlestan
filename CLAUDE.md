@@ -46,7 +46,7 @@ runtime, reads included, must go through `GameRuntimeHost.Read`/`Invoke`.
 
 ## How to Add a Building
 
-**5 touch points:**
+**4 touch points:**
 
 ### 1. Enum — `Model/Buildings/Building.cs`
 Add value to `BuildingType` enum.
@@ -72,15 +72,15 @@ public class MyBuilding : Building
 See `ArtisansGuild.cs`, `Sawmill.cs`, `ImperialPort.cs` for examples.  
 If the building provides gameplay bonuses, also implement `IModifierProvider`.
 
-### 3. JSON converter — `Model/Buildings/BuildingJsonConverter.cs`
-Add the type mapping (two places in the switch — Read and Write).
-
-### 4. Factory — `Controller/Island/BuildingController.cs`, `CreateBuilding()`
+### 3. Factory — `Model/Buildings/BuildingFactory.cs`
 ```csharp
-BuildingType.MyBuilding => new MyBuilding(),
+[BuildingType.MyBuilding] = () => new MyBuilding(),
 ```
+Single source of truth for `BuildingType` → concrete type: `BuildingController.CreateBuilding`
+(instantiation) and `BuildingJsonConverter` (polymorphic deserialization) both read this table, so
+there is nothing else to register. `BuildingFactoryTests` fails if a `BuildingType` value is missing.
 
-### 5. Localization — `Resources/Localization/fr.json` + `en.json`
+### 4. Localization — `Resources/Localization/fr.json` + `en.json`
 ```json
 "building_mybuilding_name": "Mon Bâtiment",
 "building_mybuilding_desc": "Description courte.",
@@ -213,7 +213,7 @@ Both files must always be kept in sync.
 
 ## Key Architecture Rules
 
-- **Polymorphic buildings**: `Building` is abstract; subtypes need a discriminator entry in `BuildingJsonConverter` — always update the converter.
+- **Polymorphic buildings**: `Building` is abstract; subtypes must be registered in `Model/Buildings/BuildingFactory` — the single table read by both `BuildingController.CreateBuilding` and `BuildingJsonConverter`. Forgetting it makes any save containing the building unreadable; `BuildingFactoryTests` guards against it.
 - **State persistence**: `MainGameState` is fully JSON-serialized; don't make model fields non-serializable without updating converters in `Services/`.
 - **Collections du modèle encapsulées** : `City.Buildings`, `Civilization.Cities/Roads/Fleets/MaritimeBeacons/MobileCamps/LandingSites` sont exposées en lecture seule. Passer par `AddBuilding`/`RemoveBuilding`/`ClearBuildings`, `AddCity`/`RemoveCity`, etc. — jamais par la liste. C'est ce qui rend les caches dérivés corrects : toute mutation de bâtiments lève `City.BuildingsChanged`, auquel la civilisation propriétaire s'abonne pour invalider les siens (`Civilization.HasMarket`, cache d'Hôtel de Ville et de garnison de la ville). Un cache recalculé « à la construction » depuis `BuildingController.BuildBuilding` serait faux : plusieurs chemins ajoutent des bâtiments sans y passer (bâtiments de départ d'une nouvelle ville, bâtiment racial de l'Ascension, générateur de PNJ). Après un changement de `Building.Level` sans ajout ni retrait, l'invalidation reste manuelle (`City.InvalidateLevelCache`, `Civilization.InvalidateBuildingDerivedCaches`).
 - **Lecture des collections sur les chemins chauds** : ces propriétés sont typées `IReadOnlyList<T>`, dont `foreach` boxe l'énumérateur et dont l'indexeur est un appel d'interface. Dans une boucle exécutée à chaque tick, utiliser une boucle `for` indexée (et le champ privé quand on est dans la classe). Mesuré : ~3 % du temps de simulation en fin de partie sur le seul passage de `List` à `IReadOnlyList`.

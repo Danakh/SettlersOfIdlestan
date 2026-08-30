@@ -43,58 +43,11 @@ namespace SettlersOfIdlestan.Model.Buildings
             }
 
             var raw = root.GetRawText();
-            Type concrete = bType switch
-            {
-                BuildingType.Market => typeof(Market),
-                BuildingType.Sawmill => typeof(Sawmill),
-                BuildingType.Brickworks => typeof(Brickworks),
-                BuildingType.Mill => typeof(Mill),
-                BuildingType.Mine => typeof(Mine),
-                BuildingType.Quarry => typeof(Quarry),
-                BuildingType.Seaport => typeof(Seaport),
-                BuildingType.Warehouse => typeof(Warehouse),
-                BuildingType.Forge => typeof(Forge),
-                BuildingType.Library => typeof(Library),
-                BuildingType.Temple => typeof(Temple),
-                BuildingType.TownHall => typeof(TownHall),
-                BuildingType.BuildersGuild => typeof(BuildersGuild),
-                BuildingType.Laboratory => typeof(Laboratory),
-                BuildingType.Barracks => typeof(Barracks),
-                BuildingType.GlassWorks => typeof(GlassWorks),
-                BuildingType.Palisade => typeof(Palisade),
-                BuildingType.ImperialPort => typeof(ImperialPort),
-                BuildingType.HarvestersGuild => typeof(HarvestersGuild),
-                BuildingType.ArtisansGuild => typeof(ArtisansGuild),
-                BuildingType.Watchtower => typeof(Watchtower),
-                BuildingType.Academy => typeof(Academy),
-                BuildingType.TraderGuild => typeof(TraderGuild),
-                BuildingType.Garrison => typeof(Garrison),
-                BuildingType.Smelter => typeof(Smelter),
-                BuildingType.BlastFurnace => typeof(BlastFurnace),
-                BuildingType.Arsenal => typeof(Arsenal),
-                BuildingType.MushroomFarm => typeof(MushroomFarm),
-                BuildingType.MithrilMine => typeof(MithrilMine),
-                BuildingType.MageTower => typeof(MageTower),
-                BuildingType.WarRoom => typeof(WarRoom),
-                BuildingType.AlchimistHut => typeof(AlchimistHut),
-                BuildingType.WeaponSmith => typeof(WeaponSmith),
-                BuildingType.ArmorSmith => typeof(ArmorSmith),
-                BuildingType.AdventurersGuild => typeof(AdventurersGuild),
-                BuildingType.AdventurersWaypost => typeof(AdventurersWaypost),
-                BuildingType.VolcanicForge => typeof(VolcanicForge),
-                BuildingType.Ziggurat => typeof(Ziggurat),
-                BuildingType.HeartTree => typeof(HeartTree),
-                BuildingType.RunicForge => typeof(RunicForge),
-                BuildingType.GreatBurrow => typeof(GreatBurrow),
-                BuildingType.ColossusWorkshop => typeof(ColossusWorkshop),
-                BuildingType.SkullPit => typeof(SkullPit),
-                BuildingType.ThroneOfWinds => typeof(ThroneOfWinds),
-                BuildingType.PearlGrotto => typeof(PearlGrotto),
-                BuildingType.GrandTemple => typeof(GrandTemple),
-                BuildingType.ArcaneTower => typeof(ArcaneTower),
-                BuildingType.SpiderShrine => typeof(SpiderShrine),
-                _ => throw new JsonException($"Unknown building type: {bType}")
-            };
+            // Correspondance tenue par BuildingFactory, partagée avec BuildingController.CreateBuilding :
+            // ces deux switch étaient auparavant maintenus en parallèle, et oublier celui-ci rendait
+            // illisible toute sauvegarde contenant le nouveau bâtiment.
+            Type concrete = BuildingFactory.GetClrType(bType)
+                ?? throw new JsonException($"Unknown building type: {bType}");
 
             var result = (Building?)JsonSerializer.Deserialize(raw, concrete, options);
             return result;

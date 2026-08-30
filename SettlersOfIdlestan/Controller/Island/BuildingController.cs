@@ -1036,60 +1036,11 @@ namespace SettlersOfIdlestan.Controller.Island
             civ.SetAutoBuyUnlockedCache(hasHighLevelMarket && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE));
         }
 
-        public static Building? CreateBuilding(BuildingType type)
-        {
-            return type switch
-            {
-                BuildingType.TownHall => new TownHall(),
-                BuildingType.Market => new Market(),
-                BuildingType.Sawmill => new Sawmill(),
-                BuildingType.Brickworks => new Brickworks(),
-                BuildingType.Mill => new Mill(),
-                BuildingType.Mine => new Mine(),
-                BuildingType.Quarry => new Quarry(),
-                BuildingType.Seaport => new Seaport(),
-                BuildingType.Warehouse => new Warehouse(),
-                BuildingType.Forge => new Forge(),
-                BuildingType.Library => new Library(),
-                BuildingType.Temple => new Temple(),
-                BuildingType.BuildersGuild => new BuildersGuild(),
-                BuildingType.Laboratory => new Laboratory(),
-                BuildingType.Barracks => new Barracks(),
-                BuildingType.GlassWorks => new GlassWorks(),
-                BuildingType.Palisade => new Palisade(),
-                BuildingType.ImperialPort => new ImperialPort(),
-                BuildingType.HarvestersGuild => new HarvestersGuild(),
-                BuildingType.ArtisansGuild => new ArtisansGuild(),
-                BuildingType.Watchtower => new Watchtower(),
-                BuildingType.Academy => new Academy(),
-                BuildingType.TraderGuild => new TraderGuild(),
-                BuildingType.Garrison => new Garrison(),
-                BuildingType.Smelter => new Smelter(),
-                BuildingType.BlastFurnace => new BlastFurnace(),
-                BuildingType.Arsenal => new Arsenal(),
-                BuildingType.MushroomFarm => new MushroomFarm(),
-                BuildingType.MithrilMine => new MithrilMine(),
-                BuildingType.MageTower => new MageTower(),
-                BuildingType.WarRoom => new WarRoom(),
-                BuildingType.AlchimistHut => new AlchimistHut(),
-                BuildingType.WeaponSmith => new WeaponSmith(),
-                BuildingType.ArmorSmith => new ArmorSmith(),
-                BuildingType.AdventurersGuild => new AdventurersGuild(),
-                BuildingType.AdventurersWaypost => new AdventurersWaypost(),
-                BuildingType.VolcanicForge => new VolcanicForge(),
-                BuildingType.Ziggurat => new Ziggurat(),
-                BuildingType.HeartTree => new HeartTree(),
-                BuildingType.RunicForge => new RunicForge(),
-                BuildingType.GreatBurrow => new GreatBurrow(),
-                BuildingType.ColossusWorkshop => new ColossusWorkshop(),
-                BuildingType.SkullPit => new SkullPit(),
-                BuildingType.ThroneOfWinds => new ThroneOfWinds(),
-                BuildingType.PearlGrotto => new PearlGrotto(),
-                BuildingType.GrandTemple => new GrandTemple(),
-                BuildingType.ArcaneTower => new ArcaneTower(),
-                BuildingType.SpiderShrine => new SpiderShrine(),
-                _ => null,
-            };
-        }
+        /// <summary>
+        /// Nouvelle instance du bâtiment, ou null si le type n'est pas enregistré. Simple relais
+        /// vers <see cref="BuildingFactory"/>, qui tient désormais seul la correspondance
+        /// BuildingType → type concret, partagée avec <see cref="BuildingJsonConverter"/>.
+        /// </summary>
+        public static Building? CreateBuilding(BuildingType type) => BuildingFactory.Create(type);
     }
 }
