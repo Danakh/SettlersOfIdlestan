@@ -1450,7 +1450,7 @@
   "ascension_power_prestigiousascension_name": "Prestigious Ascension",
   "ascension_power_prestigiousascension_desc": "Every prestige, like every Ascension, grants 1 prestige point per divine essence earned since the beginning of the game. The grant is also paid out when the power is purchased.",
   "ascension_power_greaterpurification_name": "Greater Purification",
-  "ascension_power_greaterpurification_desc": "The Necropolis purifies the Divine Bones it is built on instead of destroying them: their divine essence is harvested for free on construction, with no crystals or research points.",
+  "ascension_power_greaterpurification_desc": "The Necropolis purifies the Divine Bones it is built on instead of destroying them: their divine essence is harvested for free on construction, with no crystals or research points. The Divine Reliquary can now hold twice as much essence (2 with the Sacred Reliquary alone, 4 with the Reinforced Reliquary).",
   "ascension_power_divinelegacy_name": "Divine Legacy",
   "ascension_power_divinelegacy_desc": "Unlocks permanent unique buildings: every Ascension performed opens one slot. Retroactive — Ascensions already completed count immediately.",
   "ascension_power_eternallegacy_name": "Eternal Legacy",

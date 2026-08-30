@@ -1450,7 +1450,7 @@
   "ascension_power_prestigiousascension_name": "Ascension Prestigieuse",
   "ascension_power_prestigiousascension_desc": "Chaque prestige, comme chaque Ascension, verse 1 point de prestige par essence divine gagnée depuis le début de la partie. La dotation est également versée à l'achat du pouvoir.",
   "ascension_power_greaterpurification_name": "Purification Supérieure",
-  "ascension_power_greaterpurification_desc": "La Nécropole purifie les Os Divins sur lesquels elle est bâtie au lieu de les détruire : leur essence divine est récoltée gratuitement à la construction, sans cristaux ni points de recherche.",
+  "ascension_power_greaterpurification_desc": "La Nécropole purifie les Os Divins sur lesquels elle est bâtie au lieu de les détruire : leur essence divine est récoltée gratuitement à la construction, sans cristaux ni points de recherche. Le Reliquaire Divin peut désormais contenir deux fois plus d'essence (2 à l'achat du Reliquaire Sacré, 4 avec le Reliquaire Renforcé).",
   "ascension_power_divinelegacy_name": "Héritage Divin",
   "ascension_power_divinelegacy_desc": "Débloque les bâtiments uniques permanents : chaque Ascension effectuée ouvre un emplacement. Rétroactif — les Ascensions déjà accomplies comptent immédiatement.",
   "ascension_power_eternallegacy_name": "Héritage Éternel",

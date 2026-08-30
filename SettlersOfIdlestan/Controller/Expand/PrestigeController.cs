@@ -398,7 +398,14 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         /// <summary>Nombre d'essences divines qui seraient perdues par un prestige immédiat (voir clamp appliqué dans PerformPrestige).</summary>
         public int GetDivineEssenceLoss(GodState godState)
-            => Math.Max(0, godState.DivineEssence + godState.DivineEssenceReliquaryFloor - (_playerCivilization?.DivineEssenceKeptOnPrestige ?? 0));
+            => Math.Max(0, godState.DivineEssence + godState.DivineEssenceReliquaryFloor - GetDivineEssenceReliquaryCapacity(godState));
+
+        /// <summary>
+        /// Capacité du Reliquaire (Civilization.DivineEssenceKeptOnPrestige), doublée sous Purification
+        /// Supérieure — voir AscensionState.ApplyReliquaryCapacityBonus.
+        /// </summary>
+        private int GetDivineEssenceReliquaryCapacity(GodState godState)
+            => godState.AscensionState.ApplyReliquaryCapacityBonus(_playerCivilization?.DivineEssenceKeptOnPrestige ?? 0);
 
         public void PerformPrestige(MainGameState mainGameState, IslandParameters nextIslandParameters)
             => PerformPrestige(mainGameState, nextIslandParameters, corrupted: false);
@@ -461,13 +468,14 @@ namespace SettlersOfIdlestan.Controller.Expand
                 if (stats.HasAbyssGate) gameRecord.HasBuiltAbyssGate = true;
             }
 
-            // Reliquaire Sacré / Reliquaire Renforcé (DIVINE_ESSENCE_KEPT_ON_PRESTIGE) : jusqu'à N
-            // essences divines (parmi celles du run qui s'achève + celles déjà dans le Reliquaire)
-            // survivent au prestige dans le Reliquaire — voir GodState.DivineEssenceReliquaryFloor.
-            // DivineEssence (les essences du run, hors Reliquaire) repart, elle, toujours de zéro.
+            // Reliquaire Sacré / Reliquaire Renforcé (DIVINE_ESSENCE_KEPT_ON_PRESTIGE), doublé sous
+            // Purification Supérieure (voir GetDivineEssenceReliquaryCapacity) : jusqu'à N essences
+            // divines (parmi celles du run qui s'achève + celles déjà dans le Reliquaire) survivent au
+            // prestige dans le Reliquaire — voir GodState.DivineEssenceReliquaryFloor. DivineEssence
+            // (les essences du run, hors Reliquaire) repart, elle, toujours de zéro.
             int totalEssenceBeforePrestige = mainGameState.GodState.DivineEssence + mainGameState.GodState.DivineEssenceReliquaryFloor;
             mainGameState.GodState.DivineEssenceReliquaryFloor = Math.Min(
-                totalEssenceBeforePrestige, _playerCivilization?.DivineEssenceKeptOnPrestige ?? 0);
+                totalEssenceBeforePrestige, GetDivineEssenceReliquaryCapacity(mainGameState.GodState));
             mainGameState.GodState.DivineEssence = 0;
 
             mainGameState.PrestigeState.PrestigePoints += points;

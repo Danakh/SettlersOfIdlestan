@@ -21,6 +21,13 @@ public class AscensionState
     public bool IsGreaterPurificationActive => UnlockedPowers.Contains(AscensionPowerId.GreaterPurification);
 
     /// <summary>
+    /// Purification Supérieure double aussi la capacité du Reliquaire Divin
+    /// (Civilization.DivineEssenceKeptOnPrestige) : 2 essences avec le seul Reliquaire Sacré, 4 avec
+    /// le Reliquaire Renforcé — voir PrestigeController.GetDivineEssenceLoss et PerformPrestige.
+    /// </summary>
+    public int ApplyReliquaryCapacityBonus(int baseCapacity) => IsGreaterPurificationActive ? baseCapacity * 2 : baseCapacity;
+
+    /// <summary>
     /// Nombre total d'Ascensions effectuées (cross-prestige, ne diminue jamais). Pilote le nombre
     /// d'emplacements de bâtiments uniques permanents (voir AscensionController.
     /// PermanentUniqueBuildingSlots) : 1 emplacement par Ascension une fois Héritage Divin acquis,

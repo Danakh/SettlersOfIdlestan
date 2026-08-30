@@ -385,7 +385,19 @@ public sealed class EventLogRenderer : IDisposable
             _localization.Get("event_monument_investment_blocked_title"),
             _localization.GetFormated("event_monument_investment_blocked_body",
                 _localization.Get(entry.Message ?? ""))),
-        _ => (EventLogTone.Danger, "?", entry.Message ?? "")
+        GameEventType.SurfaceBreachPlaced => (
+            EventLogTone.Discovery,
+            _localization.Get("event_surface_breach_placed_title"),
+            _localization.Get("event_surface_breach_placed_body")),
+        GameEventType.SurfaceBreachDug => (
+            EventLogTone.Success,
+            _localization.Get("event_surface_breach_dug_title"),
+            _localization.Get("event_surface_breach_dug_body")),
+        GameEventType.SurfaceLost => (
+            EventLogTone.Danger,
+            _localization.Get("event_surface_lost_title"),
+            _localization.Get("event_surface_lost_body")),
+        _ => (EventLogTone.Danger, $"? {entry.Type}", entry.Message ?? "")
     };
 
     public void Dispose()
