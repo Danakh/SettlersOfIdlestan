@@ -51,9 +51,9 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProcessInvestment(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[SurfaceBreachController] {nameof(ProcessInvestment)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(SurfaceBreachController), nameof(ProcessInvestment), ex); }
             try { TryEstablishSurface(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[SurfaceBreachController] {nameof(TryEstablishSurface)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(SurfaceBreachController), nameof(TryEstablishSurface), ex); }
         }
 
         private void ProcessInvestment()

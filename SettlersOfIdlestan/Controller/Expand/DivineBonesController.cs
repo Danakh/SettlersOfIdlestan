@@ -56,7 +56,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProcessInvestment(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DivineBonesController] {nameof(ProcessInvestment)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(DivineBonesController), nameof(ProcessInvestment), ex); }
         }
 
         private void ProcessInvestment()

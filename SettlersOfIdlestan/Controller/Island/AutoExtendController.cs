@@ -131,7 +131,7 @@ public class AutoExtendController
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { TrySpawnBorderMonsters(e.CurrentTick); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AutoExtendController] {nameof(TrySpawnBorderMonsters)}: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(AutoExtendController), nameof(TrySpawnBorderMonsters), ex); }
     }
 
     /// <summary>
@@ -831,7 +831,7 @@ public class AutoExtendController
             if (max > 0)
             {
                 try { civ.AddResource(resource, max); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AutoExtendController] AddResource {resource}: {ex.Message}"); }
+                catch (Exception ex) { GameLog.Error(nameof(AutoExtendController), $"AddResource {resource}", ex); }
             }
         }
     }

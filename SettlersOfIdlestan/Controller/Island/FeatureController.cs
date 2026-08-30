@@ -88,7 +88,7 @@ public class FeatureController
             DiscoverFeatures();
             DiscoverCivilizations();
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[FeatureController] Discover: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(FeatureController), "Discover", ex); }
     }
 
     /// <summary>

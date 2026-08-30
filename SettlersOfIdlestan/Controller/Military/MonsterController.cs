@@ -155,7 +155,7 @@ public class MonsterFeatureController
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { Update(e.CurrentTick); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MonsterFeatureController] {nameof(Update)}: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(MonsterFeatureController), nameof(Update), ex); }
     }
 
     private void Update(long currentTick)

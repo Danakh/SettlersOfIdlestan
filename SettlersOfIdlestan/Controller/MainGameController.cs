@@ -392,9 +392,33 @@ namespace SettlersOfIdlestan.Controller
                 island.StartTick = mainGame.Clock.CurrentTick - DemoMaxIslandTicks;
         }
 
+        /// <summary>
+        /// Route une panne attrapée par une garde de contrôleur vers le journal d'événements de l'île
+        /// <b>actuellement chargée</b>. Sans ce câblage, une exception levée à chaque tick était
+        /// totalement muette dans un build livré : les gardes n'écrivaient que via
+        /// <c>Debug.WriteLine</c>, supprimé à la compilation en Release (voir <see cref="GameLog"/>).
+        ///
+        /// <para>Seule la PREMIÈRE occurrence de chaque erreur distincte arrive ici — la
+        /// déduplication de <see cref="GameLog"/> évite le flot de toasts d'une panne qui se répète —
+        /// et l'entrée reste ensuite consultable dans le panneau de journal.</para>
+        ///
+        /// <para>Passe par <see cref="CurrentMainState"/> plutôt que de capturer un WorldState :
+        /// le câblage survit ainsi aux changements d'île sans être refait, et un contrôleur périmé ne
+        /// retient pas en vie le monde sur lequel il avait été câblé. Sans île chargée, l'erreur est
+        /// simplement déposée dans <see cref="GameLog"/> sans être signalée en jeu.</para>
+        /// </summary>
+        internal void ReportRuntimeError(GameLog.ErrorEntry entry)
+            => CurrentMainState?.CurrentWorldState?.EventLog.Add(
+                GameEventType.RuntimeError, entry.ToString(), toast: true);
+
         private void InitializeControllersForCurrentIsland()
         {
             var WorldState = CurrentMainState?.CurrentWorldState;
+
+            // Emplacement unique et non événement — voir GameLog.OnFirstOccurrence : plusieurs
+            // MainGameController peuvent coexister brièvement (NpcCivilizationPlacer en crée un
+            // jetable) et le dernier câblage doit gagner, sans abonnement cumulé ni fuite.
+            GameLog.OnFirstOccurrence = ReportRuntimeError;
 
             // Câblé inconditionnellement, même sans île active : c'est ce contrôleur qui expose
             // IsAscensionPending à toute l'UI (TabBarRenderer, OverlayRenderer...). Entre

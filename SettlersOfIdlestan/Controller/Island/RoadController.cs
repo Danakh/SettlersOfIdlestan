@@ -85,7 +85,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { PerformBuildersGuildConstruction(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RoadController] {nameof(PerformBuildersGuildConstruction)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(RoadController), nameof(PerformBuildersGuildConstruction), ex); }
         }
 
         private void PerformBuildersGuildConstruction()

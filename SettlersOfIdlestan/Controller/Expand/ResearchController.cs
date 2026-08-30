@@ -82,9 +82,9 @@ namespace SettlersOfIdlestan.Controller.Expand
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProduceResearchPoints(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ResearchController] {nameof(ProduceResearchPoints)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(ResearchController), nameof(ProduceResearchPoints), ex); }
             try { AdvanceActiveResearch(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ResearchController] {nameof(AdvanceActiveResearch)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(ResearchController), nameof(AdvanceActiveResearch), ex); }
         }
 
         private void ProduceResearchPoints()

@@ -45,6 +45,18 @@ namespace SettlersOfIdlestan.Model.Game
 
         // ── événement ────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Battement de la simulation. Tous les contrôleurs s'y abonnent, et <b>l'ordre d'exécution du
+        /// tick est l'ordre d'abonnement</b> — c'est-à-dire l'ordre des lignes de
+        /// <c>MainGameController.InitializeControllersForCurrentIsland</c>, dont le commentaire
+        /// détaille les dépendances.
+        ///
+        /// <para>Une exception qui s'échappe d'un abonné interrompt le délégué multicast : <b>tous les
+        /// abonnés suivants sont sautés pour ce tick</b>. Chaque contrôleur encadre donc ses propres
+        /// sous-étapes d'un try/catch et signale via <see cref="GameLog"/> ; les catch d'ici ne
+        /// rattrapent que ce qui aurait franchi ces gardes, et une entrée <c>GameClock</c> dans le
+        /// journal signifie précisément qu'une partie du tick n'a pas tourné.</para>
+        /// </summary>
         public event EventHandler<GameClockAdvancedEventArgs>? Advanced;
 
         // ── constructeurs ────────────────────────────────────────────────────
@@ -134,7 +146,7 @@ namespace SettlersOfIdlestan.Model.Game
                 long previous = CurrentTick;
                 CurrentTick += chunk;
                 try { Advanced?.Invoke(this, new GameClockAdvancedEventArgs(previous, CurrentTick)); }
-                catch { }
+                catch (Exception ex) { GameLog.Error(nameof(GameClock), nameof(SimulateAdvance), ex); }
                 remaining -= chunk;
             }
         }
@@ -194,7 +206,7 @@ namespace SettlersOfIdlestan.Model.Game
             CurrentTick += gameTicks;
 
             try { Advanced?.Invoke(this, new GameClockAdvancedEventArgs(previousTick, CurrentTick)); }
-            catch { }
+            catch (Exception ex) { GameLog.Error(nameof(GameClock), nameof(Advance), ex); }
         }
     }
 

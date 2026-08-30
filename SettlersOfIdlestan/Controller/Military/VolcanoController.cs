@@ -77,7 +77,7 @@ public class VolcanoController
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { Update(e.CurrentTick); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[VolcanoController] {nameof(Update)}: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(VolcanoController), nameof(Update), ex); }
     }
 
     private void Update(long currentTick)

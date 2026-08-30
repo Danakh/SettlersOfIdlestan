@@ -46,7 +46,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProcessInvestment(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[GreatLighthouseController] {nameof(ProcessInvestment)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(GreatLighthouseController), nameof(ProcessInvestment), ex); }
         }
 
         public static ResourceSet GetLevelCost(int level) => GreatLighthouse.GetLevelCost(level);

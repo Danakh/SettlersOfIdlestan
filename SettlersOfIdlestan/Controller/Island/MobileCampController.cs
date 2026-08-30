@@ -57,7 +57,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ResolveSelfDestruct(e.CurrentTick); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MobileCampController] {nameof(ResolveSelfDestruct)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(MobileCampController), nameof(ResolveSelfDestruct), ex); }
         }
 
         /// <summary>Détruit tout Camp Mobile (toute civilisation) dont la durée de vie dépasse <see cref="SelfDestructIntervalTicks"/>.</summary>

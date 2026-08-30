@@ -45,9 +45,9 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProcessInvestment(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DeepestMineController] {nameof(ProcessInvestment)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(DeepestMineController), nameof(ProcessInvestment), ex); }
             try { TryInitializeUnderworld(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DeepestMineController] {nameof(TryInitializeUnderworld)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(DeepestMineController), nameof(TryInitializeUnderworld), ex); }
         }
 
         private void ProcessInvestment()

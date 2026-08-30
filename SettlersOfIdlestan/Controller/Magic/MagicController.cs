@@ -97,11 +97,11 @@ namespace SettlersOfIdlestan.Controller.Magic
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProcessUpkeep(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MagicController] {nameof(ProcessUpkeep)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessUpkeep), ex); }
             try { ProcessPassiveCycle(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MagicController] {nameof(ProcessPassiveCycle)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessPassiveCycle), ex); }
             try { ProcessTempleMonsterDamage(e.CurrentTick); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MagicController] {nameof(ProcessTempleMonsterDamage)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessTempleMonsterDamage), ex); }
         }
 
         // ── État général ──────────────────────────────────────────────────────

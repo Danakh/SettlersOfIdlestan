@@ -1126,7 +1126,7 @@ public class AscensionController : IModifierProvider
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { PerformHandOfGodHarvests(); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AscensionController] {nameof(PerformHandOfGodHarvests)}: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(AscensionController), nameof(PerformHandOfGodHarvests), ex); }
     }
 
     private void PerformHandOfGodHarvests()

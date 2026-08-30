@@ -52,7 +52,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProcessInvestment(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionSpireController] {nameof(ProcessInvestment)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(CorruptionSpireController), nameof(ProcessInvestment), ex); }
         }
 
         /// <summary>

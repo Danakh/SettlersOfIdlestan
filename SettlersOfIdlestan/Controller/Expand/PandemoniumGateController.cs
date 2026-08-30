@@ -57,9 +57,9 @@ namespace SettlersOfIdlestan.Controller.Expand
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProcessInvestment(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PandemoniumGateController] {nameof(ProcessInvestment)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(PandemoniumGateController), nameof(ProcessInvestment), ex); }
             try { TryInitializePandemonium(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PandemoniumGateController] {nameof(TryInitializePandemonium)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(PandemoniumGateController), nameof(TryInitializePandemonium), ex); }
         }
 
         /// <summary>

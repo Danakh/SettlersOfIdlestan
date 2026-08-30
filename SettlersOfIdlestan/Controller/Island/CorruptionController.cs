@@ -117,22 +117,22 @@ public class CorruptionController
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { ProcessTempleProduction(e.CurrentTick); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessTempleProduction)}: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(CorruptionController), nameof(ProcessTempleProduction), ex); }
 
         try { ProcessSpread(e.CurrentTick); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessSpread)}: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(CorruptionController), nameof(ProcessSpread), ex); }
 
         try { ProcessMonumentCorruptionDecay(e.CurrentTick); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessMonumentCorruptionDecay)}: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(CorruptionController), nameof(ProcessMonumentCorruptionDecay), ex); }
 
         try { ProcessDivineBonesCorruptionGrowth(e.CurrentTick); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessDivineBonesCorruptionGrowth)}: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(CorruptionController), nameof(ProcessDivineBonesCorruptionGrowth), ex); }
 
         try { ProcessMonsterCorruptionGrowth(e.CurrentTick); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessMonsterCorruptionGrowth)}: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(CorruptionController), nameof(ProcessMonsterCorruptionGrowth), ex); }
 
         try { ProcessCorruptionSourceGrowth(e.CurrentTick); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CorruptionController] {nameof(ProcessCorruptionSourceGrowth)}: {ex}"); }
+        catch (Exception ex) { GameLog.Error(nameof(CorruptionController), nameof(ProcessCorruptionSourceGrowth), ex); }
     }
 
     /// <summary>Cooldown par Temple (comme AlchimistHut.LastCrystalProductionTick) — chaque Temple agit toutes les 10 s depuis sa dernière action.</summary>

@@ -51,9 +51,9 @@ namespace SettlersOfIdlestan.Controller.Expand
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { ProcessInvestment(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AbyssGateController] {nameof(ProcessInvestment)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(AbyssGateController), nameof(ProcessInvestment), ex); }
             try { TryInitializeAbyss(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AbyssGateController] {nameof(TryInitializeAbyss)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(AbyssGateController), nameof(TryInitializeAbyss), ex); }
         }
 
         private void ProcessInvestment()

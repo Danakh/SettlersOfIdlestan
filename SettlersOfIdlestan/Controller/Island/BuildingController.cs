@@ -101,25 +101,25 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { PerformHarvestersGuildProductionAutomation(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformHarvestersGuildProductionAutomation)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(BuildingController), nameof(PerformHarvestersGuildProductionAutomation), ex); }
             try { PerformArtisansGuildAutomation(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformArtisansGuildAutomation)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(BuildingController), nameof(PerformArtisansGuildAutomation), ex); }
             try { PerformAcademyAutomation(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformAcademyAutomation)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(BuildingController), nameof(PerformAcademyAutomation), ex); }
             try { PerformTraderGuildAutomation(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformTraderGuildAutomation)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(BuildingController), nameof(PerformTraderGuildAutomation), ex); }
             try { PerformImperialPortSeaportAutomation(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformImperialPortSeaportAutomation)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(BuildingController), nameof(PerformImperialPortSeaportAutomation), ex); }
             try { PerformWarRoomAutomation(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformWarRoomAutomation)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(BuildingController), nameof(PerformWarRoomAutomation), ex); }
             try { PerformTownHallGuildAutomation(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformTownHallGuildAutomation)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(BuildingController), nameof(PerformTownHallGuildAutomation), ex); }
             try { PerformGrandTempleAutomation(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformGrandTempleAutomation)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(BuildingController), nameof(PerformGrandTempleAutomation), ex); }
             try { PerformVolcanicForgeAutomation(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformVolcanicForgeAutomation)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(BuildingController), nameof(PerformVolcanicForgeAutomation), ex); }
             try { PerformArcaneTowerAutomation(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BuildingController] {nameof(PerformArcaneTowerAutomation)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(BuildingController), nameof(PerformArcaneTowerAutomation), ex); }
         }
 
         private void PerformHarvestersGuildProductionAutomation()

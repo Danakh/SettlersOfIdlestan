@@ -108,7 +108,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { PerformBuildersGuildOutpostConstruction(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CityBuilderController] {nameof(PerformBuildersGuildOutpostConstruction)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(CityBuilderController), nameof(PerformBuildersGuildOutpostConstruction), ex); }
         }
 
         private void PerformBuildersGuildOutpostConstruction()
@@ -160,7 +160,10 @@ namespace SettlersOfIdlestan.Controller.Island
                     BuildCity(civ.Index, chosen);
                     OnAutoOutpostBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civ.Index, chosen));
                 }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CityBuilderController] BuildCity at {chosen}: {ex}"); }
+                // Le vertex n'entre pas dans la clé de déduplication de GameLog : un échec systématique
+                // produirait une entrée distincte par emplacement testé et saturerait le journal. La
+                // pile d'appels conservée avec la première occurrence porte déjà le contexte utile.
+                catch (Exception ex) { GameLog.Error(nameof(CityBuilderController), nameof(BuildCity), ex); }
             }
         }
 

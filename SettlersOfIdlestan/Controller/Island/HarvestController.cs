@@ -121,23 +121,23 @@ namespace SettlersOfIdlestan.Controller.Island
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { PerformAutomaticProductionHarvests(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformAutomaticProductionHarvests)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformAutomaticProductionHarvests), ex); }
             try { PerformSeaportGenerations(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformSeaportGenerations)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformSeaportGenerations), ex); }
             try { PerformMarketGoldGenerations(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformMarketGoldGenerations)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformMarketGoldGenerations), ex); }
             try { PerformSmelterProductions(e.CurrentTick); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformSmelterProductions)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformSmelterProductions), ex); }
             try { PerformPassiveResourceGenerations(e.CurrentTick); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformPassiveResourceGenerations)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformPassiveResourceGenerations), ex); }
             try { PerformWeaponSmithProductions(e.CurrentTick); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformWeaponSmithProductions)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformWeaponSmithProductions), ex); }
             try { PerformArmorSmithProductions(e.CurrentTick); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformArmorSmithProductions)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformArmorSmithProductions), ex); }
             try { PerformAlchimistHutPotionProductions(e.CurrentTick); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformAlchimistHutPotionProductions)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformAlchimistHutPotionProductions), ex); }
             try { PerformAlchimistHutCrystalProductions(e.CurrentTick); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] {nameof(PerformAlchimistHutCrystalProductions)}: {ex}"); }
+            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformAlchimistHutCrystalProductions), ex); }
         }
 
         /// <summary>Multiplicateur combiné de temps de récolte apporté par toutes les features présentes sur l'hex (Corruption, Dominion, Territoire contesté…).</summary>
@@ -563,7 +563,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     if (amount > 0)
                     {
                         try { civ.AddResource(resource, amount * (int)cycles); }
-                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] AddResource {resource}: {ex.Message}"); }
+                        catch (Exception ex) { GameLog.Error(nameof(HarvestController), $"AddResource {resource}", ex); }
                     }
                 }
 
@@ -592,7 +592,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (whole > 0)
             {
                 try { civ.AddResource(Resource.Crystal, whole); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[HarvestController] AddResource Crystal (laboratory): {ex.Message}"); }
+                catch (Exception ex) { GameLog.Error(nameof(HarvestController), "AddResource Crystal (laboratory)", ex); }
                 carry -= whole;
             }
             _laboratoryCrystalCarry[civ.Index] = carry;
