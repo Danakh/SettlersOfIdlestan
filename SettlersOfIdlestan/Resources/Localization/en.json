@@ -1509,7 +1509,7 @@
   "building_runicforge_name": "Runic Forge",
   "building_runicforge_desc": "Dwarven racial building. +15% Forge double-harvest chance, +10% Mine gold chance, +1 Steel per Smelter cycle.",
   "building_greatburrow_name": "Great Burrow",
-  "building_greatburrow_desc": "Goblin racial building. -25% new city cost, +20 basic storage and -1 level on every unique building requirement.",
+  "building_greatburrow_desc": "Goblin racial building. -25% new city cost, +20 basic storage, -1 level on every unique building requirement and free upkeep food for 3 soldiers per city.",
   "building_colossusworkshop_name": "Colossus Workshop",
   "building_colossusworkshop_desc": "Giant racial building. 10% chance to double automatic harvest yield.",
   "building_skullpit_name": "Skull Pit",

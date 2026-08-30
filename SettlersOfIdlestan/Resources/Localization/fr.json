@@ -1509,7 +1509,7 @@
   "building_runicforge_name": "Forge Runique",
   "building_runicforge_desc": "Bâtiment racial des Nains. +15% de chance de double récolte des Forges, +10% de chance d'or des Mines, +1 Acier par cycle de Fonderie.",
   "building_greatburrow_name": "Grand Terrier",
-  "building_greatburrow_desc": "Bâtiment racial des Gobelins. -25% sur le coût des nouvelles villes, +20 de stockage de base et -1 niveau sur tous les prérequis des bâtiments uniques.",
+  "building_greatburrow_desc": "Bâtiment racial des Gobelins. -25% sur le coût des nouvelles villes, +20 de stockage de base, -1 niveau sur tous les prérequis des bâtiments uniques et nourriture gratuite pour 3 soldats par ville.",
   "building_colossusworkshop_name": "Atelier des Colosses",
   "building_colossusworkshop_desc": "Bâtiment racial des Géants. 10% de chance de doubler le rendement des récoltes automatiques.",
   "building_skullpit_name": "Fosse aux Crânes",
