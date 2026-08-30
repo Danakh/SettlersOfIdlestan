@@ -1,4 +1,3 @@
-using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -40,7 +39,7 @@ public class Civilization
     /// Indices des civilisations qui ont attaqué cette civilisation. Sur la civilisation du joueur,
     /// alimenté quand elle est attaquée pendant l'autoplayer, pour lui permettre de riposter.
     /// Sur un NPC non-Pacifiste, quand non-vide, limite ses attaques à ces civilisations (agressivité
-    /// ciblée plutôt que globale) — voir <see cref="Controller.NpcGameController"/>.
+    /// ciblée plutôt que globale) — voir <c>NpcGameController</c>.
     /// </summary>
     public List<int> WarEnemyCivIndices { get; set; } = new();
 
@@ -79,7 +78,7 @@ public class Civilization
         // unique posé avant AddCity resterait invisible de GetUniqueBuilding.
         RebuildUniqueBuildingCache();
         RebuildUniqueBuildingsModifiers();
-        BuildingController.RecalculateStorageCapacity(this);
+        RecalculateStorageCapacity();
     }
 
     public void RemoveCity(City city)
@@ -90,13 +89,13 @@ public class Civilization
         InvalidateBuildingDerivedCaches();
         RebuildUniqueBuildingCache();
         RebuildUniqueBuildingsModifiers();
-        BuildingController.RecalculateStorageCapacity(this);
+        RecalculateStorageCapacity();
     }
 
     /// <summary>
     /// Une ville de cette civilisation a gagné ou perdu un bâtiment. C'est le point unique qui rend
     /// les caches dérivés des bâtiments fiables, quel que soit le chemin de construction emprunté —
-    /// y compris ceux qui n'appellent pas <see cref="BuildingController.BuildBuilding"/>.
+    /// y compris ceux qui n'appellent pas <c>BuildingController.BuildBuilding</c>.
     /// </summary>
     private void OnCityBuildingsChanged(object? sender, EventArgs e)
     {
@@ -303,7 +302,7 @@ public class Civilization
         ModifierAggregator.Register(UniqueBuildingsModifierProvider);
         ModifierAggregator.Changed += () =>
         {
-            BuildingController.RecalculateStorageCapacity(this);
+            RecalculateStorageCapacity();
             _maxLevelCache.Clear();
             InvalidateAllCityMaxSoldiersCaches();
         };
@@ -396,7 +395,7 @@ public class Civilization
     /// (ex: automatisations des guildes). Le cache est reconstruit à chaque <see cref="City.BuildingsChanged"/>
     /// (voir <see cref="OnCityBuildingsChanged"/>) et à l'ajout d'une ville (voir <see cref="AddCity"/>),
     /// quel que soit le chemin d'ajout du bâtiment — <see cref="RegisterUniqueBuildingInCache"/> reste un
-    /// raccourci ponctuel utilisé par <see cref="BuildingController.BuildBuilding"/>.
+    /// raccourci ponctuel utilisé par <c>BuildingController.BuildBuilding</c>.
     /// </summary>
     public Building? GetUniqueBuilding(BuildingType type)
         => _uniqueBuildingCache.TryGetValue(type, out var building) ? building : null;
@@ -448,7 +447,7 @@ public class Civilization
 
         foreach (var grantedType in _ascensionGrantedUniqueBuildings)
         {
-            if (_uniqueBuildingCache.ContainsKey(grantedType) || BuildingController.CreateBuilding(grantedType) is not { } granted)
+            if (_uniqueBuildingCache.ContainsKey(grantedType) || BuildingFactory.Create(grantedType) is not { } granted)
                 continue;
 
             // Sans ville pour les faire monter de niveau via les modifiers dynamiques (recherche
@@ -643,8 +642,8 @@ public class Civilization
 
     /// <summary>
     /// Cache de la capacité de stockage (ressources de base / avancées), recalculé par
-    /// <see cref="BuildingController.RecalculateStorageCapacity"/> à chaque construction/destruction
-    /// de bâtiment, changement de l'agrégateur de modificateurs, ou ajout/retrait de ville.
+    /// <see cref="RecalculateStorageCapacity"/> à chaque construction/destruction de bâtiment,
+    /// changement de l'agrégateur de modificateurs, ou ajout/retrait de ville.
     /// </summary>
     [JsonIgnore]
     public int StorageCapacityBasic { get; private set; }
@@ -654,25 +653,82 @@ public class Civilization
 
     /// <summary>
     /// Cache d'Achat Automatique (vertex de prestige Achat Automatique + au moins un Marché niv.4+),
-    /// recalculé par <see cref="BuildingController.RecalculateStorageCapacity"/> aux mêmes points de
-    /// mutation que <see cref="StorageCapacityBasic"/> (TradeController.IsAutoBuyUnlocked est sur le
-    /// chemin chaud de la vente de ressources en autoplay).
+    /// recalculé par <see cref="RecalculateStorageCapacity"/> aux mêmes points de mutation que
+    /// <see cref="StorageCapacityBasic"/> (TradeController.IsAutoBuyUnlocked est sur le chemin chaud
+    /// de la vente de ressources en autoplay).
     /// </summary>
     [JsonIgnore]
     public bool AutoBuyUnlockedCache { get; private set; }
 
-    public void SetAutoBuyUnlockedCache(bool value) => AutoBuyUnlockedCache = value;
+    /// <summary>Niveau de Marché minimal ouvrant droit à l'Achat Automatique.</summary>
+    private const int AutoBuyMinMarketLevel = 4;
+
+    /// <summary>
+    /// Recalcule <see cref="StorageCapacityBasic"/>, <see cref="StorageCapacityAdvanced"/> et
+    /// <see cref="AutoBuyUnlockedCache"/> depuis les bâtiments des villes et les modificateurs
+    /// actifs. À appeler après toute construction/destruction de bâtiment, tout ajout/retrait de
+    /// ville et tout changement de l'agrégateur de modificateurs.
+    ///
+    /// <para>Vivait auparavant dans <c>BuildingController</c>, ce qui obligeait le modèle à remonter
+    /// vers la couche contrôleur — jusque dans le constructeur de cette classe. C'est un calcul pur
+    /// sur l'état de la civilisation, sans rien de la logique de contrôle.</para>
+    /// </summary>
+    public void RecalculateStorageCapacity()
+    {
+        int basic = 10 * _cities.Count;
+        int advanced = 0;
+        bool hasHighLevelMarket = false;
+
+        // Boucles indexées : City.Buildings est typée IReadOnlyList, dont l'énumérateur est boxé à
+        // chaque foreach. Ce recalcul est déclenché par chaque construction.
+        for (int c = 0; c < _cities.Count; c++)
+        {
+            var buildings = _cities[c].Buildings;
+            for (int b = 0; b < buildings.Count; b++)
+            {
+                var building = buildings[b];
+                basic += building.GetStorageCapacityBonusBasic();
+                advanced += building.GetStorageCapacityBonusAdvanced();
+                if (building.Type == BuildingType.Market && building.Level >= AutoBuyMinMarketLevel)
+                    hasHighLevelMarket = true;
+            }
+        }
+
+        basic += ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_BASIC, "", 0);
+        advanced += ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0);
+
+        double multiplier = ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_MULTIPLIER, "", 1.0);
+        basic = (int)(basic * multiplier);
+        advanced = (int)(advanced * multiplier);
+
+        StorageCapacityBasic = basic;
+        StorageCapacityAdvanced = advanced;
+        AutoBuyUnlockedCache = hasHighLevelMarket
+            && ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE);
+    }
+
+    /// <summary>
+    /// Force la capacité de stockage sans passer par <see cref="RecalculateStorageCapacity"/>.
+    /// Point d'injection des tests, qui ont besoin d'une civilisation capable de stocker sans avoir
+    /// à lui bâtir des Entrepôts ; le prochain recalcul écrase ces valeurs.
+    /// </summary>
+    public void SetStorageCapacityCache(int basic, int advanced)
+    {
+        StorageCapacityBasic = basic;
+        StorageCapacityAdvanced = advanced;
+    }
+
 
     [NonSerialized]
     private bool? _hasMarket;
 
     /// <summary>
     /// Vrai si au moins une ville possède un Marché — condition du commerce (voir
-    /// <see cref="Controller.TradeController.IsTradeAvailable"/>). Calculé à la demande puis conservé
+    /// <c>TradeController.IsTradeAvailable</c>). Calculé à la demande puis conservé
     /// jusqu'à la prochaine mutation de bâtiments, signalée par <see cref="City.BuildingsChanged"/>.
     ///
     /// <para>Une première version de ce cache, recalculée depuis
-    /// <see cref="BuildingController.RecalculateStorageCapacity"/>, était fausse : plusieurs chemins
+    /// <see cref="RecalculateStorageCapacity"/>, était fausse : plusieurs chemins
     /// ajoutent des bâtiments sans passer par le contrôleur, et les tests de commerce l'ont
     /// immédiatement montré. C'est ce qui a motivé l'encapsulation de <see cref="City.Buildings"/> —
     /// sans elle, aucun cache dérivé des bâtiments ne peut être correct.</para>
@@ -765,15 +821,6 @@ public class Civilization
         return _citiesByBuildingType.TryGetValue(type, out var cities) ? cities : EmptyCities;
     }
 
-
-    /// <summary>
-    /// Appelé uniquement par BuildingController après recalcul complet de la capacité de stockage.
-    /// </summary>
-    public void SetStorageCapacityCache(int basic, int advanced)
-    {
-        StorageCapacityBasic = basic;
-        StorageCapacityAdvanced = advanced;
-    }
 
     public int GetResourceMaxQuantity(Resource resource)
     {

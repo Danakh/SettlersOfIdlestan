@@ -376,7 +376,7 @@ public class AscensionController : IModifierProvider
     /// (AscensionRenderer.DrawPermanentBuildingCard) à la place de sa description, reléguée en tooltip.
     /// </summary>
     public int GetPermanentUniqueBuildingLevel(BuildingType type) =>
-        Math.Max(1, BuildingController.CreateBuilding(type)?.GetAbsoluteMaxLevel() ?? 1);
+        Math.Max(1, BuildingFactory.Create(type)?.GetAbsoluteMaxLevel() ?? 1);
 
     /// <summary>
     /// Applique à la civilisation du joueur de l'île courante les bâtiments uniques permanents
@@ -1114,7 +1114,7 @@ public class AscensionController : IModifierProvider
                     city.RemoveBuilding(townHall);
                     city.InvalidateLevelCache();
                 }
-                BuildingController.RecalculateStorageCapacity(civ);
+                civ.RecalculateStorageCapacity();
                 civ.TrimResourcesToMax();
             }
         }

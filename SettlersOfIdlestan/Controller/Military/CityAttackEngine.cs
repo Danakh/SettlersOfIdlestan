@@ -333,7 +333,7 @@ internal class CityAttackEngine
             var defenderCivAfterAttack = _state!.GetCivilization(targetCity.CivilizationIndex);
             if (defenderCivAfterAttack != null)
             {
-                BuildingController.RecalculateStorageCapacity(defenderCivAfterAttack);
+                defenderCivAfterAttack.RecalculateStorageCapacity();
                 defenderCivAfterAttack.TrimResourcesToMax();
             }
             return false;

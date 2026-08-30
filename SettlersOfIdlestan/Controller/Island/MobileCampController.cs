@@ -256,7 +256,7 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (city.Buildings.Any(b => b.Type == BuildingType.Barracks)) return;
 
-            var barracks = BuildingController.CreateBuilding(BuildingType.Barracks);
+            var barracks = BuildingFactory.Create(BuildingType.Barracks);
             if (barracks == null) return;
 
             barracks.Level = 1;

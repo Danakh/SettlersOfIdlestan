@@ -74,7 +74,7 @@ public class AscensionControllerTests
         // civ-wide) : seul IsUnique + une factory valide sont garantis.
         foreach (var type in new AscensionController().PermanentUniqueBuildingChoices)
         {
-            var prototype = BuildingController.CreateBuilding(type);
+            var prototype = BuildingFactory.Create(type);
             Assert.NotNull(prototype);
             Assert.True(prototype!.IsUnique, $"{type} should be IsUnique to be a valid ascension choice");
         }

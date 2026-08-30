@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -44,7 +43,7 @@ public static class RaceDefinitions
     /// <c>CivilizationAutoplayerPriorities.ProductionBuildings</c>, qui exclut le Comptoir.</para>
     ///
     /// <para>La Verrerie (niveau max par défaut 0, débloquée à +1 seulement par le vertex
-    /// Laboratoire) est incluse malgré ce départ bas : <see cref="BuildingController.GetMaxLevel(Buildings.Building, Civilization)"/>
+    /// Laboratoire) est incluse malgré ce départ bas : <c>BuildingController.GetMaxLevel</c>
     /// applique le malus en dernier et le plafonne à 1 minimum tant que la Verrerie est par ailleurs
     /// débloquée — jamais 0 par la seule faute du malus.</para>
     /// </summary>
@@ -252,7 +251,7 @@ public static class RaceDefinitions
     /// <summary>
     /// Modifiers de niveau max (±delta) pour une liste explicite de types de bâtiments. Contrairement
     /// à <see cref="BuildStandardMaxLevelModifiers"/>, aucun filtre n'est appliqué — inutile pour un
-    /// delta négatif, <see cref="BuildingController.GetMaxLevel(Buildings.Building, Civilization)"/>
+    /// delta négatif, <c>BuildingController.GetMaxLevel</c>
     /// l'applique en dernier et le plafonne pour ne jamais rendre un bâtiment inconstructible.
     /// </summary>
     private static IEnumerable<Modifier> BuildMaxLevelModifiers(BuildingType[] types, int delta)
@@ -265,7 +264,7 @@ public static class RaceDefinitions
     /// Modifiers de niveau max (±delta) pour les bâtiments « standards » : non uniques, hors Hôtel
     /// de Ville (son niveau pilote le niveau de ville et les seuils AvailableAtLevel). Couvre aussi
     /// les bâtiments dont le niveau max par défaut est 0 ou 1 (Bibliothèque, Temple, Verrerie...) :
-    /// un malus négatif n'y est jamais destructeur, <see cref="BuildingController.GetMaxLevel(Buildings.Building, Civilization)"/>
+    /// un malus négatif n'y est jamais destructeur, <c>BuildingController.GetMaxLevel</c>
     /// l'applique en dernier et le plafonne pour ne jamais faire passer sous 1 un bâtiment par
     /// ailleurs atteignable (un bâtiment jamais débloqué par une autre source reste à 0, inchangé).
     /// </summary>
@@ -275,7 +274,7 @@ public static class RaceDefinitions
         {
             if (type == BuildingType.TownHall) continue;
 
-            var prototype = BuildingController.CreateBuilding(type);
+            var prototype = BuildingFactory.Create(type);
             if (prototype == null || prototype.IsUnique) continue;
 
             yield return new Modifier(ECategory.BUILDING_MAX_LEVEL, type.ToString(), EType.ADDITIVE, delta);

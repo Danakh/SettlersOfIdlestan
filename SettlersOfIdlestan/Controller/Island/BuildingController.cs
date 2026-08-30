@@ -44,7 +44,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <see cref="GetBuildableUniqueBuildings"/>, que l'autoplayer emprunte à chaque tick.
         /// </summary>
         private static readonly BuildingType[] _uniqueBuildingTypes =
-            _allBuildingTypes.Where(bt => CreateBuilding(bt)?.IsUnique == true).ToArray();
+            _allBuildingTypes.Where(bt => BuildingFactory.Create(bt)?.IsUnique == true).ToArray();
 
         /// <summary>
         /// Bâtiments non-uniques sans automatisation existante : ni Watchtower (verrouillé par
@@ -86,7 +86,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var civ in _state.Civilizations)
             {
-                RecalculateStorageCapacity(civ);
+                civ.RecalculateStorageCapacity();
                 civ.RebuildUniqueBuildingCache();
             }
 
@@ -520,7 +520,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_probesByType.TryGetValue(bt, out var probe))
                 return probe;
 
-            probe = CreateBuilding(bt);
+            probe = BuildingFactory.Create(bt);
             if (probe != null)
                 _probesByType[bt] = probe;
             return probe;
@@ -552,7 +552,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     : prototype.IsBuildingAvailableForCity(map, city);
                 if (available)
                 {
-                    var fresh = CreateBuilding(bt); // instance neuve : l'appelant peut la conserver/muter
+                    var fresh = BuildingFactory.Create(bt); // instance neuve : l'appelant peut la conserver/muter
                     // Coût affiché dépendant du nombre de Relais déjà construits (voir BuildBuilding) :
                     // renseigné ici aussi pour que l'aperçu de coût de l'UI corresponde à celui appliqué
                     // au moment de l'achat.
@@ -608,7 +608,7 @@ namespace SettlersOfIdlestan.Controller.Island
             Building resultBuilding;
             if (existing == null)
             {
-                var prototype = CreateBuilding(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
+                var prototype = BuildingFactory.Create(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
 
                 // Bâtiments verrouillés par défaut (GetDefaultMaxLevel() == 0, ex. Smelter/MushroomFarm)
                 // tant qu'un vertex de prestige ne relève pas leur plafond : la liste UI
@@ -724,7 +724,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 _state.Visibility.RecalculateFor(city.CivilizationIndex);
 
             city.InvalidateMaxSoldiersCache();
-            RecalculateStorageCapacity(civ);
+            civ.RecalculateStorageCapacity();
 
             OnBuildingBuilt?.Invoke(this, new BuildingBuiltEventArgs(
                 city, type, resultBuilding.Level, existing == null));
@@ -752,7 +752,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             foreach (var bt in _allBuildingTypes)
             {
-                var prototype = CreateBuilding(bt);
+                var prototype = BuildingFactory.Create(bt);
                 if (prototype == null || !prototype.IsUnique || GetMaxLevel(prototype, civ) <= 0)
                     continue;
 
@@ -823,7 +823,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 // city loss, so it must not be treated as "currently built" here either.
                 if (civ.GetUniqueBuilding(bt) != null) continue;
 
-                var prototype = CreateBuilding(bt);
+                var prototype = BuildingFactory.Create(bt);
                 if (prototype == null || GetMaxLevel(prototype, civ) <= 0) continue;
                 if (!prototype.IsBuildingAvailableForCity(map, buildContext, civ)) continue;
                 if (!prototype.HasBuildPrerequisites(buildContext, _state)) continue;
@@ -994,53 +994,5 @@ namespace SettlersOfIdlestan.Controller.Island
 
             return result;
         }
-
-        /// <summary>
-        /// Recalcule intégralement la capacité de stockage (ressources de base / avancées) de la
-        /// civilisation et met à jour son cache. À appeler après toute construction/amélioration/
-        /// destruction de bâtiment, ajout/retrait de ville, ou changement de l'agrégateur de modificateurs.
-        /// </summary>
-        /// <summary>Niveau minimum de Marché requis pour débloquer l'Achat Automatique (voir <see cref="TradeController.IsAutoBuyUnlocked"/>).</summary>
-        private const int AutoBuyMinMarketLevel = 4;
-
-        public static void RecalculateStorageCapacity(Model.Civilization.Civilization civ)
-        {
-            int basic = 10 * civ.Cities.Count;
-            int advanced = 0;
-            bool hasHighLevelMarket = false;
-
-            // Boucles indexées : City.Buildings est typée IReadOnlyList, dont l'énumérateur est boxé à
-            // chaque foreach. Ce recalcul est déclenché par chaque construction.
-            var cities = civ.Cities;
-            for (int c = 0; c < cities.Count; c++)
-            {
-                var buildings = cities[c].Buildings;
-                for (int b = 0; b < buildings.Count; b++)
-                {
-                    var building = buildings[b];
-                    basic += building.GetStorageCapacityBonusBasic();
-                    advanced += building.GetStorageCapacityBonusAdvanced();
-                    if (building.Type == BuildingType.Market && building.Level >= AutoBuyMinMarketLevel)
-                        hasHighLevelMarket = true;
-                }
-            }
-
-            basic += civ.ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_BASIC, "", 0);
-            advanced += civ.ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_ADVANCED, "", 0);
-
-            double multiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.STORAGE_CAPACITY_MULTIPLIER, "", 1.0);
-            basic = (int)(basic * multiplier);
-            advanced = (int)(advanced * multiplier);
-
-            civ.SetStorageCapacityCache(basic, advanced);
-            civ.SetAutoBuyUnlockedCache(hasHighLevelMarket && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE));
-        }
-
-        /// <summary>
-        /// Nouvelle instance du bâtiment, ou null si le type n'est pas enregistré. Simple relais
-        /// vers <see cref="BuildingFactory"/>, qui tient désormais seul la correspondance
-        /// BuildingType → type concret, partagée avec <see cref="BuildingJsonConverter"/>.
-        /// </summary>
-        public static Building? CreateBuilding(BuildingType type) => BuildingFactory.Create(type);
     }
 }

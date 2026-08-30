@@ -153,7 +153,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
             civ.Cities[0].AddBuilding(new Market());
             civ.Cities[0].AddBuilding(new TownHall { Level = 8 }); // capacity = 5*(2+8)=50
-            BuildingController.RecalculateStorageCapacity(civ);
+            civ.RecalculateStorageCapacity();
 
             civ.TechnologyTree.CompleteResearch(TechnologyId.EfficientTrading); // TRADE_BULK_GOLD_BONUS +1
 
@@ -175,7 +175,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
             civ.Cities[0].AddBuilding(new Market());
             civ.Cities[0].AddBuilding(new TownHall { Level = 8 }); // capacity=50
-            BuildingController.RecalculateStorageCapacity(civ);
+            civ.RecalculateStorageCapacity();
 
             civ.AddCustomAggregator(new FlatModifierProvider(
                 new Modifier(ECategory.TRADE_BULK_GOLD_BONUS, EType.ADDITIVE, 3)));
@@ -196,7 +196,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
             civ.Cities[0].AddBuilding(new Market());
             civ.Cities[0].AddBuilding(new TownHall { Level = 8 }); // capacity=50
-            BuildingController.RecalculateStorageCapacity(civ);
+            civ.RecalculateStorageCapacity();
             civ.AddResource(Resource.Wood, 50);
 
             var controller = new TradeController(state);
@@ -212,7 +212,7 @@ namespace SOITests.ControllerTests
             var civ = state.Civilizations[0];
             civ.Cities[0].AddBuilding(new Market());
             civ.Cities[0].AddBuilding(new TownHall { Level = 3 }); // city.Level=3 → Ore has capacity
-            BuildingController.RecalculateStorageCapacity(civ);
+            civ.RecalculateStorageCapacity();
             civ.AddResource(Resource.Gold, 15);
 
             var controller = new TradeController(state);

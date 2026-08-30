@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
@@ -74,7 +73,7 @@ public static class BuildingMaxLevelCalculator
         var result = new Dictionary<BuildingType, int>();
         foreach (BuildingType type in Enum.GetValues<BuildingType>())
         {
-            var prototype = BuildingController.CreateBuilding(type);
+            var prototype = BuildingFactory.Create(type);
             if (prototype == null) continue;
 
             string subCategory = type.ToString();
@@ -101,7 +100,7 @@ public static class BuildingMaxLevelCalculator
         var modifiers = new List<Modifier>();
         foreach (BuildingType type in Enum.GetValues<BuildingType>())
         {
-            if (BuildingController.CreateBuilding(type) is not IUniqueBuilding unique) continue;
+            if (BuildingFactory.Create(type) is not IUniqueBuilding unique) continue;
 
             ((Building)unique).Level = 1;
             modifiers.AddRange(unique.GetUniqueBuildingModifiers());

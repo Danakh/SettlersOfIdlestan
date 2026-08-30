@@ -38,7 +38,7 @@ namespace SOITests.ControllerTests
             civ.AddCity(city);
             // Stockage avancé suffisant pour accumuler les cristaux récoltés dans les tests.
             city.AddBuilding(new TownHall { Level = 20 });
-            BuildingController.RecalculateStorageCapacity(civ);
+            civ.RecalculateStorageCapacity();
             var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
             return (state, city);
         }

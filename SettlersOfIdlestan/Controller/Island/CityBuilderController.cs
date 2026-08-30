@@ -688,7 +688,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))
                     if (!city.Buildings.Any(b => b.Type == bt))
                     {
-                        var b = BuildingController.CreateBuilding(bt);
+                        var b = BuildingFactory.Create(bt);
                         if (b != null && !b.IsAvailableInLayer(vertexMap.Z))
                             continue;
                         if (b != null)

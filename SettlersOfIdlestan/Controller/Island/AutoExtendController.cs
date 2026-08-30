@@ -791,7 +791,7 @@ public class AutoExtendController
         {
             if (type == BuildingType.TownHall) continue;
 
-            var building = BuildingController.CreateBuilding(type);
+            var building = BuildingFactory.Create(type);
             if (building == null) continue;
             if (building.IsUnique) continue;
             if (!building.IsBuildingAvailableForCity(map, city)) continue;
@@ -823,7 +823,7 @@ public class AutoExtendController
 
     private static void FillMaxResources(Civilization civ)
     {
-        BuildingController.RecalculateStorageCapacity(civ);
+        civ.RecalculateStorageCapacity();
 
         foreach (Resource resource in Enum.GetValues<Resource>())
         {

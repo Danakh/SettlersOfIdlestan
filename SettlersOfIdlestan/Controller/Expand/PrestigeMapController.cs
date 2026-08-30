@@ -148,7 +148,7 @@ public class PrestigeMapController
     {
         if (!city.Buildings.Any(b => b.Type == bt))
         {
-            var building = BuildingController.CreateBuilding(bt);
+            var building = BuildingFactory.Create(bt);
             if (building == null) return;
             var map = worldState.GetMapFor(city.Position);
             if (map == null || !building.IsAvailableInLayer(map.Z)) return;

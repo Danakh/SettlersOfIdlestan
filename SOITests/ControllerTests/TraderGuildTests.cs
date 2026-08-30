@@ -46,7 +46,7 @@ public class TraderGuildTests
     public void TraderGuild_WithoutPrestige_HasMaxLevelZero()
     {
         var (state, controller, civ) = CreateSetup();
-        var prototype = BuildingController.CreateBuilding(BuildingType.TraderGuild)!;
+        var prototype = BuildingFactory.Create(BuildingType.TraderGuild)!;
 
         // Without any modifier: default max level is 0 → can't be built
         Assert.Equal(0, controller.GetMaxLevel(prototype, civ));
@@ -116,7 +116,7 @@ public class TraderGuildTests
         // Bump TownHall level so storage fits upgrade cost (Food 100, Wood 40, Brick 40, Gold 40):
         // Basic max = 10 (1 city) + 5×20 = 110
         city.Buildings.First(b => b.Type == BuildingType.TownHall).Level = 20;
-        BuildingController.RecalculateStorageCapacity(civ);
+        civ.RecalculateStorageCapacity();
 
         city.AddBuilding(new TraderGuild { Level = 1 });
         civ.RebuildUniqueBuildingsModifiers();

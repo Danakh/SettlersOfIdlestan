@@ -57,14 +57,6 @@ public class BuildingFactoryTests
         Assert.Equal(BuildingFactory.Create(type)!.GetType(), BuildingFactory.GetClrType(type));
     }
 
-    [Fact]
-    public void BuildingControllerCreateBuilding_StillDelegatesToTheFactory()
-    {
-        foreach (var type in Enum.GetValues<BuildingType>())
-            Assert.Equal(BuildingFactory.Create(type)!.GetType(),
-                BuildingController.CreateBuilding(type)!.GetType());
-    }
-
     [Theory]
     [MemberData(nameof(AllBuildingTypes))]
     public void EveryBuildingType_SurvivesAJsonRoundTripAsItsConcreteType(BuildingType type)

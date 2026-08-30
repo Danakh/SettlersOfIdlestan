@@ -754,7 +754,7 @@ public class MonsterFeatureController
                             city.RemoveBuilding(townHall);
                             city.InvalidateLevelCache();
                         }
-                        BuildingController.RecalculateStorageCapacity(civ);
+                        civ.RecalculateStorageCapacity();
                         civ.TrimResourcesToMax();
                     }
                 }

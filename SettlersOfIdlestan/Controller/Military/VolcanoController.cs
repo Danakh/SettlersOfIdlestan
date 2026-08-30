@@ -162,7 +162,7 @@ public class VolcanoController
                     city.RemoveBuilding(townHall);
                     city.InvalidateLevelCache();
                 }
-                BuildingController.RecalculateStorageCapacity(civ);
+                civ.RecalculateStorageCapacity();
                 civ.TrimResourcesToMax();
             }
         }

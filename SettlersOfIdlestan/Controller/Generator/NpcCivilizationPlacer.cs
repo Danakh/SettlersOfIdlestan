@@ -367,7 +367,7 @@ public class NpcCivilizationPlacer
         var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
         if (existing == null)
         {
-            var building = BuildingController.CreateBuilding(type);
+            var building = BuildingFactory.Create(type);
             if (building == null) return;
             building.Level = targetLevel;
             city.AddBuilding(building);
@@ -383,7 +383,7 @@ public class NpcCivilizationPlacer
 
     private static void FillMaxResources(Civilization civ)
     {
-        BuildingController.RecalculateStorageCapacity(civ);
+        civ.RecalculateStorageCapacity();
 
         foreach (Resource resource in Enum.GetValues<Resource>())
         {

@@ -777,7 +777,7 @@ public sealed class AutomationRenderer : IDisposable
             .Select(type => new AutomationPresetRowSnapshot(
                 Key: type.ToString(),
                 Name: _localization.Get($"building_{type.ToString().ToLower()}_name"),
-                MaxLevel: Math.Min(SettlersOfIdlestan.Model.Prestige.AutomationPresetSettings.MaxCap, BuildingController.CreateBuilding(type)!.GetAbsoluteMaxLevel()),
+                MaxLevel: Math.Min(SettlersOfIdlestan.Model.Prestige.AutomationPresetSettings.MaxCap, BuildingFactory.Create(type)!.GetAbsoluteMaxLevel()),
                 Preset1: presets.GetCap(1, type),
                 Preset2: presets.GetCap(2, type),
                 Preset3: presets.GetCap(3, type)))

@@ -933,7 +933,7 @@ public class RaceSystemTests
     {
         foreach (var race in RaceDefinitions.All.Where(r => r.RacialBuilding != null))
         {
-            var prototype = BuildingController.CreateBuilding(race.RacialBuilding!.Value);
+            var prototype = BuildingFactory.Create(race.RacialBuilding!.Value);
             Assert.NotNull(prototype);
             Assert.True(prototype!.IsUnique, $"{race.RacialBuilding} doit être unique");
             Assert.IsAssignableFrom<IUniqueBuilding>(prototype);

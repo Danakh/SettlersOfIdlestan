@@ -429,7 +429,7 @@ namespace SOITests.ControllerTests
         {
             var (state, civ, city) = CreateOverflowSetup();
             city.AddBuilding(new Market { Level = 4 });
-            BuildingController.RecalculateStorageCapacity(civ);
+            civ.RecalculateStorageCapacity();
             civ.TechnologyTree.CompleteResearch(TechnologyId.AutomaticMarket);
 
             int maxWood = civ.GetResourceMaxQuantity(Resource.Wood);
@@ -453,7 +453,7 @@ namespace SOITests.ControllerTests
         {
             var (state, civ, city) = CreateOverflowSetup();
             city.AddBuilding(new Market { Level = 4 });
-            BuildingController.RecalculateStorageCapacity(civ);
+            civ.RecalculateStorageCapacity();
 
             int maxWood = civ.GetResourceMaxQuantity(Resource.Wood);
             civ.AddResource(Resource.Wood, maxWood);
@@ -475,7 +475,7 @@ namespace SOITests.ControllerTests
         {
             var (state, civ, city) = CreateOverflowSetup();
             city.AddBuilding(new Market { Level = 3 });
-            BuildingController.RecalculateStorageCapacity(civ);
+            civ.RecalculateStorageCapacity();
             civ.TechnologyTree.CompleteResearch(TechnologyId.AutomaticMarket);
 
             int maxWood = civ.GetResourceMaxQuantity(Resource.Wood);

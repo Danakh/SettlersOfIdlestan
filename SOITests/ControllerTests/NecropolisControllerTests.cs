@@ -49,7 +49,7 @@ namespace SOITests.ControllerTests
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
-            BuildingController.RecalculateStorageCapacity(state.PlayerCivilization);
+            state.PlayerCivilization.RecalculateStorageCapacity();
 
             var clock = new GameClock();
             clock.Start();

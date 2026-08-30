@@ -51,7 +51,7 @@ public class BuildingMaxLevelCalculatorTests
     [MemberData(nameof(AllBuildingTypes))]
     public void TheoreticalMaxLevel_MatchesIndependentSumOfAllBonusSources(BuildingType type)
     {
-        var prototype = BuildingController.CreateBuilding(type)!;
+        var prototype = BuildingFactory.Create(type)!;
         string subCategory = type.ToString();
 
         bool Matches(SettlersOfIdlestan.Model.GameplayModifier.Modifier m) =>
@@ -70,7 +70,7 @@ public class BuildingMaxLevelCalculatorTests
         // HarvestersGuild/ArtisansGuild/TraderGuild.GetUniqueBuildingModifiers).
         foreach (BuildingType uniqueType in Enum.GetValues<BuildingType>())
         {
-            if (BuildingController.CreateBuilding(uniqueType) is not IUniqueBuilding unique) continue;
+            if (BuildingFactory.Create(uniqueType) is not IUniqueBuilding unique) continue;
             ((Building)unique).Level = 1;
             expected += unique.GetUniqueBuildingModifiers().Where(Matches).Sum(m => (int)m.Value);
         }

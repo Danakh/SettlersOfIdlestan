@@ -32,7 +32,7 @@ namespace SOITests.ControllerTests
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
-            BuildingController.RecalculateStorageCapacity(state.PlayerCivilization);
+            state.PlayerCivilization.RecalculateStorageCapacity();
 
             var tiles = new[] { new HexTile(UnderworldHex, TerrainType.Mountain) };
             state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(tiles, LayerState.UnderworldZ)));
@@ -123,7 +123,7 @@ namespace SOITests.ControllerTests
             // chance quand le tirage de Corruption atteint le plafond de l'île, rend l'hex éligible).
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
-            BuildingController.RecalculateStorageCapacity(state.PlayerCivilization);
+            state.PlayerCivilization.RecalculateStorageCapacity();
 
             var tiles = new[] { new HexTile(UnderworldHex, TerrainType.Mountain) };
             state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(tiles, LayerState.UnderworldZ)));
@@ -148,7 +148,7 @@ namespace SOITests.ControllerTests
             // rester plaçable sur cet hex — la Source y est toujours présente.
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
-            BuildingController.RecalculateStorageCapacity(state.PlayerCivilization);
+            state.PlayerCivilization.RecalculateStorageCapacity();
 
             var tiles = new[] { new HexTile(UnderworldHex, TerrainType.Mountain) };
             state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(tiles, LayerState.UnderworldZ)));

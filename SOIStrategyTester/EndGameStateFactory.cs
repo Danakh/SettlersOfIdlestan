@@ -624,7 +624,7 @@ public static class EndGameStateFactory
         }
 
         GrantUniqueBuildings(controller, civ);
-        BuildingController.RecalculateStorageCapacity(civ);
+        civ.RecalculateStorageCapacity();
         civ.InvalidateBuildingDerivedCaches();
         civ.InvalidateAllCityMaxSoldiersCaches();
     }

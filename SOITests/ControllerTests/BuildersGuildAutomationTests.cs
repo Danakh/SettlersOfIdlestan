@@ -177,7 +177,7 @@ public class BuildersGuildAutomationTests
         city.AddBuilding(new TownHall { Level = 4 });
         var guild = new BuildersGuild { Level = 1 };
         city.AddBuilding(guild);
-        BuildingController.RecalculateStorageCapacity(civ);
+        civ.RecalculateStorageCapacity();
 
         civ.AddResource(Resource.Wood,  30);
         civ.AddResource(Resource.Brick, 30);
@@ -307,7 +307,7 @@ public class BuildersGuildAutomationTests
         city.AddBuilding(new TownHall { Level = 20 });
         var guild = new BuildersGuild { Level = 4 }; // cheap road costs while building the manual chain
         city.AddBuilding(guild);
-        BuildingController.RecalculateStorageCapacity(civ);
+        civ.RecalculateStorageCapacity();
         civ.AddResource(Resource.Wood,  1000);
         civ.AddResource(Resource.Brick, 1000);
 
@@ -371,7 +371,7 @@ public class BuildersGuildAutomationTests
 
         city.AddBuilding(new TownHall { Level = 1 });
         city.AddBuilding(new BuildersGuild { Level = 1 });
-        BuildingController.RecalculateStorageCapacity(civ);
+        civ.RecalculateStorageCapacity();
 
         civ.AddResource(Resource.Food,  10);
         civ.AddResource(Resource.Wood,  10);
@@ -430,7 +430,7 @@ public class BuildersGuildAutomationTests
             new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Sawmill), EType.ADDITIVE, 4),
             new Modifier(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 100_000),
         }));
-        BuildingController.RecalculateStorageCapacity(civ);
+        civ.RecalculateStorageCapacity();
 
         civ.AddResource(Resource.Wood,  100_000);
         civ.AddResource(Resource.Brick, 100_000);

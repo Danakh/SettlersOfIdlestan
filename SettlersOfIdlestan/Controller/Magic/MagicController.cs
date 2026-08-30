@@ -449,7 +449,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             var townHall = city.Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
             if (townHall == null)
             {
-                townHall = BuildingController.CreateBuilding(BuildingType.TownHall)!;
+                townHall = BuildingFactory.Create(BuildingType.TownHall)!;
                 city.AddBuilding(townHall);
             }
             int townHallMaxLevel = _buildingController.GetMaxLevel(townHall, civ, city);
@@ -469,7 +469,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             city.CurrentDefense = city.MaxDefense;
             city.Soldiers = city.MaxSoldiers;
 
-            BuildingController.RecalculateStorageCapacity(civ);
+            civ.RecalculateStorageCapacity();
             RegisterSpellCast(id);
             return true;
         }

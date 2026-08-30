@@ -845,7 +845,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var hints = new List<(BuildingType, Resource)>();
             foreach (BuildingType type in Enum.GetValues(typeof(BuildingType)))
             {
-                var building = BuildingController.CreateBuilding(type);
+                var building = BuildingFactory.Create(type);
                 var resource = building?.ManualHarvestCapability(terrain);
                 if (resource.HasValue)
                     hints.Add((type, resource.Value));

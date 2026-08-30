@@ -303,7 +303,7 @@ public class DarkElfRaceTests
     [Fact]
     public void SpiderShrine_IsUnderworldOnlyAndUniqueWithZeroDefaultMaxLevel()
     {
-        var shrine = (SpiderShrine)BuildingController.CreateBuilding(BuildingType.SpiderShrine)!;
+        var shrine = (SpiderShrine)BuildingFactory.Create(BuildingType.SpiderShrine)!;
 
         Assert.True(shrine.IsUnique);
         Assert.Equal(0, shrine.GetDefaultMaxLevel());
@@ -314,7 +314,7 @@ public class DarkElfRaceTests
     [Fact]
     public void SpiderShrine_ExtendsImmunityToRatsAndMinorDemons()
     {
-        var shrine = (SpiderShrine)BuildingController.CreateBuilding(BuildingType.SpiderShrine)!;
+        var shrine = (SpiderShrine)BuildingFactory.Create(BuildingType.SpiderShrine)!;
 
         Assert.Empty(shrine.GetUniqueBuildingModifiers());
 
