@@ -68,7 +68,7 @@ public class MultiMapControllerTests
             new HexCoord(1, 0, IslandMap.SurfaceLayer),
             new HexCoord(0, 1, IslandMap.SurfaceLayer));
         enemyCiv.AddCity(new City(enemyVertex) { CivilizationIndex = enemyCiv.Index });
-        state.Civilizations.Add(enemyCiv);
+        state.AddCivilization(enemyCiv);
         state.Visibility.Recalculate();
 
         var underworldCity = playerCiv.Cities.Single(city => city.Position.Z == LayerState.UnderworldZ);

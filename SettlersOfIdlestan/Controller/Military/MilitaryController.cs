@@ -456,6 +456,13 @@ public class MilitaryController
     public MonsterAttackAvailability GetMonsterAttackAvailability(IMilitaryVertex vertex, MonsterFeature monster)
         => _monsterCombatEngine.GetAttackAvailability(vertex, monster);
 
+    /// <summary>
+    /// Purge ce que les moteurs militaires gardent au nom d'une civilisation retirée du monde — voir
+    /// <see cref="WorldState.CivilizationRemoved"/>.
+    /// </summary>
+    internal void PurgeCivilizationCaches(int civilizationIndex)
+        => _reinforcementEngine.PurgeCivilizationCaches(civilizationIndex);
+
     /// <summary>Efface tous les flux de renfort (vers alliés) de la civilisation.</summary>
     public void ClearReinforcementFlows(Civilization civ) => _reinforcementEngine.ClearReinforcementFlows(civ);
 

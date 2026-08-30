@@ -111,7 +111,7 @@ public class MobileCampControllerTests
     {
         var (state, civ, v1, vMiddle, v2) = RibbonIsland();
         var enemyCiv = new Civilization { Index = 1 };
-        state.Civilizations.Add(enemyCiv);
+        state.AddCivilization(enemyCiv);
         enemyCiv.AddCity(new City(vMiddle) { CivilizationIndex = 1 });
         var (_, campController) = Controllers(state);
 
@@ -244,7 +244,7 @@ public class MobileCampControllerTests
     {
         var (state, civ, v1, vMiddle, _) = RibbonIsland();
         var enemyCiv = new Civilization { Index = 1 };
-        state.Civilizations.Add(enemyCiv);
+        state.AddCivilization(enemyCiv);
         // vMiddle (distance 1 from v1) belongs to the enemy — an allied city being built must not
         // affect enemy Mobile Camps, only the building civilization's own camps.
         enemyCiv.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 1 });
@@ -262,7 +262,7 @@ public class MobileCampControllerTests
         // MobileCampController.DestroyCampsNear for the building civilization's own camps only.
         var (state, civ, v1, vMiddle, _) = RibbonIsland();
         var enemyCiv = new Civilization { Index = 1 };
-        state.Civilizations.Add(enemyCiv);
+        state.AddCivilization(enemyCiv);
         civ.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 0 });
         enemyCiv.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 1 });
         var (cityController, campController) = Controllers(state);
@@ -287,7 +287,7 @@ public class MobileCampControllerTests
         // same way founding one does.
         var (state, civ, v1, vMiddle, v2) = RibbonIsland();
         var enemyCiv = new Civilization { Index = 1 };
-        state.Civilizations.Add(enemyCiv);
+        state.AddCivilization(enemyCiv);
         var city = new City(v1) { CivilizationIndex = 0 };
         civ.AddCity(city);
         civ.AddMobileCamp(new MobileCamp(v2) { CivilizationIndex = 0 });

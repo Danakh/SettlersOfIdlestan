@@ -666,7 +666,7 @@ public class AutoExtendController
         // Remplissage des ressources initiales
         FillMaxResources(npcCiv);
 
-        _state.Civilizations.Add(npcCiv);
+        _state.AddCivilization(npcCiv);
         // RecalculateFor (et non Recalculate) : ne recalcule que la nouvelle civ, pour ne pas
         // re-diffuser la visibilité des autres civs.
         _state.Visibility.RecalculateFor(npcCiv.Index);

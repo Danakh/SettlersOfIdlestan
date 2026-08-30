@@ -164,7 +164,7 @@ public class MaritimeBeaconControllerTests
     {
         var (state, civ, vertex) = WaterTriangleIsland(greatLighthouseLevel: 2);
         var otherCiv = new Civilization { Index = 1 };
-        state.Civilizations.Add(otherCiv);
+        state.AddCivilization(otherCiv);
         otherCiv.AddMaritimeBeacon(new MaritimeBeacon(vertex) { CivilizationIndex = 1 });
 
         var vertices = Controller(state).GetBuildableVertices(0);

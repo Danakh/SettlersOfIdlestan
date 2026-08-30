@@ -139,7 +139,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 civ.RemoveAllRoads(r => r.Position.Z == LayerState.UnderworldZ);
 
             // Retire les civilisations NPC dont toutes les villes étaient dans l'Inframonde
-            _state.Civilizations.RemoveAll(c =>
+            _state.RemoveCivilizations(c =>
                 c.Index != _state.PlayerCivilization.Index
                 && c.Cities.Count > 0
                 && c.Cities.All(city => city.Position.Z == LayerState.UnderworldZ));

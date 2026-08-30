@@ -70,6 +70,19 @@ public class NpcGameController
         _militaryController.SoldierAttackedCity += OnCityAttacked;
     }
 
+    /// <summary>
+    /// Purge ce que ce contrôleur garde au nom d'une civilisation retirée du monde — voir
+    /// <see cref="WorldState.CivilizationRemoved"/>. L'autoplayer conservé retient la civilisation
+    /// elle-même et toute sa stratégie (dont un cache de vertex prospectifs couvrant la carte
+    /// visible) : sans cette purge, chaque civilisation PNJ éliminée en laisse un derrière elle pour
+    /// le reste de l'île.
+    /// </summary>
+    internal void PurgeCivilizationCaches(int civilizationIndex)
+    {
+        _autoplayerByCivIndex.Remove(civilizationIndex);
+        _nextStepTickByCivIndex.Remove(civilizationIndex);
+    }
+
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
         try { Update(e.CurrentTick); }

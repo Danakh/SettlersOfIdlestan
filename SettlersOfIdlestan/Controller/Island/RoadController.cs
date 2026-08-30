@@ -52,6 +52,18 @@ namespace SettlersOfIdlestan.Controller.Island
                 _buildableRoadsCache.Remove(key);
         }
 
+        /// <summary>
+        /// Purge le cache de routes constructibles d'une civilisation retirée du monde — voir
+        /// <see cref="WorldState.CivilizationRemoved"/>. Une entrée par layer, chacune retenant une
+        /// liste de routes ; les index de civilisation n'étant jamais recyclés, elles ne seraient
+        /// autrement libérées qu'au changement d'île.
+        /// </summary>
+        internal void PurgeCivilizationCaches(int civilizationIndex)
+        {
+            foreach (var key in _buildableRoadsCache.Keys.Where(k => k.CivilizationIndex == civilizationIndex).ToList())
+                _buildableRoadsCache.Remove(key);
+        }
+
         // 5 s × 100 ticks/s — same cadence as automatic harvests
         public const long AutoRoadBuildCooldownTicks = 500L;
 

@@ -351,6 +351,19 @@ namespace SettlersOfIdlestan.Controller.Island
         public void InvalidateProductionCache(int civilizationIndex) => _productionCache.Remove(civilizationIndex);
 
         /// <summary>
+        /// Purge tout ce que ce contrôleur garde au nom d'une civilisation qui vient d'être retirée du
+        /// monde — voir <see cref="WorldState.CivilizationRemoved"/>. Le cache de production retient
+        /// des références de villes et de bâtiments : sans cette purge, il maintient en vie tout un
+        /// pan d'un monde qui n'existe plus, et son entrée ne serait jamais réutilisée (les index de
+        /// civilisation ne sont pas recyclés).
+        /// </summary>
+        internal void PurgeCivilizationCaches(int civilizationIndex)
+        {
+            _productionCache.Remove(civilizationIndex);
+            _laboratoryCrystalCarry.Remove(civilizationIndex);
+        }
+
+        /// <summary>
         /// Construit la liste (hexagone, ville, bâtiment) des productions automatiques d'une
         /// civilisation.
         ///

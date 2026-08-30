@@ -51,10 +51,86 @@ public class WorldState : IJsonOnDeserialized
     /// </summary>
     public long StartTick { get; set; } = 0;
 
+    private List<SettlersOfIdlestan.Model.Civilization.Civilization> _civilizations;
+
     /// <summary>
-    /// Gets the list of civilizations on the world.
+    /// Civilisations présentes sur ce monde — <b>lecture seule</b> ; utiliser
+    /// <see cref="AddCivilization"/> / <see cref="RemoveCivilization"/> / <see cref="RemoveCivilizations"/>
+    /// pour muter. C'est ce qui rend fiables les caches indexés par <c>Civilization.Index</c> : sans
+    /// point d'accroche au retrait, ils gardaient indéfiniment les entrées des civilisations
+    /// éliminées (voir <see cref="CivilizationRemoved"/>).
+    ///
+    /// <para>Rend volontairement la <see cref="List{T}"/> concrète, et non un <c>IReadOnlyList</c>
+    /// comme <c>Civilization.Cities</c> : c'est la collection la plus parcourue du jeu — une
+    /// vingtaine de contrôleurs font un <c>foreach</c> dessus à <b>chaque</b> tick — et via
+    /// l'interface le <c>foreach</c> boxe l'énumérateur de structure de la liste (voir la note
+    /// correspondante dans CLAUDE.md). Le contrat de lecture seule est donc tenu par convention ici,
+    /// et non par le type.</para>
     /// </summary>
-    public List<SettlersOfIdlestan.Model.Civilization.Civilization> Civilizations { get; set; }
+    [JsonIgnore]
+    public List<SettlersOfIdlestan.Model.Civilization.Civilization> Civilizations => _civilizations;
+
+    // Utilisé uniquement par la sérialisation JSON : conserve le nom de propriété historique
+    // "Civilizations" dans les sauvegardes.
+    [JsonPropertyName("Civilizations")]
+    [JsonInclude]
+    public List<SettlersOfIdlestan.Model.Civilization.Civilization> CivilizationsSerialized
+    {
+        get => _civilizations;
+        private set => _civilizations = value ?? new();
+    }
+
+    /// <summary>
+    /// Déclenché après le retrait d'une civilisation, avec son <c>Index</c>. Les caches indexés par
+    /// civilisation s'y raccrochent pour se purger — voir
+    /// <c>MainGameController.OnCivilizationRemoved</c>, unique abonné, qui répercute sur tous les
+    /// contrôleurs concernés.
+    ///
+    /// <para>Sans cette purge, ces caches ne faisaient que croître sur toute la durée d'une île :
+    /// un nouvel index vaut toujours <c>Max(Index) + 1</c> (voir
+    /// <c>AutoExtendController.SpawnAggressiveCivilization</c>), donc aucune entrée périmée n'était
+    /// jamais réutilisée ni écrasée. Sur une partie longue où l'Inframonde régénère des PNJ à mesure
+    /// que les précédents sont éliminés, plusieurs de ces caches retiennent en plus des objets lourds
+    /// (villes, bâtiments, routes) d'un monde qui n'existe plus.</para>
+    /// </summary>
+    public event EventHandler<int>? CivilizationRemoved;
+
+    public void AddCivilization(SettlersOfIdlestan.Model.Civilization.Civilization civilization)
+        => _civilizations.Add(civilization);
+
+    /// <summary>Retire une civilisation et purge les caches indexés sur elle. Faux si absente.</summary>
+    public bool RemoveCivilization(SettlersOfIdlestan.Model.Civilization.Civilization civilization)
+    {
+        if (!_civilizations.Remove(civilization)) return false;
+        RaiseCivilizationRemoved(civilization.Index);
+        return true;
+    }
+
+    /// <summary>
+    /// Retire toutes les civilisations correspondant au prédicat et purge les caches indexés sur
+    /// chacune. Retourne le nombre de civilisations retirées.
+    /// </summary>
+    public int RemoveCivilizations(Predicate<SettlersOfIdlestan.Model.Civilization.Civilization> match)
+    {
+        // Les index sont relevés avant le retrait : après RemoveAll, les instances sont perdues.
+        List<int>? removedIndices = null;
+        for (int i = 0; i < _civilizations.Count; i++)
+            if (match(_civilizations[i]))
+                (removedIndices ??= new()).Add(_civilizations[i].Index);
+
+        if (removedIndices == null) return 0;
+
+        _civilizations.RemoveAll(match);
+        foreach (int index in removedIndices)
+            RaiseCivilizationRemoved(index);
+        return removedIndices.Count;
+    }
+
+    private void RaiseCivilizationRemoved(int index)
+    {
+        _harvestLastTimesByCivilization.Remove(index);
+        CivilizationRemoved?.Invoke(this, index);
+    }
 
     /// <summary>
     /// Gets the player's civilization (always at index 0). Ignoré en JSON : c'est un raccourci vers
@@ -93,7 +169,7 @@ public class WorldState : IJsonOnDeserialized
     {
         Visibility = new WorldVisibility(this);
         _layers[IslandMap.SurfaceLayer] = new LayerState(map);
-        Civilizations = civilizations;
+        _civilizations = civilizations ?? new();
         WorldId = worldId;
         Features = new List<IslandFeature>();
         PlunderCooldownDuration = new Dictionary<HexCoord, long>();
@@ -108,7 +184,7 @@ public class WorldState : IJsonOnDeserialized
     {
         Visibility = new WorldVisibility(this);
         _layers[IslandMap.SurfaceLayer] = new LayerState();
-        Civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
+        _civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
         Features = new List<IslandFeature>();
         PlunderCooldownDuration = new Dictionary<HexCoord, long>();
     }

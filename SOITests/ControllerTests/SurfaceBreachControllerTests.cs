@@ -206,7 +206,7 @@ namespace SOITests.ControllerTests
             // Une civ NPC quadrillant toute l'île de routes : sans le Site d'Arrivée, le point de
             // chute et ses voisins immédiats seraient des candidats parfaitement valides pour elle.
             var npcCiv = new Civilization { Index = state.Civilizations.Max(c => c.Index) + 1, IsNpc = true };
-            state.Civilizations.Add(npcCiv);
+            state.AddCivilization(npcCiv);
 
             var map = state.GetMapForZ(IslandMap.SurfaceLayer)!;
             var edges = new HashSet<Edge>();
@@ -306,7 +306,7 @@ namespace SOITests.ControllerTests
                 new HexCoord(-1, 1, IslandMap.SurfaceLayer),
                 new HexCoord(0, 0, IslandMap.SurfaceLayer));
             npcCiv.AddCity(new City(npcVertex) { CivilizationIndex = npcCiv.Index });
-            state.Civilizations.Add(npcCiv);
+            state.AddCivilization(npcCiv);
 
             var surfaceCity = state.PlayerCivilization.Cities.First(c => c.Position.Z == IslandMap.SurfaceLayer);
             state.PlayerCivilization.RemoveCity(surfaceCity);

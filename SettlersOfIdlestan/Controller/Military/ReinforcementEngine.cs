@@ -45,6 +45,17 @@ internal class ReinforcementEngine
         _productionEngine = productionEngine;
     }
 
+    /// <summary>
+    /// Purge le graphe d'adjacence caché d'une civilisation retirée du monde — voir
+    /// <see cref="WorldState.CivilizationRemoved"/>. Une entrée par layer, chacune retenant un
+    /// dictionnaire de vertex.
+    /// </summary>
+    internal void PurgeCivilizationCaches(int civilizationIndex)
+    {
+        foreach (var key in _adjCache.Keys.Where(k => k.civIndex == civilizationIndex).ToList())
+            _adjCache.Remove(key);
+    }
+
     internal int ReinforcementRange(Civilization civ)
         => civ.ModifierAggregator.ApplyModifiers(ECategory.REINFORCEMENT_RANGE, "", DefaultReinforcementRange);
 

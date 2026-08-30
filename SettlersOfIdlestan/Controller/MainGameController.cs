@@ -368,7 +368,7 @@ namespace SettlersOfIdlestan.Controller
         /// toujours « éliminée », jamais « pas encore installée ».
         /// </summary>
         private static void PruneEliminatedCivilizations(WorldState? worldState)
-            => worldState?.Civilizations.RemoveAll(c => c.IsNpc && c.Cities.Count == 0);
+            => worldState?.RemoveCivilizations(c => c.IsNpc && c.Cities.Count == 0);
 
         /// <summary>Ticks correspondant aux 8 h de <see cref="ClampDemoIslandPlaytime"/> (1 tick = 0.01 s).</summary>
         private const long DemoMaxIslandTicks = 8L * 60 * 60 * 100;
@@ -543,7 +543,33 @@ namespace SettlersOfIdlestan.Controller
                 // introuvable pour lui.
                 CityBuilderController.OnCityDestroyed -= RemoveEliminatedCivilization;
                 CityBuilderController.OnCityDestroyed += RemoveEliminatedCivilization;
+
+                WorldState.CivilizationRemoved -= OnCivilizationRemoved;
+                WorldState.CivilizationRemoved += OnCivilizationRemoved;
             }
+        }
+
+        /// <summary>
+        /// Unique abonné à <see cref="WorldState.CivilizationRemoved"/> : répercute le retrait d'une
+        /// civilisation sur tous les caches indexés par <c>Civilization.Index</c>. Centralisé ici
+        /// pour la même raison que <see cref="OnCityDestroyedHandler"/> — la civilisation peut être
+        /// retirée depuis plusieurs endroits (élimination d'un PNJ, perte de l'Inframonde ou des
+        /// Abysses, nettoyage au chargement) et tous doivent purger la même chose.
+        ///
+        /// <para>Ces caches ne se corrigeaient pas d'eux-mêmes : un index de civilisation n'est jamais
+        /// recyclé (<c>Max(Index) + 1</c>), donc une entrée périmée n'est ni réutilisée ni écrasée,
+        /// et plusieurs d'entre elles retiennent des villes, des bâtiments ou des routes d'un monde
+        /// disparu jusqu'au changement d'île.</para>
+        /// </summary>
+        private void OnCivilizationRemoved(object? sender, int civilizationIndex)
+        {
+            HarvestController.PurgeCivilizationCaches(civilizationIndex);
+            RoadController.PurgeCivilizationCaches(civilizationIndex);
+            CityBuilderController.PurgeCivilizationCaches(civilizationIndex);
+            MaritimeBeaconController.PurgeCivilizationCaches(civilizationIndex);
+            BuildingController.PurgeCivilizationCaches(civilizationIndex);
+            MilitaryController.PurgeCivilizationCaches(civilizationIndex);
+            NpcGameController.PurgeCivilizationCaches(civilizationIndex);
         }
 
         private void OnFeatureDiscovered(object? sender, IslandFeature feature)
@@ -634,7 +660,7 @@ namespace SettlersOfIdlestan.Controller
             var worldState = CurrentMainState?.CurrentWorldState;
             var civ = worldState?.GetCivilization(e.CivilizationIndex);
             if (civ != null && civ.IsNpc && civ.Cities.Count == 0)
-                worldState!.Civilizations.Remove(civ);
+                worldState!.RemoveCivilization(civ);
         }
 
         /// <summary>

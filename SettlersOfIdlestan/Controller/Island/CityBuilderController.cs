@@ -73,6 +73,13 @@ namespace SettlersOfIdlestan.Controller.Island
         // 10 s × 100 ticks/s
         public const long AutoOutpostBuildCooldownTicks = 1000L;
 
+        /// <summary>
+        /// Purge le cache de vertex constructibles d'une civilisation retirée du monde — voir
+        /// <see cref="WorldState.CivilizationRemoved"/>.
+        /// </summary>
+        internal void PurgeCivilizationCaches(int civilizationIndex)
+            => _buildableVerticesCache.Remove(civilizationIndex);
+
         public event EventHandler<OutpostAutoBuiltEventArgs>? OnAutoOutpostBuilt;
         public event EventHandler<OutpostAutoBuiltEventArgs>? OnCityBuilt;
         public event EventHandler<CityDestroyedEventArgs>? OnCityDestroyed;

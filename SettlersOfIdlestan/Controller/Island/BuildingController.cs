@@ -98,6 +98,18 @@ namespace SettlersOfIdlestan.Controller.Island
             _guildResourceRetryTick.Clear();
         }
 
+        /// <summary>
+        /// Purge les caches d'automatisation de guilde d'une civilisation retirée du monde — voir
+        /// <see cref="WorldState.CivilizationRemoved"/>. Une entrée par type de guilde.
+        /// </summary>
+        internal void PurgeCivilizationCaches(int civilizationIndex)
+        {
+            foreach (var key in _guildNothingToDoCache.Keys.Where(k => k.CivIndex == civilizationIndex).ToList())
+                _guildNothingToDoCache.Remove(key);
+            foreach (var key in _guildResourceRetryTick.Keys.Where(k => k.CivIndex == civilizationIndex).ToList())
+                _guildResourceRetryTick.Remove(key);
+        }
+
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
             try { PerformHarvestersGuildProductionAutomation(); }

@@ -820,7 +820,7 @@ public class RoadControllerTests
         EnableMaritimeRoutes(civ);
 
         var enemyCiv = new Civilization { Index = 1 };
-        state.Civilizations.Add(enemyCiv);
+        state.AddCivilization(enemyCiv);
         enemyCiv.AddMaritimeBeacon(new MaritimeBeacon(openSeaVertex) { CivilizationIndex = 1 });
 
         var roads = new RoadController(state).GetBuildableRoads(0);

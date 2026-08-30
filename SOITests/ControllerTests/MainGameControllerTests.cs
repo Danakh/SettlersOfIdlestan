@@ -136,7 +136,7 @@ namespace SOITests.ControllerTests
                 new HexCoord(-1, 0, IslandMap.SurfaceLayer),
                 new HexCoord(0, -1, IslandMap.SurfaceLayer));
             npcCiv.AddCity(new SettlersOfIdlestan.Model.Civilization.City(npcCityVertex) { CivilizationIndex = npcCiv.Index });
-            mainState.CurrentWorldState.Civilizations.Add(npcCiv);
+            mainState.CurrentWorldState.AddCivilization(npcCiv);
 
             var json = JsonSerializer.Serialize(mainState, SaveController.SerializationOptions());
 

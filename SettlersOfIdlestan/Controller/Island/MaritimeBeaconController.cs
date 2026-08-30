@@ -30,6 +30,13 @@ namespace SettlersOfIdlestan.Controller.Island
             _buildableVerticesCache.Clear();
         }
 
+        /// <summary>
+        /// Purge le cache de vertex constructibles d'une civilisation retirée du monde — voir
+        /// <see cref="WorldState.CivilizationRemoved"/>.
+        /// </summary>
+        internal void PurgeCivilizationCaches(int civilizationIndex)
+            => _buildableVerticesCache.Remove(civilizationIndex);
+
         public static ResourceSet GetBuildCost() => new()
         {
             { Resource.Glass, 10 },

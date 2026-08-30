@@ -560,7 +560,7 @@ public static class EndGameStateFactory
         foreach (var npc in doomed)
         {
             npc.RemoveAllRoads(_ => true);
-            world.Civilizations.Remove(npc);
+            world.RemoveCivilization(npc);
         }
 
         // Voir la note de Build : jamais Recalculate() ici non plus. Les entrées laissées derrière par

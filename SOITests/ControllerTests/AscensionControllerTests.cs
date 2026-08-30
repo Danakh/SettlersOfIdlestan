@@ -1053,7 +1053,7 @@ public class AscensionControllerTests
         var city = new City(vertex) { CivilizationIndex = enemyCiv.Index, Soldiers = soldiers, CurrentDefense = defense };
         city.AddBuilding(new TownHall { Level = townHallLevel });
         enemyCiv.AddCity(city);
-        state.Civilizations.Add(enemyCiv);
+        state.AddCivilization(enemyCiv);
         return city;
     }
 

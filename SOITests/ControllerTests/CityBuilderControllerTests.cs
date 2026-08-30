@@ -108,7 +108,7 @@ public class CityBuilderControllerTests
     {
         var (state, civ, _, vMiddle, _) = RibbonIsland();
         var enemyCiv = new Civilization { Index = 1 };
-        state.Civilizations.Add(enemyCiv);
+        state.AddCivilization(enemyCiv);
         enemyCiv.AddMobileCamp(new MobileCamp(vMiddle) { CivilizationIndex = 1 });
 
         var vertices = Controller(state).GetBuildableVertices(0);
@@ -164,7 +164,7 @@ public class CityBuilderControllerTests
     {
         var (state, civ, _, vMiddle, v2) = RibbonIsland();
         var enemyCiv = new Civilization { Index = 1 };
-        state.Civilizations.Add(enemyCiv);
+        state.AddCivilization(enemyCiv);
         enemyCiv.AddMaritimeBeacon(new MaritimeBeacon(vMiddle) { CivilizationIndex = 1 });
         enemyCiv.AddFleet(new WarFleet(vMiddle) { CivilizationIndex = 1 });
 
@@ -180,7 +180,7 @@ public class CityBuilderControllerTests
     {
         var (state, civ, _, vMiddle, v2) = RibbonIsland();
         var enemyCiv = new Civilization { Index = 1 };
-        state.Civilizations.Add(enemyCiv);
+        state.AddCivilization(enemyCiv);
         enemyCiv.AddCity(new City(vMiddle) { CivilizationIndex = 1 });
 
         var vertices = Controller(state).GetBuildableVertices(0);

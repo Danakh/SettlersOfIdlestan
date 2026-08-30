@@ -248,7 +248,7 @@ namespace SOITests.ControllerTests
             var npcCiv = new Civilization { Index = state.Civilizations.Max(c => c.Index) + 1, IsNpc = true };
             var npcCity = new City(underworldVertex) { CivilizationIndex = npcCiv.Index };
             npcCiv.AddCity(npcCity);
-            state.Civilizations.Add(npcCiv);
+            state.AddCivilization(npcCiv);
 
             var underworldCity = state.PlayerCivilization.Cities.First(c => c.Position.Z == LayerState.UnderworldZ);
             state.PlayerCivilization.RemoveCity(underworldCity);
