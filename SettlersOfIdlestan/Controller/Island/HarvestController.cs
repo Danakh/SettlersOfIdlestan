@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Buildings;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
+using SettlersOfIdlestan.Controller.Island.Production;
 using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.IslandFeatures;
 
@@ -78,11 +79,37 @@ namespace SettlersOfIdlestan.Controller.Island
         public const long AlchimistHutPotionBaseIntervalTicks = 2000L;
 
         private GamePRNG? _prng;
-        private long _lastPassiveGenTick = 0;
-        private long _lastPassiveCrystalGenTick = 0;
-        // Reste fractionnaire de cristaux non encore distribué par CRYSTAL_GENERATION_PER_LABORATORY, par civilisation
-        // (valeur < 1 : perLab × nb labos n'est presque jamais un entier — voir PerformLaboratoryCrystalGeneration).
-        private readonly System.Collections.Generic.Dictionary<int, double> _laboratoryCrystalCarry = new();
+
+        /// <summary>
+        /// Systèmes de production extraits de ce contrôleur : chacun était une des étapes
+        /// indépendantes enchaînées par <see cref="OnClockAdvanced"/>, et ne partageait avec les
+        /// autres que <see cref="_overflowTrader"/>.
+        ///
+        /// <para>La récolte automatique, elle, reste ici : elle est indissociable du cache de
+        /// production (<see cref="_productionCache"/>), que l'API de reporting relit également.</para>
+        /// </summary>
+        private readonly ProductionOverflowTrader _overflowTrader = new();
+        private readonly SeaportProductionEngine _seaportEngine = new();
+        private readonly MarketGoldProductionEngine _marketGoldEngine = new();
+        private readonly SmelterProductionEngine _smelterEngine = new();
+        private readonly PassiveGenerationEngine _passiveEngine = new();
+        private readonly SmithProductionEngine _smithEngine = new();
+        private readonly AlchimistHutProductionEngine _alchimistHutEngine = new();
+
+        /// <summary>
+        /// Une étape du tick de production. <paramref name="Name"/> reprend le nom de la méthode
+        /// d'origine : c'est lui qui apparaît dans <see cref="GameLog"/>, et la clé de déduplication
+        /// des erreurs en dépend.
+        /// </summary>
+        private readonly record struct ProductionStep(string Name, Action<long> Tick);
+
+        /// <summary>
+        /// Étapes dans leur ordre d'exécution. <b>Cet ordre est celui de la version d'origine et doit
+        /// le rester</b> : plusieurs de ces étapes consomment le PRNG (ressource tirée par un Port,
+        /// doublement d'une forge), donc le déterminisme de la partie en dépend. Un tableau, non une
+        /// liste : parcouru à chaque événement d'horloge, un <c>foreach</c> sur tableau n'alloue rien.
+        /// </summary>
+        private ProductionStep[] _steps = Array.Empty<ProductionStep>();
 
         private readonly record struct ProductionEntry(HexCoord Hex, City City, Building Building, Resource Resource, TerrainType Terrain);
         private readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<ProductionEntry>> _productionCache = new();
@@ -107,37 +134,50 @@ namespace SettlersOfIdlestan.Controller.Island
             if (prng != null) _prng = prng;
             _productionCache.Clear();
 
-            // Non persistés (recréés/réinitialisés à chaque Initialize, y compris au chargement d'une
-            // sauvegarde) : les seeder au tick courant plutôt qu'à 0, sinon TickCooldown calcule un
-            // nombre de cycles de rattrapage proportionnel à tout le tick courant sur une partie déjà
-            // avancée (potentiellement des millions) au lieu du léger différé attendu en début de partie.
-            _lastPassiveGenTick = clock?.CurrentTick ?? 0;
-            _lastPassiveCrystalGenTick = clock?.CurrentTick ?? 0;
+            _overflowTrader.Initialize(state, tradeController);
+            _seaportEngine.Initialize(state, _prng, _overflowTrader);
+            _marketGoldEngine.Initialize(state);
+            _smelterEngine.Initialize(state, _overflowTrader);
+            _passiveEngine.Initialize(state, clock);
+            _smithEngine.Initialize(state, _prng);
+            _alchimistHutEngine.Initialize(state, _overflowTrader);
+
+            _seaportEngine.ResourceGenerated -= ForwardResourceGenerated;
+            _seaportEngine.ResourceGenerated += ForwardResourceGenerated;
+            _marketGoldEngine.ResourceGenerated -= ForwardResourceGenerated;
+            _marketGoldEngine.ResourceGenerated += ForwardResourceGenerated;
+
+            // Les noms reprennent ceux des méthodes d'origine : ils servent de clé de déduplication
+            // dans GameLog (voir ProductionStep).
+            _steps = new ProductionStep[]
+            {
+                new("PerformAutomaticProductionHarvests", _ => PerformAutomaticProductionHarvests()),
+                new("PerformSeaportGenerations",          _seaportEngine.Tick),
+                new("PerformMarketGoldGenerations",       _marketGoldEngine.Tick),
+                new("PerformSmelterProductions",          _smelterEngine.Tick),
+                new("PerformPassiveResourceGenerations",  _passiveEngine.Tick),
+                new("PerformWeaponSmithProductions",      _smithEngine.TickWeaponSmiths),
+                new("PerformArmorSmithProductions",       _smithEngine.TickArmorSmiths),
+                new("PerformAlchimistHutPotionProductions",  _alchimistHutEngine.TickPotions),
+                new("PerformAlchimistHutCrystalProductions", _alchimistHutEngine.TickFairyCircleCrystals),
+            };
 
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
         }
 
+        private void ForwardResourceGenerated(object? sender, MarketGenerationEventArgs e)
+            => OnRandomResourceGenerated?.Invoke(this, e);
+
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
-            try { PerformAutomaticProductionHarvests(); }
-            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformAutomaticProductionHarvests), ex); }
-            try { PerformSeaportGenerations(); }
-            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformSeaportGenerations), ex); }
-            try { PerformMarketGoldGenerations(); }
-            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformMarketGoldGenerations), ex); }
-            try { PerformSmelterProductions(e.CurrentTick); }
-            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformSmelterProductions), ex); }
-            try { PerformPassiveResourceGenerations(e.CurrentTick); }
-            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformPassiveResourceGenerations), ex); }
-            try { PerformWeaponSmithProductions(e.CurrentTick); }
-            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformWeaponSmithProductions), ex); }
-            try { PerformArmorSmithProductions(e.CurrentTick); }
-            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformArmorSmithProductions), ex); }
-            try { PerformAlchimistHutPotionProductions(e.CurrentTick); }
-            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformAlchimistHutPotionProductions), ex); }
-            try { PerformAlchimistHutCrystalProductions(e.CurrentTick); }
-            catch (Exception ex) { GameLog.Error(nameof(HarvestController), nameof(PerformAlchimistHutCrystalProductions), ex); }
+            // Chaque étape est isolée : une exception dans l'une ne doit pas empêcher les suivantes
+            // de tourner (voir GameClock.Advanced pour la sémantique du délégué multicast).
+            foreach (var step in _steps)
+            {
+                try { step.Tick(e.CurrentTick); }
+                catch (Exception ex) { GameLog.Error(nameof(HarvestController), step.Name, ex); }
+            }
         }
 
         /// <summary>Multiplicateur combiné de temps de récolte apporté par toutes les features présentes sur l'hex (Corruption, Dominion, Territoire contesté…).</summary>
@@ -253,7 +293,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         // lieu de la boucle ci-dessous. Sur une grosse sauvegarde, l'écrasante majorité
                         // des entrées de production n'a aucun de ces bonus actif ; rejouer cycle par
                         // cycle pour rien y dominait le temps d'un saut de temps (voir TickCooldown).
-                        TryAutoTradeOnOverflow(civ, city, resource);
+                        _overflowTrader.TryAutoTradeOnOverflow(civ, city, resource);
                         civ.AddResource(resource, (int)cycles);
                         rs[resource] += (int)cycles;
                         continue;
@@ -284,14 +324,14 @@ namespace SettlersOfIdlestan.Controller.Island
                         if (goldBonus) totalGoldGrants += multiplier;
                     }
 
-                    TryAutoTradeOnOverflow(civ, city, resource);
+                    _overflowTrader.TryAutoTradeOnOverflow(civ, city, resource);
                     civ.AddResource(resource, (int)totalUnits);
                     rs[resource] += (int)totalUnits;
-                    TryAutoTradeOnOverflow(civ, city, resource);
+                    _overflowTrader.TryAutoTradeOnOverflow(civ, city, resource);
 
                     if (totalGoldGrants > 0)
                     {
-                        TryAutoBuyOnGoldOverflow(civ, city);
+                        _overflowTrader.TryAutoBuyOnGoldOverflow(civ, city);
                         int goldToAdd = (int)(totalGoldGrants * goldAmount);
                         civ.AddResource(Resource.Gold, goldToAdd);
                         rs[Resource.Gold] += goldToAdd;
@@ -360,7 +400,7 @@ namespace SettlersOfIdlestan.Controller.Island
         internal void PurgeCivilizationCaches(int civilizationIndex)
         {
             _productionCache.Remove(civilizationIndex);
-            _laboratoryCrystalCarry.Remove(civilizationIndex);
+            _passiveEngine.PurgeCivilizationCaches(civilizationIndex);
         }
 
         /// <summary>
@@ -432,184 +472,10 @@ namespace SettlersOfIdlestan.Controller.Island
             return entries;
         }
 
-        private void PerformSeaportGenerations()
-        {
-            if (_state == null || _clock == null) return;
-            long now = _clock.CurrentTick;
 
-            foreach (var civ in _state.Civilizations)
-            {
-                // Seules les villes portant le bâtiment concerné, au lieu de toutes : voir
-                // Civilization.GetCitiesWith. L'ordre est celui de civ.Cities, ce dont dépend la
-                // consommation du PRNG ci-dessous.
-                var cities = civ.GetCitiesWith(BuildingType.Seaport);
-                for (int i = 0; i < cities.Count; i++)
-                {
-                    var city = cities[i];
-                    var seaport = city.FindBuilding<Seaport>(BuildingType.Seaport);
-                    if (seaport == null || seaport.Level < 3) continue;
 
-                    long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(seaport);
-                    long lastTick = seaport.LastGenerationTick;
-                    long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, effectiveCooldown, coldStartOnZero: true);
-                    seaport.LastGenerationTick = lastTick;
-                    if (cycles <= 0) continue;
 
-                    // Rejoué cycle par cycle : la ressource tirée est indépendante à chaque cycle.
-                    for (long c = 0; c < cycles; c++)
-                    {
-                        var resource = ResourceUtils.BasicResources[_prng!.Next(ResourceUtils.BasicResources.Count)];
-                        TryAutoTradeOnOverflow(civ, city, resource);
-                        civ.AddResource(resource, 1);
-                        OnRandomResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, resource, city.Position));
-                    }
-                }
-            }
-        }
 
-        private void PerformMarketGoldGenerations()
-        {
-            if (_state == null || _clock == null) return;
-            long now = _clock.CurrentTick;
-
-            foreach (var civ in _state.Civilizations)
-            {
-                var cities = civ.GetCitiesWith(BuildingType.Market);
-                for (int i = 0; i < cities.Count; i++)
-                {
-                    var city = cities[i];
-                    var market = city.FindBuilding<Market>(BuildingType.Market);
-                    if (market == null || market.Level == 0) continue;
-
-                    long effectiveCooldown = GetEffectiveMarketGoldGenerationCooldown(civ, market.Level);
-                    long lastTick = market.LastGoldGenerationTick;
-                    long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, effectiveCooldown, coldStartOnZero: true);
-                    market.LastGoldGenerationTick = lastTick;
-                    if (cycles <= 0) continue;
-
-                    civ.AddResource(Resource.Gold, (int)cycles);
-                    for (long c = 0; c < cycles; c++)
-                        OnRandomResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, Resource.Gold, city.Position));
-                }
-            }
-        }
-
-        private void PerformSmelterProductions(long currentTick)
-        {
-            if (_state == null) return;
-
-            foreach (var civ in _state.Civilizations)
-            {
-                var cities = civ.GetCitiesWith(BuildingType.Smelter);
-                for (int i = 0; i < cities.Count; i++)
-                {
-                    var city = cities[i];
-                    var smelter = city.FindBuilding<Smelter>(BuildingType.Smelter);
-                    if (smelter == null || smelter.Level < 1 || smelter.ActivationStatus != ActivationStatus.ACTIVE) continue;
-
-                    long cooldown = GetEffectiveSmelterCooldown(civ, smelter);
-                    long lastTick = smelter.LastProductionTick;
-                    long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, cooldown, coldStartOnZero: true);
-                    smelter.LastProductionTick = lastTick;
-                    if (cycles <= 0) continue;
-
-                    // Rejoué cycle par cycle : le stock d'Ore/Wood peut s'épuiser avant tous les
-                    // cycles dus, et le plafond d'Acier peut être atteint en cours de route.
-                    for (long c = 0; c < cycles; c++)
-                    {
-                        bool steelFull = civ.GetResourceQuantity(Resource.Steel) >= civ.GetResourceMaxQuantity(Resource.Steel);
-                        if (steelFull)
-                        {
-                            if (!IsAutoMarketTradeUnlocked(civ, city, Resource.Steel)) break;
-                            TryAutoTradeOnOverflow(civ, city, Resource.Steel);
-                            if (civ.GetResourceQuantity(Resource.Steel) >= civ.GetResourceMaxQuantity(Resource.Steel)) break;
-                        }
-
-                        int oreInput = GetSmelterOreInput(civ);
-                        if (civ.GetResourceQuantity(Resource.Ore) < oreInput)
-                        {
-                            civ.RaiseLowStock(Resource.Ore);
-                            break;
-                        }
-                        if (civ.GetResourceQuantity(Resource.Wood) < Smelter.WoodInputPerCycle)
-                        {
-                            civ.RaiseLowStock(Resource.Wood);
-                            break;
-                        }
-
-                        civ.RemoveResource(Resource.Ore,  oreInput);
-                        civ.RemoveResource(Resource.Wood, Smelter.WoodInputPerCycle);
-                        int steelOutput = GetSmelterSteelOutput(civ);
-                        for (int s = 0; s < steelOutput; s++)
-                        {
-                            TryAutoTradeOnOverflow(civ, city, Resource.Steel);
-                            civ.AddResource(Resource.Steel, 1);
-                        }
-                    }
-                }
-            }
-        }
-
-        private void PerformPassiveResourceGenerations(long currentTick)
-        {
-            if (_state == null) return;
-
-            long generalLast = _lastPassiveGenTick;
-            long generalCycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref generalLast, PassiveResourceGenerationIntervalTicks);
-            _lastPassiveGenTick = generalLast;
-
-            long crystalLast = _lastPassiveCrystalGenTick;
-            long crystalCycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref crystalLast, PassiveCrystalGenerationIntervalTicks);
-            _lastPassiveCrystalGenTick = crystalLast;
-
-            if (generalCycles <= 0 && crystalCycles <= 0) return;
-
-            foreach (var civ in _state.Civilizations)
-            {
-                foreach (Resource resource in Enum.GetValues<Resource>())
-                {
-                    long cycles = resource == Resource.Crystal ? crystalCycles : generalCycles;
-                    if (cycles <= 0) continue;
-
-                    int amount = civ.ModifierAggregator.ApplyModifiers(
-                        ECategory.PASSIVE_RESOURCE_GENERATION, resource.ToString(), 0);
-                    if (amount > 0)
-                    {
-                        try { civ.AddResource(resource, amount * (int)cycles); }
-                        catch (Exception ex) { GameLog.Error(nameof(HarvestController), $"AddResource {resource}", ex); }
-                    }
-                }
-
-                if (crystalCycles > 0)
-                    PerformLaboratoryCrystalGeneration(civ, crystalCycles);
-            }
-        }
-
-        /// <summary>
-        /// Applique CRYSTAL_GENERATION_PER_LABORATORY (ex. vertex de prestige Distillation Magique) : valeur agrégée
-        /// (typiquement &lt; 1) × nombre de Laboratoires construits (niveau ≥ 1) × cycles écoulés. Le reste
-        /// fractionnaire est reporté au cycle suivant par civilisation, pour ne jamais perdre de production même
-        /// avec peu de Laboratoires.
-        /// </summary>
-        private void PerformLaboratoryCrystalGeneration(Civilization civ, long cycles)
-        {
-            double perLaboratory = civ.ModifierAggregator.ApplyModifiers(ECategory.CRYSTAL_GENERATION_PER_LABORATORY, "", 0.0);
-            if (perLaboratory <= 0) return;
-
-            int laboratoryCount = civ.Cities.Sum(c => c.Buildings.Count(b => b.Type == BuildingType.Laboratory && b.Level >= 1));
-            if (laboratoryCount == 0) return;
-
-            _laboratoryCrystalCarry.TryGetValue(civ.Index, out double carry);
-            carry += perLaboratory * laboratoryCount * cycles;
-            int whole = (int)carry;
-            if (whole > 0)
-            {
-                try { civ.AddResource(Resource.Crystal, whole); }
-                catch (Exception ex) { GameLog.Error(nameof(HarvestController), "AddResource Crystal (laboratory)", ex); }
-                carry -= whole;
-            }
-            _laboratoryCrystalCarry[civ.Index] = carry;
-        }
 
         public static long GetEffectiveSeaportGenerationCooldown(Seaport seaport)
         {
@@ -625,181 +491,21 @@ namespace SettlersOfIdlestan.Controller.Island
             return Math.Max(1L, (long)(baseCooldown / speedMultiplier));
         }
 
-        private void PerformWeaponSmithProductions(long currentTick)
-        {
-            if (_state == null) return;
-
-            foreach (var civ in _state.Civilizations)
-            {
-                var cities = civ.GetCitiesWith(BuildingType.WeaponSmith);
-                for (int i = 0; i < cities.Count; i++)
-                {
-                    var city = cities[i];
-                    var smith = city.FindBuilding<WeaponSmith>(BuildingType.WeaponSmith);
-                    if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
-
-                    long cooldown = GetWeaponSmithInterval(smith.Level);
-                    long lastTick = smith.LastProductionTick;
-                    long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, cooldown);
-                    smith.LastProductionTick = lastTick;
-                    if (cycles <= 0) continue;
-
-                    // Rejoué cycle par cycle : le stock d'Acier peut s'épuiser en cours de route, et le
-                    // doublement est un tirage indépendant par cycle.
-                    for (long c = 0; c < cycles; c++)
-                    {
-                        if (civ.GetResourceQuantity(Resource.SteelWeapon) >= civ.GetResourceMaxQuantity(Resource.SteelWeapon)) break;
-
-                        if (civ.GetResourceQuantity(Resource.Steel) < WeaponSmith.SteelInputPerWeapon)
-                        {
-                            civ.RaiseLowStock(Resource.Steel);
-                            break;
-                        }
-
-                        civ.RemoveResource(Resource.Steel, WeaponSmith.SteelInputPerWeapon);
-                        civ.AddResource(Resource.SteelWeapon, 1);
-                        if (_prng!.Next(100) < civ.SmithDoubleProdChancePercent)
-                            civ.AddResource(Resource.SteelWeapon, 1);
-                    }
-                }
-            }
-        }
 
         /// <summary>Intervalle de production de la Forge d'Armes du niveau donné (x0.9 par niveau).</summary>
         public static long GetWeaponSmithInterval(int level)
             => Math.Max(1L, (long)(WeaponSmithBaseIntervalTicks * Math.Pow(0.9, level - 1)));
 
-        private void PerformArmorSmithProductions(long currentTick)
-        {
-            if (_state == null) return;
-
-            foreach (var civ in _state.Civilizations)
-            {
-                var cities = civ.GetCitiesWith(BuildingType.ArmorSmith);
-                for (int i = 0; i < cities.Count; i++)
-                {
-                    var city = cities[i];
-                    var smith = city.FindBuilding<ArmorSmith>(BuildingType.ArmorSmith);
-                    if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
-
-                    long cooldown = GetArmorSmithInterval(smith.Level);
-                    long lastTick = smith.LastProductionTick;
-                    long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, cooldown);
-                    smith.LastProductionTick = lastTick;
-                    if (cycles <= 0) continue;
-
-                    // Rejoué cycle par cycle : le stock d'Acier peut s'épuiser en cours de route, et le
-                    // doublement est un tirage indépendant par cycle.
-                    for (long c = 0; c < cycles; c++)
-                    {
-                        if (civ.GetResourceQuantity(Resource.SteelArmor) >= civ.GetResourceMaxQuantity(Resource.SteelArmor)) break;
-
-                        if (civ.GetResourceQuantity(Resource.Steel) < ArmorSmith.SteelInputPerArmor)
-                        {
-                            civ.RaiseLowStock(Resource.Steel);
-                            break;
-                        }
-
-                        civ.RemoveResource(Resource.Steel, ArmorSmith.SteelInputPerArmor);
-                        civ.AddResource(Resource.SteelArmor, 1);
-                        if (_prng!.Next(100) < civ.SmithDoubleProdChancePercent)
-                            civ.AddResource(Resource.SteelArmor, 1);
-                    }
-                }
-            }
-        }
 
         /// <summary>Intervalle de production de la Forge d'Armures du niveau donné (x0.9 par niveau).</summary>
         public static long GetArmorSmithInterval(int level)
             => Math.Max(1L, (long)(ArmorSmithBaseIntervalTicks * Math.Pow(0.9, level - 1)));
 
-        private void PerformAlchimistHutPotionProductions(long currentTick)
-        {
-            if (_state == null) return;
-
-            foreach (var civ in _state.Civilizations)
-            {
-                if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION)) continue;
-
-                var cities = civ.GetCitiesWith(BuildingType.AlchimistHut);
-                for (int i = 0; i < cities.Count; i++)
-                {
-                    var city = cities[i];
-                    var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { Level: >= 1 } h1 ? h1 : null;
-                    if (hut == null || hut.ActivationStatus != ActivationStatus.ACTIVE) continue;
-
-                    long interval = GetAlchimistHutPotionInterval(hut.Level);
-                    long lastTick = hut.LastPotionProductionTick;
-                    long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, interval);
-                    hut.LastPotionProductionTick = lastTick;
-                    if (cycles <= 0) continue;
-
-                    // Rejoué cycle par cycle : le stock de Verre/Cristal peut s'épuiser avant tous les
-                    // cycles dus, et le plafond de Potions peut être atteint en cours de route.
-                    for (long c = 0; c < cycles; c++)
-                    {
-                        if (civ.GetResourceQuantity(Resource.HealingPotion) >= civ.GetResourceMaxQuantity(Resource.HealingPotion)) break;
-
-                        if (civ.GetResourceQuantity(Resource.Glass) < AlchimistHut.GlassInputPerPotion)
-                        {
-                            civ.RaiseLowStock(Resource.Glass);
-                            break;
-                        }
-                        if (civ.GetResourceQuantity(Resource.Crystal) < AlchimistHut.CrystalInputPerPotion)
-                        {
-                            civ.RaiseLowStock(Resource.Crystal);
-                            break;
-                        }
-
-                        civ.RemoveResource(Resource.Glass, AlchimistHut.GlassInputPerPotion);
-                        civ.RemoveResource(Resource.Crystal, AlchimistHut.CrystalInputPerPotion);
-                        civ.AddResource(Resource.HealingPotion, 1);
-                    }
-                }
-            }
-        }
 
         /// <summary>Intervalle de production de Potions de Soin pour une Hutte d'Alchimie du niveau donné (x0.9 par niveau).</summary>
         public static long GetAlchimistHutPotionInterval(int level)
             => Math.Max(1L, (long)(AlchimistHutPotionBaseIntervalTicks * Math.Pow(0.9, level - 1)));
 
-        /// <summary>
-        /// Récolte automatique des cristaux des Cercles de Fées adjacents par la Hutte d'Alchimie.
-        /// Comportement aligné sur les bâtiments de production : cooldown de base 60s (réduit avec le
-        /// niveau via Building.GetAutomaticHarvestCooldown) et modificateur HARVEST_SPEED applicable.
-        /// </summary>
-        private void PerformAlchimistHutCrystalProductions(long currentTick)
-        {
-            if (_state == null) return;
-
-            foreach (var civ in _state.Civilizations)
-            {
-                var cities = civ.GetCitiesWith(BuildingType.AlchimistHut);
-                for (int i = 0; i < cities.Count; i++)
-                {
-                    var city = cities[i];
-                    var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { } h2 && h2.Level >= h2.AutomaticHarvestUnlockLevel ? h2 : null;
-                    if (hut == null) continue;
-
-                    long raw = hut.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
-                    double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(hut.Type), 1.0);
-                    long effective = Math.Max(1L, (long)(raw / speedMultiplier));
-
-                    long lastTick = hut.LastCrystalProductionTick;
-                    long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, effective);
-                    hut.LastCrystalProductionTick = lastTick;
-                    if (cycles <= 0) continue;
-
-                    int circleCount = city.Position.GetHexes()
-                        .SelectMany(hex => _state.GetFeaturesAt(hex).OfType<FairyCircle>())
-                        .Count(f => f.Found);
-                    if (circleCount <= 0) continue;
-
-                    TryAutoTradeOnOverflow(civ, city, Resource.Crystal);
-                    civ.AddResource(Resource.Crystal, circleCount * FairyCircle.CrystalsPerCycle * (int)cycles);
-                }
-            }
-        }
 
         /// <summary>Cooldown effectif du cycle de la Fonderie, après réduction par niveau puis application du modificateur SMELTER_SPEED.</summary>
         public static long GetEffectiveSmelterCooldown(Civilization civ, Smelter smelter)
@@ -907,50 +613,8 @@ namespace SettlersOfIdlestan.Controller.Island
             return result;
         }
 
-        /// <summary>
-        /// Vrai si la vente automatique du surplus est déverrouillée pour cette ressource (recherche Marché
-        /// Automatique, plus Comptoirs Avancés pour Minerai/Verre/Acier) et que la ville productrice possède
-        /// un Marché niv.4+.
-        /// </summary>
-        private static bool IsAutoMarketTradeUnlocked(Civilization civ, City city, Resource res)
-        {
-            bool isBasic = ResourceUtils.BasicResources.Contains(res);
-            bool isSellableIntermediate = res == Resource.Ore || res == Resource.Glass || res == Resource.Steel;
-            if (!isBasic && !isSellableIntermediate) return false;
 
-            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_MARKET_TRADE)) return false;
-            if (isSellableIntermediate && !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_INTERMEDIATE_TRADE)) return false;
-            return city.FindBuilding(BuildingType.Market) is { Level: >= 4 };
-        }
 
-        /// <summary>
-        /// Vend automatiquement le surplus d'une ressource de base ou intermédiaire dès lors que la recherche
-        /// correspondante est complétée et que la ville productrice possède un Marché niv.4+.
-        /// </summary>
-        private void TryAutoTradeOnOverflow(Civilization civ, City city, Resource res)
-        {
-            if (_tradeController == null) return;
-            if (!IsAutoMarketTradeUnlocked(civ, city, res)) return;
-
-            int maxQty = civ.GetResourceMaxQuantity(res);
-            int thresholdPercent = _state!.AutomationSettings.GetAutoSellThresholdPercent(res);
-            if (civ.GetResourceQuantity(res) < maxQty * thresholdPercent / 100) return;
-
-            _tradeController.SellResource(civ.Index, res);
-        }
-
-        /// <summary>
-        /// Achète automatiquement la ressource de base la plus rare avec l'or excédentaire dès lors que le vertex
-        /// de prestige Achat Automatique est débloqué et que la ville productrice possède un Marché niv.4+.
-        /// </summary>
-        private void TryAutoBuyOnGoldOverflow(Civilization civ, City city)
-        {
-            if (_tradeController == null) return;
-            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE)) return;
-            if (city.FindBuilding(BuildingType.Market) is not { Level: >= 4 }) return;
-
-            _tradeController.TryAutoBuyOnGoldOverflow(civ.Index);
-        }
 
         /// <summary>
         /// Calcule le gain moyen théorique en ressources par seconde, incluant les bonus probabilistes attendus.
@@ -1017,7 +681,12 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 var market = city.FindBuilding<Market>(BuildingType.Market);
                 if (market != null && market.Level > 0)
-                    AddProductionRate(result, Resource.Gold, 100.0 / MarketGoldGenerationCooldownTicks);
+                    // Cooldown effectif (réduit par le niveau, puis par MARKET_GOLD_SPEED) et non la
+                    // constante de base : celle-ci sous-estimait l'or des Marchés dès le niveau 2 et
+                    // ignorait le modificateur, alors que le tick et GetProductionRatesBySource
+                    // utilisaient déjà le cooldown effectif. Ces taux pilotent l'investissement
+                    // automatique des Monuments et l'autoplay (voir les appelants).
+                    AddProductionRate(result, Resource.Gold, 100.0 / GetEffectiveMarketGoldGenerationCooldown(civ, market.Level));
             }
 
             return result;

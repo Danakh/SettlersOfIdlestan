@@ -424,6 +424,33 @@ namespace SOITests.ControllerTests
             return (state, civ, city);
         }
 
+        /// <summary>
+        /// Régression : GetAverageProductionRatesPerSecond calculait l'or des Marchés depuis la
+        /// constante de base MarketGoldGenerationCooldownTicks, alors que le tick et
+        /// GetProductionRatesBySource utilisaient tous deux le cooldown effectif (réduit de 10 % par
+        /// niveau, puis par MARKET_GOLD_SPEED). Le taux annoncé était donc sous-estimé dès le niveau 2
+        /// — et ces taux pilotent l'investissement automatique des Monuments et l'autoplay.
+        /// </summary>
+        [Fact]
+        public void GetAverageProductionRatesPerSecond_MarketGold_UsesTheEffectiveCooldownNotTheBaseConstant()
+        {
+            var (state, civ, city) = CreateOverflowSetup();
+            city.AddBuilding(new Market { Level = 3 });
+
+            var clock = new GameClock();
+            clock.Start();
+            var harvestController = new HarvestController();
+            harvestController.Initialize(state, clock);
+
+            double goldRate = harvestController.GetAverageProductionRatesPerSecond(civ.Index)[Resource.Gold];
+
+            double expected = 100.0 / HarvestController.GetEffectiveMarketGoldGenerationCooldown(civ, 3);
+            Assert.Equal(expected, goldRate, precision: 10);
+            // Le niveau 3 produit strictement plus vite que le barème de base : c'est exactement
+            // l'écart que l'ancienne formule effaçait.
+            Assert.True(goldRate > 100.0 / HarvestController.MarketGoldGenerationCooldownTicks);
+        }
+
         [Fact]
         public void AutomaticHarvest_SellsOverflow_WhenAutomaticMarketUnlockedAndCityHasMarketLevel4()
         {
