@@ -281,6 +281,12 @@ public class AutoExtendController
     /// (voir <see cref="RollBorderMonster"/>) : dans l'Abysse, uniquement des démons mineurs/majeurs
     /// (<see cref="RollAbyssDemon"/>) ; ailleurs, (niveau de corruption global - 1)% de chance d'un
     /// démon mineur, sinon 65 % troll / 35 % ogre.
+    ///
+    /// <para><see cref="LayerState.LastBorderMonsterSpawnTick"/> vaut 0 par défaut à la création d'une
+    /// couche (Inframonde/Abysse) : sans <c>coldStartOnZero: true</c>, <see cref="TickCooldown.ConsumeElapsedCycles"/>
+    /// traiterait ce 0 comme un vrai tick de départ et rattraperait d'un coup tous les cycles écoulés
+    /// depuis le tout début de la partie — une salve de plusieurs dizaines de démons dès l'ouverture
+    /// de l'Abysse en partie déjà avancée, au lieu d'un simple amorçage silencieux du minuteur.</para>
     /// </summary>
     private void TrySpawnBorderMonsters(long currentTick)
     {
@@ -300,7 +306,7 @@ public class AutoExtendController
                 interval = Math.Max(1L, (long)(interval * intervalMultiplier));
             }
             long lastTick = layerState.LastBorderMonsterSpawnTick;
-            long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, interval);
+            long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, interval, coldStartOnZero: true);
             layerState.LastBorderMonsterSpawnTick = lastTick;
             if (cycles <= 0) continue;
 
