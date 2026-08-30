@@ -393,6 +393,41 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
+        /// Ordre d'exécution du tick de simulation, pour les contrôleurs abonnés à
+        /// <see cref="GameClock.Advanced"/>.
+        ///
+        /// <para>Cet ordre n'est tenu par rien d'autre que la <b>suite des lignes</b> de
+        /// <see cref="InitializeControllersForCurrentIsland"/> : un délégué multicast invoque ses
+        /// abonnés dans l'ordre où ils se sont abonnés. Déplacer une ligne d'initialisation compile,
+        /// passe les tests unitaires isolés, et change silencieusement le comportement du jeu — le
+        /// combat résolu après le déplacement des monstres, la récolte avant la découverte des
+        /// features, et le déterminisme de la partie avec, puisque plusieurs de ces contrôleurs
+        /// consomment le PRNG.</para>
+        ///
+        /// <para>Le déclarer ici transforme cette contrainte de commentaire en invariant vérifié :
+        /// <c>SimulationTickOrderTests</c> confronte cette liste à l'ordre réel des abonnés d'une
+        /// partie chargée. Un contrôleur absent de la liste n'est pas contraint ; y ajouter une entrée
+        /// revient à figer sa position relative.</para>
+        /// </summary>
+        internal static readonly Type[] SimulationTickOrder =
+        {
+            typeof(AutoExtendController),
+            typeof(RoadController),
+            typeof(CityBuilderController),
+            typeof(MobileCampController),
+            typeof(FeatureController),
+            typeof(MilitaryController),
+            typeof(MonsterFeatureController),
+            typeof(VolcanoController),
+            typeof(HarvestController),
+            typeof(BuildingController),
+            typeof(CorruptionController),
+            typeof(Magic.MagicController),
+            typeof(ResearchController),
+            typeof(NpcGameController),
+        };
+
+        /// <summary>
         /// Route une panne attrapée par une garde de contrôleur vers le journal d'événements de l'île
         /// <b>actuellement chargée</b>. Sans ce câblage, une exception levée à chaque tick était
         /// totalement muette dans un build livré : les gardes n'écrivaient que via
@@ -475,6 +510,9 @@ namespace SettlersOfIdlestan.Controller
                 // 6. TradeController — requis par HarvestController (auto-vente en cas de débordement)
                 // 7. HarvestController — dépend de TradeController et MonsterFeatureController
                 // 8. Reste des controllers (BuildingController, etc.) — indépendants
+                //
+                // Pour les contrôleurs qui s'abonnent à l'horloge, cet ordre d'abonnement EST l'ordre
+                // d'exécution du tick : il est déclaré dans SimulationTickOrder et vérifié par test.
                 RoadController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 CityBuilderController.Initialize(WorldState, Clock, CurrentMainState!.PRNG);
                 MaritimeBeaconController.Initialize(WorldState);

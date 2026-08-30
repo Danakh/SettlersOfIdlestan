@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Game
@@ -58,6 +59,28 @@ namespace SettlersOfIdlestan.Model.Game
         /// journal signifie précisément qu'une partie du tick n'a pas tourné.</para>
         /// </summary>
         public event EventHandler<GameClockAdvancedEventArgs>? Advanced;
+
+        /// <summary>
+        /// Cibles abonnées à <see cref="Advanced"/>, dans leur ordre d'invocation — c'est-à-dire
+        /// l'ordre réel d'exécution du tick.
+        ///
+        /// <para>Cet ordre n'est écrit nulle part : il découle de l'ordre des lignes de
+        /// <c>MainGameController.InitializeControllersForCurrentIsland</c>, et déplacer une de ces
+        /// lignes compile, passe les tests unitaires isolés, et change silencieusement le
+        /// comportement du jeu — déterminisme compris. Cet accesseur existe pour que
+        /// <c>MainGameController.SimulationTickOrder</c> puisse être confronté à la réalité par un
+        /// test plutôt que resté à l'état de commentaire.</para>
+        /// </summary>
+        internal IReadOnlyList<object?> GetAdvancedSubscribersInOrder()
+        {
+            var invocations = Advanced?.GetInvocationList();
+            if (invocations == null) return Array.Empty<object?>();
+
+            var targets = new object?[invocations.Length];
+            for (int i = 0; i < invocations.Length; i++)
+                targets[i] = invocations[i].Target;
+            return targets;
+        }
 
         // ── constructeurs ────────────────────────────────────────────────────
 
