@@ -25,6 +25,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
     private readonly Action _closeAll;
+    private readonly Action _closeOtherPopupsKeepingSelection;
     private readonly TradePopupRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
     private TargetSelectionService? _targetSelectionService;
@@ -46,6 +47,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         GameControllerService gameControllerService,
         LocalizationService localization,
         Action closeAll,
+        Action closeOtherPopupsKeepingSelection,
         TradePopupRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
         TargetSelectionService? targetSelectionService,
@@ -56,6 +58,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _gameControllerService = gameControllerService;
         _localization = localization;
         _closeAll = closeAll;
+        _closeOtherPopupsKeepingSelection = closeOtherPopupsKeepingSelection;
         _tradeRenderer = tradeRenderer;
         _prestigeRenderer = prestigeRenderer;
         _targetSelectionService = targetSelectionService;
@@ -136,7 +139,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private void DoTrade()
     {
         if (!IsTradeVisible()) return;
-        _closeAll();
+        _closeOtherPopupsKeepingSelection();
         _tradeRenderer.Open();
     }
 

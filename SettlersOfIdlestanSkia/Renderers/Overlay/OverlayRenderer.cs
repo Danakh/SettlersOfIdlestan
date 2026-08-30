@@ -109,6 +109,7 @@ public sealed class OverlayRenderer : IGameRenderer
             gameControllerService,
             localization,
             closeAll: CloseAll,
+            closeOtherPopupsKeepingSelection: CloseOtherPopupsKeepingSelection,
             tradeRenderer,
             prestigeRenderer,
             targetSelectionService: null,
@@ -635,6 +636,19 @@ public sealed class OverlayRenderer : IGameRenderer
         DeselectCityAndMonument();
         _selectedCityPanelRenderer.IsInputEnabled  = false;
         _selectedMonumentPanelRenderer.IsInputEnabled = false;
+    }
+
+    /// <summary>
+    /// Ferme les autres popups plein écran (réglages, prestige) sans désélectionner la ville ou
+    /// le monument affiché — contrairement à <see cref="CloseAll"/>. Utilisé avant l'ouverture du
+    /// panneau de commerce : ce dernier se pose au-dessus de la carte et n'a aucune raison de
+    /// fermer le panneau de ville consulté à côté.
+    /// </summary>
+    public void CloseOtherPopupsKeepingSelection()
+    {
+        _settingsMenu.Close();
+        _settingsPopupRenderer.Close();
+        _prestigeRenderer.Close();
     }
 
     public void Hide()
