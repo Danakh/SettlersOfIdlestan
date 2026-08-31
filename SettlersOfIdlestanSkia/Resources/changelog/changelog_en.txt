@@ -3,6 +3,10 @@ The changelog is not actively maintained at the moment.
 
 ---
 
+v0.20
+
+---
+
 v0.19
 • Various minor fixes and balancing adjustments (NPCs, monuments, Abyss monster spawns)
 
