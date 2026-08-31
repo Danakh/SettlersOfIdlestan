@@ -446,6 +446,17 @@ namespace SettlersOfIdlestan.Controller
             => CurrentMainState?.CurrentWorldState?.EventLog.Add(
                 GameEventType.RuntimeError, entry.ToString(), toast: true);
 
+        /// <summary>
+        /// Les sous-contrôleurs qu'un autoplayer manipule, rassemblés pour être prêtés sans prêter
+        /// tout le contrôleur principal (voir <see cref="AutoplayControllers"/>). Reconstruit à chaque
+        /// appel : les contrôleurs sont fixes pour la durée de vie de ce MainGameController, mais le
+        /// WorldState qu'il embarque change d'île en île.
+        /// </summary>
+        public AutoplayControllers CreateAutoplayControllers() => new(
+            RoadController, HarvestController, BuildingController, CityBuilderController,
+            TradeController, ResearchController, PrestigeController, PrestigeMapController,
+            CurrentMainState?.CurrentWorldState);
+
         private void InitializeControllersForCurrentIsland()
         {
             var WorldState = CurrentMainState?.CurrentWorldState;
@@ -540,7 +551,7 @@ namespace SettlersOfIdlestan.Controller
                 DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState, CurrentMainState!.PRNG, HarvestController);
                 MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController, RoadController);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings, CurrentMainState?.GodState);
-                NpcGameController.Initialize(WorldState, Clock, MilitaryController, this);
+                NpcGameController.Initialize(WorldState, Clock, MilitaryController, CreateAutoplayControllers());
 
                 // Invalide le cache de production dès qu'un bâtiment est construit/amélioré ou une ville créée
                 MagicController.OnRitualsChanged -= OnRitualsChangedInvalidateHarvestCache;
@@ -699,26 +710,6 @@ namespace SettlersOfIdlestan.Controller
             var civ = worldState?.GetCivilization(e.CivilizationIndex);
             if (civ != null && civ.IsNpc && civ.Cities.Count == 0)
                 worldState!.RemoveCivilization(civ);
-        }
-
-        /// <summary>
-        /// Retire de <paramref name="civ"/> les providers de modifiers propres à ce contrôleur
-        /// (Ascension, Prestige, Magie) — pour un MainGameController jetable câblé par erreur sur
-        /// une civilisation qui n'est pas la sienne (voir
-        /// NpcCivilizationPlacer.PlaceNpcCivilizations, qui crée un MainGameController à Humains/
-        /// GodState par défaut rien que pour piloter NpcCivilizationAutoplayer, et dont
-        /// SetGame/SetupModifierAggregators enregistre par effet de bord ces providers sur la
-        /// civilisation réelle du joueur passée dans le WorldState partagé — polluant par exemple
-        /// son niveau max de Ziggourat avec le bonus racial Humain +1, même en jouant une autre
-        /// race, tant que ce contrôleur jetable n'a pas été détaché). Sans effet sur les
-        /// enregistrements faits par un vrai MainGameController sur sa propre civilisation.
-        /// </summary>
-        public void DetachModifierProvidersFrom(Civilization civ)
-        {
-            civ.ModifierAggregator.Unregister(AscensionController);
-            if (_prestigeModifierProvider != null)
-                civ.ModifierAggregator.Unregister(_prestigeModifierProvider);
-            MagicController.DetachModifierProviderFrom(civ);
         }
 
         private void SetupModifierAggregators()

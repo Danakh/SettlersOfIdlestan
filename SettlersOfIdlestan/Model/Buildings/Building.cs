@@ -494,8 +494,9 @@ public class Building
     /// <param name="state">
     /// Monde courant, ou <c>null</c> quand l'appelant n'en a pas. Un prérequis lié à la carte
     /// (adjacence à une IslandFeature découverte : Cercle de Fées, Volcan) ne peut alors pas être
-    /// évalué — les redéfinitions concernées répondent <c>true</c>, comme le faisait la surcharge sans
-    /// WorldState qu'elles remplacent.
+    /// évalué : les redéfinitions concernées le tiennent pour <b>non rempli</b>, comme
+    /// <see cref="IsBuildingAvailableForCity"/> referme ses règles sans civilisation. Un prérequis
+    /// qu'on ne peut pas vérifier n'est pas un prérequis satisfait.
     /// </param>
     /// <remarks>Signature unique, voir <see cref="IsBuildingAvailableForCity"/>.</remarks>
     public virtual bool HasBuildPrerequisites(IBuildingContext city, WorldState? state) => true;

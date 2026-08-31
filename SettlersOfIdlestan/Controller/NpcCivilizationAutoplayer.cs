@@ -30,26 +30,31 @@ public class NpcCivilizationAutoplayer
     /// 100 en jeu réel, où l'horloge avance normalement, pour éviter que l'expansion — décision coûteuse
     /// (recherche de vertex/route candidats, pathfinding) — soit retentée trop souvent.
     /// </param>
+    /// <param name="controllers">
+    /// Contrôleurs déjà initialisés sur le monde visé. Prendre ce paquet plutôt qu'un
+    /// <see cref="MainGameController"/> est ce qui permet au générateur d'île de piloter un autoplay
+    /// PNJ sans avoir à câbler un jeu complet — voir <see cref="AutoplayControllers"/>.
+    /// </param>
     public NpcCivilizationAutoplayer(
         Civilization civ,
         IslandMap map,
-        MainGameController mainController,
+        AutoplayControllers controllers,
         NpcAggressivityLevel aggressivity,
         MilitaryController? militaryController = null,
         long expandCooldownTicks = 0L)
     {
-        _buildingController = mainController.BuildingController;
+        _buildingController = controllers.Building;
         _inner = new CivilizationAutoplayer(
             civ, map,
-            mainController.RoadController,
-            mainController.HarvestController,
-            mainController.BuildingController,
-            mainController.CityBuilderController,
-            mainController.TradeController,
-            mainController.ResearchController,
-            mainController.PrestigeController,
-            mainController.PrestigeMapController,
-            mainController.CurrentMainState?.CurrentWorldState,
+            controllers.Road,
+            controllers.Harvest,
+            controllers.Building,
+            controllers.CityBuilder,
+            controllers.Trade,
+            controllers.Research,
+            controllers.Prestige,
+            controllers.PrestigeMap,
+            controllers.World,
             militaryController: militaryController,
             clickCooldownTicks: 100L,
             expandCooldownTicks: expandCooldownTicks);

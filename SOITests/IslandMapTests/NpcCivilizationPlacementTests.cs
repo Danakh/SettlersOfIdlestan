@@ -289,15 +289,17 @@ public class NpcCivilizationPlacementTests
     }
 
     /// <summary>
-    /// Régression : PlaceNpcCivilizations pilote NpcCivilizationAutoplayer via un MainGameController
-    /// jetable (voir la ligne <c>mainController.SetGame(new MainGameState(state, clock, prng))</c>),
-    /// dont le GodState par défaut vaut Humains (AscensionState.SelectedRace) — SetGame enregistre par
-    /// effet de bord son AscensionController sur la civilisation RÉELLE du joueur au sein du même
-    /// WorldState partagé. Sans le détachement (MainGameController.DetachModifierProvidersFrom, appelé
-    /// juste après SetGame), le bonus racial Humain BUILDING_MAX_LEVEL Ziggourat +1 restait actif en
-    /// mémoire pour le reste du cycle, quelle que soit la race réellement jouée — la Ziggourat
-    /// devenait alors constructible en jouant une autre race que les Humains, dès qu'une île avec au
-    /// moins un NPC était générée (nouvelle partie, Ascension, Prestige).
+    /// Régression : PlaceNpcCivilizations pilotait NpcCivilizationAutoplayer via un MainGameController
+    /// jetable, dont le GodState par défaut vaut Humains (AscensionState.SelectedRace) — son
+    /// <c>SetGame</c> enregistrait par effet de bord son AscensionController sur la civilisation RÉELLE
+    /// du joueur, le WorldState étant partagé. Le bonus racial Humain BUILDING_MAX_LEVEL Ziggourat +1
+    /// restait alors actif en mémoire pour le reste du cycle quelle que soit la race jouée, rendant la
+    /// Ziggourat constructible hors Humains dès qu'une île avec au moins un PNJ était générée (nouvelle
+    /// partie, Ascension, Prestige). Un détachement manuel juste après SetGame le rattrapait.
+    ///
+    /// <para>Le placeur monte désormais lui-même les contrôleurs dont l'autoplay a besoin
+    /// (NpcCivilizationPlacer.CreateAutoplayControllers) : plus aucun provider n'est enregistré, donc
+    /// plus rien à détacher. Ce test vaut toujours — il vérifie l'absence de la fuite, pas le moyen.</para>
     /// </summary>
     [Fact]
     public void GeneratingIslandWithNpcs_DoesNotLeakHumanRacialBonusOntoPlayerCivilization()

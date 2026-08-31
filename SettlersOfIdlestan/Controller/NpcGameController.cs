@@ -21,7 +21,7 @@ public class NpcGameController
     private WorldState? _state;
     private GameClock? _clock;
     private MilitaryController? _militaryController;
-    private MainGameController? _mainController;
+    private AutoplayControllers? _autoplayControllers;
 
     /// <summary>Interval between NPC autoplayer turns (100 ticks = 1 s at normal speed).</summary>
     public const long NpcStepIntervalTicks = 100L;
@@ -51,7 +51,7 @@ public class NpcGameController
         WorldState state,
         GameClock? clock,
         MilitaryController militaryController,
-        MainGameController mainController)
+        AutoplayControllers autoplayControllers)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -61,7 +61,7 @@ public class NpcGameController
         _state = state;
         _clock = clock;
         _militaryController = militaryController;
-        _mainController = mainController;
+        _autoplayControllers = autoplayControllers;
         _nextStepTickByCivIndex.Clear();
         _autoplayerByCivIndex.Clear();
 
@@ -108,7 +108,7 @@ public class NpcGameController
     /// </summary>
     private void Update(long currentTick)
     {
-        if (_state == null || _mainController == null) return;
+        if (_state == null || _autoplayControllers == null) return;
 
         _npcCivsBuffer.Clear();
         var civilizations = _state.Civilizations;
@@ -132,7 +132,7 @@ public class NpcGameController
 
     private void RunNpcStep(Civilization civ)
     {
-        if (_state == null || _mainController == null) return;
+        if (_state == null || _autoplayControllers == null) return;
 
         var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
 
@@ -153,7 +153,7 @@ public class NpcGameController
             return cached.Autoplayer;
 
         var autoplayer = new NpcCivilizationAutoplayer(
-            civ, _state!.GetMapForZ(IslandMap.SurfaceLayer)!, _mainController!, aggressivity, _militaryController,
+            civ, _state!.GetMapForZ(IslandMap.SurfaceLayer)!, _autoplayControllers!, aggressivity, _militaryController,
             expandCooldownTicks: NpcStepIntervalTicks);
         _autoplayerByCivIndex[civ.Index] = (civ, aggressivity, autoplayer);
         return autoplayer;

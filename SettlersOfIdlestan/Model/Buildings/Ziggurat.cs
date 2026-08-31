@@ -29,17 +29,20 @@ public class Ziggurat : Building, IUniqueBuilding
         => IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city, civ);
 
     public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
-        => state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION)
-        && city.HasBuildingAtLevel(BuildingType.Temple, 4);
+        => HasDominion(state) && city.HasBuildingAtLevel(BuildingType.Temple, 4);
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
     {
-        if (!state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION))
+        if (!HasDominion(state))
             return "tooltip_requires_dominion";
         if (!city.HasBuildingAtLevel(BuildingType.Temple, 4))
             return "tooltip_requires_temple_level4";
         return null;
     }
+
+    /// <summary>Monde absent : le pouvoir divin Foi n'est pas consultable, le prérequis est tenu pour non rempli.</summary>
+    private static bool HasDominion(WorldState? state) =>
+        state != null && state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION);
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

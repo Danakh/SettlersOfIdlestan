@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Military;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -88,28 +90,73 @@ public class NpcCivilizationPlacer
 
         var clock = new GameClock();
         clock.Start();
-        var mainController = new MainGameController();
-        mainController.SetGame(new MainGameState(state, clock, prng));
-
-        // SetGame câble ce MainGameController jetable (race Humaine/GodState par défaut, rien que
-        // pour prêter ses sous-contrôleurs à NpcCivilizationAutoplayer ci-dessous) sur la
-        // civilisation RÉELLE du joueur au sein de `state` — le seul WorldState partagé. Sans ce
-        // détachement, son AscensionController par défaut (Humains) reste enregistré à côté de celui
-        // du vrai MainGameController pour le reste du cycle en mémoire, doublant certains bonus
-        // raciaux Humains (ex. Ziggourat +1 de niveau max) même en jouant une autre race — jusqu'au
-        // prochain rechargement de sauvegarde, qui reconstruit l'agrégateur proprement.
-        mainController.DetachModifierProvidersFrom(state.PlayerCivilization);
+        var controllers = CreateAutoplayControllers(state, clock, prng);
 
         foreach (var civ in npcCivs.Take(bestPlacement.Count))
         {
             var level = civ.NpcParameters?.EvolutionLevel ?? NpcEvolutionLevel.Minimum;
 
             var aggressivity = civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious;
-            var autoplayer = new NpcCivilizationAutoplayer(civ, map, mainController, aggressivity);
+            var autoplayer = new NpcCivilizationAutoplayer(civ, map, controllers, aggressivity);
             ExpandNpcWithAutoplayer(autoplayer, civ, map, level, playerVertex);
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Les contrôleurs à prêter à l'autoplay d'expansion, montés ici sur le monde en cours de
+    /// génération et sur une horloge qui n'avancera jamais.
+    ///
+    /// <para>Auparavant c'était un <see cref="MainGameController"/> jetable qui les fournissait, via
+    /// un <c>SetGame</c> qui câblait un jeu complet — abonnements à l'horloge, agrégateurs de
+    /// modificateurs, providers d'Ascension et de prestige — sur le WorldState partagé, pour n'en
+    /// utiliser que huit références. Ces effets de bord retombaient sur la civilisation RÉELLE du
+    /// joueur (le WorldState est le même objet) et devaient être défaits à la main juste après. Ils
+    /// touchaient aussi les civilisations PNJ, à qui <c>SetupModifierAggregators</c> ajoutait un
+    /// second jeu de modificateurs PNJ par-dessus celui posé plus haut dans cette méthode — les
+    /// rendant plus fortes pendant leur expansion initiale que partout ailleurs dans le jeu.</para>
+    ///
+    /// <para>Le <see cref="MainGameState"/> construit ici ne sert qu'à fournir un PrestigeState et un
+    /// GodState par défaut aux <c>Initialize</c> qui en attendent un — c'est un objet de modèle, il
+    /// ne câble rien.</para>
+    /// </summary>
+    private static AutoplayControllers CreateAutoplayControllers(WorldState state, GameClock clock, GamePRNG prng)
+    {
+        var defaults = new MainGameState(state, clock, prng);
+
+        var roadController = new RoadController();
+        var cityBuilderController = new CityBuilderController();
+        var buildingController = new BuildingController();
+        var tradeController = new TradeController();
+        var harvestController = new HarvestController();
+        var researchController = new ResearchController();
+        var prestigeController = new PrestigeController();
+
+        // Traînés uniquement par HarvestController, qui exige un MonsterFeatureController pour savoir
+        // si un hex est bloqué ; ni l'un ni l'autre n'est prêté à l'autoplay.
+        var warFleetController = new WarFleetController();
+        var mobileCampController = new MobileCampController();
+        var monsterFeatureController = new MonsterFeatureController();
+
+        // Même ordre de dépendances que MainGameController.InitializeControllersForCurrentIsland.
+        roadController.Initialize(state, clock, prng, defaults.PrestigeState);
+        cityBuilderController.Initialize(state, clock, prng);
+        warFleetController.Initialize(state);
+        mobileCampController.Initialize(state, cityBuilderController, clock);
+        monsterFeatureController.Initialize(state, clock, prng, cityBuilderController, defaults.PrestigeState,
+            warFleetController, mobileCampController, buildingController);
+        tradeController.Initialize(state);
+        harvestController.Initialize(state, clock, tradeController, monsterFeatureController, prng);
+        buildingController.Initialize(state, clock);
+        prestigeController.Initialize(state.PlayerCivilization, state, clock, defaults.PrestigeState,
+            defaults.GodState, buildingController);
+        researchController.Initialize(state, clock, defaults.PrestigeState, defaults.Settings, defaults.GodState);
+
+        return new AutoplayControllers(
+            roadController, harvestController, buildingController, cityBuilderController,
+            tradeController, researchController, prestigeController, new PrestigeMapController(),
+            state);
     }
 
     /// <summary>

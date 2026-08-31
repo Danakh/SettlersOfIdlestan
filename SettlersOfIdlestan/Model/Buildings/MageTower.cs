@@ -50,12 +50,12 @@ public class MageTower : Building
 
     private static bool IsAdjacentToCrystalCave(IBuildingContext city, WorldState? state)
     {
-        var map = state.GetMapFor(city.Position);
+        var map = state?.GetMapFor(city.Position);
         return map != null && map.VertexHasTerrainType(city.Position, TerrainType.CrystalCave);
     }
 
     private static bool IsAdjacentToFoundFairyCircle(IBuildingContext city, WorldState? state)
-        => city.Position.GetHexes().Any(hex => state.GetFeaturesAt(hex).OfType<FairyCircle>().Any(f => f.Found));
+        => state != null && city.Position.GetHexes().Any(hex => state.GetFeaturesAt(hex).OfType<FairyCircle>().Any(f => f.Found));
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

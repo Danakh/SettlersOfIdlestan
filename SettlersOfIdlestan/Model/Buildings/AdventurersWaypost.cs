@@ -59,6 +59,7 @@ public class AdventurersWaypost : Building
     /// </summary>
     public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
     {
+        if (state == null) return false;
         var owner = state.FindCityAt(city.Position);
         var civ = owner != null ? state.GetCivilization(owner.CivilizationIndex) : null;
         return civ != null && civ.Cities.Any(c => c.FindBuilding(BuildingType.AdventurersGuild) is { Level: > 0 });

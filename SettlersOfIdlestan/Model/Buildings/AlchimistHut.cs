@@ -52,7 +52,7 @@ public class AlchimistHut : Building
         => HasBuildPrerequisites(city, state) ? null : "tooltip_requires_fairy_circle";
 
     private static bool IsAdjacentToFoundFairyCircle(IBuildingContext city, WorldState? state)
-        => city.Position.GetHexes().Any(hex => state.GetFeaturesAt(hex).OfType<FairyCircle>().Any(f => f.Found));
+        => state != null && city.Position.GetHexes().Any(hex => state.GetFeaturesAt(hex).OfType<FairyCircle>().Any(f => f.Found));
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

@@ -53,7 +53,7 @@ public class NpcGameControllerAttackEscalationTests
         militaryController.Initialize(state, clock, cityBuilder, prng: new GamePRNG());
 
         var npcGameController = new NpcGameController();
-        npcGameController.Initialize(state, clock, militaryController, new MainGameController());
+        npcGameController.Initialize(state, clock, militaryController, new MainGameController().CreateAutoplayControllers());
 
         attackerCity.FlowTarget = defenderCity.Position;
 

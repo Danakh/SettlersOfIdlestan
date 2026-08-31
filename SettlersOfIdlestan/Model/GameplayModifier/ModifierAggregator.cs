@@ -40,11 +40,9 @@ public class ModifierAggregator
     }
 
     /// <summary>
-    /// Retire un provider précédemment enregistré (no-op si absent). Sert à défaire un
-    /// enregistrement fait par erreur sur la mauvaise civilisation — voir
-    /// <see cref="Generator.NpcCivilizationPlacer.PlaceNpcCivilizations"/>, qui câble un
-    /// MainGameController jetable (race par défaut Humaine) sur la civilisation réelle du joueur
-    /// pour piloter l'autoplay NPC, et doit annuler cet enregistrement une fois fait.
+    /// Retire un provider précédemment enregistré (no-op si absent). Contrepartie de
+    /// <see cref="Register"/> pour un provider dont la source disparaît — un contrôleur recâblé sur
+    /// un autre monde, un bâtiment unique détruit.
     /// </summary>
     public void Unregister(IModifierProvider provider)
     {

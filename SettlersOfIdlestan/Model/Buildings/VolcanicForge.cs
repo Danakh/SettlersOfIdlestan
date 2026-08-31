@@ -51,7 +51,7 @@ public class VolcanicForge : Building, IUniqueBuilding
         => HasBuildPrerequisites(city, state) ? null : "tooltip_requires_volcano";
 
     private static bool IsAdjacentToFoundVolcano(IBuildingContext city, WorldState? state)
-        => city.Position.GetHexes().Any(hex => state.GetFeaturesAt(hex).OfType<VolcanoFeature>().Any(v => v.Found));
+        => state != null && city.Position.GetHexes().Any(hex => state.GetFeaturesAt(hex).OfType<VolcanoFeature>().Any(v => v.Found));
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {
