@@ -16,12 +16,8 @@ namespace SettlersOfIdlestan.Controller.Island
     /// creusement par investissement progressif (1000 Acier entre autres), puis ouverture
     /// de l'avant-poste dans l'Inframonde.
     /// </summary>
-    public class DeepestMineController
+    public class DeepestMineController : MonumentControllerBase<DeepestMine>
     {
-        private WorldState? _state;
-        private GameClock? _clock;
-        private HarvestController? _harvestController;
-
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
         public event EventHandler? OnDeepestMinePlaced;
@@ -30,43 +26,22 @@ namespace SettlersOfIdlestan.Controller.Island
         internal DeepestMineController() { }
 
         internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
+            => InitializeCore(state, clock, harvestController);
+
+        protected override void OnClockAdvancedExtra()
         {
-            if (_clock != null)
-                _clock.Advanced -= OnClockAdvanced;
-
-            _state = state;
-            _clock = clock;
-            _harvestController = harvestController;
-
-            if (_clock != null)
-                _clock.Advanced += OnClockAdvanced;
-        }
-
-        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
-        {
-            try { ProcessInvestment(); }
-            catch (Exception ex) { GameLog.Error(nameof(DeepestMineController), nameof(ProcessInvestment), ex); }
             try { TryInitializeUnderworld(); }
             catch (Exception ex) { GameLog.Error(nameof(DeepestMineController), nameof(TryInitializeUnderworld), ex); }
         }
 
-        private void ProcessInvestment()
+        protected override bool IsInvestmentComplete(DeepestMine mine) => mine.Dug;
+
+        protected override void OnInvestmentCycleCompleted(DeepestMine mine, Civilization playerCiv)
         {
-            if (_state == null || _clock == null) return;
-            var mine = _state.Features.OfType<DeepestMine>().FirstOrDefault();
-            if (mine == null || mine.Dug) return;
-
-            // Pas de garde sur InvestmentEnabled avant ProcessTick — voir le commentaire de
-            // WonderController.ProcessInvestment pour la raison (évite de figer LastInvestmentTick
-            // pendant une désactivation, et le rattrapage massif que ça provoquerait à la réactivation).
-            var playerCiv = _state.PlayerCivilization;
-            var cost = mine.GetInvestmentCost(playerCiv);
-            if (!MonumentInvestment.ProcessTick(mine, cost, playerCiv, _clock.CurrentTick)) return;
-
             mine.Dug = true;
             mine.WasEverDug = true;
             mine.InvestmentEnabled.Clear();
-            _state.EventLog.Add(GameEventType.DeepestMineDug);
+            _state!.EventLog.Add(GameEventType.DeepestMineDug);
             OnDeepestMineDug?.Invoke(this, EventArgs.Empty);
         }
 
@@ -180,54 +155,25 @@ namespace SettlersOfIdlestan.Controller.Island
         /// adjacente et sans autre feature — du moins au plus coûteux à sacrifier (voir
         /// <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
         /// </summary>
-        public List<HexCoord> GetPlaceableHexes()
-        {
-            if (_state == null) return new List<HexCoord>();
+        public List<HexCoord> GetPlaceableHexes() => GetPlaceableHexesAroundPlayerCities();
 
-            var playerCiv = _state.PlayerCivilization;
+        protected override bool IsPlacementLayerAllowed(HexCoord hex) => hex.Z == IslandMap.SurfaceLayer;
 
-            var playerCityHexes = new HashSet<HexCoord>();
-            foreach (var city in playerCiv.Cities)
-                foreach (var hex in city.Position.GetHexes())
-                    playerCityHexes.Add(hex);
+        protected override bool IsPlacementTerrainAllowed(HexTile tile, IslandMap map, HexCoord hex)
+            => tile.TerrainType == TerrainType.Mountain;
 
-            var enemyZone = new HashSet<HexCoord>();
-            foreach (var civ in _state.Civilizations.Where(c => c.Index != playerCiv.Index))
-                foreach (var city in civ.Cities)
-                    foreach (var hex in city.Position.GetHexes())
-                    {
-                        enemyZone.Add(hex);
-                        foreach (HexDirection dir in Enum.GetValues<HexDirection>())
-                            enemyZone.Add(hex.Neighbor(dir));
-                    }
+        protected override DeepestMine CreateFeature(HexCoord position) => new(position);
 
-            var result = new List<HexCoord>();
-            foreach (var hex in playerCityHexes)
-            {
-                if (hex.Z != IslandMap.SurfaceLayer) continue;
-                var tile = _state.GetMapFor(hex)?.GetTile(hex);
-                if (tile == null) continue;
-                if (tile.TerrainType != TerrainType.Mountain) continue;
-                if (enemyZone.Contains(hex)) continue;
-                if (_state.HasMonumentBlockingFeaturesAt(hex)) continue;
-                result.Add(hex);
-            }
+        protected override GameEventType PlacedEventType => GameEventType.DeepestMinePlaced;
 
-            return MonumentInvestment.OrderByLeastSacrifice(result, playerCiv, _state);
-        }
+        /// <summary>
+        /// Contrairement à la Merveille, au Grand Phare et à l'Observatoire, la pose n'a jamais
+        /// vérifié que la position appartenait à une couche cartographiée — écart conservé tel quel.
+        /// </summary>
+        protected override bool RequiresMappedPositionToPlace => false;
 
-        public DeepestMine? PlaceDeepestMine(HexCoord position)
-        {
-            if (_state == null) return null;
-            var mine = new DeepestMine(position);
-            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
-            mine.LastInvestmentTick = _clock?.CurrentTick ?? 0;
-            _state.AddFeature(mine);
-            _state.EventLog.Add(GameEventType.DeepestMinePlaced);
-            if (_harvestController != null)
-                MonumentInvestment.TryAutoStartInvestment(mine, mine.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
-            OnDeepestMinePlaced?.Invoke(this, EventArgs.Empty);
-            return mine;
-        }
+        protected override void RaisePlaced() => OnDeepestMinePlaced?.Invoke(this, EventArgs.Empty);
+
+        public DeepestMine? PlaceDeepestMine(HexCoord position) => PlaceMonument(position);
     }
 }

@@ -17,12 +17,8 @@ namespace SettlersOfIdlestan.Controller.Island
     /// et des effets de portée liés aux Tours de Guet / routes maritimes une fois ces branches de
     /// prestige débloquées.
     /// </summary>
-    public class GreatLighthouseController
+    public class GreatLighthouseController : MonumentControllerBase<GreatLighthouse>
     {
-        private WorldState? _state;
-        private GameClock? _clock;
-        private HarvestController? _harvestController;
-
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
         public event EventHandler? OnGreatLighthousePlaced;
@@ -31,51 +27,21 @@ namespace SettlersOfIdlestan.Controller.Island
         internal GreatLighthouseController() { }
 
         internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
-        {
-            if (_clock != null)
-                _clock.Advanced -= OnClockAdvanced;
-
-            _state = state;
-            _clock = clock;
-            _harvestController = harvestController;
-
-            if (_clock != null)
-                _clock.Advanced += OnClockAdvanced;
-        }
-
-        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
-        {
-            try { ProcessInvestment(); }
-            catch (Exception ex) { GameLog.Error(nameof(GreatLighthouseController), nameof(ProcessInvestment), ex); }
-        }
+            => InitializeCore(state, clock, harvestController);
 
         public static ResourceSet GetLevelCost(int level) => GreatLighthouse.GetLevelCost(level);
 
-        private void ProcessInvestment()
+        protected override bool IsInvestmentComplete(GreatLighthouse greatLighthouse) => greatLighthouse.IsMaxLevel;
+
+        protected override void OnInvestmentCycleCompleted(GreatLighthouse greatLighthouse, Civilization playerCiv)
         {
-            if (_state == null || _clock == null) return;
-            var greatLighthouse = _state.Features.OfType<GreatLighthouse>().FirstOrDefault();
-            if (greatLighthouse == null || greatLighthouse.IsMaxLevel) return;
-
-            // Pas de garde sur InvestmentEnabled avant ProcessTick — voir le commentaire de
-            // WonderController.ProcessInvestment pour la raison (évite de figer LastInvestmentTick
-            // pendant une désactivation, et le rattrapage massif que ça provoquerait à la réactivation).
-            var playerCiv = _state.PlayerCivilization;
-            var cost = greatLighthouse.GetInvestmentCost(playerCiv);
-            if (!MonumentInvestment.ProcessTick(greatLighthouse, cost, playerCiv, _clock.CurrentTick)) return;
-
             greatLighthouse.Level++;
-            greatLighthouse.InvestedResources.Clear();
-            greatLighthouse.CompletedInvestmentCost.Clear();
-            greatLighthouse.InvestmentEnabled.Clear();
             // Niveau 1 active le bonus de portée des Tours de Guet (WorldVisibility.WatchtowerVisionBonus),
             // qui s'applique à toutes les civilisations : il faut donc un Recalculate() global, pas
             // seulement RecalculateFor(playerCiv). Sans cet appel, le cache de visibilité reste figé
             // à l'ancien rayon jusqu'à la prochaine mutation route/ville/bâtiment.
-            _state.Visibility.Recalculate();
-            _state.EventLog.Add(GameEventType.GreatLighthouseLevelUp, greatLighthouse.Level.ToString(), toast: true);
-            if (_harvestController != null && !greatLighthouse.IsMaxLevel)
-                MonumentInvestment.TryAutoStartInvestment(greatLighthouse, greatLighthouse.GetInvestmentCost(playerCiv), playerCiv, _harvestController, _state);
+            _state!.Visibility.Recalculate();
+            CompleteLevelUp(greatLighthouse, playerCiv, greatLighthouse.Level, greatLighthouse.IsMaxLevel, GameEventType.GreatLighthouseLevelUp);
             OnGreatLighthouseLevelUp?.Invoke(this, greatLighthouse.Level);
         }
 
@@ -104,57 +70,21 @@ namespace SettlersOfIdlestan.Controller.Island
         /// ennemie adjacente — du moins au plus coûteux à sacrifier (voir
         /// <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
         /// </summary>
-        public List<HexCoord> GetPlaceableHexes()
+        public List<HexCoord> GetPlaceableHexes() => GetPlaceableHexesAroundPlayerCities();
+
+        /// <summary>Terre côtière : hex non aquatique ayant au moins un voisin aquatique.</summary>
+        protected override bool IsPlacementTerrainAllowed(HexTile tile, IslandMap map, HexCoord hex)
         {
-            if (_state == null) return new List<HexCoord>();
-
-            var playerCiv = _state.PlayerCivilization;
-
-            var playerCityHexes = new HashSet<HexCoord>();
-            foreach (var city in playerCiv.Cities)
-                foreach (var hex in city.Position.GetHexes())
-                    playerCityHexes.Add(hex);
-
-            var enemyZone = new HashSet<HexCoord>();
-            foreach (var civ in _state.Civilizations.Where(c => c.Index != playerCiv.Index))
-                foreach (var city in civ.Cities)
-                    foreach (var hex in city.Position.GetHexes())
-                    {
-                        enemyZone.Add(hex);
-                        foreach (HexDirection dir in Enum.GetValues<HexDirection>())
-                            enemyZone.Add(hex.Neighbor(dir));
-                    }
-
-            var result = new List<HexCoord>();
-            foreach (var hex in playerCityHexes)
-            {
-                var map = _state.GetMapFor(hex);
-                var tile = map?.GetTile(hex);
-                if (tile == null || map == null) continue;
-                if (tile.TerrainType.IsWater()) continue;
-                bool isCoastal = hex.Neighbors().Any(n => map.GetTile(n)?.TerrainType.IsWater() == true);
-                if (!isCoastal) continue;
-                if (enemyZone.Contains(hex)) continue;
-                if (_state.HasMonumentBlockingFeaturesAt(hex)) continue;
-                result.Add(hex);
-            }
-
-            return MonumentInvestment.OrderByLeastSacrifice(result, playerCiv, _state);
+            if (tile.TerrainType.IsWater()) return false;
+            return hex.Neighbors().Any(n => map.GetTile(n)?.TerrainType.IsWater() == true);
         }
 
-        public GreatLighthouse? PlaceGreatLighthouse(HexCoord position)
-        {
-            if (_state == null) return null;
-            if (_state.GetMapFor(position) == null) return null;
-            var greatLighthouse = new GreatLighthouse(position);
-            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
-            greatLighthouse.LastInvestmentTick = _clock?.CurrentTick ?? 0;
-            _state.AddFeature(greatLighthouse);
-            _state.EventLog.Add(GameEventType.GreatLighthousePlaced);
-            if (_harvestController != null)
-                MonumentInvestment.TryAutoStartInvestment(greatLighthouse, greatLighthouse.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
-            OnGreatLighthousePlaced?.Invoke(this, EventArgs.Empty);
-            return greatLighthouse;
-        }
+        protected override GreatLighthouse CreateFeature(HexCoord position) => new(position);
+
+        protected override GameEventType PlacedEventType => GameEventType.GreatLighthousePlaced;
+
+        protected override void RaisePlaced() => OnGreatLighthousePlaced?.Invoke(this, EventArgs.Empty);
+
+        public GreatLighthouse? PlaceGreatLighthouse(HexCoord position) => PlaceMonument(position);
     }
 }

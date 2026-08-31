@@ -18,12 +18,8 @@ namespace SettlersOfIdlestan.Controller.Island
     /// en points de recherche des routes du Vide, de ×3 à ×2.4 une fois l'Observatoire complet
     /// (voir RoadController.GetVoidRouteResearchCost).
     /// </summary>
-    public class ObservatoryController
+    public class ObservatoryController : MonumentControllerBase<Observatory>
     {
-        private WorldState? _state;
-        private GameClock? _clock;
-        private HarvestController? _harvestController;
-
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
         public event EventHandler? OnObservatoryPlaced;
@@ -32,51 +28,31 @@ namespace SettlersOfIdlestan.Controller.Island
         internal ObservatoryController() { }
 
         internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
-        {
-            if (_clock != null)
-                _clock.Advanced -= OnClockAdvanced;
-
-            _state = state;
-            _clock = clock;
-            _harvestController = harvestController;
-
-            if (_clock != null)
-                _clock.Advanced += OnClockAdvanced;
-        }
-
-        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
-        {
-            try { ProcessInvestment(); }
-            catch (Exception ex) { GameLog.Error(nameof(ObservatoryController), nameof(ProcessInvestment), ex); }
-        }
+            => InitializeCore(state, clock, harvestController);
 
         public static ResourceSet GetLevelCost(int level) => Observatory.GetLevelCost(level);
 
         public static long GetLevelResearchCost(int level) => Observatory.GetLevelResearchCost(level);
 
-        private void ProcessInvestment()
+        protected override bool IsInvestmentComplete(Observatory observatory) => observatory.IsMaxLevel;
+
+        /// <summary>
+        /// Second axe d'investissement de l'Observatoire : les points de recherche, prélevés sur le
+        /// pool de la civilisation à leur propre rythme (voir MonumentInvestment.ProcessResearchTick).
+        /// </summary>
+        protected override bool ProcessExtraInvestmentAxes(Observatory observatory, Civilization playerCiv, long now)
+            => MonumentInvestment.ProcessResearchTick(observatory, observatory.GetRequiredResearch(playerCiv), playerCiv, now);
+
+        protected override void ResetExtraInvestmentAxes(Observatory observatory)
         {
-            if (_state == null || _clock == null) return;
-            var observatory = _state.Features.OfType<Observatory>().FirstOrDefault();
-            if (observatory == null || observatory.IsMaxLevel) return;
-
-            var playerCiv = _state.PlayerCivilization;
-            long now = _clock.CurrentTick;
-
-            var cost = observatory.GetInvestmentCost(playerCiv);
-            bool resourcesDone = MonumentInvestment.ProcessTick(observatory, cost, playerCiv, now);
-            bool researchDone = MonumentInvestment.ProcessResearchTick(observatory, observatory.GetRequiredResearch(playerCiv), playerCiv, now);
-            if (!resourcesDone || !researchDone) return;
-
-            observatory.Level++;
-            observatory.InvestedResources.Clear();
-            observatory.CompletedInvestmentCost.Clear();
-            observatory.InvestmentEnabled.Clear();
             observatory.InvestedResearch = 0;
             observatory.ResearchInvestmentEnabled = false;
-            _state.EventLog.Add(GameEventType.ObservatoryLevelUp, observatory.Level.ToString(), toast: true);
-            if (_harvestController != null && !observatory.IsMaxLevel)
-                MonumentInvestment.TryAutoStartInvestment(observatory, observatory.GetInvestmentCost(playerCiv), playerCiv, _harvestController, _state);
+        }
+
+        protected override void OnInvestmentCycleCompleted(Observatory observatory, Civilization playerCiv)
+        {
+            observatory.Level++;
+            CompleteLevelUp(observatory, playerCiv, observatory.Level, observatory.IsMaxLevel, GameEventType.ObservatoryLevelUp);
             OnObservatoryLevelUp?.Invoke(this, observatory.Level);
         }
 
@@ -98,57 +74,26 @@ namespace SettlersOfIdlestan.Controller.Island
         /// adjacente et sans autre feature — mêmes règles que la Mine Profonde, ordre du moins au
         /// plus coûteux à sacrifier compris (voir <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
         /// </summary>
-        public List<HexCoord> GetPlaceableHexes()
-        {
-            if (_state == null) return new List<HexCoord>();
+        public List<HexCoord> GetPlaceableHexes() => GetPlaceableHexesAroundPlayerCities();
 
-            var playerCiv = _state.PlayerCivilization;
+        protected override bool IsPlacementLayerAllowed(HexCoord hex) => hex.Z == IslandMap.SurfaceLayer;
 
-            var playerCityHexes = new HashSet<HexCoord>();
-            foreach (var city in playerCiv.Cities)
-                foreach (var hex in city.Position.GetHexes())
-                    playerCityHexes.Add(hex);
+        protected override bool IsPlacementTerrainAllowed(HexTile tile, IslandMap map, HexCoord hex)
+            => tile.TerrainType == TerrainType.Mountain;
 
-            var enemyZone = new HashSet<HexCoord>();
-            foreach (var civ in _state.Civilizations.Where(c => c.Index != playerCiv.Index))
-                foreach (var city in civ.Cities)
-                    foreach (var hex in city.Position.GetHexes())
-                    {
-                        enemyZone.Add(hex);
-                        foreach (HexDirection dir in Enum.GetValues<HexDirection>())
-                            enemyZone.Add(hex.Neighbor(dir));
-                    }
+        protected override Observatory CreateFeature(HexCoord position) => new(position);
 
-            var result = new List<HexCoord>();
-            foreach (var hex in playerCityHexes)
-            {
-                if (hex.Z != IslandMap.SurfaceLayer) continue;
-                var tile = _state.GetMapFor(hex)?.GetTile(hex);
-                if (tile == null) continue;
-                if (tile.TerrainType != TerrainType.Mountain) continue;
-                if (enemyZone.Contains(hex)) continue;
-                if (_state.HasMonumentBlockingFeaturesAt(hex)) continue;
-                result.Add(hex);
-            }
+        protected override GameEventType PlacedEventType => GameEventType.ObservatoryPlaced;
 
-            return MonumentInvestment.OrderByLeastSacrifice(result, playerCiv, _state);
-        }
+        /// <summary>
+        /// Amorce aussi le cooldown de l'investissement en recherche, pour la même raison que
+        /// LastInvestmentTick (voir MonumentControllerBase.PlaceMonument).
+        /// </summary>
+        protected override void PrimeExtraInvestmentAxesOnPlacement(Observatory observatory)
+            => observatory.LastResearchInvestmentTick = _clock?.CurrentTick ?? 0;
 
-        public Observatory? PlaceObservatory(HexCoord position)
-        {
-            if (_state == null) return null;
-            if (_state.GetMapFor(position) == null) return null;
-            var observatory = new Observatory(position);
-            // Amorce les cooldowns d'investissement (ressources + recherche) sur le tick de pose
-            // (voir WonderController.PlaceWonder).
-            observatory.LastInvestmentTick = _clock?.CurrentTick ?? 0;
-            observatory.LastResearchInvestmentTick = _clock?.CurrentTick ?? 0;
-            _state.AddFeature(observatory);
-            _state.EventLog.Add(GameEventType.ObservatoryPlaced);
-            if (_harvestController != null)
-                MonumentInvestment.TryAutoStartInvestment(observatory, observatory.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
-            OnObservatoryPlaced?.Invoke(this, EventArgs.Empty);
-            return observatory;
-        }
+        protected override void RaisePlaced() => OnObservatoryPlaced?.Invoke(this, EventArgs.Empty);
+
+        public Observatory? PlaceObservatory(HexCoord position) => PlaceMonument(position);
     }
 }

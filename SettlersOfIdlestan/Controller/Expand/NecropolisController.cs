@@ -21,11 +21,8 @@ namespace SettlersOfIdlestan.Controller.Island
     /// chaque niveau augmente de 10% les points divins gagnés à l'Ascension (voir
     /// AscensionController.GetGodPointsGain).
     /// </summary>
-    public class NecropolisController
+    public class NecropolisController : MonumentControllerBase<Necropolis>
     {
-        private WorldState? _state;
-        private GameClock? _clock;
-        private HarvestController? _harvestController;
         private GodState? _godState;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
@@ -43,45 +40,18 @@ namespace SettlersOfIdlestan.Controller.Island
         internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null,
             GodState? godState = null)
         {
-            if (_clock != null)
-                _clock.Advanced -= OnClockAdvanced;
-
-            _state = state;
-            _clock = clock;
-            _harvestController = harvestController;
+            InitializeCore(state, clock, harvestController);
             _godState = godState;
-
-            if (_clock != null)
-                _clock.Advanced += OnClockAdvanced;
-        }
-
-        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
-        {
-            try { ProcessInvestment(); }
-            catch (Exception ex) { GameLog.Error(nameof(NecropolisController), nameof(ProcessInvestment), ex); }
         }
 
         public static ResourceSet GetLevelCost(int level) => Necropolis.GetLevelCost(level);
 
-        private void ProcessInvestment()
+        protected override bool IsInvestmentComplete(Necropolis necropolis) => necropolis.IsMaxLevel;
+
+        protected override void OnInvestmentCycleCompleted(Necropolis necropolis, Civilization playerCiv)
         {
-            if (_state == null || _clock == null) return;
-            var necropolis = _state.Features.OfType<Necropolis>().FirstOrDefault();
-            if (necropolis == null || necropolis.IsMaxLevel) return;
-
-            var playerCiv = _state.PlayerCivilization;
-            long now = _clock.CurrentTick;
-
-            var cost = necropolis.GetInvestmentCost(playerCiv);
-            if (!MonumentInvestment.ProcessTick(necropolis, cost, playerCiv, now)) return;
-
             necropolis.Level++;
-            necropolis.InvestedResources.Clear();
-            necropolis.CompletedInvestmentCost.Clear();
-            necropolis.InvestmentEnabled.Clear();
-            _state.EventLog.Add(GameEventType.NecropolisLevelUp, necropolis.Level.ToString(), toast: true);
-            if (_harvestController != null && !necropolis.IsMaxLevel)
-                MonumentInvestment.TryAutoStartInvestment(necropolis, necropolis.GetInvestmentCost(playerCiv), playerCiv, _harvestController, _state);
+            CompleteLevelUp(necropolis, playerCiv, necropolis.Level, necropolis.IsMaxLevel, GameEventType.NecropolisLevelUp);
             OnNecropolisLevelUp?.Invoke(this, necropolis.Level);
         }
 
@@ -143,14 +113,22 @@ namespace SettlersOfIdlestan.Controller.Island
 
             _state.RemoveFeature(bones);
 
-            var necropolis = new Necropolis(position);
-            _state.AddFeature(necropolis);
-            _state.EventLog.Add(GameEventType.NecropolisPlaced);
-            if (_harvestController != null)
-                MonumentInvestment.TryAutoStartInvestment(necropolis, necropolis.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
-            OnNecropolisPlaced?.Invoke(this, EventArgs.Empty);
-            return necropolis;
+            return PlaceMonument(position);
         }
+
+        protected override Necropolis CreateFeature(HexCoord position) => new(position);
+
+        protected override GameEventType PlacedEventType => GameEventType.NecropolisPlaced;
+
+        /// <summary>
+        /// Seule pose de Monument qui n'amorce pas LastInvestmentTick sur le tick courant — écart
+        /// conservé tel quel : le corriger changerait le comportement du jeu (voir le commentaire de
+        /// MonumentControllerBase.PlaceMonument sur le rattrapage massif que l'absence d'amorçage
+        /// provoque).
+        /// </summary>
+        protected override bool PrimesLastInvestmentTickOnPlacement => false;
+
+        protected override void RaisePlaced() => OnNecropolisPlaced?.Invoke(this, EventArgs.Empty);
 
         /// <summary>
         /// Purification Supérieure : la première pierre de la Nécropole purifie les Os Divins au lieu

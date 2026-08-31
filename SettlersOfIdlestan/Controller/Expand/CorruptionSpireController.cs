@@ -19,12 +19,8 @@ namespace SettlersOfIdlestan.Controller.Expand
     /// (Built = true) détruit la Source sur son hex. Une fois bâtie, son rayon de décroissance
     /// (CorruptionSpire.Radius) reste améliorable indéfiniment par le même mécanisme d'investissement.
     /// </summary>
-    public class CorruptionSpireController
+    public class CorruptionSpireController : MonumentControllerBase<CorruptionSpire>
     {
-        private WorldState? _state;
-        private GameClock? _clock;
-        private HarvestController? _harvestController;
-
         public const int AbyssUnlockThreshold = 3;
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -37,45 +33,22 @@ namespace SettlersOfIdlestan.Controller.Expand
         internal CorruptionSpireController() { }
 
         internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
-        {
-            if (_clock != null)
-                _clock.Advanced -= OnClockAdvanced;
+            => InitializeCore(state, clock, harvestController);
 
-            _state = state;
-            _clock = clock;
-            _harvestController = harvestController;
-
-            if (_clock != null)
-                _clock.Advanced += OnClockAdvanced;
-        }
-
-        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
-        {
-            try { ProcessInvestment(); }
-            catch (Exception ex) { GameLog.Error(nameof(CorruptionSpireController), nameof(ProcessInvestment), ex); }
-        }
+        /// <summary>
+        /// La Spire n'a pas d'objectif final : une fois bâtie, son rayon reste améliorable
+        /// indéfiniment, donc l'investissement ne se termine jamais.
+        /// </summary>
+        protected override bool IsInvestmentComplete(CorruptionSpire spire) => false;
 
         /// <summary>
         /// Investissement progressif de la Spire : d'abord la construction initiale (Built = false),
         /// puis, une fois bâtie, l'amélioration indéfinie de son rayon de décroissance (Radius),
         /// chaque niveau coûtant 50% de plus que le précédent (voir CorruptionSpire.GetRadiusUpgradeCost).
         /// </summary>
-        private void ProcessInvestment()
+        protected override void OnInvestmentCycleCompleted(CorruptionSpire spire, Civilization playerCiv)
         {
-            if (_state == null || _clock == null) return;
-            var spire = _state.Features.OfType<CorruptionSpire>().FirstOrDefault();
-            if (spire == null) return;
-
-            // Pas de garde sur InvestmentEnabled avant ProcessTick — voir le commentaire de
-            // WonderController.ProcessInvestment pour la raison (évite de figer LastInvestmentTick
-            // pendant une désactivation, et le rattrapage massif que ça provoquerait à la réactivation).
-            var playerCiv = _state.PlayerCivilization;
-            var cost = spire.GetInvestmentCost(playerCiv);
-            if (!MonumentInvestment.ProcessTick(spire, cost, playerCiv, _clock.CurrentTick)) return;
-
-            spire.InvestedResources.Clear();
-            spire.CompletedInvestmentCost.Clear();
-            spire.InvestmentEnabled.Clear();
+            ResetInvestment(spire);
 
             if (!spire.Built)
             {
@@ -83,7 +56,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
                 // La Source de Corruption ayant permis ce placement (voir GetPlaceableHexes) est
                 // consommée dès que la Spire atteint son premier niveau.
-                var source = _state.GetFeaturesAt(spire.Position).OfType<CorruptionSource>().FirstOrDefault();
+                var source = _state!.GetFeaturesAt(spire.Position).OfType<CorruptionSource>().FirstOrDefault();
                 int sourceLevel = source?.CorruptionLevel ?? 0;
                 if (source != null)
                     _state.RemoveFeature(source);
@@ -101,12 +74,12 @@ namespace SettlersOfIdlestan.Controller.Expand
             else
             {
                 spire.Radius++;
-                _state.EventLog.Add(GameEventType.CorruptionSpireRadiusUpgraded, spire.Radius.ToString(), toast: true);
+                _state!.EventLog.Add(GameEventType.CorruptionSpireRadiusUpgraded, spire.Radius.ToString(), toast: true);
                 OnCorruptionSpireRadiusUpgraded?.Invoke(this, spire.Radius);
             }
 
             if (_harvestController != null)
-                MonumentInvestment.TryAutoStartInvestment(spire, spire.GetInvestmentCost(playerCiv), playerCiv, _harvestController, _state);
+                MonumentInvestment.TryAutoStartInvestment(spire, spire.GetInvestmentCost(playerCiv), playerCiv, _harvestController, _state!);
         }
 
         public bool HasCorruptionSpireUnlocked(Civilization playerCiv)
@@ -163,19 +136,19 @@ namespace SettlersOfIdlestan.Controller.Expand
         public int GetCorruptionLevel(HexCoord hex)
             => _state?.Features.OfType<Corruption>().FirstOrDefault(f => f.Position.Equals(hex))?.Level ?? 0;
 
-        public CorruptionSpire? PlaceCorruptionSpire(HexCoord position)
-        {
-            if (_state == null) return null;
-            var spire = new CorruptionSpire(position);
-            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
-            spire.LastInvestmentTick = _clock?.CurrentTick ?? 0;
-            _state.AddFeature(spire);
-            _state.EventLog.Add(GameEventType.CorruptionSpirePlaced);
-            if (_harvestController != null)
-                MonumentInvestment.TryAutoStartInvestment(spire, spire.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
-            OnCorruptionSpirePlaced?.Invoke(this, EventArgs.Empty);
-            return spire;
-        }
+        protected override CorruptionSpire CreateFeature(HexCoord position) => new(position);
+
+        protected override GameEventType PlacedEventType => GameEventType.CorruptionSpirePlaced;
+
+        /// <summary>
+        /// Comme la Mine Profonde et la Percée de Surface, la pose n'a jamais vérifié que la position
+        /// appartenait à une couche cartographiée — écart conservé tel quel.
+        /// </summary>
+        protected override bool RequiresMappedPositionToPlace => false;
+
+        protected override void RaisePlaced() => OnCorruptionSpirePlaced?.Invoke(this, EventArgs.Empty);
+
+        public CorruptionSpire? PlaceCorruptionSpire(HexCoord position) => PlaceMonument(position);
 
         /// <summary>
         /// Détruit la Spire de Corruption existante, ce qui libère <see cref="CanPlaceCorruptionSpire"/>

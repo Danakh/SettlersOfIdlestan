@@ -20,11 +20,8 @@ namespace SettlersOfIdlestan.Controller.Expand
     /// civilisation — l'évolution remplace la Spire sur son hex et se construit par investissement
     /// progressif comme tout Monument.
     /// </summary>
-    public class AbyssGateController
+    public class AbyssGateController : MonumentControllerBase<AbyssGate>
     {
-        private WorldState? _state;
-        private GameClock? _clock;
-        private HarvestController? _harvestController;
         private GodState? _godState;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
@@ -36,44 +33,25 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null, GodState? godState = null)
         {
-            if (_clock != null)
-                _clock.Advanced -= OnClockAdvanced;
-
-            _state = state;
-            _clock = clock;
-            _harvestController = harvestController;
+            InitializeCore(state, clock, harvestController);
             _godState = godState;
-
-            if (_clock != null)
-                _clock.Advanced += OnClockAdvanced;
         }
 
-        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
+        protected override void OnClockAdvancedExtra()
         {
-            try { ProcessInvestment(); }
-            catch (Exception ex) { GameLog.Error(nameof(AbyssGateController), nameof(ProcessInvestment), ex); }
             try { TryInitializeAbyss(); }
             catch (Exception ex) { GameLog.Error(nameof(AbyssGateController), nameof(TryInitializeAbyss), ex); }
         }
 
-        private void ProcessInvestment()
+        protected override bool IsInvestmentComplete(AbyssGate gate) => gate.Built;
+
+        protected override void OnInvestmentCycleCompleted(AbyssGate gate, Civilization playerCiv)
         {
-            if (_state == null || _clock == null) return;
-            var gate = _state.Features.OfType<AbyssGate>().FirstOrDefault();
-            if (gate == null || gate.Built) return;
-
-            // Pas de garde sur InvestmentEnabled avant ProcessTick — voir le commentaire de
-            // WonderController.ProcessInvestment pour la raison (évite de figer LastInvestmentTick
-            // pendant une désactivation, et le rattrapage massif que ça provoquerait à la réactivation).
-            var playerCiv = _state.PlayerCivilization;
-            var cost = gate.GetInvestmentCost(playerCiv);
-            if (!MonumentInvestment.ProcessTick(gate, cost, playerCiv, _clock.CurrentTick)) return;
-
             // Comme la Spire : l'investissement reste affiché à 100% une fois la Faille bâtie.
             gate.Built = true;
             gate.WasEverBuilt = true;
             gate.InvestmentEnabled.Clear();
-            _state.EventLog.Add(GameEventType.AbyssGateBuilt, toast: true);
+            _state!.EventLog.Add(GameEventType.AbyssGateBuilt, toast: true);
             OnAbyssGateBuilt?.Invoke(this, EventArgs.Empty);
         }
 
@@ -228,15 +206,19 @@ namespace SettlersOfIdlestan.Controller.Expand
             HexCoord position = spire.Position;
             _state.RemoveFeature(spire);
 
-            var gate = new AbyssGate(position);
-            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
-            gate.LastInvestmentTick = _clock?.CurrentTick ?? 0;
-            _state.AddFeature(gate);
-            _state.EventLog.Add(GameEventType.AbyssGatePlaced);
-            if (_harvestController != null)
-                MonumentInvestment.TryAutoStartInvestment(gate, gate.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
-            OnAbyssGatePlaced?.Invoke(this, EventArgs.Empty);
-            return gate;
+            return PlaceMonument(position);
         }
+
+        protected override AbyssGate CreateFeature(HexCoord position) => new(position);
+
+        protected override GameEventType PlacedEventType => GameEventType.AbyssGatePlaced;
+
+        /// <summary>
+        /// La Faille reprend l'hex de la Spire qu'elle remplace : la position est nécessairement
+        /// cartographiée, la pose n'a jamais porté cette garde — écart conservé tel quel.
+        /// </summary>
+        protected override bool RequiresMappedPositionToPlace => false;
+
+        protected override void RaisePlaced() => OnAbyssGatePlaced?.Invoke(this, EventArgs.Empty);
     }
 }

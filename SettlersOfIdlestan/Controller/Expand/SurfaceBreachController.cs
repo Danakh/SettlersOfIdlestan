@@ -22,12 +22,8 @@ namespace SettlersOfIdlestan.Controller.Island
     /// sens, c'est-à-dire quand le joueur est enfermé sous terre (aucune ville en surface) et qu'un
     /// vertex d'arrivée de surface a été mémorisé — ce qui n'arrive que pour ces races.
     /// </summary>
-    public class SurfaceBreachController
+    public class SurfaceBreachController : MonumentControllerBase<SurfaceBreach>
     {
-        private WorldState? _state;
-        private GameClock? _clock;
-        private HarvestController? _harvestController;
-
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
         public event EventHandler? OnSurfaceBreachPlaced;
@@ -36,43 +32,22 @@ namespace SettlersOfIdlestan.Controller.Island
         internal SurfaceBreachController() { }
 
         internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
+            => InitializeCore(state, clock, harvestController);
+
+        protected override void OnClockAdvancedExtra()
         {
-            if (_clock != null)
-                _clock.Advanced -= OnClockAdvanced;
-
-            _state = state;
-            _clock = clock;
-            _harvestController = harvestController;
-
-            if (_clock != null)
-                _clock.Advanced += OnClockAdvanced;
-        }
-
-        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
-        {
-            try { ProcessInvestment(); }
-            catch (Exception ex) { GameLog.Error(nameof(SurfaceBreachController), nameof(ProcessInvestment), ex); }
             try { TryEstablishSurface(); }
             catch (Exception ex) { GameLog.Error(nameof(SurfaceBreachController), nameof(TryEstablishSurface), ex); }
         }
 
-        private void ProcessInvestment()
+        protected override bool IsInvestmentComplete(SurfaceBreach breach) => breach.Dug;
+
+        protected override void OnInvestmentCycleCompleted(SurfaceBreach breach, Civilization playerCiv)
         {
-            if (_state == null || _clock == null) return;
-            var breach = _state.Features.OfType<SurfaceBreach>().FirstOrDefault();
-            if (breach == null || breach.Dug) return;
-
-            // Pas de garde sur InvestmentEnabled avant ProcessTick — voir le commentaire de
-            // WonderController.ProcessInvestment pour la raison (évite de figer LastInvestmentTick
-            // pendant une désactivation, et le rattrapage massif que ça provoquerait à la réactivation).
-            var playerCiv = _state.PlayerCivilization;
-            var cost = breach.GetInvestmentCost(playerCiv);
-            if (!MonumentInvestment.ProcessTick(breach, cost, playerCiv, _clock.CurrentTick)) return;
-
             breach.Dug = true;
             breach.WasEverDug = true;
             breach.InvestmentEnabled.Clear();
-            _state.EventLog.Add(GameEventType.SurfaceBreachDug);
+            _state!.EventLog.Add(GameEventType.SurfaceBreachDug);
             OnSurfaceBreachDug?.Invoke(this, EventArgs.Empty);
         }
 
@@ -221,54 +196,31 @@ namespace SettlersOfIdlestan.Controller.Island
         /// sans ville ennemie adjacente et sans autre feature — du moins au plus coûteux à sacrifier
         /// (voir <see cref="MonumentInvestment.OrderByLeastSacrifice"/>).
         /// </summary>
-        public List<HexCoord> GetPlaceableHexes()
-        {
-            if (_state == null) return new List<HexCoord>();
+        public List<HexCoord> GetPlaceableHexes() => GetPlaceableHexesAroundPlayerCities();
 
-            var playerCiv = _state.PlayerCivilization;
+        protected override bool IsPlacementLayerAllowed(HexCoord hex) => hex.Z == LayerState.UnderworldZ;
 
-            var playerCityHexes = new HashSet<HexCoord>();
-            foreach (var city in playerCiv.Cities)
-                foreach (var hex in city.Position.GetHexes())
-                    playerCityHexes.Add(hex);
+        protected override bool IsPlacementTerrainAllowed(HexTile tile, IslandMap map, HexCoord hex)
+            => tile.TerrainType == TerrainType.Mountain;
 
-            var enemyZone = new HashSet<HexCoord>();
-            foreach (var civ in _state.Civilizations.Where(c => c.Index != playerCiv.Index))
-                foreach (var city in civ.Cities)
-                    foreach (var hex in city.Position.GetHexes())
-                    {
-                        enemyZone.Add(hex);
-                        foreach (HexDirection dir in Enum.GetValues<HexDirection>())
-                            enemyZone.Add(hex.Neighbor(dir));
-                    }
+        /// <summary>
+        /// Seul monument à écarter les hexes portant <b>n'importe quelle</b> feature, et pas seulement
+        /// celles qui bloquent les monuments — écart conservé tel quel.
+        /// </summary>
+        protected override bool IsPlacementBlockedByFeatures(HexCoord hex) => _state!.HasFeaturesAt(hex);
 
-            var result = new List<HexCoord>();
-            foreach (var hex in playerCityHexes)
-            {
-                if (hex.Z != LayerState.UnderworldZ) continue;
-                var tile = _state.GetMapFor(hex)?.GetTile(hex);
-                if (tile == null) continue;
-                if (tile.TerrainType != TerrainType.Mountain) continue;
-                if (enemyZone.Contains(hex)) continue;
-                if (_state.HasFeaturesAt(hex)) continue;
-                result.Add(hex);
-            }
+        protected override SurfaceBreach CreateFeature(HexCoord position) => new(position);
 
-            return MonumentInvestment.OrderByLeastSacrifice(result, playerCiv, _state);
-        }
+        protected override GameEventType PlacedEventType => GameEventType.SurfaceBreachPlaced;
 
-        public SurfaceBreach? PlaceSurfaceBreach(HexCoord position)
-        {
-            if (_state == null) return null;
-            var breach = new SurfaceBreach(position);
-            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
-            breach.LastInvestmentTick = _clock?.CurrentTick ?? 0;
-            _state.AddFeature(breach);
-            _state.EventLog.Add(GameEventType.SurfaceBreachPlaced);
-            if (_harvestController != null)
-                MonumentInvestment.TryAutoStartInvestment(breach, breach.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
-            OnSurfaceBreachPlaced?.Invoke(this, EventArgs.Empty);
-            return breach;
-        }
+        /// <summary>
+        /// Comme la Mine Profonde, la pose n'a jamais vérifié que la position appartenait à une
+        /// couche cartographiée — écart conservé tel quel.
+        /// </summary>
+        protected override bool RequiresMappedPositionToPlace => false;
+
+        protected override void RaisePlaced() => OnSurfaceBreachPlaced?.Invoke(this, EventArgs.Empty);
+
+        public SurfaceBreach? PlaceSurfaceBreach(HexCoord position) => PlaceMonument(position);
     }
 }

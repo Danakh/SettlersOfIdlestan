@@ -1,5 +1,7 @@
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
@@ -19,11 +21,8 @@ namespace SettlersOfIdlestan.Controller.Expand
     /// portail existe par île — une deuxième Tentacule tuée n'en ouvre pas un second, que le
     /// premier soit déjà bâti ou non.
     /// </summary>
-    public class PandemoniumGateController
+    public class PandemoniumGateController : MonumentControllerBase<PandemoniumGate>
     {
-        private WorldState? _state;
-        private GameClock? _clock;
-        private HarvestController? _harvestController;
         private GamePRNG? _prng;
         private PrestigeState? _prestigeState;
 
@@ -37,27 +36,19 @@ namespace SettlersOfIdlestan.Controller.Expand
         internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null,
             GamePRNG? prng = null, PrestigeState? prestigeState = null)
         {
-            if (_clock != null)
-                _clock.Advanced -= OnClockAdvanced;
             if (_state != null)
                 _state.FeatureRemoved -= OnFeatureRemoved;
 
-            _state = state;
-            _clock = clock;
-            _harvestController = harvestController;
+            InitializeCore(state, clock, harvestController);
             _prng = prng;
             _prestigeState = prestigeState;
 
-            if (_clock != null)
-                _clock.Advanced += OnClockAdvanced;
             if (_state != null)
                 _state.FeatureRemoved += OnFeatureRemoved;
         }
 
-        private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
+        protected override void OnClockAdvancedExtra()
         {
-            try { ProcessInvestment(); }
-            catch (Exception ex) { GameLog.Error(nameof(PandemoniumGateController), nameof(ProcessInvestment), ex); }
             try { TryInitializePandemonium(); }
             catch (Exception ex) { GameLog.Error(nameof(PandemoniumGateController), nameof(TryInitializePandemonium), ex); }
         }
@@ -76,33 +67,32 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (tentacle.Position.Z != LayerState.AbyssZ) return;
             if (_state.Features.OfType<PandemoniumGate>().Any()) return;
 
-            var gate = new PandemoniumGate(tentacle.Position);
-            // Amorce le cooldown d'investissement sur le tick de pose (voir WonderController.PlaceWonder).
-            gate.LastInvestmentTick = _clock?.CurrentTick ?? 0;
-            _state.AddFeature(gate);
-            _state.EventLog.Add(GameEventType.PandemoniumGatePlaced, toast: true);
-            if (_harvestController != null)
-                MonumentInvestment.TryAutoStartInvestment(gate, gate.GetInvestmentCost(_state.PlayerCivilization), _state.PlayerCivilization, _harvestController, _state);
-            OnPandemoniumGatePlaced?.Invoke(this, EventArgs.Empty);
+            PlaceMonument(tentacle.Position);
         }
 
-        private void ProcessInvestment()
+        protected override PandemoniumGate CreateFeature(HexCoord position) => new(position);
+
+        protected override GameEventType PlacedEventType => GameEventType.PandemoniumGatePlaced;
+
+        /// <summary>Seule pose de Monument qui remonte un toast : le portail surgit sans que le joueur l'ait demandé.</summary>
+        protected override bool PlacedEventIsToast => true;
+
+        /// <summary>
+        /// Le portail naît sur l'hex d'une Tentacule abattue : la position est nécessairement
+        /// cartographiée, la pose n'a jamais porté cette garde — écart conservé tel quel.
+        /// </summary>
+        protected override bool RequiresMappedPositionToPlace => false;
+
+        protected override void RaisePlaced() => OnPandemoniumGatePlaced?.Invoke(this, EventArgs.Empty);
+
+        protected override bool IsInvestmentComplete(PandemoniumGate gate) => gate.Built;
+
+        protected override void OnInvestmentCycleCompleted(PandemoniumGate gate, Civilization playerCiv)
         {
-            if (_state == null || _clock == null) return;
-            var gate = _state.Features.OfType<PandemoniumGate>().FirstOrDefault();
-            if (gate == null || gate.Built) return;
-
-            // Pas de garde sur InvestmentEnabled avant ProcessTick — voir le commentaire de
-            // WonderController.ProcessInvestment pour la raison (évite de figer LastInvestmentTick
-            // pendant une désactivation, et le rattrapage massif que ça provoquerait à la réactivation).
-            var playerCiv = _state.PlayerCivilization;
-            var cost = gate.GetInvestmentCost(playerCiv);
-            if (!MonumentInvestment.ProcessTick(gate, cost, playerCiv, _clock.CurrentTick)) return;
-
             // Comme la Faille des Abysses : l'investissement reste affiché à 100% une fois bâti.
             gate.Built = true;
             gate.InvestmentEnabled.Clear();
-            _state.EventLog.Add(GameEventType.PandemoniumGateBuilt, toast: true);
+            _state!.EventLog.Add(GameEventType.PandemoniumGateBuilt, toast: true);
             OnPandemoniumGateBuilt?.Invoke(this, EventArgs.Empty);
         }
 
