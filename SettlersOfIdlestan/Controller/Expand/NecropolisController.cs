@@ -120,14 +120,6 @@ namespace SettlersOfIdlestan.Controller.Island
 
         protected override GameEventType PlacedEventType => GameEventType.NecropolisPlaced;
 
-        /// <summary>
-        /// Seule pose de Monument qui n'amorce pas LastInvestmentTick sur le tick courant — écart
-        /// conservé tel quel : le corriger changerait le comportement du jeu (voir le commentaire de
-        /// MonumentControllerBase.PlaceMonument sur le rattrapage massif que l'absence d'amorçage
-        /// provoque).
-        /// </summary>
-        protected override bool PrimesLastInvestmentTickOnPlacement => false;
-
         protected override void RaisePlaced() => OnNecropolisPlaced?.Invoke(this, EventArgs.Empty);
 
         /// <summary>

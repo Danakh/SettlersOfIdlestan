@@ -173,12 +173,6 @@ namespace SettlersOfIdlestan.Controller.Island
         protected virtual bool RequiresMappedPositionToPlace => true;
 
         /// <summary>
-        /// True si la pose amorce <see cref="Monument.LastInvestmentTick"/> sur le tick courant
-        /// (voir <see cref="PlaceMonument"/>).
-        /// </summary>
-        protected virtual bool PrimesLastInvestmentTickOnPlacement => true;
-
-        /// <summary>
         /// Amorçage des cooldowns des axes supplémentaires à la pose (voir
         /// <see cref="ProcessExtraInvestmentAxes"/>), pour la même raison que
         /// <see cref="Monument.LastInvestmentTick"/>.
@@ -201,8 +195,7 @@ namespace SettlersOfIdlestan.Controller.Island
             // (now - 0) et rattrape d'un coup tous les cycles "manqués" depuis le tick 0 de la partie,
             // ce qui vide le stock de ressources d'un coup au lieu de démarrer progressivement (bug
             // vécu après un prestige, où le tick courant est déjà élevé au moment de la pose).
-            if (PrimesLastInvestmentTickOnPlacement)
-                monument.LastInvestmentTick = _clock?.CurrentTick ?? 0;
+            monument.LastInvestmentTick = _clock?.CurrentTick ?? 0;
             PrimeExtraInvestmentAxesOnPlacement(monument);
             _state.AddFeature(monument);
             _state.EventLog.Add(PlacedEventType, toast: PlacedEventIsToast);

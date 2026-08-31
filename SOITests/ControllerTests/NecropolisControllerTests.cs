@@ -172,6 +172,37 @@ namespace SOITests.ControllerTests
             Assert.Contains(state.Features.OfType<DivineBones>(), b => b.Position.Equals(CityHex));
         }
 
+        /// <summary>
+        /// La pose amorce LastInvestmentTick sur le tick courant. Sans cet amorçage il restait à 0,
+        /// et comme MonumentInvestment.ProcessTick appelle ConsumeElapsedCycles sans coldStartOnZero,
+        /// le premier cycle voyait un écart de (tick courant - 0) : tous les cycles écoulés depuis le
+        /// début de la partie étaient rattrapés d'un coup, finançant le premier niveau sur le stock
+        /// au lieu de le remplir progressivement. Visible surtout après un prestige, où la Nécropole
+        /// se pose à un tick déjà élevé. La Nécropole était le seul monument sans cet amorçage.
+        /// </summary>
+        [Fact]
+        public void PlaceNecropolis_PrimesInvestmentCooldown_DoesNotCatchUpCyclesSinceGameStart()
+        {
+            var (state, clock, controller) = CreateSetup();
+            AddBones(state, CityHex);
+            var civ = state.PlayerCivilization;
+
+            // Pose tardive dans la partie, comme après un prestige.
+            clock.SimulateAdvance(NecropolisController.InvestmentIntervalTicks * 50);
+
+            var necropolis = controller.PlaceNecropolis(CityHex);
+            Assert.NotNull(necropolis);
+
+            civ.AddResource(Resource.Stone, 110); // amount = 110/100 = 1 par cycle
+            necropolis!.InvestmentEnabled.Add(Resource.Stone);
+
+            clock.SimulateAdvance(NecropolisController.InvestmentIntervalTicks);
+
+            // Un seul cycle consommé, et non les 50 écoulés avant la pose.
+            Assert.Equal(109, civ.GetResourceQuantity(Resource.Stone));
+            Assert.Equal(1L, necropolis.InvestedResources[Resource.Stone]);
+        }
+
         // ── Purification Supérieure ──────────────────────────────────────────
 
         /// <summary>Les Os Divins de test portent un niveau de corruption 5, soit un plafond de 5 essences.</summary>
