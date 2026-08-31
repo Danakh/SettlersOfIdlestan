@@ -12,7 +12,6 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
 {
     private readonly MainGameController  _gameController;
     private readonly LocalizationService _localization;
-    private readonly IFileSystemService  _fileSystemService;
     private readonly SettingsContentPanel _contentPanel;
     private readonly bool _allowDebugMode;
     private readonly StoreController? _storeController;
@@ -21,11 +20,10 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     public event Action<float>? UiScaleChanged;
     public event Action<int, int>? DebugWindowResizeRequested;
 
-    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, IFileSystemService fileSystemService, UILayoutService uiLayout, bool allowDebugMode = false, StoreController? storeController = null)
+    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, UILayoutService uiLayout, bool allowDebugMode = false, StoreController? storeController = null)
     {
         _gameController    = gameController;
         _localization      = localization;
-        _fileSystemService = fileSystemService;
         _allowDebugMode    = allowDebugMode;
         _storeController   = storeController;
         _contentPanel      = new SettingsContentPanel(uiLayout);

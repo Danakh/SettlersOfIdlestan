@@ -29,12 +29,6 @@ public sealed class TabBarRenderer : IDisposable
     public const int TabAbyss      = 10;
     public const int TabPandemonium = 11;
 
-    private const float TabWidth      = 62;
-    private const float TabHeight     = 28;
-    private const float TabMarginLeft = 8;
-    private const float TabSpacing    = 5;
-    private const float MobileTabHeight = UILayoutService.MobileTabBarHeight;
-
     private readonly LocalizationService _localization;
     private readonly GameControllerService _gameControllerService;
     private readonly UILayoutService _uiLayout;
@@ -59,8 +53,6 @@ public sealed class TabBarRenderer : IDisposable
     private bool _researchGlowing;
     private bool _lastResearchIdleWithPoints;
     private bool _underworldGlowing;
-    private SKSize _canvasSize;
-
 
     /// True when the tab bar has at least two tabs and is being drawn.
     public bool IsVisible { get; private set; }
@@ -77,11 +69,6 @@ public sealed class TabBarRenderer : IDisposable
         _gameControllerService = gameControllerService;
         _uiLayout = uiLayout;
         _allowDebugMode = allowDebugMode;
-    }
-
-    public void Initialize(SKSize canvasSize)
-    {
-        _canvasSize = canvasSize;
     }
 
     /// Update visibility/rect state.
@@ -132,51 +119,15 @@ public sealed class TabBarRenderer : IDisposable
         if (_hasAutomationTab) _activeTabs.Add((TabAutomation, default));
         if (_allowDebugMode && !ascensionPending) _activeTabs.Add((TabHistory, default));
 
-        float uiScale = _uiLayout.UiScale;
-
         bool tabsAtBottom = _uiLayout.TabsAtBottom;
         bool showTabBar   = tabsAtBottom || _activeTabs.Count > 1;
         IsVisible = showTabBar;
 
         if (showTabBar)
         {
-            ComputeTabRects(tabsAtBottom, uiScale);
             UpdateEventNotification(context.DeltaTime);
             UpdatePrestigeNotification();
             UpdateResearchNotification();
-        }
-    }
-
-    /// Largeur qu'occuperaient les tabs si affichés en ligne (indépendant du mode bas/inline choisi ensuite).
-    private float ComputeInlineWidth(float uiScale) =>
-        TabMarginLeft * uiScale * 2f
-        + _activeTabs.Count * TabWidth * uiScale
-        + Math.Max(0, _activeTabs.Count - 1) * TabSpacing * uiScale;
-
-    private void ComputeTabRects(bool tabsAtBottom, float uiScale)
-    {
-        if (tabsAtBottom)
-        {
-            float mobileTabH = MobileTabHeight * uiScale;
-            float tabY = _canvasSize.Height - mobileTabH - 2;
-            float tabW = _canvasSize.Width / _activeTabs.Count;
-            for (int i = 0; i < _activeTabs.Count; i++)
-            {
-                float x = i * tabW;
-                _activeTabs[i] = (_activeTabs[i].tabId, new SKRect(x, tabY, x + tabW, tabY + mobileTabH));
-            }
-        }
-        else
-        {
-            float scaledTabH = TabHeight * uiScale;
-            float scaledTabW = TabWidth  * uiScale;
-            float tabY = (_uiLayout.ResourceBarBottom - scaledTabH) / 2;
-            float tabX = TabMarginLeft * uiScale;
-            for (int i = 0; i < _activeTabs.Count; i++)
-            {
-                _activeTabs[i] = (_activeTabs[i].tabId, new SKRect(tabX, tabY, tabX + scaledTabW, tabY + scaledTabH));
-                tabX += scaledTabW + TabSpacing * uiScale;
-            }
         }
     }
 

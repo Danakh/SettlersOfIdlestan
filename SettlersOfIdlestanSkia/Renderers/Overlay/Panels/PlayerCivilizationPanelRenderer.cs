@@ -29,8 +29,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private readonly TradePopupRenderer _tradeRenderer;
     private readonly PrestigeRenderer _prestigeRenderer;
     private TargetSelectionService? _targetSelectionService;
-    private readonly TooltipRenderer _tooltipRenderer;
-    private readonly ResourceManager _resourceManager;
     private readonly Action<int, float, float> _centerCameraOnMapPosition;
 
     /// <summary>Index du dernier monument centré par <see cref="DoCycleMonuments"/>, pour reprendre
@@ -51,8 +49,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         TradePopupRenderer tradeRenderer,
         PrestigeRenderer prestigeRenderer,
         TargetSelectionService? targetSelectionService,
-        TooltipRenderer tooltipRenderer,
-        ResourceManager resourceManager,
         Action<int, float, float> centerCameraOnMapPosition)
     {
         _gameControllerService = gameControllerService;
@@ -62,8 +58,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         _tradeRenderer = tradeRenderer;
         _prestigeRenderer = prestigeRenderer;
         _targetSelectionService = targetSelectionService;
-        _tooltipRenderer = tooltipRenderer;
-        _resourceManager = resourceManager;
         _centerCameraOnMapPosition = centerCameraOnMapPosition;
     }
 

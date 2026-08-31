@@ -273,15 +273,15 @@ public sealed class GameScreen : IDisposable
             () => _overlayRenderer?.IsIslandTabActive ?? true);
 
         var selectedCityPanelRenderer = new SelectedCityPanelRenderer(
-            _gameControllerService.CityBuildingService!, _localizationService, _inputService, _resourceManager);
+            _gameControllerService.CityBuildingService!, _localizationService, _resourceManager);
 
         _monumentService = new MonumentService();
         _constructionInteractionService.AttachMonumentService(_monumentService);
         islandMainRenderer.ConnectMonumentService(_monumentService);
 
-        var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _inputService, _localizationService, _resourceManager, _gameControllerService, tooltipRenderer);
+        var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _localizationService, _gameControllerService);
 
-        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _fileSystemService, _uiLayoutService, allowDebugMode, _storeController);
+        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _uiLayoutService, allowDebugMode, _storeController);
         settingsPopupRenderer.FullscreenToggleRequested  += v => FullscreenToggleRequested?.Invoke(v);
         settingsPopupRenderer.UiScaleChanged             += ApplyManualUiScale;
         settingsPopupRenderer.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
@@ -330,11 +330,11 @@ public sealed class GameScreen : IDisposable
         var tradeRenderer           = new TradePopupRenderer(_gameControllerService, _localizationService, tooltipRenderer, _resourceManager);
         var prestigeRenderer        = new PrestigeRenderer(_gameControllerService, _localizationService, RequestPrestige, tooltipRenderer);
         var prestigeMapRenderer     = new PrestigeMapRenderer(_gameControllerService, _localizationService, tooltipRenderer, _uiLayoutService);
-        var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService, _uiLayoutService);
+        var prestigeHistoryRenderer = new PrestigeHistoryRenderer(_gameControllerService, _localizationService);
         var researchRenderer        = new ResearchRenderer(_gameControllerService, _localizationService, _inputService, _uiLayoutService);
-        var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService, _uiLayoutService);
-        var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService, _uiLayoutService);
-        var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService, tooltipRenderer, _uiLayoutService, _targetSelectionService);
+        var eventLogRenderer        = new EventLogRenderer(_gameControllerService, _localizationService);
+        var automationRenderer      = new AutomationRenderer(_gameControllerService, _localizationService);
+        var ritualsRenderer         = new RitualsRenderer(_gameControllerService, _localizationService, _targetSelectionService);
         var ascensionRenderer       = new AscensionRenderer(_gameControllerService, _localizationService, tooltipRenderer, _uiLayoutService);
 
         HistoryTabRenderer? historyTabRenderer = null;
@@ -352,7 +352,7 @@ public sealed class GameScreen : IDisposable
             selectedCityPanelRenderer, selectedMonumentPanelRenderer,
             tradeRenderer, prestigeRenderer, prestigeMapRenderer, prestigeHistoryRenderer,
             researchRenderer, eventLogRenderer, automationRenderer,
-            ritualsRenderer, ascensionRenderer, tooltipRenderer, _cameraService, _resourceManager,
+            ritualsRenderer, ascensionRenderer, _cameraService,
             _uiLayoutService, allowDebugMode, historyTabRenderer);
         _overlayRenderer.ConnectTargetSelectionService(_targetSelectionService);
         _renderService.RegisterRenderer(_overlayRenderer);

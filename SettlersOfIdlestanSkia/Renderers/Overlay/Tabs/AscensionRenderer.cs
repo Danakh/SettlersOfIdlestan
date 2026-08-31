@@ -190,10 +190,6 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _metPrereqPaint    = new() { Color = new SKColor(90, 200, 110), IsAntialias = true };
     private readonly SKPaint _confirmPaint      = new() { Color = new SKColor(140, 40, 40), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _confirmHoverPaint = new() { Color = new SKColor(180, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _cancelBtnPaint    = new() { Color = new SKColor(55, 55, 65), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _warningTextPaint  = new() { Color = new SKColor(220, 70, 70), IsAntialias = true };
-    private readonly SKPaint _overlayDimPaint   = new() { Color = new SKColor(0, 0, 0, 160), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _overlayPanelPaint = new() { Color = new SKColor(24, 24, 32, 250), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _scrollTrackPaint  = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _scrollThumbPaint  = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
@@ -1263,10 +1259,6 @@ public sealed class AscensionRenderer : IDisposable
         _disabledPaint.Dispose();
         _confirmPaint.Dispose();
         _confirmHoverPaint.Dispose();
-        _cancelBtnPaint.Dispose();
-        _warningTextPaint.Dispose();
-        _overlayDimPaint.Dispose();
-        _overlayPanelPaint.Dispose();
         _scrollTrackPaint.Dispose();
         _scrollThumbPaint.Dispose();
         _buttonBorderPaint.Dispose();

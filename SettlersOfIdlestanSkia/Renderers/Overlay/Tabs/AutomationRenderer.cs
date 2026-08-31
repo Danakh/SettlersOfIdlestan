@@ -5,9 +5,7 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Services.Localization;
-using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
-using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,18 +15,6 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
 public sealed class AutomationRenderer : IDisposable
 {
-    private const float Padding = 20f;
-    private const float ToggleWidth = 60f;
-    private const float ToggleHeight = 28f;
-    private const float RowMinHeight = 54f;
-    private const float SummaryHeight = 20f;
-    private const float SummaryLineHeight = 16f;
-    private const float RowSpacing = 8f;
-    private const float TextOffsetX = ToggleWidth + 14f;
-    private const float DescRightPad = 12f;
-    private const float PinCheckboxSize   = 14f;
-    private const float PinCheckboxMargin = 7f;
-
     // Clés de pin pour PinnedToCivPanel
     internal const string PinKeyRoad          = "Road";
     internal const string PinKeyOutpost       = "Outpost";
@@ -105,63 +91,8 @@ public sealed class AutomationRenderer : IDisposable
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
-    private readonly UILayoutService _uiLayout;
 
-    private SKSize _canvasSize;
     private bool _disposed;
-
-    /// <summary>
-    /// Rectangles des bascules de la frame courante, avec la cle de leur ligne. Une seule
-    /// collection remplace les vingt champs _xxxToggleRect qu'il fallait tenir a jour un par un
-    /// — c'est precisement le genre de structure parallele au rendu que la migration supprime.
-    /// </summary>
-    private readonly List<(SKRect rect, string key)> _toggleRects = new();
-
-    /// Cle de la bascule survolee, la ou vingt booleens se disputaient la meme information.
-    private string? _hoveredToggleKey;
-
-    private SKRect _globalAutomationsToggleRect = SKRect.Empty;
-    private bool _hoveredGlobalAutomationsToggle;
-
-    private readonly List<(SKRect rect, string note)> _hoverableCards = new();
-    private string? _hoveredNote;
-    private SKPoint _mousePosition;
-
-    private float _scrollOffsetPx        = 0f;
-    private float _totalContentH         = 0f;
-    private float _viewportH             = 0f;
-    private bool  _isDraggingScrollbar   = false;
-    private float _scrollDragStartY      = 0f;
-    private float _scrollDragStartOffset = 0f;
-    private SKRect _scrollTrackRect      = SKRect.Empty;
-    private SKRect _scrollThumbRect      = SKRect.Empty;
-
-    private readonly List<(SKRect rect, string key)> _pinCheckboxes = new();
-    private string? _hoveredPinKey;
-
-    private readonly SKPaint _bgPaint              = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _cardPaint            = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _cardBorderPaint      = new() { Color = new SKColor(60, 60, 80), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _namePaint            = new() { Color = new SKColor(230, 230, 240), IsAntialias = true };
-    private readonly SKPaint _descPaint            = new() { Color = new SKColor(150, 150, 165), IsAntialias = true };
-    private readonly SKPaint _notePaint            = new() { Color = new SKColor(100, 160, 130), IsAntialias = true };
-    private readonly SKPaint _tooltipBgPaint       = new() { Color = new SKColor(22, 22, 32, 245), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _tooltipBorderPaint   = new() { Color = new SKColor(80, 120, 100), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _mutedPaint           = new() { Color = new SKColor(110, 110, 125), IsAntialias = true };
-    private readonly SKPaint _accentPaint          = new() { Color = new SKColor(255, 215, 0), IsAntialias = true };
-    private readonly SKPaint _summaryBuiltPaint    = new() { Color = new SKColor(120, 175, 120), IsAntialias = true };
-    private readonly SKPaint _summaryEmptyPaint    = new() { Color = new SKColor(95, 95, 108), IsAntialias = true };
-    private readonly SKPaint _summaryDividerPaint  = new() { Color = new SKColor(70, 70, 88), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _scrollTrackPaint     = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _scrollThumbPaint     = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _pinBorderPaint       = new() { Color = new SKColor(100, 100, 120), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _pinHoverPaint        = new() { Color = new SKColor(180, 180, 220), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _pinCheckedPaint      = new() { Color = new SKColor(255, 215, 0, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
-
-    private readonly SKFont _headerFont  = new() { Size = 17, Typeface = SkiaFonts.Bold };
-    private readonly SKFont _nameFont    = new() { Size = 13, Typeface = SkiaFonts.Bold };
-    private readonly SKFont _descFont    = new() { Size = 11, Typeface = SkiaFonts.Regular };
-    private readonly SKFont _summaryFont = new() { Size = 10, Typeface = SkiaFonts.Regular };
 
     private static readonly BuildingType[] TownHallTypes   = [BuildingType.TownHall];
     private static readonly BuildingType[] ProductionTypes = [BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Quarry, BuildingType.Mill, BuildingType.MushroomFarm];
@@ -174,124 +105,10 @@ public sealed class AutomationRenderer : IDisposable
     private static readonly BuildingType[] MithrilMineTypes = [BuildingType.MithrilMine];
     private static readonly BuildingType[] ArcaneTowerTypes = [BuildingType.MageTower, BuildingType.AlchimistHut];
 
-    public AutomationRenderer(GameControllerService gameControllerService, LocalizationService localization, UILayoutService uiLayout)
+    public AutomationRenderer(GameControllerService gameControllerService, LocalizationService localization)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
-        _uiLayout = uiLayout;
-    }
-
-    public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
-
-    public void RenderAutomationPage(SKCanvas canvas, GameRenderContext context)
-    {
-        if (_disposed) return;
-        if (context.GameState is not MainGameState) return;
-
-        _hoverableCards.Clear();
-        _pinCheckboxes.Clear();
-        _toggleRects.Clear();
-
-        float topBar = _uiLayout.SecondRowBottom;
-        canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
-
-        _viewportH = _canvasSize.Height - topBar;
-        float maxScroll = Math.Max(0, _totalContentH - _viewportH);
-        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx, 0, maxScroll);
-        bool needsScroll = _totalContentH > _viewportH + 1f;
-
-        canvas.Save();
-        canvas.ClipRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height));
-        canvas.Translate(0, -_scrollOffsetPx);
-
-        float contentWidth = Math.Min(640f, _canvasSize.Width - Padding * 2);
-        float x = (_canvasSize.Width - contentWidth) / 2;
-        float y = topBar + Padding;
-
-        SkiaTextUtils.DrawText(canvas, _localization.Get("automation_title"), x, y + 14, _headerFont, _accentPaint);
-
-        // Interrupteur global (voir GameSettings.AutomationsEnabled / AutomationSettings.Bind) —
-        // les réglages individuels ci-dessous restent affichés tels que stockés même quand il est
-        // coupé, ils reprennent effet dès sa réactivation sans perdre les préférences par ligne.
-        bool automationsGloballyEnabled = _gameControllerService.CurrentGameState?.Settings.AutomationsEnabled ?? true;
-        const float headerRowH = 32f;
-        float globalToggleY = y + (headerRowH - ToggleHeight) / 2f;
-        _globalAutomationsToggleRect = new SKRect(x + contentWidth - ToggleWidth, globalToggleY, x + contentWidth, globalToggleY + ToggleHeight);
-        SkiaToggleUtils.Draw(canvas, _globalAutomationsToggleRect, automationsGloballyEnabled, _hoveredGlobalAutomationsToggle);
-        _hoverableCards.Add((_globalAutomationsToggleRect, _localization.Get("settings_automations_enabled")));
-        y += headerRowH;
-
-        var civ = _gameControllerService.PlayerCivilization;
-        var WorldState = _gameControllerService.CurrentWorldState;
-        if (civ == null || WorldState == null)
-        {
-            canvas.Restore();
-            return;
-        }
-
-        BuildersGuild? buildersGuild = null;
-        HarvestersGuild? harvestersGuild = null;
-        ArtisansGuild? artisansGuild = null;
-        Academy? academy = null;
-        TraderGuild? traderGuild = null;
-        ImperialPort? imperialPort = null;
-        WarRoom? warRoom = null;
-        GrandTemple? grandTemple = null;
-        VolcanicForge? volcanicForge = null;
-        ArcaneTower? arcaneTower = null;
-        foreach (var city in civ.Cities)
-        {
-            buildersGuild ??= city.Buildings.OfType<BuildersGuild>().FirstOrDefault();
-            harvestersGuild ??= city.Buildings.OfType<HarvestersGuild>().FirstOrDefault();
-            artisansGuild ??= city.Buildings.OfType<ArtisansGuild>().FirstOrDefault();
-            academy ??= city.Buildings.OfType<Academy>().FirstOrDefault();
-            traderGuild ??= city.Buildings.OfType<TraderGuild>().FirstOrDefault();
-            imperialPort ??= city.Buildings.OfType<ImperialPort>().FirstOrDefault();
-            warRoom ??= city.Buildings.OfType<WarRoom>().FirstOrDefault();
-            grandTemple ??= city.Buildings.OfType<GrandTemple>().FirstOrDefault();
-            volcanicForge ??= city.Buildings.OfType<VolcanicForge>().FirstOrDefault();
-            arcaneTower ??= city.Buildings.OfType<ArcaneTower>().FirstOrDefault();
-            if (buildersGuild != null && harvestersGuild != null && artisansGuild != null && academy != null && traderGuild != null && imperialPort != null && warRoom != null && grandTemple != null && volcanicForge != null && arcaneTower != null) break;
-        }
-
-        // Bâtiment unique permanent accordé par l'Ascension (voir
-        // AscensionController.ApplyPermanentUniqueBuildingToCivilization) : ne vit dans aucune ville,
-        // donc invisible à la boucle ci-dessus — seul Civilization.GetUniqueBuilding l'expose.
-        buildersGuild ??= civ.GetUniqueBuilding(BuildingType.BuildersGuild) as BuildersGuild;
-        harvestersGuild ??= civ.GetUniqueBuilding(BuildingType.HarvestersGuild) as HarvestersGuild;
-        artisansGuild ??= civ.GetUniqueBuilding(BuildingType.ArtisansGuild) as ArtisansGuild;
-        academy ??= civ.GetUniqueBuilding(BuildingType.Academy) as Academy;
-        traderGuild ??= civ.GetUniqueBuilding(BuildingType.TraderGuild) as TraderGuild;
-        imperialPort ??= civ.GetUniqueBuilding(BuildingType.ImperialPort) as ImperialPort;
-        warRoom ??= civ.GetUniqueBuilding(BuildingType.WarRoom) as WarRoom;
-        grandTemple ??= civ.GetUniqueBuilding(BuildingType.GrandTemple) as GrandTemple;
-        volcanicForge ??= civ.GetUniqueBuilding(BuildingType.VolcanicForge) as VolcanicForge;
-        arcaneTower ??= civ.GetUniqueBuilding(BuildingType.ArcaneTower) as ArcaneTower;
-
-        bool hasSeaportAutomation = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION);
-        bool hasBuildersGuildUnderworld = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
-
-        const float ColGap = 12f;
-        float colWidth = (contentWidth - ColGap) / 2f;
-        float startY = y;
-
-        _pinnedKeys = _gameControllerService.CurrentGameState!.Settings.PinnedCivPanelKeys;
-        var (leftSections, rightSections) = BuildColumns(civ, WorldState);
-
-        float leftBottom  = DrawSections(canvas, leftSections,  x, startY, colWidth, civ);
-        float rightBottom = DrawSections(canvas, rightSections, x + colWidth + ColGap, startY, colWidth, civ);
-
-        canvas.Restore();
-
-        _totalContentH = Math.Max(leftBottom, rightBottom) + Padding - topBar;
-
-        if (needsScroll)
-            DrawScrollbar(canvas, topBar, _viewportH);
-
-        if (_hoveredPinKey != null)
-            DrawFloatingTooltip(canvas, _localization.Get("tooltip_pin_to_civ_panel"), _mousePosition);
-        else if (_hoveredNote != null)
-            DrawFloatingTooltip(canvas, _hoveredNote, _mousePosition);
     }
 
     // ── Definition unique des lignes ──────────────────────────────────────────
@@ -318,8 +135,6 @@ public sealed class AutomationRenderer : IDisposable
         bool CanDemobilize = false);
 
     private sealed record SectionModel(string Header, List<RowModel> Rows);
-
-    private IReadOnlySet<string> _pinnedKeys = new HashSet<string>();
 
     /// <summary>
     /// Deblocage de chaque bascule "structurelle" (bacs batiments/comportements) — tout sauf les
@@ -490,188 +305,6 @@ public sealed class AutomationRenderer : IDisposable
             right.Add(new SectionModel("automation_header_controls", controls));
 
         return ([new SectionModel("automation_header_buildings", buildings)], right);
-    }
-
-    private float DrawSections(SKCanvas canvas, List<SectionModel> sections, float x, float y, float width, Civilization civ)
-    {
-        foreach (var section in sections)
-        {
-            SkiaTextUtils.DrawText(canvas, _localization.Get(section.Header), x, y + 12, _nameFont, _accentPaint);
-            y += 20f;
-
-            foreach (var row in section.Rows)
-            {
-                if (row.IsLocked)
-                {
-                    y += DrawLockedRow(canvas, x, y, width, row.Name, row.Desc) + RowSpacing;
-                    continue;
-                }
-
-                var (toggleRect, height) = DrawAutomationRow(canvas, x, y, width, row.IsOn,
-                    _hoveredToggleKey == row.Key, row.Name, row.Desc, row.Note,
-                    row.SummaryTypes != null ? civ.Cities : null, row.SummaryTypes,
-                    row.CanPin ? row.Key : null, _hoveredPinKey == row.Key, _pinnedKeys.Contains(row.Key));
-                _toggleRects.Add((toggleRect, row.Key));
-                y += height + RowSpacing;
-            }
-
-            y += 4f;
-        }
-        return y;
-    }
-
-    private (SKRect toggleRect, float height) DrawAutomationRow(
-        SKCanvas canvas, float x, float y, float width,
-        bool? isOn, bool isHovered, string name, string desc,
-        string? note = null,
-        IEnumerable<City>? cities = null, BuildingType[]? summaryTypes = null,
-        string? pinKey = null, bool isPinHovered = false, bool isPinned = false)
-    {
-        bool hasSummary = cities != null && summaryTypes != null;
-        int summaryLines = !hasSummary ? 0 : summaryTypes!.Length;
-
-        float textX = x + 12f + TextOffsetX;
-        float rightReserve = pinKey != null ? PinCheckboxSize + PinCheckboxMargin * 2 : DescRightPad;
-        float descMaxWidth = width - 12f - TextOffsetX - rightReserve;
-        var descLayout = SkiaTextUtils.MeasureWrappedText(desc, descMaxWidth, _descFont);
-
-        float contentHeight = Math.Max(RowMinHeight, 18f + _nameFont.Spacing + 2f + descLayout.Size.Height + 10f);
-        float summaryExtra = summaryLines == 0 ? 0f : SummaryHeight + (summaryLines - 1) * SummaryLineHeight;
-        float cardHeight = contentHeight + summaryExtra;
-
-        var cardRect = new SKRect(x, y, x + width, y + cardHeight);
-        canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
-        canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
-
-        float toggleY = y + (contentHeight - ToggleHeight) / 2f;
-        var toggleRect = new SKRect(x + 12f, toggleY, x + 12f + ToggleWidth, toggleY + ToggleHeight);
-        SkiaToggleUtils.Draw(canvas, toggleRect, isOn, isHovered);
-
-        SkiaTextUtils.DrawText(canvas, name, textX, y + 18, _nameFont, _namePaint);
-        SkiaTextUtils.DrawWrappedText(canvas, desc, textX, y + 18f + _nameFont.Spacing + 2f, descMaxWidth, _descFont, _descPaint);
-
-        if (hasSummary)
-        {
-            canvas.DrawLine(x + 12f, y + contentHeight, x + width - 12f, y + contentHeight, _summaryDividerPaint);
-            DrawBuildingSummary(canvas, x + 12f, y + contentHeight + 14f, cities!, summaryTypes!);
-        }
-
-        if (note != null)
-            _hoverableCards.Add((cardRect, note));
-
-        if (pinKey != null)
-        {
-            var cbRect = new SKRect(x + width - PinCheckboxMargin - PinCheckboxSize, y + PinCheckboxMargin,
-                                    x + width - PinCheckboxMargin, y + PinCheckboxMargin + PinCheckboxSize);
-            DrawPinCheckbox(canvas, cbRect, isPinned, isPinHovered);
-            _pinCheckboxes.Add((cbRect, pinKey));
-        }
-
-        return (toggleRect, cardHeight);
-    }
-
-    private (SKRect toggleRect, float height) DrawBuildingControlRow(
-        SKCanvas canvas, float x, float y, float width,
-        bool? isOn, bool isHovered, string name, string desc,
-        string? pinKey = null, bool isPinHovered = false, bool isPinned = false,
-        bool isDimmed = false)
-    {
-        float textX = x + 12f + TextOffsetX;
-        float rightReserve = pinKey != null ? PinCheckboxSize + PinCheckboxMargin * 2 : DescRightPad;
-        float descMaxWidth = width - 12f - TextOffsetX - rightReserve;
-        var descLayout = SkiaTextUtils.MeasureWrappedText(desc, descMaxWidth, _descFont);
-
-        float contentHeight = Math.Max(RowMinHeight, 18f + _nameFont.Spacing + 2f + descLayout.Size.Height + 10f);
-
-        var cardRect = new SKRect(x, y, x + width, y + contentHeight);
-        canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
-        canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
-
-        float toggleY = y + (contentHeight - ToggleHeight) / 2f;
-        var toggleRect = new SKRect(x + 12f, toggleY, x + 12f + ToggleWidth, toggleY + ToggleHeight);
-        SkiaToggleUtils.Draw(canvas, toggleRect, isOn, isHovered, isDimmed);
-
-        SkiaTextUtils.DrawText(canvas, name, textX, y + 18, _nameFont, isDimmed ? _mutedPaint : _namePaint);
-        SkiaTextUtils.DrawWrappedText(canvas, desc, textX, y + 18f + _nameFont.Spacing + 2f, descMaxWidth, _descFont, isDimmed ? _mutedPaint : _descPaint);
-
-        if (pinKey != null)
-        {
-            var cbRect = new SKRect(x + width - PinCheckboxMargin - PinCheckboxSize, y + PinCheckboxMargin,
-                                    x + width - PinCheckboxMargin, y + PinCheckboxMargin + PinCheckboxSize);
-            DrawPinCheckbox(canvas, cbRect, isPinned, isPinHovered);
-            _pinCheckboxes.Add((cbRect, pinKey));
-        }
-
-        return (toggleRect, contentHeight);
-    }
-
-    private void DrawPinCheckbox(SKCanvas canvas, SKRect rect, bool isPinned, bool isHovered)
-    {
-        canvas.DrawRoundRect(rect, 2, 2, isHovered ? _pinHoverPaint : _pinBorderPaint);
-        if (isPinned)
-        {
-            var inner = new SKRect(rect.Left + 3, rect.Top + 3, rect.Right - 3, rect.Bottom - 3);
-            canvas.DrawRoundRect(inner, 1, 1, _pinCheckedPaint);
-        }
-    }
-
-    private void DrawFloatingTooltip(SKCanvas canvas, string text, SKPoint pos)
-    {
-        const float MaxW = 240f;
-        const float PadX = 10f;
-        const float PadY = 8f;
-
-        var layout = SkiaTextUtils.MeasureWrappedText(text, MaxW, _descFont);
-        float w = layout.Size.Width + PadX * 2;
-        float h = layout.Size.Height + PadY * 2;
-
-        float tx = pos.X + 14f;
-        float ty = pos.Y - h - 6f;
-        if (tx + w > _canvasSize.Width - 6) tx = _canvasSize.Width - 6 - w;
-        if (ty < 0) ty = pos.Y + 18f;
-
-        var rect = new SKRect(tx, ty, tx + w, ty + h);
-        canvas.DrawRoundRect(rect, 5, 5, _tooltipBgPaint);
-        canvas.DrawRoundRect(rect, 5, 5, _tooltipBorderPaint);
-        SkiaTextUtils.DrawWrappedText(canvas, text, tx + PadX, ty + PadY + _descFont.Size, MaxW, _descFont, _notePaint);
-    }
-
-    private float DrawLockedRow(SKCanvas canvas, float x, float y, float width, string name, string lockDesc)
-    {
-        float textX = x + 12f;
-        float descMaxWidth = width - 24f;
-        var descLayout = SkiaTextUtils.MeasureWrappedText(lockDesc, descMaxWidth, _descFont);
-        float contentHeight = Math.Max(RowMinHeight, 18f + _nameFont.Spacing + 2f + descLayout.Size.Height + 10f);
-
-        var cardRect = new SKRect(x, y, x + width, y + contentHeight);
-        canvas.DrawRoundRect(cardRect, 6, 6, _cardPaint);
-        canvas.DrawRoundRect(cardRect, 6, 6, _cardBorderPaint);
-
-        SkiaTextUtils.DrawText(canvas, name, textX, y + 18, _nameFont, _mutedPaint);
-        SkiaTextUtils.DrawWrappedText(canvas, lockDesc, textX, y + 18f + _nameFont.Spacing + 2f, descMaxWidth, _descFont, _mutedPaint);
-
-        return contentHeight;
-    }
-
-    private void DrawBuildingSummary(SKCanvas canvas, float x, float y, IEnumerable<City> cities, BuildingType[] types)
-    {
-        for (int i = 0; i < types.Length; i++)
-            DrawSummaryLine(canvas, x, y + i * SummaryLineHeight, cities, [types[i]]);
-    }
-
-    private void DrawSummaryLine(SKCanvas canvas, float x, float y, IEnumerable<City> cities, BuildingType[] types)
-    {
-        float curX = x;
-        bool first = true;
-        foreach (var type in types)
-        {
-            if (!first) curX += 14f;
-            first = false;
-
-            var (text, isEmpty) = FormatSummaryEntry(cities, type);
-            SkiaTextUtils.DrawText(canvas, text, curX, y, _summaryFont, isEmpty ? _summaryEmptyPaint : _summaryBuiltPaint);
-            curX += _summaryFont.MeasureText(text);
-        }
     }
 
     /// <summary>
@@ -907,107 +540,6 @@ public sealed class AutomationRenderer : IDisposable
         }
     }
 
-    public void HandlePointerMoved(SKPoint position)
-    {
-        _mousePosition = position;
-
-        if (_isDraggingScrollbar)
-        {
-            float dy         = position.Y - _scrollDragStartY;
-            float thumbRange = _scrollTrackRect.Height - _scrollThumbRect.Height;
-            float maxScroll  = Math.Max(0, _totalContentH - _viewportH);
-            float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
-            _scrollOffsetPx  = Math.Clamp(_scrollDragStartOffset + dy * scrollPerPx, 0, maxScroll);
-            return;
-        }
-
-        var adj = new SKPoint(position.X, position.Y + _scrollOffsetPx);
-        _hoveredGlobalAutomationsToggle = !_globalAutomationsToggleRect.IsEmpty && _globalAutomationsToggleRect.Contains(adj.X, adj.Y);
-
-        _hoveredToggleKey = null;
-        foreach (var (rect, key) in _toggleRects)
-        {
-            if (rect.Contains(adj.X, adj.Y)) { _hoveredToggleKey = key; break; }
-        }
-
-        _hoveredNote = null;
-        foreach (var (rect, note) in _hoverableCards)
-        {
-            if (rect.Contains(adj.X, adj.Y)) { _hoveredNote = note; break; }
-        }
-
-        _hoveredPinKey = null;
-        foreach (var (rect, key) in _pinCheckboxes)
-        {
-            if (rect.Contains(adj.X, adj.Y)) { _hoveredPinKey = key; break; }
-        }
-    }
-
-    public bool HandlePointerPressed(SKPoint position)
-    {
-        if (!_scrollThumbRect.IsEmpty && _scrollThumbRect.Contains(position.X, position.Y))
-        {
-            _isDraggingScrollbar   = true;
-            _scrollDragStartY      = position.Y;
-            _scrollDragStartOffset = _scrollOffsetPx;
-            return true;
-        }
-        if (!_scrollTrackRect.IsEmpty && _scrollTrackRect.Contains(position.X, position.Y))
-        {
-            float relY      = position.Y - _scrollTrackRect.Top;
-            float maxScroll = Math.Max(0, _totalContentH - _viewportH);
-            _scrollOffsetPx = Math.Clamp(relY / _scrollTrackRect.Height * maxScroll, 0, maxScroll);
-            return true;
-        }
-
-        var state = _gameControllerService.CurrentWorldState;
-        if (state == null) return false;
-
-        var adj = new SKPoint(position.X, position.Y + _scrollOffsetPx);
-
-        // Checkboxes de pin
-        foreach (var (rect, key) in _pinCheckboxes)
-        {
-            if (rect.Contains(adj.X, adj.Y))
-            {
-                var ps = _gameControllerService.CurrentGameState!.Settings.PinnedCivPanelKeys;
-                if (!ps.Remove(key)) ps.Add(key);
-                return true;
-            }
-        }
-
-        // Interrupteur global (voir GameSettings.AutomationsEnabled)
-        if (!_globalAutomationsToggleRect.IsEmpty && _globalAutomationsToggleRect.Contains(adj.X, adj.Y))
-        {
-            var gameSettings = _gameControllerService.CurrentGameState!.Settings;
-            gameSettings.AutomationsEnabled = !gameSettings.AutomationsEnabled;
-            return true;
-        }
-
-        // Bascules : une seule boucle sur les rectangles de la frame, puis un aiguillage par cle.
-        foreach (var (rect, key) in _toggleRects)
-        {
-            if (!rect.Contains(adj.X, adj.Y)) continue;
-            ToggleByKey(key);
-            return true;
-        }
-
-        return false;
-    }
-
-    public void HandlePointerReleased(SKPoint position)
-    {
-        _isDraggingScrollbar = false;
-    }
-
-    public void HandleScroll(float delta)
-    {
-        const float step = 60f;
-        float dir = delta > 0 ? -1f : 1f;
-        float maxScroll = Math.Max(0, _totalContentH - _viewportH);
-        _scrollOffsetPx = Math.Clamp(_scrollOffsetPx + dir * step, 0, maxScroll);
-    }
-
     private static bool BuildingExists<T>(Civilization civ) where T : Building
         => civ.Cities.Any(c => c.Buildings.OfType<T>().Any(b => b.Level >= 1));
 
@@ -1045,48 +577,9 @@ public sealed class AutomationRenderer : IDisposable
         foreach (var b in list) b.ActivationStatus = next;
     }
 
-    private void DrawScrollbar(SKCanvas canvas, float trackTop, float trackH)
-    {
-        const float scrollW      = 6f;
-        const float scrollMargin = 4f;
-        float trackX = _canvasSize.Width - scrollW - scrollMargin;
-
-        _scrollTrackRect = new SKRect(trackX, trackTop, trackX + scrollW, trackTop + trackH);
-        canvas.DrawRoundRect(_scrollTrackRect, 3, 3, _scrollTrackPaint);
-
-        float thumbRatio = _viewportH / _totalContentH;
-        float thumbH     = Math.Max(24f, thumbRatio * trackH);
-        float maxScroll  = Math.Max(1, _totalContentH - _viewportH);
-        float thumbTop   = trackTop + (_scrollOffsetPx / maxScroll) * (trackH - thumbH);
-        _scrollThumbRect = new SKRect(trackX, thumbTop, trackX + scrollW, thumbTop + thumbH);
-        canvas.DrawRoundRect(_scrollThumbRect, 3, 3, _scrollThumbPaint);
-    }
-
     public void Dispose()
     {
         if (_disposed) return;
-        _bgPaint.Dispose();
-        _cardPaint.Dispose();
-        _cardBorderPaint.Dispose();
-        _namePaint.Dispose();
-        _descPaint.Dispose();
-        _notePaint.Dispose();
-        _tooltipBgPaint.Dispose();
-        _tooltipBorderPaint.Dispose();
-        _mutedPaint.Dispose();
-        _accentPaint.Dispose();
-        _summaryBuiltPaint.Dispose();
-        _summaryEmptyPaint.Dispose();
-        _summaryDividerPaint.Dispose();
-        _scrollTrackPaint.Dispose();
-        _scrollThumbPaint.Dispose();
-        _pinBorderPaint.Dispose();
-        _pinHoverPaint.Dispose();
-        _pinCheckedPaint.Dispose();
-        _headerFont.Dispose();
-        _nameFont.Dispose();
-        _descFont.Dispose();
-        _summaryFont.Dispose();
         _disposed = true;
     }
 }

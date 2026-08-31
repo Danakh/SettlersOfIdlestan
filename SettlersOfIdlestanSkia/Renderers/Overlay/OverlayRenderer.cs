@@ -33,16 +33,12 @@ public sealed class OverlayRenderer : IGameRenderer
     private readonly AutomationRenderer _automationRenderer;
     private readonly RitualsRenderer _ritualsRenderer;
     private readonly AscensionRenderer _ascensionRenderer;
-    private readonly TooltipRenderer _tooltipRenderer;
     private readonly CameraService _cameraService;
     private readonly PlayerCivilizationPanelRenderer _playerCivPanel;
     private readonly SettlersOfIdlestanSkia.Renderers.Debug.HistoryTabRenderer? _historyRenderer;
     private readonly TabBarRenderer _tabBar;
 
     private readonly UILayoutService _uiLayout;
-    private SKSize _canvasSize;
-    private SKPoint _lastPointerPosition;
-    private TargetSelectionService? _targetSelectionService;
 
     private bool _disposed;
     private bool _isVisible = true;
@@ -73,9 +69,7 @@ public sealed class OverlayRenderer : IGameRenderer
         AutomationRenderer automationRenderer,
         RitualsRenderer ritualsRenderer,
         AscensionRenderer ascensionRenderer,
-        TooltipRenderer tooltipRenderer,
         CameraService cameraService,
-        ResourceManager resourceManager,
         UILayoutService uiLayout,
         bool allowDebugMode = false,
         SettlersOfIdlestanSkia.Renderers.Debug.HistoryTabRenderer? historyRenderer = null)
@@ -99,7 +93,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _automationRenderer             = automationRenderer;
         _ritualsRenderer                = ritualsRenderer;
         _ascensionRenderer              = ascensionRenderer;
-        _tooltipRenderer                = tooltipRenderer;
         _cameraService                  = cameraService;
         _historyRenderer                = historyRenderer;
 
@@ -113,8 +106,6 @@ public sealed class OverlayRenderer : IGameRenderer
             tradeRenderer,
             prestigeRenderer,
             targetSelectionService: null,
-            tooltipRenderer,
-            resourceManager,
             centerCameraOnMapPosition: CenterCameraOnMapPosition);
         _playerCivPanel.OnExpanded = () => { if (_uiLayout.TabsAtBottom) DeselectCityAndMonument(); };
 
@@ -129,7 +120,6 @@ public sealed class OverlayRenderer : IGameRenderer
 
     public void Initialize(SKSize canvasSize)
     {
-        _canvasSize = canvasSize;
         _uiLayout.UpdateCanvasSize(canvasSize);
 
         _selectedCityPanelRenderer.Initialize(canvasSize);
@@ -138,15 +128,10 @@ public sealed class OverlayRenderer : IGameRenderer
         _prestigeRenderer.Initialize(canvasSize);
         _settingsPopupRenderer.Initialize(canvasSize);
         _prestigeMapRenderer.Initialize(canvasSize);
-        _prestigeHistoryRenderer.Initialize(canvasSize);
         _researchRenderer.Initialize(canvasSize);
-        _eventLogRenderer.Initialize(canvasSize);
-        _automationRenderer.Initialize(canvasSize);
-        _ritualsRenderer.Initialize(canvasSize);
         _ascensionRenderer.Initialize(canvasSize);
         _historyRenderer?.Initialize(canvasSize);
         _playerCivPanel.Initialize(canvasSize);
-        _tabBar.Initialize(canvasSize);
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -158,17 +143,8 @@ public sealed class OverlayRenderer : IGameRenderer
 
         _tabBar.Update(context);
 
-        int activeTab      = _tabBar.ActiveTab;
-        bool panelsEnabled = IsMapViewTab(activeTab)
-                          && !_tradeRenderer.IsOpen && !_prestigeRenderer.IsOpen;
-        _selectedCityPanelRenderer.IsInputEnabled  = panelsEnabled;
-        _selectedMonumentPanelRenderer.IsInputEnabled = panelsEnabled;
+        int activeTab = _tabBar.ActiveTab;
         _researchRenderer.IsActive = activeTab == TabBarRenderer.TabResearch;
-
-        float panelTop = _uiLayout.PanelTopY;
-        _playerCivPanel.TopOverride              = panelTop;
-        _selectedMonumentPanelRenderer.TopOverride = panelTop;
-        _selectedCityPanelRenderer.TopOverride   = panelTop;
 
         if (_uiLayout.TabsAtBottom)
         {
@@ -324,7 +300,6 @@ public sealed class OverlayRenderer : IGameRenderer
 
     public void ConnectTargetSelectionService(TargetSelectionService targetSelectionService)
     {
-        _targetSelectionService = targetSelectionService;
         _playerCivPanel.ConnectTargetSelectionService(targetSelectionService);
     }
 
@@ -605,8 +580,6 @@ public sealed class OverlayRenderer : IGameRenderer
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabIsland && IsAscensionPending) _ascensionRenderer.HandlePendingRaceChoicePointerMoved(e.Position);
-
-        _lastPointerPosition = e.Position;
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
@@ -634,8 +607,6 @@ public sealed class OverlayRenderer : IGameRenderer
         _tradeRenderer.Close();
         _prestigeRenderer.Close();
         DeselectCityAndMonument();
-        _selectedCityPanelRenderer.IsInputEnabled  = false;
-        _selectedMonumentPanelRenderer.IsInputEnabled = false;
     }
 
     /// <summary>
@@ -660,8 +631,6 @@ public sealed class OverlayRenderer : IGameRenderer
     public void Show(bool suppressNextPress = false)
     {
         _isVisible = true;
-        _selectedCityPanelRenderer.IsInputEnabled  = true;
-        _selectedMonumentPanelRenderer.IsInputEnabled = true;
         if (suppressNextPress) _suppressNextPress = true;
     }
 

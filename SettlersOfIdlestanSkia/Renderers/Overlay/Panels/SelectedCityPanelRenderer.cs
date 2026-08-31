@@ -20,7 +20,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 {
     private readonly LocalizationService _localization;
     private readonly CityBuildingService _cityBuildingService;
-    private readonly InputHandlingService _inputService;
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
@@ -32,10 +31,9 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 
     public Action<int, float, float>? CenterCameraOnMapPosition { get; set; }
 
-    public SelectedCityPanelRenderer(CityBuildingService cityBuildingService, LocalizationService localization, InputHandlingService inputService, ResourceManager resourceManager)
+    public SelectedCityPanelRenderer(CityBuildingService cityBuildingService, LocalizationService localization, ResourceManager resourceManager)
     {
         _cityBuildingService = cityBuildingService;
-        _inputService = inputService;
         _localization = localization;
         _resourceManager = resourceManager;
         _cityBuildingService.SelectionChanged += (_, _) => Collapsed = false;
@@ -56,7 +54,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
     {
         _cityBuildingService.ClearSelectedCity();
         _hoveredBuildingType = null;
-        ScrollOffset = 0;
     }
 
     /// <summary>
@@ -703,7 +700,6 @@ public class SelectedCityPanelRenderer : PanelRendererBase
     {
         _showUniqueBuildings = showUnique;
         _hoveredBuildingType = null;
-        ScrollOffset = 0;
     }
 
     /// <summary>Bascule l'activation d'un bâtiment depuis une vue portée par l'hôte.</summary>

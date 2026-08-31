@@ -1,119 +1,22 @@
 ﻿using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Services.Localization;
-using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
-using SkiaSharp;
 using System;
 
 namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 
 public sealed class EventLogRenderer : IDisposable
 {
-    private const float Padding = 20f;
-    private const float CardPadding = 10f;
-    private const float CardRadius = 6f;
-    private const float CardHeight = 42f;
-    private const float CardSpacing = 6f;
-    private const float TitleLineY = CardPadding + 14f;
-    private const float BodyLineY = CardPadding + 30f;
-
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
-    private readonly UILayoutService _uiLayout;
 
-    private SKSize _canvasSize;
     private bool _disposed;
 
-    // Shared
-    private readonly SKPaint _bgPaint = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _bodyTextPaint = new() { Color = new SKColor(200, 200, 210), IsAntialias = true };
-    private readonly SKPaint _mutedPaint = new() { Color = new SKColor(120, 120, 130), IsAntialias = true };
-    private readonly SKPaint _accentPaint = new() { Color = new SKColor(255, 215, 0), IsAntialias = true };
-
-    // Danger (rouge) — bandit découvert, repaire découvert
-    private readonly SKPaint _dangerCardPaint = new() { Color = new SKColor(70, 15, 15, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _dangerBorderPaint = new() { Color = new SKColor(200, 50, 50), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _dangerTextPaint = new() { Color = new SKColor(255, 100, 100), IsAntialias = true };
-
-    // Warning (orange) — perte de ressource/unité
-    private readonly SKPaint _warningCardPaint = new() { Color = new SKColor(50, 25, 5, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _warningBorderPaint = new() { Color = new SKColor(210, 100, 20), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _warningTextPaint = new() { Color = new SKColor(240, 130, 40), IsAntialias = true };
-
-    // Success (vert) — victoire, trésor réclamé, repaire détruit
-    private readonly SKPaint _successCardPaint = new() { Color = new SKColor(15, 45, 15, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _successBorderPaint = new() { Color = new SKColor(70, 200, 70), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _successTextPaint = new() { Color = new SKColor(100, 220, 100), IsAntialias = true };
-
-    // Reward (or) — trésor découvert
-    private readonly SKPaint _rewardCardPaint = new() { Color = new SKColor(50, 40, 10, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _rewardBorderPaint = new() { Color = new SKColor(200, 160, 30), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _rewardTextPaint = new() { Color = new SKColor(255, 210, 60), IsAntialias = true };
-
-    // Discovery (cyan) — civilisation découverte
-    private readonly SKPaint _discoveryCardPaint = new() { Color = new SKColor(10, 40, 30, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
-    private readonly SKPaint _discoveryBorderPaint = new() { Color = new SKColor(40, 190, 120), StrokeWidth = 1f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    private readonly SKPaint _discoveryTextPaint = new() { Color = new SKColor(80, 225, 150), IsAntialias = true };
-
-    private readonly SKFont _titleFont = new() { Size = 13, Typeface = SkiaFonts.Bold };
-    private readonly SKFont _bodyFont = new() { Size = 12, Typeface = SkiaFonts.Regular };
-    private readonly SKFont _headerFont = new() { Size = 17, Typeface = SkiaFonts.Bold };
-
-    public EventLogRenderer(GameControllerService gameControllerService, LocalizationService localization, UILayoutService uiLayout)
+    public EventLogRenderer(GameControllerService gameControllerService, LocalizationService localization)
     {
         _gameControllerService = gameControllerService;
         _localization = localization;
-        _uiLayout = uiLayout;
     }
-
-    public void Initialize(SKSize canvasSize) => _canvasSize = canvasSize;
-
-    public void RenderEvents(SKCanvas canvas, GameRenderContext context)
-    {
-        if (_disposed) return;
-        if (context.GameState is not MainGameState mainGameState) return;
-
-        float topBarHeight = _uiLayout.SecondRowBottom;
-        canvas.DrawRect(new SKRect(0, topBarHeight, _canvasSize.Width, _canvasSize.Height), _bgPaint);
-
-        float contentWidth = Math.Min(720f, _canvasSize.Width - Padding * 2);
-        float x = (_canvasSize.Width - contentWidth) / 2;
-        float y = topBarHeight + Padding;
-
-        SkiaTextUtils.DrawText(canvas, _localization.Get("tab_events"), x, y + 14, _headerFont, _accentPaint);
-        y += 28f;
-
-        var eventLog = mainGameState.CurrentWorldState?.EventLog;
-        if (eventLog == null || !eventLog.HasEntries)
-        {
-            SkiaTextUtils.DrawText(canvas, _localization.Get("events_empty"), x, y + 14, _bodyFont, _mutedPaint);
-            return;
-        }
-
-        foreach (var entry in eventLog.Entries)
-        {
-            if (y + CardHeight > _canvasSize.Height - Padding) break;
-
-            var (tone, title, body) = GetEntryContent(entry);
-            var (cardPaint, borderPaint, titlePaint) = PaintsFor(tone);
-            var cardRect = new SKRect(x, y, x + contentWidth, y + CardHeight);
-            canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, cardPaint);
-            canvas.DrawRoundRect(cardRect, CardRadius, CardRadius, borderPaint);
-            SkiaTextUtils.DrawText(canvas, title, x + CardPadding, y + TitleLineY, _titleFont, titlePaint);
-            SkiaTextUtils.DrawText(canvas, body, x + CardPadding, y + BodyLineY, _bodyFont, _bodyTextPaint);
-            y += CardHeight + CardSpacing;
-        }
-    }
-
-    /// <summary>Paints correspondant à un ton, pour le rendu Skia.</summary>
-    private (SKPaint Card, SKPaint Border, SKPaint Title) PaintsFor(EventLogTone tone) => tone switch
-    {
-        EventLogTone.Warning   => (_warningCardPaint,   _warningBorderPaint,   _warningTextPaint),
-        EventLogTone.Success   => (_successCardPaint,   _successBorderPaint,   _successTextPaint),
-        EventLogTone.Reward    => (_rewardCardPaint,    _rewardBorderPaint,    _rewardTextPaint),
-        EventLogTone.Discovery => (_discoveryCardPaint, _discoveryBorderPaint, _discoveryTextPaint),
-        _                      => (_dangerCardPaint,    _dangerBorderPaint,    _dangerTextPaint),
-    };
 
     /// <summary>
     /// Instantané de l'onglet pour une vue portée par l'hôte. Réutilise <see cref="GetEntryContent"/> :
@@ -130,8 +33,7 @@ public sealed class EventLogRenderer : IDisposable
         var entries = new List<EventLogEntrySnapshot>();
         if (eventLog != null)
         {
-            // Pas de troncature ici, contrairement au rendu Skia qui s'arrête au bas de l'écran :
-            // la vue défile, et affiche donc les 50 entrées que le modèle conserve.
+            // Pas de troncature : la vue défile, et affiche donc les 50 entrées que le modèle conserve.
             foreach (var entry in eventLog.Entries)
             {
                 var (tone, title, body) = GetEntryContent(entry);
@@ -403,28 +305,6 @@ public sealed class EventLogRenderer : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        _bgPaint.Dispose();
-        _bodyTextPaint.Dispose();
-        _mutedPaint.Dispose();
-        _accentPaint.Dispose();
-        _dangerCardPaint.Dispose();
-        _dangerBorderPaint.Dispose();
-        _dangerTextPaint.Dispose();
-        _warningCardPaint.Dispose();
-        _warningBorderPaint.Dispose();
-        _warningTextPaint.Dispose();
-        _successCardPaint.Dispose();
-        _successBorderPaint.Dispose();
-        _successTextPaint.Dispose();
-        _rewardCardPaint.Dispose();
-        _rewardBorderPaint.Dispose();
-        _rewardTextPaint.Dispose();
-        _discoveryCardPaint.Dispose();
-        _discoveryBorderPaint.Dispose();
-        _discoveryTextPaint.Dispose();
-        _titleFont.Dispose();
-        _bodyFont.Dispose();
-        _headerFont.Dispose();
         _disposed = true;
     }
 }

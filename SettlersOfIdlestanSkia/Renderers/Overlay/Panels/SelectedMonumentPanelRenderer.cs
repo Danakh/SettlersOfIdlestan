@@ -9,7 +9,6 @@ using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 using SkiaSharp;
-using Svg.Skia;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,12 +18,8 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 public class SelectedMonumentPanelRenderer : PanelRendererBase
 {
     private readonly MonumentService _monumentService;
-    private readonly InputHandlingService _inputService;
     private readonly LocalizationService _localization;
-    private readonly ResourceManager _resourceManager;
     private readonly GameControllerService _gameControllerService;
-    private readonly TooltipRenderer _tooltipRenderer;
-    private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
 
     public bool HasSelection => _monumentService.SelectedInvestable != null;
 
@@ -38,30 +33,13 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
 
     public SelectedMonumentPanelRenderer(
         MonumentService monumentService,
-        InputHandlingService inputService,
         LocalizationService localization,
-        ResourceManager resourceManager,
-        GameControllerService gameControllerService,
-        TooltipRenderer tooltipRenderer)
+        GameControllerService gameControllerService)
     {
         _monumentService = monumentService;
-        _inputService = inputService;
         _localization = localization;
-        _resourceManager = resourceManager;
         _gameControllerService = gameControllerService;
-        _tooltipRenderer = tooltipRenderer;
         _monumentService.SelectionChanged += (_, _) => { Collapsed = false; _destroyConfirmPending = false; };
-    }
-
-    public override void Initialize(SKSize canvasSize)
-    {
-        base.Initialize(canvasSize);
-
-        foreach (Resource resource in Enum.GetValues(typeof(Resource)))
-        {
-            string name = resource.ToString().ToLower();
-            _resourceIcons[resource] = _resourceManager.LoadImage($"Resources.icons.resources.{name}.svg");
-        }
     }
 
     /// <summary>
@@ -359,10 +337,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     {
         _monumentService.ClearSelectedInvestable();
         Collapsed = false;
-        ScrollOffset = 0;
-        PanelBounds = SKRect.Empty;
         _destroyConfirmPending = false;
-        CollapseTabRect = SKRect.Empty;
     }
 
     public override void Dispose()
