@@ -25,14 +25,14 @@ public class Ziggurat : Building, IUniqueBuilding
 
     public override bool IsAvailableInLayer(int z) => z == IslandMap.IslandMap.SurfaceLayer;
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
-        => IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city);
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
+        => IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city, civ);
 
-    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState state)
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
         => state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION)
         && city.HasBuildingAtLevel(BuildingType.Temple, 4);
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state)
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
     {
         if (!state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION))
             return "tooltip_requires_dominion";

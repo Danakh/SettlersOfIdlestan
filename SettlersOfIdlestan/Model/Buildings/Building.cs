@@ -289,14 +289,12 @@ public class Building
     /// <summary>
     /// Gets the harvest capability of the building.
     /// </summary>
-    public virtual Resource? AutomaticHarvestCapability(TerrainType terrain) => null;
-
-    /// <summary>
-    /// Overload of <see cref="AutomaticHarvestCapability(TerrainType)"/> with access to the civilization,
-    /// for terrain capabilities gated by a research (e.g. Sawmill on Cavernes aux Champignons, unlocked by
-    /// Bois de Champignon). Default implementation ignores civ and falls back to the simple overload.
-    /// </summary>
-    public virtual Resource? AutomaticHarvestCapability(TerrainType terrain, SettlersOfIdlestan.Model.Civilization.Civilization civ) => AutomaticHarvestCapability(terrain);
+    /// <param name="civ">
+    /// Civilisation propriétaire, ou <c>null</c> quand l'appelant n'en a pas : une capacité ouverte par
+    /// une recherche (Scierie sur Caverne aux Champignons, cf. Bois de Champignon) reste alors fermée.
+    /// </param>
+    /// <remarks>Signature unique, voir <see cref="IsBuildingAvailableForCity"/>.</remarks>
+    public virtual Resource? AutomaticHarvestCapability(TerrainType terrain, Model.Civilization.Civilization? civ) => null;
 
     /// <summary>
     /// Multiplier applied to the automatic harvest cooldown for a given terrain, on top of the base
@@ -420,26 +418,33 @@ public class Building
     }
 
     /// <summary>
-    /// Determines if the building is available for the specified city.
+    /// Determines if the building is available for the specified city (city level, terrain, map layer).
     /// Default implementation checks AvailableAtLevel only.
     /// Derived classes can override to add additional requirements.
     /// </summary>
     /// <param name="map">The island map.</param>
     /// <param name="city">The city.</param>
+    /// <param name="civ">
+    /// Civilisation propriétaire, ou <c>null</c> quand l'appelant n'en a pas — génération de villes PNJ
+    /// hors civilisation câblée, ou ville dont l'index ne résout plus. Une règle de placement ouverte par
+    /// une recherche ou une race (voir <see cref="Sawmill"/>, Caverne aux Champignons) ne s'applique donc
+    /// que si elle est fournie : un <c>null</c> rend la réponse la plus restrictive.
+    /// </param>
     /// <returns>True if the building is available for the city, false otherwise.</returns>
-    public virtual bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
+    /// <remarks>
+    /// <b>Une seule méthode virtuelle, volontairement.</b> Cette question et les trois suivantes
+    /// (<see cref="HasBuildPrerequisites"/>, <see cref="GetMissingPrerequisiteKey"/>,
+    /// <see cref="GetBuildWarningKey"/>) étaient chacune deux surcharges, la riche retombant sur la
+    /// pauvre. Un appelant qui prenait la surcharge pauvre sautait alors silencieusement toute
+    /// redéfinition portée par la riche — le bâtiment devenait constructible là où sa règle l'interdit,
+    /// sans erreur ni trace. Avec une signature unique, la redéfinition est toujours consultée et
+    /// l'absence d'une donnée est un <c>null</c> visible à l'appel.
+    /// <c>BuildingHookOverloadTests</c> (SOITests) échoue si une seconde surcharge réapparaît.
+    /// </remarks>
+    public virtual bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
         return city.Level >= AvailableAtLevel;
     }
-
-    /// <summary>
-    /// Overload of <see cref="IsBuildingAvailableForCity(IslandMap.IslandMap, IBuildingContext)"/> with access
-    /// to the civilization, for placement rules gated by a research (e.g. Sawmill next to a Caverne aux
-    /// Champignons, unlocked by Bois de Champignon). Default implementation ignores civ and falls back to the
-    /// simple overload.
-    /// </summary>
-    public virtual bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, SettlersOfIdlestan.Model.Civilization.Civilization civ)
-        => IsBuildingAvailableForCity(map, city);
 
     /// <summary>
     /// Determines if this building type can exist on the given map layer (e.g. surface vs. underworld).
@@ -486,31 +491,27 @@ public class Building
     /// Returns true if all build prerequisites (beyond resources) are satisfied.
     /// Override in derived classes to add extra conditions.
     /// </summary>
-    public virtual bool HasBuildPrerequisites(IBuildingContext city) => true;
-
-    /// <summary>
-    /// Overload of <see cref="HasBuildPrerequisites(IBuildingContext)"/> with access to the WorldState,
-    /// for prerequisites depending on map features (e.g. adjacency to a discovered IslandFeature).
-    /// Default implementation ignores state and falls back to the simple overload.
-    /// </summary>
-    public virtual bool HasBuildPrerequisites(IBuildingContext city, WorldState state) => HasBuildPrerequisites(city);
+    /// <param name="state">
+    /// Monde courant, ou <c>null</c> quand l'appelant n'en a pas. Un prérequis lié à la carte
+    /// (adjacence à une IslandFeature découverte : Cercle de Fées, Volcan) ne peut alors pas être
+    /// évalué — les redéfinitions concernées répondent <c>true</c>, comme le faisait la surcharge sans
+    /// WorldState qu'elles remplacent.
+    /// </param>
+    /// <remarks>Signature unique, voir <see cref="IsBuildingAvailableForCity"/>.</remarks>
+    public virtual bool HasBuildPrerequisites(IBuildingContext city, WorldState? state) => true;
 
     /// <summary>
     /// Returns the localization key describing the missing prerequisite, or null if none.
     /// Used by the UI to show a tooltip warning when HasBuildPrerequisites is false.
     /// </summary>
-    public virtual string? GetMissingPrerequisiteKey(IBuildingContext city) => null;
-
-    /// <summary>
-    /// Overload of <see cref="GetMissingPrerequisiteKey(IBuildingContext)"/> with access to the WorldState.
-    /// Default implementation ignores state and falls back to the simple overload.
-    /// </summary>
-    public virtual string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state) => GetMissingPrerequisiteKey(city);
+    /// <remarks>Signature unique, voir <see cref="IsBuildingAvailableForCity"/>.</remarks>
+    public virtual string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state) => null;
 
     /// <summary>
     /// Returns the localization key for a non-blocking build warning, or null if none.
-    /// Unlike <see cref="GetMissingPrerequisiteKey(IBuildingContext, WorldState)"/>, the build is still
+    /// Unlike <see cref="GetMissingPrerequisiteKey"/>, the build is still
     /// allowed — this only informs the player of a limitation (e.g. reduced functionality at this spot).
     /// </summary>
-    public virtual string? GetBuildWarningKey(IBuildingContext city, WorldState state) => null;
+    /// <remarks>Signature unique, voir <see cref="IsBuildingAvailableForCity"/>.</remarks>
+    public virtual string? GetBuildWarningKey(IBuildingContext city, WorldState? state) => null;
 }

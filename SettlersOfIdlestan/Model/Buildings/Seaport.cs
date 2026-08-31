@@ -33,7 +33,7 @@ public class Seaport : Building
 
     public override int AutomaticHarvestUnlockLevel => 2;
 
-    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain, Model.Civilization.Civilization? civ)
     {
         if ((Level > 1) && (terrain == TerrainType.Water))
             return Resource.Food;
@@ -60,9 +60,9 @@ public class Seaport : Building
     public double GetGenerationCooldownMultiplier() =>
         Level >= 3 ? Math.Pow(0.8, Level - 3) : 1.0;
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
-        if (!base.IsBuildingAvailableForCity(map, city))
+        if (!base.IsBuildingAvailableForCity(map, city, civ))
             return false;
 
         return map.VertexHasTerrainType(city.Position, TerrainType.Water);

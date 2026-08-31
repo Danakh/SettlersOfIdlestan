@@ -21,14 +21,14 @@ public class TraderGuild : Building, IUniqueBuilding
 
     public long GetAutoMarketCooldownTicks() => 1000L;
 
-    public override bool HasBuildPrerequisites(IBuildingContext city)
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
     {
         bool hasMarket = city.HasBuildingAtLevel(BuildingType.Market, 1);
         bool hasSeaport4 = city.HasBuildingAtLevel(BuildingType.Seaport, 4);
         return hasMarket && hasSeaport4;
     }
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city)
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
     {
         if (!city.HasBuildingAtLevel(BuildingType.Market, 1))
             return "tooltip_requires_market";

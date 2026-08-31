@@ -45,13 +45,13 @@ public class AlchimistHut : Building
     public override long GetAutomaticHarvestCooldown(long baseCooldownTicks, int? atLevel = null)
         => base.GetAutomaticHarvestCooldown(CrystalHarvestBaseCooldownTicks, atLevel);
 
-    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState state)
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
         => IsAdjacentToFoundFairyCircle(city, state);
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state)
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
         => HasBuildPrerequisites(city, state) ? null : "tooltip_requires_fairy_circle";
 
-    private static bool IsAdjacentToFoundFairyCircle(IBuildingContext city, WorldState state)
+    private static bool IsAdjacentToFoundFairyCircle(IBuildingContext city, WorldState? state)
         => city.Position.GetHexes().Any(hex => state.GetFeaturesAt(hex).OfType<FairyCircle>().Any(f => f.Found));
 
     public override ResourceSet GetBuildCost() => new ResourceSet

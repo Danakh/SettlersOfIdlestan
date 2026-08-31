@@ -35,11 +35,11 @@ public class GrandTemple : Building, IUniqueBuilding
 
     public long GetAutoTempleCooldownTicks() => 1000L;
 
-    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState state) =>
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state) =>
         city.HasBuildingAtLevel(BuildingType.Temple, 1)
         && state.PlayerCivilization.Cities.SelectMany(c => c.Buildings).Count(b => b.Type == BuildingType.Temple) >= MinTemplesRequired;
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state)
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
     {
         if (!city.HasBuildingAtLevel(BuildingType.Temple, 1))
             return "tooltip_requires_temple_level1";

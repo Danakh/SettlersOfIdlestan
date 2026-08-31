@@ -27,19 +27,19 @@ public class ImperialPort : Building
 
     public override ResourceSet GetUpgradeCost(int level) => new();
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
         return city.Level >= 4 && map.VertexHasTerrainType(city.Position, TerrainType.Water);
     }
 
-    public override bool HasBuildPrerequisites(IBuildingContext city)
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
     {
         return city.HasBuildingAtLevel(BuildingType.Seaport, 4);
     }
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city)
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
     {
-        if (!HasBuildPrerequisites(city))
+        if (!HasBuildPrerequisites(city, state))
             return "tooltip_requires_seaport_4";
         return null;
     }

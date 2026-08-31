@@ -794,7 +794,12 @@ public class AutoExtendController
             var building = BuildingFactory.Create(type);
             if (building == null) continue;
             if (building.IsUnique) continue;
-            if (!building.IsBuildingAvailableForCity(map, city)) continue;
+            // civ nul volontairement : la composition d'une ville PNJ ne dépend que du terrain et du
+            // niveau, jamais des recherches de la civilisation qui l'accueille. Lui passer npcCiv
+            // ouvrirait les règles de placement conditionnées par un modificateur (Scierie sur Caverne
+            // aux Champignons) au gré des tiers de NpcModifierSetMaker, faisant varier les villes
+            // générées sans que rien ici ne le demande.
+            if (!building.IsBuildingAvailableForCity(map, city, null)) continue;
 
             int maxLevel = building.GetDefaultMaxLevel() > 0
                 ? building.GetDefaultMaxLevel()

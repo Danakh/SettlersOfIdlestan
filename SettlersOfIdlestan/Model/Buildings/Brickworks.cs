@@ -24,7 +24,7 @@ public class Brickworks : Building
 
     public override int AutomaticHarvestUnlockLevel => 1;
 
-    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain, Model.Civilization.Civilization? civ)
     {
         if (terrain == TerrainType.Hill)
             return Resource.Brick;
@@ -52,9 +52,9 @@ public class Brickworks : Building
         { Resource.Brick, 10 * (level + 1) }
     };
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
-        if (!base.IsBuildingAvailableForCity(map, city))
+        if (!base.IsBuildingAvailableForCity(map, city, civ))
             return false;
 
         return map.VertexHasTerrainType(city.Position, TerrainType.Hill);

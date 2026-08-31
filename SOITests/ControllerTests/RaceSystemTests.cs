@@ -899,14 +899,14 @@ public class RaceSystemTests
         // (AvailableAtLevel = 3) doit encore bloquer.
         inlandTownHall.Level = 2; // maximum atteignable pour cette ville d'après INLAND_CITY_LEVEL_CAP
         inlandCity.InvalidateLevelCache();
-        Assert.False(mine.IsBuildingAvailableForCity(inlandMap, inlandCity));
+        Assert.False(mine.IsBuildingAvailableForCity(inlandMap, inlandCity, null));
 
         // Preuve différentielle : sans le plafond (simulé ici en dépassant volontairement la
         // valeur qu'INLAND_CITY_LEVEL_CAP autoriserait), la Mine deviendrait disponible — c'est
         // donc bien le plafond, pas le terrain, qui l'exclut ci-dessus.
         inlandTownHall.Level = 3;
         inlandCity.InvalidateLevelCache();
-        Assert.True(mine.IsBuildingAvailableForCity(inlandMap, inlandCity));
+        Assert.True(mine.IsBuildingAvailableForCity(inlandMap, inlandCity, null));
     }
 
     [Fact]

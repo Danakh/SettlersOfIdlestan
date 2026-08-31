@@ -44,13 +44,13 @@ public class VolcanicForge : Building, IUniqueBuilding
     // Verrouillée par défaut ; débloquée par la recherche Métallurgie Volcanique (+3 niveaux max)
     public override int GetDefaultMaxLevel() => 0;
 
-    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState state)
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
         => IsAdjacentToFoundVolcano(city, state);
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state)
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
         => HasBuildPrerequisites(city, state) ? null : "tooltip_requires_volcano";
 
-    private static bool IsAdjacentToFoundVolcano(IBuildingContext city, WorldState state)
+    private static bool IsAdjacentToFoundVolcano(IBuildingContext city, WorldState? state)
         => city.Position.GetHexes().Any(hex => state.GetFeaturesAt(hex).OfType<VolcanoFeature>().Any(v => v.Found));
 
     public override ResourceSet GetBuildCost() => new ResourceSet

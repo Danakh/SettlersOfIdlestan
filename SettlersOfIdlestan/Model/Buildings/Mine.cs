@@ -14,7 +14,7 @@ public class Mine : Building
     public override Resource? AutomaticHarvestResource => Resource.Ore;
     public override int AutomaticHarvestUnlockLevel => 1;
 
-    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain, Model.Civilization.Civilization? civ)
     {
         if (terrain == TerrainType.Mountain)
             return Resource.Ore;
@@ -41,9 +41,9 @@ public class Mine : Building
         { Resource.Wood, 20 * (level + 1) },
     };
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
-        if (!base.IsBuildingAvailableForCity(map, city))
+        if (!base.IsBuildingAvailableForCity(map, city, civ))
             return false;
         return map.VertexHasTerrainType(city.Position, TerrainType.Mountain);
     }

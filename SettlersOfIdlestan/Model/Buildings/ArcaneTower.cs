@@ -22,11 +22,11 @@ public class ArcaneTower : Building, IUniqueBuilding
 
     public long GetAutoMagicCooldownTicks() => 1000L;
 
-    public override bool HasBuildPrerequisites(IBuildingContext city) =>
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state) =>
         city.HasBuildingAtLevel(BuildingType.MageTower, 4);
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city) =>
-        HasBuildPrerequisites(city) ? null : "tooltip_requires_mage_tower";
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state) =>
+        HasBuildPrerequisites(city, state) ? null : "tooltip_requires_mage_tower";
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

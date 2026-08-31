@@ -62,11 +62,11 @@ public class MyBuilding : Building
     public override int GetDefaultMaxLevel() => 5;
 
     // Optional — if the building harvests automatically:
-    public override HarvestCapability AutomaticHarvestCapability(TerrainType terrain) => ...;
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain, Civilization? civ) => ...;
 
     // Optional — if the building has prerequisites:
-    public override bool HasBuildPrerequisites(City city) => ...;
-    public override string GetMissingPrerequisiteKey() => "tooltip_requires_X";
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state) => ...;
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state) => "tooltip_requires_X";
 }
 ```
 See `ArtisansGuild.cs`, `Sawmill.cs`, `ImperialPort.cs` for examples.  
@@ -214,6 +214,7 @@ Both files must always be kept in sync.
 ## Key Architecture Rules
 
 - **Polymorphic buildings**: `Building` is abstract; subtypes must be registered in `Model/Buildings/BuildingFactory` — the single table read by both `BuildingController.CreateBuilding` and `BuildingJsonConverter`. Forgetting it makes any save containing the building unreadable; `BuildingFactoryTests` guards against it.
+- **Une seule signature par question posée à un bâtiment** : `IsBuildingAvailableForCity`, `HasBuildPrerequisites`, `GetMissingPrerequisiteKey`, `GetBuildWarningKey` et `AutomaticHarvestCapability` n'ont chacune **qu'une** méthode virtuelle. Ne jamais en ajouter une variante « allégée » sans la `Civilization` ou le `WorldState` : c'était le cas avant, la riche retombant sur la pauvre, et un appelant qui prenait la pauvre sautait silencieusement toute redéfinition portée par l'autre — bâtiment constructible là où sa propre règle l'interdit, sans erreur ni trace. Quand l'appelant n'a pas la donnée, il passe `null` **explicitement** (voir `AutoExtendController.PopulateAggressiveCity`), et la redéfinition décide elle-même — en général en refermant la règle. `BuildingHookOverloadTests` échoue si une seconde surcharge réapparaît, sur `Building` comme sur un type concret.
 - **State persistence**: `MainGameState` is fully JSON-serialized; don't make model fields non-serializable without updating converters in `Services/`.
 - **Collections du modèle encapsulées** : `City.Buildings`, `Civilization.Cities/Roads/Fleets/MaritimeBeacons/MobileCamps/LandingSites` sont exposées en lecture seule. Passer par `AddBuilding`/`RemoveBuilding`/`ClearBuildings`, `AddCity`/`RemoveCity`, etc. — jamais par la liste. C'est ce qui rend les caches dérivés corrects : toute mutation de bâtiments lève `City.BuildingsChanged`, auquel la civilisation propriétaire s'abonne pour invalider les siens (`Civilization.HasMarket`, cache d'Hôtel de Ville et de garnison de la ville). Un cache recalculé « à la construction » depuis `BuildingController.BuildBuilding` serait faux : plusieurs chemins ajoutent des bâtiments sans y passer (bâtiments de départ d'une nouvelle ville, bâtiment racial de l'Ascension, générateur de PNJ). Après un changement de `Building.Level` sans ajout ni retrait, l'invalidation reste manuelle (`City.InvalidateLevelCache`, `Civilization.InvalidateBuildingDerivedCaches`).
 - **Lecture des collections sur les chemins chauds** : ces propriétés sont typées `IReadOnlyList<T>`, dont `foreach` boxe l'énumérateur et dont l'indexeur est un appel d'interface. Dans une boucle exécutée à chaque tick, utiliser une boucle `for` indexée (et le champ privé quand on est dans la classe). Mesuré : ~3 % du temps de simulation en fin de partie sur le seul passage de `List` à `IReadOnlyList`.

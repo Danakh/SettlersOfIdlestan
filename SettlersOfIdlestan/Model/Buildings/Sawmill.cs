@@ -26,22 +26,19 @@ public class Sawmill : Building
 
     public override int AutomaticHarvestUnlockLevel => 1;
 
-    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    /// <summary>
+    /// Bois sur les Forêts ; sur les Cavernes aux Champignons uniquement une fois la recherche Bois de
+    /// Champignon complétée (voir Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST), donc jamais sans
+    /// civilisation pour la consulter.
+    /// </summary>
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain, Model.Civilization.Civilization? civ)
     {
         if (terrain == TerrainType.Forest)
             return Resource.Wood;
-        return null;
-    }
-
-    /// <summary>
-    /// Sur les Cavernes aux Champignons, la récolte de Bois n'est possible qu'une fois la recherche
-    /// Bois de Champignon complétée (voir Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST).
-    /// </summary>
-    public override Resource? AutomaticHarvestCapability(TerrainType terrain, SettlersOfIdlestan.Model.Civilization.Civilization civ)
-    {
-        if (terrain == TerrainType.MushroomCave && civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST))
+        if (terrain == TerrainType.MushroomCave && civ != null
+            && civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST))
             return Resource.Wood;
-        return AutomaticHarvestCapability(terrain);
+        return null;
     }
 
     /// <summary>À moitié vitesse sur les Cavernes aux Champignons par rapport aux forêts (voir tech Bois de Champignon).</summary>
@@ -60,24 +57,22 @@ public class Sawmill : Building
         { Resource.Brick, 5 * (level + 1) }
     };
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
-    {
-        if (!base.IsBuildingAvailableForCity(map, city))
-            return false;
-        return map.VertexHasTerrainType(city.Position, TerrainType.Forest);
-    }
-
     /// <summary>
-    /// Aussi constructible à côté d'une Caverne aux Champignons une fois la recherche Bois de Champignon
-    /// complétée (voir Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST).
+    /// Constructible au bord d'une Forêt ; aussi au bord d'une Caverne aux Champignons une fois la
+    /// recherche Bois de Champignon complétée (voir Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST).
+    ///
+    /// <para>Sans civilisation (<paramref name="civ"/> nul : génération de villes PNJ), seule la règle
+    /// Forêt s'applique — la recherche n'étant pas consultable, l'ouverture sur Caverne aux Champignons
+    /// reste fermée.</para>
     /// </summary>
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, SettlersOfIdlestan.Model.Civilization.Civilization civ)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
-        if (IsBuildingAvailableForCity(map, city))
-            return true;
-        if (city.Level < AvailableAtLevel)
+        if (!base.IsBuildingAvailableForCity(map, city, civ))
             return false;
-        return civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST)
+        if (map.VertexHasTerrainType(city.Position, TerrainType.Forest))
+            return true;
+        return civ != null
+            && civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SAWMILL_MUSHROOM_HARVEST)
             && map.VertexHasTerrainType(city.Position, TerrainType.MushroomCave);
     }
 }

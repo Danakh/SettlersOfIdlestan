@@ -45,8 +45,8 @@ public class Temple : Building
         { Resource.Stone, 20 * (level + 1) }
     };
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
-        return IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city);
+        return IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city, civ);
     }
 }

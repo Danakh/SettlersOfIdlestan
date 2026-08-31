@@ -20,8 +20,8 @@ public class Watchtower : Building
     public override bool IsAvailableInLayer(int z) =>
         z == IslandMap.IslandMap.SurfaceLayer || z == LayerState.AbyssZ;
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
-        return IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city);
+        return IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city, civ);
     }
 }

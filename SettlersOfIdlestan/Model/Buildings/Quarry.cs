@@ -20,7 +20,7 @@ public class Quarry : Building
 
     public override int AutomaticHarvestUnlockLevel => 1;
 
-    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain, Model.Civilization.Civilization? civ)
     {
         if (terrain == TerrainType.Mountain)
             return Resource.Stone;
@@ -37,9 +37,9 @@ public class Quarry : Building
         { Resource.Wood, 20 * (level + 1) },
     };
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
-        if (!base.IsBuildingAvailableForCity(map, city))
+        if (!base.IsBuildingAvailableForCity(map, city, civ))
             return false;
         return map.VertexHasTerrainType(city.Position, TerrainType.Mountain);
     }

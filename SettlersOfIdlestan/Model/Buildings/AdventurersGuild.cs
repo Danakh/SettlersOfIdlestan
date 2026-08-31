@@ -24,8 +24,8 @@ public class AdventurersGuild : Building
 
     public override bool IsAvailableInLayer(int z) => z != IslandMap.IslandMap.SurfaceLayer;
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
-        => IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city);
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
+        => IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city, civ);
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

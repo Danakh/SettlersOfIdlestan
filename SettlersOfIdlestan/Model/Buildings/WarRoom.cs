@@ -19,11 +19,11 @@ public class WarRoom : Building, IUniqueBuilding
 
     public long GetAutoMilitaryCooldownTicks() => 1000L;
 
-    public override bool HasBuildPrerequisites(IBuildingContext city) =>
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state) =>
         city.HasBuildingAtLevel(BuildingType.Garrison, 1);
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city) =>
-        HasBuildPrerequisites(city) ? null : "tooltip_requires_garrison";
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state) =>
+        HasBuildPrerequisites(city, state) ? null : "tooltip_requires_garrison";
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

@@ -24,14 +24,14 @@ public class HarvestersGuild : Building, IUniqueBuilding
 
     public long GetAutoProductionCooldownTicks() => 1000L;
 
-    public override bool HasBuildPrerequisites(IBuildingContext city)
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
     {
         int count = city.CountBuildingsAtLevel(ProductionBuildingTypes, 4);
         return count >= 3;
     }
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city) =>
-        HasBuildPrerequisites(city) ? null : "tooltip_requires_3_production_level4";
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state) =>
+        HasBuildPrerequisites(city, state) ? null : "tooltip_requires_3_production_level4";
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

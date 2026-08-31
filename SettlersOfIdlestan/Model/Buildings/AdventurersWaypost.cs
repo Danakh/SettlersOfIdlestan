@@ -49,22 +49,22 @@ public class AdventurersWaypost : Building
 
     public override bool IsAvailableInLayer(int z) => z != IslandMap.IslandMap.SurfaceLayer;
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
-        => IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city);
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
+        => IsAvailableInLayer(map.Z) && base.IsBuildingAvailableForCity(map, city, civ);
 
     /// <summary>
     /// La Guilde doit être bâtie quelque part dans la civilisation — pas nécessairement dans cette
     /// ville : c'est ce qui permet d'ouvrir des Relais dans d'autres villes (voir
     /// building_adventurersguild_desc).
     /// </summary>
-    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState state)
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
     {
         var owner = state.FindCityAt(city.Position);
         var civ = owner != null ? state.GetCivilization(owner.CivilizationIndex) : null;
         return civ != null && civ.Cities.Any(c => c.FindBuilding(BuildingType.AdventurersGuild) is { Level: > 0 });
     }
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState state)
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
         => HasBuildPrerequisites(city, state) ? null : "tooltip_requires_adventurersguild";
 
     /// <summary>

@@ -16,7 +16,7 @@ public class GlassWorks : Building
 
     public override int AutomaticHarvestUnlockLevel => 1;
 
-    public override Resource? AutomaticHarvestCapability(TerrainType terrain)
+    public override Resource? AutomaticHarvestCapability(TerrainType terrain, Model.Civilization.Civilization? civ)
     {
         if (terrain == TerrainType.Desert)
             return Resource.Glass;
@@ -43,9 +43,9 @@ public class GlassWorks : Building
         { Resource.Brick, 20 * (Level + 1) }
     };
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
-        if (!base.IsBuildingAvailableForCity(map, city))
+        if (!base.IsBuildingAvailableForCity(map, city, civ))
             return false;
         return map.VertexHasTerrainType(city.Position, TerrainType.Desert);
     }

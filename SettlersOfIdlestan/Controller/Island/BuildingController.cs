@@ -547,10 +547,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (GetMaxLevel(prototype, city.CivilizationIndex) > 0 && map != null)
             {
                 var civ = _state?.GetCivilization(city.CivilizationIndex);
-                bool available = civ != null
-                    ? prototype.IsBuildingAvailableForCity(map, city, civ)
-                    : prototype.IsBuildingAvailableForCity(map, city);
-                if (available)
+                if (prototype.IsBuildingAvailableForCity(map, city, civ))
                 {
                     var fresh = BuildingFactory.Create(bt); // instance neuve : l'appelant peut la conserver/muter
                     // Coût affiché dépendant du nombre de Relais déjà construits (voir BuildBuilding) :
@@ -780,7 +777,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     continue;
                 }
                 else if (_state.GetMapFor(city.Position) is { } map2 &&
-                         prototype.IsBuildingAvailableForCity(map2, buildContext))
+                         prototype.IsBuildingAvailableForCity(map2, buildContext, civ))
                 {
                     result.Add(prototype);
                 }

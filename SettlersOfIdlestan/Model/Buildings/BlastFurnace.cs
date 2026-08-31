@@ -30,19 +30,19 @@ public class BlastFurnace : Building, IUniqueBuilding
 
     public override ResourceSet GetUpgradeCost(int level) => new();
 
-    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city)
+    public override bool IsBuildingAvailableForCity(IslandMap.IslandMap map, IBuildingContext city, Model.Civilization.Civilization? civ)
     {
         return city.Level >= 4 && map.VertexHasTerrainType(city.Position, TerrainType.Mountain);
     }
 
-    public override bool HasBuildPrerequisites(IBuildingContext city)
+    public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
     {
         return city.HasBuildingAtLevel(BuildingType.Smelter, 4);
     }
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city)
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
     {
-        if (!HasBuildPrerequisites(city))
+        if (!HasBuildPrerequisites(city, state))
             return "tooltip_requires_smelter_4";
         return null;
     }
