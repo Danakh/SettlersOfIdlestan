@@ -69,14 +69,14 @@ public class AdventurersWaypost : Building
         => HasBuildPrerequisites(city, state) ? null : "tooltip_requires_adventurersguild";
 
     /// <summary>
-    /// Coût = coût de base de la Guilde des Aventuriers × (0,5 + 0,5 × PriorWaypostCount). Le
+    /// Coût = coût de base de la Guilde des Aventuriers × (0,5 + 1,0 × PriorWaypostCount). Le
     /// multiplicateur est figé dans <see cref="BuildCostMultiplier"/> pour être réappliqué à
     /// l'amélioration (voir GetUpgradeCost).
     /// </summary>
     public override ResourceSet GetBuildCost()
     {
         var guildCost = new AdventurersGuild().GetBuildCost();
-        BuildCostMultiplier = 0.5 + 0.5 * PriorWaypostCount;
+        BuildCostMultiplier = 0.5 + 1.0 * PriorWaypostCount;
 
         var scaled = new ResourceSet();
         foreach (var (resource, amount) in guildCost)
