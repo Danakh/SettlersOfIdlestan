@@ -53,12 +53,6 @@ public class NpcCivilizationPlacer
 
         var allValidVertices = FindValidCityVertices(state.GetMapForZ(IslandMap.SurfaceLayer)!);
 
-        var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: tier + 1, maxPrestigeDistance: tier);
-        var maritimeModifier = new StaticModifierProvider(new[]
-        {
-            new Modifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES, Modifier.EType.ADDITIVE, 1),
-        });
-
         // Glouton avec retry : rotation de la liste pour varier le bris d'égalité
         List<Vertex> bestPlacement = new();
         for (int attempt = 0; attempt < MaxPlacementAttempts; attempt++)
@@ -77,14 +71,13 @@ public class NpcCivilizationPlacer
         for (int i = 0; i < bestPlacement.Count; i++)
         {
             var civ = npcCivs[i];
-            civ.AddCustomAggregator(npcModifiers);
-            civ.AddCustomAggregator(maritimeModifier);
-            var aggressivityMalus = BuildAggressivityHarvestMalus(civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious);
-            if (aggressivityMalus != null)
-                civ.AddCustomAggregator(aggressivityMalus);
-            var tierMalus = BuildTierHarvestMalus(tier);
-            if (tierMalus != null)
-                civ.AddCustomAggregator(tierMalus);
+
+            // Le tier est mémorisé sur le PNJ, pas relu du PrestigeState : c'est ce qui permet au
+            // chargement de reconstruire exactement ce jeu-ci (voir NpcParameters.ModifierTier).
+            civ.NpcParameters ??= new NpcParameters();
+            civ.NpcParameters.ModifierTier = tier;
+            civ.SetNpcModifiers(NpcModifierSetMaker.CreateForNpc(tier, civ.NpcParameters.AggressivityLevel));
+
             PopulateMinimumNpc(map, civ, bestPlacement[i]);
         }
 
@@ -159,47 +152,6 @@ public class NpcCivilizationPlacer
             state);
     }
 
-    /// <summary>
-    /// Malus multiplicatif de vitesse de récolte selon l'agressivité : Pacifist -50%, Cautious -25%.
-    /// Expansionist/Warlike n'ont pas de malus. Appliqué en dernier dans l'agrégateur pour réduire
-    /// le total accumulé (techs/prestige NPC compris), pas seulement la base.
-    /// </summary>
-    private static IModifierProvider? BuildAggressivityHarvestMalus(NpcAggressivityLevel aggressivity)
-    {
-        double factor = aggressivity switch
-        {
-            NpcAggressivityLevel.Pacifist => 0.5,
-            NpcAggressivityLevel.Cautious => 0.75,
-            _                              => 1.0,
-        };
-        if (factor >= 1.0) return null;
-
-        return new StaticModifierProvider(new[]
-        {
-            new Modifier(Modifier.ECategory.HARVEST_SPEED, Modifier.EType.MULTIPLICATIVE, factor),
-        });
-    }
-
-    /// <summary>
-    /// Malus multiplicatif de vitesse de récolte selon le Tier de l'île (voir <see cref="Model.Prestige.PrestigeState.Tier"/>) :
-    /// Tier 1 (moins de 2500 prestige total) -50%, Tier 2 (moins de 25000) -25%, au-delà pas de malus.
-    /// Cumulatif (multiplicatif) avec <see cref="BuildAggressivityHarvestMalus"/>.
-    /// </summary>
-    private static IModifierProvider? BuildTierHarvestMalus(int tier)
-    {
-        double factor = tier switch
-        {
-            1 => 0.5,
-            2 => 0.75,
-            _ => 1.0,
-        };
-        if (factor >= 1.0) return null;
-
-        return new StaticModifierProvider(new[]
-        {
-            new Modifier(Modifier.ECategory.HARVEST_SPEED, Modifier.EType.MULTIPLICATIVE, factor),
-        });
-    }
 
     private static List<Vertex> PlaceVerticesGreedy(
         List<Vertex> allValidVertices, Vertex playerVertex, List<Civilization> npcCivs)

@@ -718,14 +718,28 @@ namespace SettlersOfIdlestan.Controller
             var WorldState = prestigeState!.WorldState;
 
             var tier = prestigeState.Tier;
-            var npcModifiers = NpcModifierSetMaker.Create(maxTechTier: tier, maxPrestigeDistance: tier);
 
+            // SetNpcModifiers et non AddCustomAggregator : cette méthode est rejouée à chaque SetGame,
+            // et le placeur a déjà posé le jeu de la civilisation pendant la génération. Ajouter au
+            // lieu de remplacer empilait les deux — Register ne dédoublonne que par instance, et ce
+            // sont deux instances distinctes. Voir Civilization.SetNpcModifiers.
             foreach (var civ in WorldState!.Civilizations.Where(c => c.IsNpc))
             {
                 if (civ.NpcParameters?.ExtraModifiers is { Count: > 0 } extras)
-                    civ.AddCustomAggregator(new StaticModifierProvider(extras));
+                {
+                    // Civilisations de couche (Inframonde/Abysse) : leur jeu est persisté tel quel,
+                    // voir AutoExtendController.BuildLayerCivModifiers.
+                    civ.SetNpcModifiers(new StaticModifierProvider(extras));
+                }
                 else
-                    civ.AddCustomAggregator(npcModifiers);
+                {
+                    // Le tier retenu à la génération, pas le tier courant : le joueur peut choisir le
+                    // tier de sa prochaine île (EffectiveNextIslandTier), qui n'est donc pas toujours
+                    // le sien. Null = sauvegarde antérieure à ce champ.
+                    civ.SetNpcModifiers(NpcModifierSetMaker.CreateForNpc(
+                        civ.NpcParameters?.ModifierTier ?? tier,
+                        civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious));
+                }
             }
 
             // Remplace en place quand la civilisation joueur est la même qu'à l'appel précédent (ex.

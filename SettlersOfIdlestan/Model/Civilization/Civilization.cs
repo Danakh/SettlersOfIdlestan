@@ -355,6 +355,30 @@ public class Civilization
     public void AddCustomAggregator(IModifierProvider provider)
         => ModifierAggregator.Register(provider);
 
+    /// <summary>Emplacement unique du jeu de modificateurs PNJ — voir <see cref="SetNpcModifiers"/>.</summary>
+    private IModifierProvider? _npcModifierProvider;
+
+    /// <summary>
+    /// Installe le jeu de modificateurs PNJ de cette civilisation, <b>en remplaçant</b> celui déjà en
+    /// place plutôt qu'en s'y ajoutant.
+    ///
+    /// <para>C'est ce qui garantit qu'une civilisation PNJ n'en porte jamais deux. Le placeur en pose
+    /// un pendant la génération de l'île et <c>MainGameController.SetupModifierAggregators</c> en
+    /// repose un à chaque <c>SetGame</c> : avec un simple <see cref="AddCustomAggregator"/>, les deux
+    /// s'empilaient — <see cref="ModifierAggregator.Register"/> ne dédoublonne que par instance, et
+    /// ce sont deux instances distinctes. Le doublon s'appliquait de surcroît <i>après</i> les malus
+    /// de récolte, donc sans être réduit par eux.</para>
+    ///
+    /// <para>Le remplacement conserve la position du provider dans l'agrégateur, donc l'ordre
+    /// d'application des modificateurs (voir <see cref="ModifierAggregator.Replace"/>).</para>
+    /// </summary>
+    public void SetNpcModifiers(IModifierProvider provider)
+    {
+        if (_npcModifierProvider == null || !ModifierAggregator.Replace(_npcModifierProvider, provider))
+            ModifierAggregator.Register(provider);
+        _npcModifierProvider = provider;
+    }
+
     /// <summary>
     /// Reconstruit le cache des modifiers issus des bâtiments IUniqueBuilding de toutes les villes,
     /// plus le bâtiment unique permanent accordé par l'Ascension le cas échéant (voir

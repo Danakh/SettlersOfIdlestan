@@ -34,6 +34,18 @@ public class NpcParameters
     public List<Modifier>? ExtraModifiers { get; set; }
 
     /// <summary>
+    /// Tier de l'île au moment où ce PNJ a été placé, retenu pour que le chargement d'une sauvegarde
+    /// reconstruise exactement le jeu de modificateurs de la génération
+    /// (<see cref="NpcModifierSetMaker.CreateForNpc"/>).
+    ///
+    /// <para>Le relire depuis <c>PrestigeState.Tier</c> au chargement serait faux : le joueur peut
+    /// choisir le tier de sa prochaine île (<c>PrestigeState.EffectiveNextIslandTier</c>), qui n'est
+    /// donc pas toujours son tier courant. Null = sauvegarde antérieure à ce champ, on retombe alors
+    /// sur le tier courant.</para>
+    /// </summary>
+    public int? ModifierTier { get; set; }
+
+    /// <summary>
     /// Nombre de villes cible pour ce NPC. Quand non-null, remplace la valeur par défaut
     /// dérivée de EvolutionLevel (1/3/5/7).
     /// </summary>

@@ -707,7 +707,9 @@ public class AutoExtendController
                 ExtraModifiers = extraModifiers,
             },
         };
-        npcCiv.AddCustomAggregator(new StaticModifierProvider(extraModifiers));
+        // SetNpcModifiers : SetupModifierAggregators reposera le même jeu depuis ExtraModifiers au
+        // prochain SetGame, et doit remplacer celui-ci plutôt que s'y ajouter.
+        npcCiv.SetNpcModifiers(new StaticModifierProvider(extraModifiers));
         return npcCiv;
     }
 

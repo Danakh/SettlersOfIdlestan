@@ -24,6 +24,13 @@ public class ModifierAggregator
     public int Version { get; private set; }
 
     /// <summary>
+    /// Providers enregistrés, dans leur ordre d'application. Exposé pour les tests : c'est le seul
+    /// moyen de vérifier qu'un jeu de modificateurs est installé <b>une</b> fois et non empilé — voir
+    /// <see cref="Civilization.Civilization.SetNpcModifiers"/>.
+    /// </summary>
+    internal IReadOnlyList<IModifierProvider> RegisteredProviders => _providers;
+
+    /// <summary>
     /// Enregistre un provider. Idempotent pour la même instance : un appelant réinvoqué sur une
     /// civilisation déjà initialisée (ex. MainGameController.SetupModifierAggregators rappelé sur le
     /// même WorldState via SetGame/SetGameFromSave sans régénération d'île) ne doit pas compter ses
