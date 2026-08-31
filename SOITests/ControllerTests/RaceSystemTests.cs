@@ -45,7 +45,7 @@ public class RaceSystemTests
     }
 
     /// <summary>
-    /// Achète les 6 pouvoirs divins de premier niveau (un par colonne 0 à 5) : l'union des
+    /// Achète les 4 pouvoirs divins de premier niveau (un par colonne 0 à 3) : l'union des
     /// combinaisons requises par chacune des 4 races de base (voir RaceDefinitions.All), donc les
     /// débloque toutes simultanément.
     /// </summary>
@@ -56,30 +56,31 @@ public class RaceSystemTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
     }
 
     /// <summary>
-    /// Les 6 pouvoirs divins de second rang (le 2e de chaque colonne 0-5) : l'union des combinaisons
-    /// requises par chacune des 4 races avancées (voir RaceDefinitions.All), donc les débloque toutes
-    /// simultanément. Suppose UnlockFirstRow déjà appelée (chaque pouvoir de second rang exige le
-    /// premier pouvoir de sa colonne).
+    /// Les pouvoirs divins plus profonds requis par les 4 races avancées (voir RaceDefinitions.All) :
+    /// Œil de Dieu, Inventaire Divin, Présence de Dieu, Poing de Dieu (2e pouvoir de leur colonne), la
+    /// Corne d'Abondance (3e pouvoir de la colonne 0) et Purification Supérieure (3e pouvoir de la
+    /// colonne 2, déplacée en bout de la branche Marche de Dieu). Suppose UnlockFirstRow déjà appelée
+    /// (chaque pouvoir exige le précédent de sa colonne).
     /// </summary>
     private static void UnlockSecondRow(AscensionController ascension)
     {
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.HornOfPlenty));
         Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.GreaterPurification));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EternalLegacy));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
     }
 
     /// <summary>
-    /// Hand+Memory+Walk+Arm complète exactement la combinaison des Orcs (Mémoire, Main, Bras — Marche
-    /// est en trop mais ne gêne pas) : IsRaceSelectionUnlocked (vraie dès qu'une race de base autre
-    /// qu'Humains devient sélectionnable) ne bascule donc qu'au dernier des 4 pouvoirs.
+    /// Hand+Memory+Arm complète exactement la combinaison des Orcs (chaque race de base exclut un
+    /// pouvoir de premier rang différent — voir le commentaire de classe de RaceDefinitions — les
+    /// Orcs excluent Marche de Dieu, jamais acheté ici) : IsRaceSelectionUnlocked (vraie dès qu'une
+    /// race de base autre qu'Humains devient sélectionnable) ne bascule donc qu'au dernier des 3
+    /// pouvoirs.
     /// </summary>
     [Fact]
     public void IsRaceSelectionUnlocked_TogglesOnceAnyBaseRaceCombinationIsComplete()
@@ -91,7 +92,6 @@ public class RaceSystemTests
         ascension.PurchasePower(AscensionPowerId.Faith);
         ascension.PurchasePower(AscensionPowerId.HandOfGod);
         ascension.PurchasePower(AscensionPowerId.MemoryOfGod);
-        ascension.PurchasePower(AscensionPowerId.WalkOfGod);
         Assert.False(ascension.IsRaceSelectionUnlocked);
 
         ascension.PurchasePower(AscensionPowerId.ArmOfGod);
@@ -123,12 +123,11 @@ public class RaceSystemTests
     }
 
     /// <summary>
-    /// Chaque race avancée a sa propre combinaison de 3 pouvoirs de second rang (voir
-    /// RaceDefinitions.All), en graphe complet à 4 sommets : chaque pouvoir est partagé par exactement
-    /// 2 races. Acheter uniquement la combinaison des Géants (Œil, Inventaire Divin, Poing de Dieu) ne
-    /// débloque donc ni les Garudas, ni les Sirènes, ni les Elfes noirs — Œil de Dieu, commun aux
-    /// Géants et aux Garudas, ne suffit pas à débloquer ces derniers sans Héritage Éternel et
-    /// Présence de Dieu.
+    /// Chaque race avancée a sa propre combinaison de 3 pouvoirs (voir RaceDefinitions.All), en
+    /// graphe complet à 4 sommets : chaque pouvoir est partagé par exactement 2 races. Acheter
+    /// uniquement la combinaison des Géants (Œil, Inventaire Divin, Poing de Dieu) ne débloque donc ni
+    /// les Garudas, ni les Sirènes, ni les Elfes noirs — Œil de Dieu, commun aux Géants et aux
+    /// Garudas, ne suffit pas à débloquer ces derniers sans Corne d'Abondance et Présence de Dieu.
     /// </summary>
     [Fact]
     public void IsRaceUnlocked_EachAdvancedRaceHasItsOwnIndependentCombination()
@@ -179,7 +178,7 @@ public class RaceSystemTests
         Assert.DoesNotContain(RaceId.Garuda, races);
     }
 
-    /// <summary>All 6 second-rank powers together cover every advanced race's own combination.</summary>
+    /// <summary>All 6 powers unlocked by UnlockSecondRow together cover every advanced race's own combination.</summary>
     [Fact]
     public void GetSelectableRaces_SecondRowComplete_AddsImplementedAdvancedRaces()
     {

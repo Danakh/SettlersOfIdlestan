@@ -10,6 +10,7 @@ using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Races;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
@@ -674,37 +675,40 @@ namespace SOITests.ControllerTests
             Assert.Equal(1, mainController.CurrentMainState.PrestigeState!.CurrentCorruptionLevel);
         }
 
-        // ── Ascension Prestigieuse : bonus d'essence divine à chaque prestige ─
+        // ── Ascension Prestigieuse : bonus de points divins à chaque prestige ─
 
         [Fact]
-        public void Prestige_DivineEssenceBonus_ZeroWithoutPrestigiousAscension()
+        public void Prestige_DivinePointsBonus_ZeroWithoutPrestigiousAscension()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            var godState = new SettlersOfIdlestan.Model.Prestige.GodState { TotalDivineEssenceEarned = 42 };
+            var godState = new SettlersOfIdlestan.Model.Prestige.GodState { TotalGodPointsEarned = 42 };
             var controller = new PrestigeController();
             controller.Initialize(state.Civilizations[0], state, godState: godState);
 
-            Assert.Equal(0, controller.GetDivineEssenceBonus());
-            Assert.DoesNotContain(controller.GetPrestigePointSources(), s => s.LabelKey == "prestige_divine_essence_bonus");
+            Assert.Equal(0, controller.GetDivinePointsBonus());
+            Assert.DoesNotContain(controller.GetPrestigePointSources(), s => s.LabelKey == "prestige_divine_points_bonus");
         }
 
         [Fact]
-        public void Prestige_DivineEssenceBonus_OnePerDivineEssenceEverEarnedWithPrestigiousAscension()
+        public void Prestige_DivinePointsBonus_OnePerDivinePointEverEarnedWithPrestigiousAscension()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            var godState = new SettlersOfIdlestan.Model.Prestige.GodState { TotalDivineEssenceEarned = 42 };
-            godState.AscensionState.UnlockedPowers.Add(SettlersOfIdlestan.Model.Ascension.AscensionPowerId.PrestigiousAscension);
+            var godState = new SettlersOfIdlestan.Model.Prestige.GodState { TotalGodPointsEarned = 42 };
+            // Jalon Ascension Prestigieuse débloqué (voir AscensionMilestoneId.PrestigiousAscension) :
+            // au moins 1 Ascension effectuée et 1 race différente ayant déjà ascensionné.
+            godState.AscensionState.AscensionsPerformed = 1;
+            godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
             var controller = new PrestigeController();
             controller.Initialize(state.Civilizations[0], state, godState: godState);
 
-            Assert.Equal(42, controller.GetDivineEssenceBonus());
-            Assert.Contains(controller.GetPrestigePointSources(), s => s.LabelKey == "prestige_divine_essence_bonus" && s.Points == 42);
+            Assert.Equal(42, controller.GetDivinePointsBonus());
+            Assert.Contains(controller.GetPrestigePointSources(), s => s.LabelKey == "prestige_divine_points_bonus" && s.Points == 42);
             // ×1.2 : pas de monstres en surface sur une île de test fraîchement générée.
             Assert.Equal(50, controller.CalculatePrestigePoints());
         }
 
         [Fact]
-        public void PerformPrestige_WithPrestigiousAscension_AddsDivineEssenceBonusToPrestigePointsGained()
+        public void PerformPrestige_WithPrestigiousAscension_AddsDivinePointsBonusToPrestigePointsGained()
         {
             var mainController = new MainGameController();
             mainController.CreateNewGame();
@@ -714,12 +718,14 @@ namespace SOITests.ControllerTests
             for (int i = 0; i < 20; i++)
                 civ.Cities[0].AddBuilding(new Temple());
 
-            mainState.GodState.TotalDivineEssenceEarned = 5;
-            mainState.GodState.AscensionState.UnlockedPowers.Add(SettlersOfIdlestan.Model.Ascension.AscensionPowerId.PrestigiousAscension);
+            mainState.GodState.TotalGodPointsEarned = 5;
+            // Jalon Ascension Prestigieuse débloqué (voir AscensionMilestoneId.PrestigiousAscension).
+            mainState.GodState.AscensionState.AscensionsPerformed = 1;
+            mainState.GodState.AscensionState.AscendedRaces.Add(RaceId.Elf);
 
             int expectedPoints = mainController.PrestigeController.CalculatePrestigePoints();
             Assert.Contains(mainController.PrestigeController.GetPrestigePointSources(),
-                s => s.LabelKey == "prestige_divine_essence_bonus" && s.Points == 5);
+                s => s.LabelKey == "prestige_divine_points_bonus" && s.Points == 5);
 
             mainController.PerformPrestige(corrupted: false);
 

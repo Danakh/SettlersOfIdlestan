@@ -27,7 +27,11 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 /// devient une ligne d'hexagones partant du centre dans sa propre direction. Débloquer Foi
 /// déverrouille toutes les branches ; au sein d'une branche, chaque pouvoir nécessite le précédent.
 /// La carte est zoomable et déplaçable, mais reste confinée sous la barre d'onglets internes
-/// (Pouvoirs / Bâtiments uniques permanents), qui garde donc ses clics quel que soit le zoom.
+/// (Pouvoirs / Bâtiment permanent / Jalons, voir <see cref="InnerTab"/>), qui garde donc ses clics
+/// quel que soit le zoom. L'onglet Jalons (voir DrawMilestonesTab) liste les pouvoirs accordés
+/// gratuitement selon le nombre de races différentes ayant déjà accompli une Ascension
+/// (AscensionController.IsMilestoneUnlocked) — toujours visible dès que cette page l'est, puisque
+/// les deux ne s'affichent qu'après une première Ascension (GodState.TotalGodPointsEarned > 0).
 /// </summary>
 public sealed class AscensionRenderer : IDisposable
 {
@@ -38,6 +42,10 @@ public sealed class AscensionRenderer : IDisposable
     private const float InnerTabWidth      = 160f;
     private const int   BuildingCardColumns = 4;
     private const float BuildingCardHeight  = 64f;
+    // Cartes de jalon (voir DrawMilestonesTab) : une par ligne (contrairement aux grilles ci-dessus),
+    // assez hautes pour une description sur 2 lignes — seulement 3 jalons aujourd'hui, jamais besoin
+    // de défilement dédié.
+    private const float MilestoneCardHeight = 80f;
     // Cartes de race (voir RenderPendingRaceChoicePage) : nom + un court texte d'ambiance de 2-3
     // lignes (RaceDefinition.DescKey) ou, verrouillée, nom + jusqu'à 3 prérequis (voir
     // DrawRaceLockRequirement) — les infos de gameplay (bonus/malus, bâtiment racial) passent en
@@ -142,9 +150,13 @@ public sealed class AscensionRenderer : IDisposable
     private SKRect _pendingRaceScrollTrackRect = SKRect.Empty;
     private SKRect _pendingRaceScrollThumbRect = SKRect.Empty;
 
-    private bool _showPermanentBuildingTab;
+    /// <summary>Onglet interne actif (voir DrawInnerTabBar) : Pouvoirs (la carte hexagonale),
+    /// Bâtiment permanent (voir DrawPermanentBuildingTab) ou Jalons (voir DrawMilestonesTab).</summary>
+    private enum InnerTab { Powers, PermanentBuilding, Milestones }
+    private InnerTab _activeInnerTab = InnerTab.Powers;
     private SKRect _tabPowersRect            = SKRect.Empty;
     private SKRect _tabPermanentBuildingRect = SKRect.Empty;
+    private SKRect _tabMilestonesRect        = SKRect.Empty;
     private readonly List<(BuildingType type, SKRect rect)> _permanentBuildingRects = new();
 
     // Défilement de la grille de bâtiments permanents (voir DrawPermanentBuildingTab) : même principe
@@ -337,27 +349,26 @@ public sealed class AscensionRenderer : IDisposable
             return;
         }
 
-        // L'onglet Bâtiments permanents n'a de sens qu'une fois Héritage Divin acheté (voir
-        // AscensionController.PermanentUniqueBuildingSlotsPerAscension) : sans lui, aucun emplacement
-        // ne sera jamais disponible, donc pas de barre d'onglets internes à afficher du tout.
-        bool permanentBuildingUnlocked = ascension.IsPowerUnlocked(AscensionPowerId.DivineLegacy);
-        if (!permanentBuildingUnlocked) _showPermanentBuildingTab = false;
-
+        // Les trois onglets internes sont tous pertinents dès que cette page l'est : le jalon
+        // Héritage Ancestral (voir AscensionMilestoneId.PermanentUniqueBuildings) ouvre déjà les
+        // emplacements de bâtiment permanent dès la première Ascension, sans achat — voir
+        // AscensionController.PermanentUniqueBuildingSlotsPerAscension.
         float tabY = ascendSectionY + AscendButtonHeight + 16f;
-        float mapTop;
-        if (permanentBuildingUnlocked)
+        DrawInnerTabBar(canvas, x, tabY, contentWidth);
+        float mapTop = tabY + InnerTabHeight + Padding;
+
+        if (_activeInnerTab == InnerTab.Milestones)
         {
-            DrawInnerTabBar(canvas, x, tabY, contentWidth);
-            mapTop = tabY + InnerTabHeight + Padding;
-        }
-        else
-        {
-            _tabPowersRect = SKRect.Empty;
-            _tabPermanentBuildingRect = SKRect.Empty;
-            mapTop = tabY;
+            DrawMilestonesTab(canvas, x, mapTop, contentWidth, ascension);
+            // DrawMilestoneCard notifie directement le tooltip renderer (voir SetTooltipLines) : ce
+            // flush ne sert donc qu'à l'éventuel survol de la zone d'essence divine plus haut sur la
+            // page (voir _hoveredLockedRect/_hoveredLockedTooltip en tête de RenderAscensionPage).
+            if (_hoveredLockedTooltip != null)
+                _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
+            return;
         }
 
-        if (_showPermanentBuildingTab)
+        if (_activeInnerTab == InnerTab.PermanentBuilding)
         {
             DrawPermanentBuildingTab(canvas, x, mapTop, contentWidth, ascension);
             if (_hoveredLockedTooltip != null)
@@ -677,16 +688,23 @@ public sealed class AscensionRenderer : IDisposable
     {
         float centerX = x + contentWidth / 2f;
         float gap = 8f;
-        _tabPowersRect            = new SKRect(centerX - InnerTabWidth - gap / 2f, y, centerX - gap / 2f, y + InnerTabHeight);
-        _tabPermanentBuildingRect = new SKRect(centerX + gap / 2f, y, centerX + gap / 2f + InnerTabWidth, y + InnerTabHeight);
+        float totalWidth = InnerTabWidth * 3 + gap * 2;
+        float startX = centerX - totalWidth / 2f;
 
-        canvas.DrawRoundRect(_tabPowersRect, 5, 5, _showPermanentBuildingTab ? _cardPaint : _cardActivePaint);
-        canvas.DrawRoundRect(_tabPermanentBuildingRect, 5, 5, _showPermanentBuildingTab ? _cardActivePaint : _cardPaint);
-        canvas.DrawRoundRect(_tabPowersRect, 5, 5, _showPermanentBuildingTab ? _cardBorderPaint : _cardActiveBorder);
-        canvas.DrawRoundRect(_tabPermanentBuildingRect, 5, 5, _showPermanentBuildingTab ? _cardActiveBorder : _cardBorderPaint);
+        _tabPowersRect            = new SKRect(startX, y, startX + InnerTabWidth, y + InnerTabHeight);
+        _tabMilestonesRect        = new SKRect(_tabPowersRect.Right + gap, y, _tabPowersRect.Right + gap + InnerTabWidth, y + InnerTabHeight);
+        _tabPermanentBuildingRect = new SKRect(_tabMilestonesRect.Right + gap, y, _tabMilestonesRect.Right + gap + InnerTabWidth, y + InnerTabHeight);
 
-        SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_tab_powers"), _tabPowersRect.MidX, _tabPowersRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
-        SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_tab_permanent_building"), _tabPermanentBuildingRect.MidX, _tabPermanentBuildingRect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
+        DrawInnerTabButton(canvas, _tabPowersRect, "ascension_tab_powers", _activeInnerTab == InnerTab.Powers);
+        DrawInnerTabButton(canvas, _tabMilestonesRect, "ascension_tab_milestones", _activeInnerTab == InnerTab.Milestones);
+        DrawInnerTabButton(canvas, _tabPermanentBuildingRect, "ascension_tab_permanent_building", _activeInnerTab == InnerTab.PermanentBuilding);
+    }
+
+    private void DrawInnerTabButton(SKCanvas canvas, SKRect rect, string labelKey, bool active)
+    {
+        canvas.DrawRoundRect(rect, 5, 5, active ? _cardActivePaint : _cardPaint);
+        canvas.DrawRoundRect(rect, 5, 5, active ? _cardActiveBorder : _cardBorderPaint);
+        SkiaTextUtils.DrawText(canvas, _localization.Get(labelKey), rect.MidX, rect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
     }
 
     /// <summary>
@@ -818,6 +836,69 @@ public sealed class AscensionRenderer : IDisposable
 
         if (selected || !full)
             _permanentBuildingRects.Add((type, rect));
+    }
+
+    /// <summary>
+    /// Liste des jalons d'Ascension (voir AscensionMilestoneDefinitions/AscensionController.
+    /// IsMilestoneUnlocked) : une carte par jalon, empilées verticalement — jamais assez nombreuses
+    /// (3 aujourd'hui) pour justifier un viewport défilant comme DrawPermanentBuildingTab.
+    /// </summary>
+    private void DrawMilestonesTab(SKCanvas canvas, float x, float y, float contentWidth, AscensionController ascension)
+    {
+        var noteLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_milestones_note"), contentWidth, _descFont);
+
+        // Voir DrawPermanentBuildingTab : la première ligne d'un bloc ne peut pas partir exactement
+        // au bord haut sans que son ascendante soit tranchée.
+        float noteTop = y + _descFont.Size;
+        DrawCenteredTextLayout(canvas, noteLayout, x + contentWidth / 2f, noteTop, _descFont, _mutedPaint);
+
+        float cardTop = noteTop + noteLayout.Lines.Count * _descFont.Spacing + 16f;
+        float cardGap = 12f;
+        int raceCount = ascension.AscendedRaces.Count;
+
+        for (int i = 0; i < AscensionMilestoneDefinitions.All.Count; i++)
+        {
+            var def = AscensionMilestoneDefinitions.All[i];
+            float cardY = cardTop + i * (MilestoneCardHeight + cardGap);
+            DrawMilestoneCard(canvas, x, cardY, contentWidth, def, ascension, raceCount);
+        }
+    }
+
+    /// <summary>Une carte de jalon : nom à gauche, état (Débloqué, ou progression X/Y races) à
+    /// droite, description sur la ligne suivante. Contrairement aux pouvoirs divins achetables, rien
+    /// n'est cliquable ici — le jalon se débloque tout seul (voir AscensionController.
+    /// IsMilestoneUnlocked) — seul le survol affiche un tooltip détaillant la condition manquante.</summary>
+    private void DrawMilestoneCard(SKCanvas canvas, float x, float y, float width, AscensionMilestoneDefinition def, AscensionController ascension, int raceCount)
+    {
+        var rect = new SKRect(x, y, x + width, y + MilestoneCardHeight);
+        bool unlocked = ascension.IsMilestoneUnlocked(def.Id);
+        bool hovered = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
+
+        canvas.DrawRoundRect(rect, 8, 8, unlocked ? _cardActivePaint : (hovered ? _cardPaint : _cardLockedPaint));
+        canvas.DrawRoundRect(rect, 8, 8, unlocked ? _cardActiveBorder : _cardBorderPaint);
+
+        canvas.Save();
+        canvas.ClipRect(rect);
+
+        SkiaTextUtils.DrawText(canvas, _localization.Get(def.NameKey), x + 14f, y + 20f, SKTextAlign.Left, _nameFont, unlocked ? _namePaint : _mutedPaint);
+
+        string status = unlocked
+            ? _localization.Get("ascension_milestone_unlocked_label")
+            : _localization.GetFormated("ascension_milestone_progress_label", raceCount, def.RequiredAscendedRaceCount);
+        SkiaTextUtils.DrawText(canvas, status, x + width - 14f, y + 20f, SKTextAlign.Right, _descFont, unlocked ? _accentPaint : _mutedPaint);
+
+        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.DescKey), width - 28f, _descFont);
+        DrawCenteredTextLayout(canvas, descLayout, x + width / 2f, y + 40f, _descFont, unlocked ? _descPaint : _mutedPaint);
+
+        canvas.Restore();
+
+        if (hovered)
+        {
+            var lines = unlocked
+                ? new[] { _localization.Get(def.NameKey), "", _localization.Get(def.DescKey) }
+                : new[] { _localization.Get(def.NameKey), "", _localization.Get(def.DescKey), "", _localization.Get(def.RequirementKey) };
+            _tooltipRenderer.SetTooltipLines(lines, new SKPoint(rect.Right, rect.Top));
+        }
     }
 
     private void DrawAscendSection(SKCanvas canvas, float x, float y, float width, GodState godState, AscensionController ascension)
@@ -1044,12 +1125,15 @@ public sealed class AscensionRenderer : IDisposable
     {
         // Sur l'onglet Bâtiments permanents, la molette fait défiler la grille plutôt que zoomer :
         // il n'y a pas de carte à zoomer tant que cet onglet est affiché.
-        if (_showPermanentBuildingTab)
+        if (_activeInnerTab == InnerTab.PermanentBuilding)
         {
             if (!_buildingTabViewportRect.IsEmpty && _buildingTabViewportRect.Contains(e.Center.X, e.Center.Y))
                 ScrollBuildingTab(e.ZoomDelta > 0 ? -60f : 60f);
             return;
         }
+
+        // Sur l'onglet Jalons, rien à faire défiler ni à zoomer (voir DrawMilestonesTab).
+        if (_activeInnerTab == InnerTab.Milestones) return;
 
         if (!IsMapInteractive(e.Center)) return;
         ApplyZoom(e.ZoomDelta > 0 ? ZoomStep : 1f / ZoomStep, e.Center);
@@ -1073,9 +1157,9 @@ public sealed class AscensionRenderer : IDisposable
 
     /// <summary>La carte n'a la main que sous la barre d'onglets internes, l'onglet Pouvoirs
     /// affiché et aucun panneau modal ouvert : le zoom et le déplacement ne peuvent donc jamais
-    /// emporter les boutons d'Ascension ni celui des bâtiments uniques permanents.</summary>
+    /// emporter les boutons d'Ascension ni ceux des autres onglets internes.</summary>
     private bool IsMapInteractive(SKPoint position) =>
-        !_showPermanentBuildingTab
+        _activeInnerTab == InnerTab.Powers
         && !_confirmPopup.IsOpen
         && !_mapViewportRect.IsEmpty
         && _mapViewportRect.Contains(position.X, position.Y);
@@ -1187,12 +1271,17 @@ public sealed class AscensionRenderer : IDisposable
 
         if (!_tabPowersRect.IsEmpty && _tabPowersRect.Contains(position.X, position.Y))
         {
-            _showPermanentBuildingTab = false;
+            _activeInnerTab = InnerTab.Powers;
             return true;
         }
         if (!_tabPermanentBuildingRect.IsEmpty && _tabPermanentBuildingRect.Contains(position.X, position.Y))
         {
-            _showPermanentBuildingTab = true;
+            _activeInnerTab = InnerTab.PermanentBuilding;
+            return true;
+        }
+        if (!_tabMilestonesRect.IsEmpty && _tabMilestonesRect.Contains(position.X, position.Y))
+        {
+            _activeInnerTab = InnerTab.Milestones;
             return true;
         }
 

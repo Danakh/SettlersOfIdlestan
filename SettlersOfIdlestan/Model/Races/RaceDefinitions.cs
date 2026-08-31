@@ -16,12 +16,19 @@ namespace SettlersOfIdlestan.Model.Races;
 /// Liste des races jouables (voir <see cref="RaceDefinition"/>). Chaque race non-Humaine devient
 /// sélectionnable individuellement une fois sa propre combinaison de 3 pouvoirs divins acquise
 /// (<see cref="RaceDefinition.RequiredPowers"/>, voir AscensionController.IsRaceUnlocked) —
-/// indépendante des autres races, Base comme Advanced. Les races Advanced piochent dans les 6
-/// pouvoirs de second rang (le 2e de chaque colonne 0-5) en graphe complet à 4 sommets : chaque
-/// pouvoir relie exactement 2 races, chaque race en requiert 3 (voir le commentaire sur leurs
-/// définitions ci-dessous). Les stubs éventuels (<see cref="RaceDefinition.IsImplemented"/> faux)
-/// sont déclarés pour l'UI et la sérialisation mais n'apparaissent jamais dans
-/// AscensionController.GetSelectableRaces.
+/// indépendante des autres races, Base comme Advanced.
+///
+/// <para>Base (Elfes, Nains, Gobelins, Orcs) : les 4 pouvoirs de premier rang (Main, Mémoire, Marche,
+/// Bras de Dieu) ne suffisent qu'à 4 combinaisons de 3 — chaque race en exclut un différent, donc
+/// acheter n'importe quels 3 des 4 débloque exactement la race qui n'a pas besoin du quatrième.</para>
+///
+/// <para>Advanced (Géants, Garudas, Sirènes, Elfes noirs) : graphe complet à 4 sommets sur 6 pouvoirs
+/// plus profonds (Œil de Dieu, Inventaire Divin, Poing de Dieu, Présence de Dieu, Corne d'Abondance,
+/// Purification Supérieure) — chaque pouvoir relie exactement 2 races, chaque race en requiert 3
+/// (voir le commentaire sur leurs définitions ci-dessous).</para>
+///
+/// <para>Les stubs éventuels (<see cref="RaceDefinition.IsImplemented"/> faux) sont déclarés pour
+/// l'UI et la sérialisation mais n'apparaissent jamais dans AscensionController.GetSelectableRaces.</para>
 /// </summary>
 public static class RaceDefinitions
 {
@@ -78,7 +85,9 @@ public static class RaceDefinitions
         // équivalent souterrain, la Caverne aux champignons (voir
         // TerrainTypeExtensions.UnderworldEquivalent et CityBuilderController.SatisfiesCityTerrainRestriction) ;
         // Marche de Dieu y fait pousser ce même équivalent (AscensionController.ApplyWalkOfGod).
-        // Déblocage : Marche de Dieu, Ascension Prestigieuse, Mémoire de Dieu.
+        // Déblocage : les 4 pouvoirs divins de premier rang (Main/Mémoire/Marche/Bras de Dieu) sauf
+        // Bras de Dieu — chacune des 4 races de base en exclut un différent (voir le commentaire de
+        // classe ci-dessus), Bras de Dieu restant donc superflu pour les Elfes.
         new RaceDefinition(RaceId.Elf, RaceTier.Base,
             requiredAdjacentTerrain: TerrainType.Forest,
             racialBuilding: BuildingType.HeartTree,
@@ -89,10 +98,11 @@ public static class RaceDefinitions
                 new Modifier(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.HeartTree), EType.ADDITIVE, 1),
             },
-            requiredPowers: new[] { AscensionPowerId.WalkOfGod, AscensionPowerId.PrestigiousAscension, AscensionPowerId.MemoryOfGod }),
+            requiredPowers: new[] { AscensionPowerId.HandOfGod, AscensionPowerId.MemoryOfGod, AscensionPowerId.WalkOfGod }),
 
         // Nains : nouvelles villes uniquement adjacentes à une Montagne ; maîtres de la forge et
-        // de la mine, et solides défenseurs. Déblocage : Héritage Divin, Bras de Dieu, Marche de Dieu.
+        // de la mine, et solides défenseurs. Déblocage : les 4 pouvoirs de premier rang sauf Main de
+        // Dieu (superflue pour les Nains).
         new RaceDefinition(RaceId.Dwarf, RaceTier.Base,
             requiredAdjacentTerrain: TerrainType.Mountain,
             racialBuilding: BuildingType.RunicForge,
@@ -104,14 +114,14 @@ public static class RaceDefinitions
                 new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, 3),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.RunicForge), EType.ADDITIVE, 1),
             },
-            requiredPowers: new[] { AscensionPowerId.DivineLegacy, AscensionPowerId.ArmOfGod, AscensionPowerId.WalkOfGod }),
+            requiredPowers: new[] { AscensionPowerId.MemoryOfGod, AscensionPowerId.WalkOfGod, AscensionPowerId.ArmOfGod }),
 
         // Gobelins : villes à distance 2 au lieu de 3 (expansion dense), mais « quantité plutôt
         // que qualité » — niveau max -1 sur les bâtiments standards (Temple compris : base 1, plafonné
         // à 3 une fois Foi débloquée au lieu de 4 — voir BuildStandardMaxLevelModifiers, le malus
         // s'applique en dernier et ne peut jamais rendre un bâtiment inconstructible), défense
-        // affaiblie et points de prestige réduits de 25 %. Déblocage : Ascension Prestigieuse, Main de
-        // Dieu, Héritage Divin.
+        // affaiblie et points de prestige réduits de 25 %. Déblocage : les 4 pouvoirs de premier rang
+        // sauf Mémoire de Dieu (superflue pour les Gobelins).
         new RaceDefinition(RaceId.Goblin, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.GreatBurrow,
@@ -121,12 +131,13 @@ public static class RaceDefinitions
                 .Append(new Modifier(ECategory.PRESTIGE_GAIN_RACE, EType.ADDITIVE, -0.25))
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.GreatBurrow), EType.ADDITIVE, 1))
                 .ToArray(),
-            requiredPowers: new[] { AscensionPowerId.PrestigiousAscension, AscensionPowerId.HandOfGod, AscensionPowerId.DivineLegacy }),
+            requiredPowers: new[] { AscensionPowerId.HandOfGod, AscensionPowerId.WalkOfGod, AscensionPowerId.ArmOfGod }),
 
         // Orcs : pillards sans terrain de prédilection — tout misé sur l'attaque et le raid plutôt
         // que sur l'économie ou la recherche. UNLOCK_RAID offert gratuitement (normalement un vertex
         // de prestige mi-parcours) ; en échange, recherche ralentie et Bibliothèque/Laboratoire
-        // plafonnent 1 niveau plus bas. Déblocage : Mémoire de Dieu, Main de Dieu, Bras de Dieu.
+        // plafonnent 1 niveau plus bas. Déblocage : les 4 pouvoirs de premier rang sauf Marche de
+        // Dieu (superflue pour les Orcs, qui n'ont pas de terrain de prédilection à faire pousser).
         new RaceDefinition(RaceId.Orc, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.SkullPit,
@@ -165,8 +176,8 @@ public static class RaceDefinitions
         // villes standard (3), portée d'attaque +1, portée encore étendue par le Trône des Vents.
         // En échange : -1 de niveau max sur la production, la recherche et la magie
         // (GarudaLightBuildings) et défense -3. Déblocage : Œil de Dieu (partagé avec les Géants),
-        // Héritage Éternel (partagé avec les Sirènes — maîtrise des deux éléments frontières, ciel et
-        // mer, l'expansion ne s'arrête jamais), Présence de Dieu (partagé avec les Elfes noirs — l'un
+        // Corne d'Abondance (partagé avec les Sirènes — abondance des cieux et des flots, vents
+        // porteurs comme courants nourriciers), Présence de Dieu (partagé avec les Elfes noirs — l'un
         // purifie la Corruption depuis le ciel, l'autre la repousse depuis l'Inframonde).
         new RaceDefinition(RaceId.Garuda, RaceTier.Advanced,
             requiredAdjacentTerrain: null,
@@ -177,7 +188,7 @@ public static class RaceDefinitions
                 .Append(new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3))
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.ThroneOfWinds), EType.ADDITIVE, 1))
                 .ToArray(),
-            requiredPowers: new[] { AscensionPowerId.EyeOfGod, AscensionPowerId.EternalLegacy, AscensionPowerId.PresenceOfGod }),
+            requiredPowers: new[] { AscensionPowerId.EyeOfGod, AscensionPowerId.HornOfPlenty, AscensionPowerId.PresenceOfGod }),
 
         // Sirènes : peuple des flots — essaime densément le long du littoral (villes à distance 2
         // les unes des autres, jusqu'à 2 arêtes de la côte au lieu du contact direct). Seules les
@@ -188,7 +199,7 @@ public static class RaceDefinitions
         // guildes, bâtiments raciaux…) pour elles. Voir
         // BuildingController.GetMaxLevel(Building, Civilization, City) et
         // CityBuilderController.GetVerticesWithinRangeOfTerrain. Déblocage : Inventaire Divin
-        // (partagé avec les Géants), Héritage Éternel (partagé avec les Garudas), Purification
+        // (partagé avec les Géants), Corne d'Abondance (partagé avec les Garudas), Purification
         // Supérieure (partagé avec les Elfes noirs — les deux peuples vivent en marge du monde de
         // surface, proches des reliques enfouies).
         new RaceDefinition(RaceId.Mermaid, RaceTier.Advanced,
@@ -203,7 +214,7 @@ public static class RaceDefinitions
                 new Modifier(ECategory.INLAND_CITY_LEVEL_CAP, nameof(TerrainType.Water), EType.ADDITIVE, 2),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.PearlGrotto), EType.ADDITIVE, 1),
             },
-            requiredPowers: new[] { AscensionPowerId.DivineInventory, AscensionPowerId.EternalLegacy, AscensionPowerId.GreaterPurification }),
+            requiredPowers: new[] { AscensionPowerId.DivineInventory, AscensionPowerId.HornOfPlenty, AscensionPowerId.GreaterPurification }),
 
         // Elfes noirs : peuple des profondeurs — commencent dans l'Inframonde sur un triangle
         // Caverne aux champignons / Colline / Montagne, seul trio couvrant l'économie de base sous

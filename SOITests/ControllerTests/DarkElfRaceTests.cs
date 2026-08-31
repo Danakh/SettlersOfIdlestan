@@ -44,7 +44,6 @@ public class DarkElfRaceTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
         // Combinaison propre aux Elfes noirs (voir RaceDefinitions.All) : Poing de Dieu, Présence de
         // Dieu, Purification Supérieure.
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
@@ -150,8 +149,6 @@ public class DarkElfRaceTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
 
         controller.PerformAscension(RaceId.Dwarf);
 
@@ -198,8 +195,6 @@ public class DarkElfRaceTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
 
         controller.PerformAscension(RaceId.Elf);
 

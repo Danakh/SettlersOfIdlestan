@@ -4,6 +4,7 @@ The changelog is not actively maintained at the moment.
 ---
 
 v0.20
+• New Milestones tab on the Ascension screen: unlocks equivalent divine powers for free based on how many different races have already completed an Ascension
 
 ---
 

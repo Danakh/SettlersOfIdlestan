@@ -119,12 +119,23 @@ namespace SettlersOfIdlestan.Controller.Expand
             return _islandState.RunRecord.TreasuresTroveClaimed;
         }
 
+        /// <summary>
+        /// Jalon Ascension Prestigieuse (voir AscensionController.IsMilestoneUnlocked) : dérivé
+        /// directement de GodState.AscensionState — ce contrôleur ne détient pas de référence vers
+        /// AscensionController — avec le même seuil (AscensionMilestoneDefinitions).
+        /// </summary>
         public bool HasPrestigiousAscension()
-            => _godState?.AscensionState.UnlockedPowers.Contains(AscensionPowerId.PrestigiousAscension) == true;
+        {
+            var ascensionState = _godState?.AscensionState;
+            if (ascensionState == null || ascensionState.AscensionsPerformed <= 0) return false;
 
-        /// <summary>Ascension Prestigieuse : 1 point de prestige par essence divine gagnée depuis le début de la partie, versé à chaque prestige (voir aussi AscensionController.GrantPrestigiousAscensionPoints qui amorce chaque nouveau cycle d'Ascension).</summary>
-        public int GetDivineEssenceBonus()
-            => HasPrestigiousAscension() ? (_godState?.TotalDivineEssenceEarned ?? 0) : 0;
+            int threshold = AscensionMilestoneDefinitions.Get(AscensionMilestoneId.PrestigiousAscension)!.RequiredAscendedRaceCount;
+            return ascensionState.AscendedRaces.Count >= threshold;
+        }
+
+        /// <summary>Ascension Prestigieuse : 1 point de prestige par point divin gagné depuis le début de la partie, versé à chaque prestige (voir aussi AscensionController.GrantPrestigiousAscensionPoints qui amorce chaque nouveau cycle d'Ascension avec la même règle).</summary>
+        public int GetDivinePointsBonus()
+            => HasPrestigiousAscension() ? (_godState?.TotalGodPointsEarned ?? 0) : 0;
 
         public double GetPrestigeGainBonus()
             => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0) ?? 0.0;
@@ -355,11 +366,11 @@ namespace SettlersOfIdlestan.Controller.Expand
                 tooltipKeys["prestige_treasure_trove_bonus"] = "prestige_tooltip_treasure_trove_bonus";
             }
 
-            int divineEssenceBonus = GetDivineEssenceBonus();
-            if (divineEssenceBonus > 0)
+            int divinePointsBonus = GetDivinePointsBonus();
+            if (divinePointsBonus > 0)
             {
-                sources["prestige_divine_essence_bonus"] = divineEssenceBonus;
-                tooltipKeys["prestige_divine_essence_bonus"] = "prestige_tooltip_divine_essence_bonus";
+                sources["prestige_divine_points_bonus"] = divinePointsBonus;
+                tooltipKeys["prestige_divine_points_bonus"] = "prestige_tooltip_divine_points_bonus";
             }
 
             return sources

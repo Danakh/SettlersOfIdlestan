@@ -24,6 +24,9 @@ namespace SettlersOfIdlestan.Controller.Ascension;
 /// Dieu, Foi) et l'action ciblée Marche de Dieu.
 /// Gère aussi l'Ascension elle-même (voir <see cref="PerformAscension"/>) : convertit l'essence
 /// divine accumulée (DivineBonesController) en points divins et repart de zéro (île + prestige).
+/// Gère enfin les jalons d'Ascension (voir <see cref="IsMilestoneUnlocked"/>) : des pouvoirs
+/// équivalents accordés gratuitement, sans points divins, selon le nombre de races différentes ayant
+/// déjà accompli une Ascension.
 /// </summary>
 public class AscensionController : IModifierProvider
 {
@@ -155,6 +158,22 @@ public class AscensionController : IModifierProvider
     public bool IsPowerUnlocked(AscensionPowerId id) => _ascensionState?.UnlockedPowers.Contains(id) == true;
 
     /// <summary>
+    /// Vrai si le jalon d'Ascension est débloqué : la première Ascension doit être accomplie
+    /// (AscensionState.AscensionsPerformed ≥ 1 — c'est aussi ce qui rend ce jalon toujours acquis dès
+    /// que l'onglet Jalons devient visible, voir RenderAscensionPage côté UI), puis le nombre de races
+    /// différentes ayant déjà accompli une Ascension (<see cref="AscendedRaces"/>) doit atteindre le
+    /// seuil du jalon (AscensionMilestoneDefinition.RequiredAscendedRaceCount). Gratuit et jamais
+    /// « acheté » : aucun état dédié n'est persisté, seul AscensionState fait foi à chaque appel.
+    /// </summary>
+    public bool IsMilestoneUnlocked(AscensionMilestoneId id)
+    {
+        if (_ascensionState == null || _ascensionState.AscensionsPerformed <= 0) return false;
+
+        var def = AscensionMilestoneDefinitions.Get(id);
+        return def != null && AscendedRaces.Count >= def.RequiredAscendedRaceCount;
+    }
+
+    /// <summary>
     /// Vrai si l'ordre de déblocage (colonne/Foi) autorise l'achat de ce pouvoir, indépendamment du
     /// coût en points divins — sert à l'UI pour distinguer "verrouillé par prérequis" de "points
     /// divins insuffisants" (voir <see cref="CanPurchasePower"/>).
@@ -200,29 +219,27 @@ public class AscensionController : IModifierProvider
         if (id == AscensionPowerId.MemoryOfGod)
             RestoreRepeatableResearchToBest();
 
-        // Ascension Prestigieuse est achetée juste après une Ascension, cycle où elle n'aurait
-        // sinon rien donné : elle verse sa dotation tout de suite plutôt que de la faire attendre
-        // jusqu'à l'Ascension suivante.
-        if (id == AscensionPowerId.PrestigiousAscension)
-            GrantPrestigiousAscensionPoints(_godState!);
-
         OnModifiersChanged?.Invoke();
         return true;
     }
 
     /// <summary>
-    /// Points de prestige versés par Ascension Prestigieuse : 1 par essence divine gagnée depuis le
-    /// tout début de la partie (GodState.TotalDivineEssenceEarned, jamais remis à zéro). Versés au
+    /// Points de prestige versés par le jalon Ascension Prestigieuse (AscensionMilestoneId.
+    /// PrestigiousAscension, débloqué dès la 2e Ascension) : 1 par point divin gagné depuis le tout
+    /// début de la partie (GodState.TotalGodPointsEarned, jamais remis à zéro) — pas par essence
+    /// divine : l'essence n'existe qu'une fois les Abysses atteints, alors que les points divins sont
+    /// garantis dès la toute première Ascension, ce qui rend le jalon utile immédiatement. Versés au
     /// PrestigeState courant — celui du nouveau cycle quand l'appel vient de
     /// <see cref="PerformAscension(MainGameState, IslandParameters, RaceId)"/>. Ils comptent comme
-    /// n'importe quel gain de prestige, y compris pour le palier d'île (PrestigeState.Tier).
+    /// n'importe quel gain de prestige, y compris pour le palier d'île (PrestigeState.Tier). Voir
+    /// aussi PrestigeController.GetDivinePointsBonus, qui applique la même règle à chaque prestige.
     /// </summary>
     private static void GrantPrestigiousAscensionPoints(GodState godState)
     {
         var prestigeState = godState.PrestigeState;
         if (prestigeState == null) return;
 
-        int points = godState.TotalDivineEssenceEarned;
+        int points = godState.TotalGodPointsEarned;
         if (points <= 0) return;
 
         prestigeState.PrestigePoints += points;
@@ -332,18 +349,18 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Nombre d'emplacements de bâtiments uniques permanents accordés par chaque Ascension déjà
-    /// effectuée : 0 sans pouvoir divin, 1 avec Héritage Divin, 2 avec Héritage Éternel. C'est la
-    /// colonne Héritage qui ouvre entièrement le système — aucun emplacement n'est gratuit.
+    /// effectuée : 2, accordés gratuitement par le jalon
+    /// <see cref="AscensionMilestoneId.PermanentUniqueBuildings"/> dès la première Ascension accomplie
+    /// — voir AscensionMilestoneDefinitions.
     /// </summary>
     private int PermanentUniqueBuildingSlotsPerAscension =>
-        (IsPowerUnlocked(AscensionPowerId.DivineLegacy) ? 1 : 0)
-        + (IsPowerUnlocked(AscensionPowerId.EternalLegacy) ? 1 : 0);
+        IsMilestoneUnlocked(AscensionMilestoneId.PermanentUniqueBuildings) ? 2 : 0;
 
     /// <summary>
     /// Nombre d'emplacements de bâtiments uniques permanents disponibles :
     /// <see cref="PermanentUniqueBuildingSlotsPerAscension"/> par Ascension déjà effectuée (voir
-    /// AscensionState.AscensionsPerformed). Les deux pouvoirs de la colonne Héritage sont donc
-    /// rétroactifs : ils comptent les Ascensions déjà accomplies, pas seulement les suivantes.
+    /// AscensionState.AscensionsPerformed). Le jalon est donc rétroactif : il compte les Ascensions
+    /// déjà accomplies, pas seulement les suivantes.
     /// </summary>
     public int PermanentUniqueBuildingSlots =>
         (_ascensionState?.AscensionsPerformed ?? 0) * PermanentUniqueBuildingSlotsPerAscension;
@@ -621,9 +638,9 @@ public class AscensionController : IModifierProvider
         godState.PrestigeState = new PrestigeState(worldState);
         GrantFreePrestigeVertices(godState.PrestigeState, chosenRace);
 
-        // Ascension Prestigieuse : le nouveau cycle ne repart plus la bourse vide, mais avec 1 point
-        // de prestige par essence divine jamais gagnée.
-        if (IsPowerUnlocked(AscensionPowerId.PrestigiousAscension))
+        // Jalon Ascension Prestigieuse : le nouveau cycle ne repart plus la bourse vide, mais avec 1
+        // point de prestige par point divin jamais gagné.
+        if (IsMilestoneUnlocked(AscensionMilestoneId.PrestigiousAscension))
             GrantPrestigiousAscensionPoints(godState);
 
         // Mémoire de Dieu : les recherches répétables ne sont pas remises à zéro par l'Ascension —
@@ -729,6 +746,12 @@ public class AscensionController : IModifierProvider
 
         if (IsPowerUnlocked(AscensionPowerId.WrathOfGod))
             yield return new Modifier(Modifier.ECategory.ATTACK_SPEED, Modifier.EType.ADDITIVE, 1.0);
+
+        // Jalon Ferveur Studieuse (AscensionMilestoneId.ResearchProduction) : double la génération de
+        // points de recherche, base 1.0 (100%) additionnée aux autres sources — voir
+        // Civilization.RESEARCH_PRODUCTION_SPEED.
+        if (IsMilestoneUnlocked(AscensionMilestoneId.ResearchProduction))
+            yield return new Modifier(Modifier.ECategory.RESEARCH_PRODUCTION_SPEED, Modifier.EType.ADDITIVE, 1.0);
 
         // Bonus/malus de la race jouée pendant ce cycle (voir RaceDefinitions).
         foreach (var modifier in RaceDefinitions.Get(SelectedRace).Modifiers)

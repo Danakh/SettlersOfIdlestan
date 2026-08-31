@@ -29,13 +29,8 @@ namespace SOITests.ControllerTests;
 /// </summary>
 public class AscensionControllerTests
 {
-    /// <param name="legacyRanks">
-    /// Nombre de pouvoirs de la colonne Héritage déjà acquis (0 à 2) : ce sont eux qui ouvrent les
-    /// emplacements de bâtiment unique permanent, à raison d'un par Ascension effectuée chacun. La
-    /// valeur par défaut 1 donne donc « 1 emplacement par Ascension ».
-    /// </param>
     private static (WorldState state, City city, Civilization civ, AscensionController ascension, GodState godState) CreateTestSetup(
-        int godPoints = 100, int ascensionsPerformed = 1, int? prestigePoints = null, int legacyRanks = 1)
+        int godPoints = 100, int ascensionsPerformed = 1, int? prestigePoints = null)
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];
@@ -43,8 +38,6 @@ public class AscensionControllerTests
 
         var godState = new GodState { GodPoints = godPoints };
         godState.AscensionState.AscensionsPerformed = ascensionsPerformed;
-        if (legacyRanks >= 1) godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.DivineLegacy);
-        if (legacyRanks >= 2) godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.EternalLegacy);
         if (prestigePoints.HasValue)
             godState.PrestigeState = new PrestigeState(state) { PrestigePoints = prestigePoints.Value };
 
@@ -105,63 +98,31 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void PermanentUniqueBuildingSlots_EqualsAscensionsPerformed()
+    public void PermanentUniqueBuildingSlots_GrantsTwoSlotsPerAscension()
     {
+        // Jalon Héritage Ancestral (voir AscensionMilestoneId.PermanentUniqueBuildings) : 2
+        // emplacements par Ascension effectuée, gratuitement, dès la première Ascension accomplie.
         var (_, _, _, ascension, godState) = CreateTestSetup(ascensionsPerformed: 3);
 
-        Assert.Equal(3, ascension.PermanentUniqueBuildingSlots);
+        Assert.Equal(6, ascension.PermanentUniqueBuildingSlots);
         Assert.Equal(3, godState.AscensionState.AscensionsPerformed);
     }
 
     [Fact]
-    public void PermanentUniqueBuildingSlots_WithoutLegacyPowers_IsZeroWhateverTheAscensionCount()
+    public void PermanentUniqueBuildingSlots_BeforeFirstAscension_IsZero()
     {
-        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 5, legacyRanks: 0);
+        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 0);
 
         Assert.Equal(0, ascension.PermanentUniqueBuildingSlots);
-    }
-
-    [Fact]
-    public void PermanentUniqueBuildingSlots_EternalLegacy_DoublesSlotsPerAscension()
-    {
-        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 3, legacyRanks: 2);
-
-        Assert.Equal(6, ascension.PermanentUniqueBuildingSlots);
-    }
-
-    [Fact]
-    public void PurchasePower_DivineLegacy_OpensSlotsRetroactivelyForPastAscensions()
-    {
-        var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 2, legacyRanks: 0);
-        Assert.Equal(0, ascension.PermanentUniqueBuildingSlots);
-
-        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
-
-        Assert.Equal(2, ascension.PermanentUniqueBuildingSlots);
-        Assert.True(ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom));
-        Assert.True(ascension.SelectPermanentUniqueBuilding(BuildingType.Academy));
-    }
-
-    [Fact]
-    public void PurchasePower_EternalLegacy_RequiresDivineLegacyFirst()
-    {
-        var (_, _, _, ascension, _) = CreateTestSetup(legacyRanks: 0);
-        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-
-        Assert.False(ascension.ArePrerequisitesMet(AscensionPowerId.EternalLegacy));
-        Assert.False(ascension.PurchasePower(AscensionPowerId.EternalLegacy));
-
-        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineLegacy));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.EternalLegacy));
     }
 
     [Fact]
     public void ApplyPermanentUniqueBuildingToCivilization_MoreChoicesThanSlots_TrimsExcessAndGrantsOnlyWhatIsUnlocked()
     {
-        // Sauvegarde antérieure à la colonne Héritage : des bâtiments choisis quand les emplacements
-        // étaient gratuits, mais plus aucun pouvoir pour les autoriser.
-        var (_, _, civ, ascension, godState) = CreateTestSetup(ascensionsPerformed: 2, legacyRanks: 0);
+        // Avant toute Ascension, le jalon Héritage Ancestral (qui exige AscensionsPerformed ≥ 1)
+        // n'ouvre le moindre emplacement — des bâtiments choisis dans cet état (ex. sauvegarde
+        // corrompue) doivent donc être intégralement retirés.
+        var (_, _, civ, ascension, godState) = CreateTestSetup(ascensionsPerformed: 0);
         godState.AscensionState.PermanentUniqueBuildings.Add(BuildingType.WarRoom);
         godState.AscensionState.PermanentUniqueBuildings.Add(BuildingType.Academy);
 
@@ -209,13 +170,17 @@ public class AscensionControllerTests
     [Fact]
     public void SelectPermanentUniqueBuilding_ExceedingSlotCount_ReturnsFalseAndLeavesFirstChoiceUnchanged()
     {
+        // ascensionsPerformed: 1 -> exactement 2 emplacements (jalon Héritage Ancestral, voir
+        // AscensionMilestoneId.PermanentUniqueBuildings) : les deux premiers choix passent, le
+        // troisième doit échouer sans rien changer aux deux déjà choisis.
         var (_, _, _, ascension, _) = CreateTestSetup(ascensionsPerformed: 1);
         ascension.SelectPermanentUniqueBuilding(BuildingType.WarRoom);
+        ascension.SelectPermanentUniqueBuilding(BuildingType.Academy);
 
-        var result = ascension.SelectPermanentUniqueBuilding(BuildingType.Academy);
+        var result = ascension.SelectPermanentUniqueBuilding(BuildingType.ArcaneTower);
 
         Assert.False(result);
-        Assert.Equal(new[] { BuildingType.WarRoom }, ascension.PermanentUniqueBuildings);
+        Assert.Equal(new[] { BuildingType.WarRoom, BuildingType.Academy }, ascension.PermanentUniqueBuildings);
     }
 
     [Fact]
@@ -1368,47 +1333,31 @@ public class AscensionControllerTests
         Assert.Equal(2, godState.AscensionState.BestRepeatCounts[TechnologyId.MasterHarvest]);
     }
 
-    // ── Ascension Prestigieuse ───────────────────────────────────────────────
-
-    /// <summary>
-    /// Le pouvoir est acheté juste après une Ascension : sa dotation est versée sur-le-champ, sinon
-    /// il ne servirait à rien avant la suivante.
-    /// </summary>
-    [Fact]
-    public void PurchasePrestigiousAscension_GrantsOnePrestigePointPerDivineEssenceEverEarned()
-    {
-        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 5);
-        godState.TotalDivineEssenceEarned = 7;
-
-        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
-
-        Assert.Equal(12, godState.PrestigeState!.PrestigePoints);
-        Assert.Equal(7, godState.PrestigeState.TotalPrestigePointsEarned);
-    }
+    // ── Jalon Ascension Prestigieuse (AscensionMilestoneId.PrestigiousAscension) ─────────────
 
     [Fact]
-    public void PerformAscension_WithPrestigiousAscension_StartsTheNewCycleWithPrestigePoints()
+    public void PerformAscension_WithPrestigiousAscensionMilestone_StartsTheNewCycleWithPrestigePoints()
     {
         var controller = CreateAscendableGame(out var godState);
-        godState.TotalDivineEssenceEarned = 9;
-        var ascension = controller.AscensionController;
-        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PrestigiousAscension));
+        // Simule le jalon déjà débloqué par une Ascension précédente : au moins 1 race différente
+        // ayant déjà accompli une Ascension (voir AscensionMilestoneDefinitions).
+        godState.AscensionState.AscensionsPerformed = 1;
+        godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
 
         controller.PerformAscension();
 
-        // Le PrestigeState du cycle qui commence est neuf : ces 9 points ne peuvent venir que de la
-        // dotation, pas de celle déjà versée au cycle précédent à l'achat.
-        Assert.Equal(9, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
-        Assert.Equal(9, controller.CurrentMainState.PrestigeState.TotalPrestigePointsEarned);
+        // Le PrestigeState du cycle qui commence est neuf : ces points ne peuvent venir que de la
+        // dotation, versée avec le total de points divins déjà gagnés — ici uniquement ceux de cette
+        // Ascension (GetGodPointsGain, sans Nécropole : 5 essences -> 5 points).
+        int expectedPoints = AscensionController.MinDivineEssenceForAscension;
+        Assert.Equal(expectedPoints, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
+        Assert.Equal(expectedPoints, controller.CurrentMainState.PrestigeState.TotalPrestigePointsEarned);
     }
 
     [Fact]
-    public void PerformAscension_WithoutPrestigiousAscension_StartsTheNewCycleAtZero()
+    public void PerformAscension_WithoutPrestigiousAscensionMilestone_StartsTheNewCycleAtZero()
     {
-        var controller = CreateAscendableGame(out var godState);
-        godState.TotalDivineEssenceEarned = 9;
+        var controller = CreateAscendableGame(out _);
 
         controller.PerformAscension();
 
