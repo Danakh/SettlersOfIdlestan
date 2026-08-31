@@ -213,12 +213,6 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         protected override GameEventType PlacedEventType => GameEventType.AbyssGatePlaced;
 
-        /// <summary>
-        /// La Faille reprend l'hex de la Spire qu'elle remplace : la position est nécessairement
-        /// cartographiée, la pose n'a jamais porté cette garde — écart conservé tel quel.
-        /// </summary>
-        protected override bool RequiresMappedPositionToPlace => false;
-
         protected override void RaisePlaced() => OnAbyssGatePlaced?.Invoke(this, EventArgs.Empty);
     }
 }

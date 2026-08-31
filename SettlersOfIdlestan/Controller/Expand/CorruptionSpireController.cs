@@ -140,12 +140,6 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         protected override GameEventType PlacedEventType => GameEventType.CorruptionSpirePlaced;
 
-        /// <summary>
-        /// Comme la Mine Profonde et la Percée de Surface, la pose n'a jamais vérifié que la position
-        /// appartenait à une couche cartographiée — écart conservé tel quel.
-        /// </summary>
-        protected override bool RequiresMappedPositionToPlace => false;
-
         protected override void RaisePlaced() => OnCorruptionSpirePlaced?.Invoke(this, EventArgs.Empty);
 
         public CorruptionSpire? PlaceCorruptionSpire(HexCoord position) => PlaceMonument(position);

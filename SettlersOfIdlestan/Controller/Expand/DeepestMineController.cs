@@ -166,12 +166,6 @@ namespace SettlersOfIdlestan.Controller.Island
 
         protected override GameEventType PlacedEventType => GameEventType.DeepestMinePlaced;
 
-        /// <summary>
-        /// Contrairement à la Merveille, au Grand Phare et à l'Observatoire, la pose n'a jamais
-        /// vérifié que la position appartenait à une couche cartographiée — écart conservé tel quel.
-        /// </summary>
-        protected override bool RequiresMappedPositionToPlace => false;
-
         protected override void RaisePlaced() => OnDeepestMinePlaced?.Invoke(this, EventArgs.Empty);
 
         public DeepestMine? PlaceDeepestMine(HexCoord position) => PlaceMonument(position);

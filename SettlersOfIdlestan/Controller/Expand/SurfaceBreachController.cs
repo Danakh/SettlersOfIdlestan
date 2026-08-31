@@ -203,21 +203,9 @@ namespace SettlersOfIdlestan.Controller.Island
         protected override bool IsPlacementTerrainAllowed(HexTile tile, IslandMap map, HexCoord hex)
             => tile.TerrainType == TerrainType.Mountain;
 
-        /// <summary>
-        /// Seul monument à écarter les hexes portant <b>n'importe quelle</b> feature, et pas seulement
-        /// celles qui bloquent les monuments — écart conservé tel quel.
-        /// </summary>
-        protected override bool IsPlacementBlockedByFeatures(HexCoord hex) => _state!.HasFeaturesAt(hex);
-
         protected override SurfaceBreach CreateFeature(HexCoord position) => new(position);
 
         protected override GameEventType PlacedEventType => GameEventType.SurfaceBreachPlaced;
-
-        /// <summary>
-        /// Comme la Mine Profonde, la pose n'a jamais vérifié que la position appartenait à une
-        /// couche cartographiée — écart conservé tel quel.
-        /// </summary>
-        protected override bool RequiresMappedPositionToPlace => false;
 
         protected override void RaisePlaced() => OnSurfaceBreachPlaced?.Invoke(this, EventArgs.Empty);
 

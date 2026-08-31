@@ -136,6 +136,21 @@ namespace SOITests.ControllerTests
             Assert.Equal(new[] { UnderworldMountain }, controller.GetPlaceableHexes());
         }
 
+        /// <summary>
+        /// La Corruption se superpose au terrain sans l'occuper (BlocksMonumentPlacement == false) et
+        /// n'interdit donc aucune pose de monument. La Percée écartait auparavant tout hex portant
+        /// n'importe quelle feature, ce qui la rendait seule de son espèce à perdre ses emplacements
+        /// à mesure que la Corruption s'étendait dans l'Inframonde.
+        /// </summary>
+        [Fact]
+        public void GetPlaceableHexes_StillIncludesCorruptedHexes()
+        {
+            var (state, _, controller, _) = CreateSetup();
+            state.AddFeature(new Corruption(UnderworldMountain));
+
+            Assert.Equal(new[] { UnderworldMountain }, controller.GetPlaceableHexes());
+        }
+
         [Fact]
         public void PlaceSurfaceBreach_AddsFeatureAndLogsEvent()
         {

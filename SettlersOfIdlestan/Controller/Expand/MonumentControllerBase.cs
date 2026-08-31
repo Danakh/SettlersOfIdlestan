@@ -166,13 +166,6 @@ namespace SettlersOfIdlestan.Controller.Island
         protected virtual bool PlacedEventIsToast => false;
 
         /// <summary>
-        /// True si la pose exige que la position appartienne à une couche cartographiée. Toutes les
-        /// poses ne portent pas cette garde aujourd'hui ; les contrepieds sont explicités sur les
-        /// contrôleurs concernés plutôt que corrigés ici.
-        /// </summary>
-        protected virtual bool RequiresMappedPositionToPlace => true;
-
-        /// <summary>
         /// Amorçage des cooldowns des axes supplémentaires à la pose (voir
         /// <see cref="ProcessExtraInvestmentAxes"/>), pour la même raison que
         /// <see cref="Monument.LastInvestmentTick"/>.
@@ -188,7 +181,7 @@ namespace SettlersOfIdlestan.Controller.Island
         protected TFeature? PlaceMonument(HexCoord position)
         {
             if (_state == null) return null;
-            if (RequiresMappedPositionToPlace && _state.GetMapFor(position) == null) return null;
+            if (_state.GetMapFor(position) == null) return null;
             var monument = CreateFeature(position);
             // Amorce le cooldown d'investissement sur le tick de pose plutôt que de laisser la valeur
             // par défaut à 0 : sans ça, ProcessTick voit un écart énorme dès le premier cycle
@@ -214,10 +207,11 @@ namespace SettlersOfIdlestan.Controller.Island
         protected virtual bool IsPlacementTerrainAllowed(HexTile tile, IslandMap map, HexCoord hex) => true;
 
         /// <summary>
-        /// Features déjà présentes qui interdisent la pose. Par défaut celles qui bloquent tout
-        /// monument (voir <see cref="WorldState.HasMonumentBlockingFeaturesAt"/>).
+        /// Features déjà présentes qui interdisent la pose : celles qui bloquent tout monument (voir
+        /// <see cref="WorldState.HasMonumentBlockingFeaturesAt"/>). Corruption et Dominion se
+        /// superposent au terrain sans l'occuper et ne bloquent donc aucune pose.
         /// </summary>
-        protected virtual bool IsPlacementBlockedByFeatures(HexCoord hex) => _state!.HasMonumentBlockingFeaturesAt(hex);
+        private bool IsPlacementBlockedByFeatures(HexCoord hex) => _state!.HasMonumentBlockingFeaturesAt(hex);
 
         /// <summary>
         /// Hexes adjacents aux vertex de ville du joueur, sans ville ennemie adjacente, recevables

@@ -77,12 +77,6 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// <summary>Seule pose de Monument qui remonte un toast : le portail surgit sans que le joueur l'ait demandé.</summary>
         protected override bool PlacedEventIsToast => true;
 
-        /// <summary>
-        /// Le portail naît sur l'hex d'une Tentacule abattue : la position est nécessairement
-        /// cartographiée, la pose n'a jamais porté cette garde — écart conservé tel quel.
-        /// </summary>
-        protected override bool RequiresMappedPositionToPlace => false;
-
         protected override void RaisePlaced() => OnPandemoniumGatePlaced?.Invoke(this, EventArgs.Empty);
 
         protected override bool IsInvestmentComplete(PandemoniumGate gate) => gate.Built;
