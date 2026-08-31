@@ -160,8 +160,14 @@ public sealed class GameScreen : IDisposable
                     _gameOverPending = true;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            // La cause réelle du rejet était jusqu'ici perdue : le joueur ne voyait que « sauvegarde
+            // corrompue », et le rapport de bug qu'il envoyait ne contenait rien d'exploitable. La
+            // journaliser ici est le seul endroit où on l'a encore — juste après, la partie est
+            // réinitialisée et la pile d'appels n'existe plus.
+            GameLog.Error(nameof(GameScreen), "LoadSave", ex);
+
             _corruptSaveJson    = saveJson;
             _corruptSavePending = true;
 
@@ -756,7 +762,14 @@ public sealed class GameScreen : IDisposable
     {
         if (string.IsNullOrEmpty(json)) return new PlayerLifetimeStats();
         try { return System.Text.Json.JsonSerializer.Deserialize<PlayerLifetimeStats>(json) ?? new PlayerLifetimeStats(); }
-        catch { return new PlayerLifetimeStats(); }
+        catch (Exception ex)
+        {
+            // Repli sur des stats vierges — mais c'est une perte de données définitive du point de
+            // vue du joueur (les stats à vie survivent normalement à tout, y compris un hard reset),
+            // et la prochaine sauvegarde écrasera le fichier illisible. À signaler, pas à avaler.
+            GameLog.Error(nameof(GameScreen), nameof(ParseLifetimeStats), ex);
+            return new PlayerLifetimeStats();
+        }
     }
 
     private (int cityCount, int roadCount) GetCityRoadCounts()

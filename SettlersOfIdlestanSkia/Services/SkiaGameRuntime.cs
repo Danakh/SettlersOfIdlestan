@@ -215,7 +215,14 @@ public sealed class SkiaGameRuntime : IDisposable
     {
         if (string.IsNullOrEmpty(json)) return null;
         try { return System.Text.Json.JsonSerializer.Deserialize<GameSettings>(json); }
-        catch { return null; }
+        catch (Exception ex)
+        {
+            // L'appelant retombe sur les réglages embarqués dans la sauvegarde : le joueur retrouve
+            // sa partie mais perd langue, échelle d'interface et format des nombres, sans rien voir
+            // qui explique pourquoi. Un settings.json illisible est un vrai incident.
+            GameLog.Error(nameof(SkiaGameRuntime), nameof(ParseSettings), ex);
+            return null;
+        }
     }
 
     /// <summary>
@@ -236,7 +243,12 @@ public sealed class SkiaGameRuntime : IDisposable
                 if (s != null) return s;
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            // Dernier repli avant les réglages par défaut : si la sauvegarde elle-même ne se
+            // débrouille pas, le chargement de la partie va échouer juste après pour la même raison.
+            GameLog.Error(nameof(SkiaGameRuntime), nameof(ExtractSettings), ex);
+        }
         return new GameSettings();
     }
 
@@ -555,6 +567,11 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void NotifyError(Exception ex)
     {
+        // Journaliser d'abord, transmettre ensuite : les appelants sont les heads (Browser, iOS) qui
+        // rapportent un échec d'Initialize. Dans ce cas précis _gameScreen est encore null et la
+        // ligne suivante ne fait rien — l'exception qui empêche le jeu de démarrer était donc
+        // intégralement perdue, sauf trace console propre à la plateforme.
+        GameLog.Error(nameof(SkiaGameRuntime), nameof(NotifyError), ex);
         if (!_onTitleScreen) _gameScreen?.NotifyError(ex);
     }
 

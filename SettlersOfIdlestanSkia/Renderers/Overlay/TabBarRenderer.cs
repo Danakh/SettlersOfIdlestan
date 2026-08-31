@@ -236,22 +236,30 @@ public sealed class TabBarRenderer : IDisposable
         return mgs.GodState.DivineEssence > 0 || mgs.GodState.TotalGodPointsEarned > 0;
     }
 
+    /// <summary>
+    /// Les prédicats de visibilité ci-dessous sont évalués à chaque frame et interrogent le modèle.
+    /// Leur garde ne doit surtout pas rester muette : un contrôleur qui lève ferait disparaître
+    /// l'onglet définitivement, sans erreur, sans toast, sans la moindre trace dans un build livré —
+    /// un onglet manquant est ensuite indiscernable d'un onglet légitimement verrouillé. La panne
+    /// part donc dans <see cref="GameLog"/>, qui la dédoublonne : une exception à chaque frame ne
+    /// produit qu'une seule entrée et un seul signalement au joueur.
+    /// </summary>
     private bool HasEventLogEntries()
     {
         try { return _gameControllerService.CurrentWorldState?.EventLog?.HasEntries == true; }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(HasEventLogEntries), ex); return false; }
     }
 
     private bool IsResearchUnlocked()
     {
         try { return _gameControllerService.MainGameController.ResearchController.IsResearchUnlocked(); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(IsResearchUnlocked), ex); return false; }
     }
 
     private bool IsMagicUnlocked()
     {
         try { return _gameControllerService.MainGameController.MagicController.IsMagicUnlocked(); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(IsMagicUnlocked), ex); return false; }
     }
 
     private bool IsLayerAccessible(int z)
@@ -262,7 +270,7 @@ public sealed class TabBarRenderer : IDisposable
             var map = worldState?.GetMapForZ(z);
             return map != null && map.Tiles.Count > 0;
         }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(IsLayerAccessible), ex); return false; }
     }
 
     private bool HasAnyAutomation()
@@ -286,7 +294,7 @@ public sealed class TabBarRenderer : IDisposable
             var completed = civ.TechnologyTree.CompletedTechnologies;
             return completed.Contains(TechnologyId.AdvancedTactics);
         }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(HasAnyAutomation), ex); return false; }
     }
 
     private void UpdatePrestigeNotification()
@@ -318,7 +326,7 @@ public sealed class TabBarRenderer : IDisposable
             var controller = _gameControllerService.MainGameController.PrestigeMapController;
             return PrestigeMapController.DefaultMap.Vertices.Any(v => controller.CanPurchaseVertex(prestigeState, v.Coord));
         }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(CanBuyAnyPrestigeVertex), ex); return false; }
     }
 
     private void UpdateResearchNotification()
@@ -349,7 +357,7 @@ public sealed class TabBarRenderer : IDisposable
             var rc = _gameControllerService.MainGameController.ResearchController;
             return rc.ActiveResearch == null && rc.ResearchPoints > 0;
         }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(IsResearchIdleWithPoints), ex); return false; }
     }
 
     public void Dispose()

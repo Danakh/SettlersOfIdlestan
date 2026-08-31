@@ -1,5 +1,6 @@
 using System.Text;
 using SettlersOfIdlestan.Controller.Store;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Localization;
 using Steamworks;
 
@@ -33,10 +34,16 @@ public class StoreServiceSteam : IStoreService
         }
         catch (DllNotFoundException)
         {
+            // Cas attendu et normal : le jeu tourne hors Steam (build itch.io, exécution locale).
+            // Rien à signaler, NotDetected dit déjà tout.
             return StoreConnectionStatus.NotDetected;
         }
-        catch
+        catch (Exception ex)
         {
+            // Ici en revanche steam_api est bien présente mais l'initialisation a échoué : succès et
+            // sauvegarde cloud sont silencieusement désactivés pour toute la session. Sans trace, le
+            // joueur constate seulement que ses succès ne se débloquent plus.
+            GameLog.Error(nameof(StoreServiceSteam), nameof(TryInitialize), ex);
             return StoreConnectionStatus.Failed;
         }
     }

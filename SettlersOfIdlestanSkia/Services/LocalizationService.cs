@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.Localization;
 
 namespace SettlersOfIdlestanSkia.Services.Localization;
@@ -39,7 +40,12 @@ public class LocalizationService
         {
             if (stream == null)
             {
-                Console.WriteLine($"Ressource de localisation non trouvée: {resourceName}");
+                // Toute une langue manque : le jeu affichera des clés brutes de bout en bout. C'est
+                // typiquement le symptôme d'un build fait avec -t:Compile (voir CLAUDE.md), qui
+                // produit une DLL sans ressources embarquées — et Console.WriteLine n'est lu par
+                // personne dans un build livré.
+                GameLog.Error(nameof(LocalizationService), nameof(LoadTranslations),
+                    $"Ressource de localisation non trouvée : {resourceName}");
                 _translations[language] = translationDict;
                 return;
             }
@@ -91,8 +97,13 @@ public class LocalizationService
                 {
                     return string.Format(value, args);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    // La traduction n'a pas le bon nombre de placeholders, ou en porte un mal formé :
+                    // c'est une faute dans fr.json/en.json, pas un aléa d'exécution. Sans trace, elle
+                    // se voit seulement comme un texte qui affiche « {0} » au lieu d'un nombre. La clé
+                    // entre dans l'identité de l'entrée pour que le journal dise laquelle corriger.
+                    GameLog.Error(nameof(LocalizationService), $"{nameof(GetFormated)}:{key}", ex);
                     return value;
                 }
             }

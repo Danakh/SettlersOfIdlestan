@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Media;
 using Foundation;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanAvalonia.iOS.Services;
 using SettlersOfIdlestanSkia.Services;
 using SettlersOfIdlestanUI;
@@ -76,7 +77,9 @@ public sealed class IosGameView : Border
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Impossible d'ouvrir {url} : {ex.Message}");
+            // Console.WriteLine n'atteint personne sur un appareil de joueur : le lien Discord
+            // semble simplement inerte. Le journal, lui, part avec le rapport de bug.
+            GameLog.Error(nameof(IosGameView), nameof(OpenUrl), ex);
         }
     }
 }

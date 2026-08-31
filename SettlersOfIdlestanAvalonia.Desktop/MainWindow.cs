@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Media;
 using SettlersOfIdlestan.Controller.Store;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanAvalonia.Desktop.Services;
 using SettlersOfIdlestanAvalonia.Desktop.Services.Store;
 using SettlersOfIdlestanSkia.Services;
@@ -61,7 +62,9 @@ public sealed class MainWindow : Window
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Impossible d'ouvrir {url} : {ex.Message}");
+            // Aucun navigateur associe, ou shell verrouille : le clic sur le lien Discord ne fait
+            // visiblement rien. Debug.WriteLine etant supprime en Release, l'echec etait muet.
+            GameLog.Error(nameof(MainWindow), nameof(OpenUrl), ex);
         }
     }
 

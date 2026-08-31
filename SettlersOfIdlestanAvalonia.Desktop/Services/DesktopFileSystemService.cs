@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Services;
 
 namespace SettlersOfIdlestanAvalonia.Desktop.Services;
@@ -72,8 +73,10 @@ public class DesktopFileSystemService : IFileSystemService
         catch (Exception ex)
         {
             // Disque plein, dossier protege, chemin reseau tombe : l'appelant est un async void
-            // (SettingsMenu.SaveGame), une exception qui remonte tuerait le processus.
-            System.Diagnostics.Debug.WriteLine($"Export impossible : {ex.Message}");
+            // (SettingsMenu.SaveGame), une exception qui remonte tuerait le processus. Le joueur,
+            // lui, a demande un export et n'obtient aucun fichier : Debug.WriteLine etant supprime
+            // en Release, il n'avait jusqu'ici strictement rien pour comprendre.
+            GameLog.Error(nameof(DesktopFileSystemService), nameof(SaveText), ex);
         }
     }
 
@@ -106,7 +109,9 @@ public class DesktopFileSystemService : IFileSystemService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Import impossible : {ex.Message}");
+            // Meme raison qu'a l'export : renvoyer null se lit « le joueur a annule », alors qu'ici
+            // c'est une lecture qui a echoue. Sans trace, les deux cas sont indiscernables.
+            GameLog.Error(nameof(DesktopFileSystemService), nameof(LoadText), ex);
             return null;
         }
     }
@@ -117,6 +122,8 @@ public class DesktopFileSystemService : IFileSystemService
     /// </summary>
     private static async Task<IStorageFolder?> StartLocation(IStorageProvider storage)
     {
+        // Pas de journalisation ici : renvoyer null laisse simplement la boite de dialogue s'ouvrir
+        // sur son dossier par defaut. C'est un confort, pas une operation qui a echoue.
         try { return await storage.TryGetFolderFromPathAsync(GetSavesDirectory()); }
         catch { return null; }
     }

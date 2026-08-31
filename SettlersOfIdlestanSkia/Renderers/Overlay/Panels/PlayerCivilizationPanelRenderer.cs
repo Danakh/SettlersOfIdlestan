@@ -566,36 +566,42 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private static string GetAutomationPinDescKey(string key) =>
         AutomationPinLocalizationRoots.TryGetValue(key, out var root) ? $"{root}_desc" : "tooltip_pin_to_civ_panel";
 
+    /// <summary>
+    /// Comme les prédicats d'onglet de <see cref="TabBarRenderer"/>, ceux qui suivent sont évalués à
+    /// chaque frame et pilotent la visibilité d'un bouton : une garde muette ferait disparaître le
+    /// bouton pour toujours sans laisser la moindre trace en Release. La panne part donc dans
+    /// <see cref="GameLog"/>, qui la dédoublonne.
+    /// </summary>
     private bool IsTradeVisible()
     {
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.TradeController.IsTradeAvailable(civ.Index); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsTradeVisible), ex); return false; }
     }
 
     private bool IsPrestigeVisible()
     {
         try { return _gameControllerService.MainGameController.PrestigeController.PrestigeIsVisible(); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsPrestigeVisible), ex); return false; }
     }
 
     private bool IsPrestigeAvailable()
     {
         try { return _gameControllerService.MainGameController.PrestigeController.PrestigeIsAvailable(); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsPrestigeAvailable), ex); return false; }
     }
 
     private bool HasPrestigeImperialPort()
     {
         try { return _gameControllerService.MainGameController.PrestigeController.HasImperialPort(); }
-        catch { return true; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(HasPrestigeImperialPort), ex); return true; }
     }
 
     private int GetPrestigePoints()
     {
         try { return _gameControllerService.MainGameController.PrestigeController.CalculatePrestigePoints(); }
-        catch { return 0; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(GetPrestigePoints), ex); return 0; }
     }
 
     private bool IsWonderVisible()
@@ -603,7 +609,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.WonderController.HasWondersUnlocked(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsWonderVisible), ex); return false; }
     }
 
     private bool CanPlaceWonder()
@@ -611,7 +617,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.WonderController.CanPlaceWonder(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(CanPlaceWonder), ex); return false; }
     }
 
     private bool IsGreatLighthouseVisible()
@@ -619,7 +625,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.GreatLighthouseController.HasGreatLighthouseUnlocked(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsGreatLighthouseVisible), ex); return false; }
     }
 
     private bool CanPlaceGreatLighthouse()
@@ -627,7 +633,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.GreatLighthouseController.CanPlaceGreatLighthouse(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(CanPlaceGreatLighthouse), ex); return false; }
     }
 
     private bool CanPlaceObservatory()
@@ -635,7 +641,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.ObservatoryController.CanPlaceObservatory(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(CanPlaceObservatory), ex); return false; }
     }
 
     private bool CanPlaceNecropolis()
@@ -643,7 +649,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.NecropolisController.CanPlaceNecropolis(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(CanPlaceNecropolis), ex); return false; }
     }
 
     private bool CanPlaceDeepestMine()
@@ -651,7 +657,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.DeepestMineController.CanPlaceDeepestMine(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(CanPlaceDeepestMine), ex); return false; }
     }
 
     private bool CanPlaceSpire()
@@ -659,7 +665,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.CorruptionSpireController.CanPlaceCorruptionSpire(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(CanPlaceSpire), ex); return false; }
     }
 
     private bool IsRaidVisible()
@@ -667,13 +673,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.MilitaryController.IsRaidUnlocked(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsRaidVisible), ex); return false; }
     }
 
     private bool IsRaidActive()
     {
         try { return _gameControllerService.MainGameController.MilitaryController.IsRaidActive(); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsRaidActive), ex); return false; }
     }
 
     private bool IsWarHeraldVisible()
@@ -681,7 +687,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.MilitaryController.IsWarHeraldUnlocked(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsWarHeraldVisible), ex); return false; }
     }
 
     private static (float x, float y) HexToWorld(HexCoord hex)
@@ -705,7 +711,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.CityBuilderController.IsRelocationUnlocked(civ); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsRelocationVisible), ex); return false; }
     }
 
     private bool CanAffordRelocation()
@@ -713,7 +719,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
         try { return civ.CanPayResourceCost(CityBuilderController.RelocationCost()); }
-        catch { return false; }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(CanAffordRelocation), ex); return false; }
     }
 
     private static bool HasBuilt<T>(Civilization civ) where T : Building
