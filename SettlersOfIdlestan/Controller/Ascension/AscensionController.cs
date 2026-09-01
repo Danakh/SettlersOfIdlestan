@@ -638,6 +638,13 @@ public class AscensionController : IModifierProvider
         godState.PrestigeState = new PrestigeState(worldState);
         GrantFreePrestigeVertices(godState.PrestigeState, chosenRace);
 
+        // Nouvelle île : l'état éphémère d'automatisation (cible de raid, Héraut de Guerre, Vendetta)
+        // référencerait sinon des coordonnées de l'île abandonnée — voir
+        // AutomationSettings.ResetIslandEphemeralState. Les interrupteurs/seuils, eux, survivent sans
+        // rien à faire ici : ils vivent dans GodState.AutomationSettings, cross-ascension par
+        // construction, câblé sur worldState par MainGameController.InitializeControllersForCurrentIsland.
+        godState.AutomationSettings.ResetIslandEphemeralState();
+
         // Jalon Ascension Prestigieuse : le nouveau cycle ne repart plus la bourse vide, mais avec 1
         // point de prestige par point divin jamais gagné.
         if (IsMilestoneUnlocked(AscensionMilestoneId.PrestigiousAscension))

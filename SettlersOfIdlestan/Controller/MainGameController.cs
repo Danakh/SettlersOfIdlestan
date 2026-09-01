@@ -183,6 +183,11 @@ namespace SettlersOfIdlestan.Controller
                 startTick: CurrentMainState.Clock.CurrentTick)
                 ?? throw new InvalidOperationException("Failed to generate debug map.");
 
+            // Nouvelle île : l'état éphémère d'automatisation (cible de raid, Héraut de Guerre,
+            // Vendetta) référencerait sinon des coordonnées de l'île abandonnée — voir
+            // AutomationSettings.ResetIslandEphemeralState.
+            CurrentMainState.GodState.AutomationSettings.ResetIslandEphemeralState();
+
             CurrentMainState.PrestigeState!.WorldState = nextWorldState;
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(nextWorldState, CurrentMainState.PrestigeState);
@@ -215,6 +220,11 @@ namespace SettlersOfIdlestan.Controller
                 tier: CurrentMainState.PrestigeState.Tier,
                 race: RaceDefinitions.Get(CurrentMainState.GodState.AscensionState.SelectedRace))
                 ?? throw new InvalidOperationException("Failed to restart island.");
+
+            // Nouvelle île : l'état éphémère d'automatisation (cible de raid, Héraut de Guerre,
+            // Vendetta) référencerait sinon des coordonnées de l'île abandonnée — voir
+            // AutomationSettings.ResetIslandEphemeralState.
+            CurrentMainState.GodState.AutomationSettings.ResetIslandEphemeralState();
 
             CurrentMainState.PrestigeState.WorldState = newWorldState;
             InitializeControllersForCurrentIsland();
@@ -491,12 +501,29 @@ namespace SettlersOfIdlestan.Controller
                 if (WorldState.AutomationSettings.PinnedToCivPanel.Count > 0)
                     CurrentMainState!.Settings.PinnedCivPanelKeys.UnionWith(WorldState.AutomationSettings.PinnedToCivPanel);
 
+                // [Migration héritée v0.20.1] AutomationSettings vivait par île avant de devenir
+                // cross-prestige ET cross-ascension (voir GodState.AutomationSettings) : la toute
+                // première initialisation d'une sauvegarde antérieure reporte une seule fois les
+                // interrupteurs/seuils de l'île en cours vers GodState, qui devient ensuite la seule
+                // source de vérité — sans quoi le prestige ou l'ascension suivant, qui régénère un
+                // WorldState.AutomationSettings vierge, écraserait silencieusement ces réglages.
+                if (!CurrentMainState!.GodState.AutomationSettingsMigrated)
+                {
+                    CurrentMainState.GodState.AutomationSettings.MigrateFromLegacyIsland(WorldState.AutomationSettings);
+                    CurrentMainState.GodState.AutomationSettingsMigrated = true;
+                }
+
+                // AutomationSettings vit désormais dans GodState (voir sa doc) : une seule instance,
+                // câblée sur ce WorldState à chaque île/prestige/ascension/chargement plutôt que
+                // recréée avec lui.
+                WorldState.AutomationSettings = CurrentMainState.GodState.AutomationSettings;
+
                 // Câble l'interrupteur global GameSettings.AutomationsEnabled sur les IsXActive de
-                // AutomationSettings (voir AutomationSettings.Bind) — seul point de branchement du
-                // kill switch, à refaire à chaque île/prestige/chargement puisque AutomationSettings
-                // est recréé avec le WorldState.
-                WorldState.AutomationSettings.Bind(CurrentMainState!.Settings);
-                WorldState.AutomationSettings.BindPresets(CurrentMainState!.GodState);
+                // AutomationSettings (voir AutomationSettings.Bind) — seul point de branchement du kill
+                // switch, refait à chaque île/prestige/chargement bien que l'instance elle-même ne
+                // change plus.
+                WorldState.AutomationSettings.Bind(CurrentMainState.Settings);
+                WorldState.AutomationSettings.BindPresets(CurrentMainState.GodState);
 
                 // Migration : une sauvegarde plus ancienne peut stocker un plafond de preset
                 // supérieur au niveau max théorique actuel d'un bâtiment (recherche/vertex/hexagone

@@ -337,7 +337,10 @@ public class WorldState : IJsonOnDeserialized
     public Dictionary<HexCoord, long> PlunderCooldownDuration { get; set; }
 
     /// <summary>
-    /// Player-controlled automation toggles. Persisted with the world state.
+    /// Player-controlled automation toggles. Cette propriété est réassignée à
+    /// GodState.AutomationSettings (voir sa doc) par MainGameController.InitializeControllersForCurrentIsland
+    /// à chaque île/prestige/ascension/chargement — l'instance elle-même est cross-prestige ET
+    /// cross-ascension, cette valeur par défaut n'est qu'un filet de sécurité avant ce câblage.
     /// </summary>
     public AutomationSettings AutomationSettings { get; set; } = new();
 

@@ -509,8 +509,12 @@ namespace SettlersOfIdlestan.Controller.Expand
             mainGameState.PrestigeState.SelectedNextIslandTier = null;
             mainGameState.PrestigeState.WorldState = nextWorldState;
 
-            if (currentIsland != null)
-                nextWorldState.AutomationSettings.CopyEnabledTogglesFrom(currentIsland.AutomationSettings);
+            // Nouvelle île : l'état éphémère d'automatisation (cible de raid, Héraut de Guerre,
+            // Vendetta) référencerait sinon des coordonnées de l'île abandonnée — voir
+            // AutomationSettings.ResetIslandEphemeralState. Les interrupteurs/seuils, eux, survivent
+            // sans rien à faire ici : ils vivent désormais dans GodState.AutomationSettings, câblé sur
+            // nextWorldState par MainGameController.InitializeControllersForCurrentIsland.
+            mainGameState.GodState.AutomationSettings.ResetIslandEphemeralState();
         }
     }
 

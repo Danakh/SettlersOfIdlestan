@@ -195,37 +195,60 @@ public class AutomationSettings
     public int? VendettaTargetCivIndex { get; set; } = null;
 
     /// <summary>
-    /// Reporte les interrupteurs individuels d'automatisation (les champs XEnabled, y compris la
-    /// restriction de production de soldats par layer) depuis l'île précédente vers celle-ci, appelé
-    /// par PrestigeController.PerformPrestige. AutomationSettings est recréé à chaque île (voir
-    /// WorldState.AutomationSettings) : sans ce report, un prestige désactiverait silencieusement
-    /// toutes les automatisations. L'activation est conservée même si le bâtiment unique qui la rend
-    /// effective (Guilde des bâtisseurs, Académie, etc.) n'est pas encore reconstruit sur la nouvelle
-    /// île — chaque automatisation vérifie déjà la présence de son bâtiment avant d'agir (voir
-    /// BuildingController/RoadController/CityBuilderController). L'état éphémère lié à l'île en cours
-    /// (cible de raid, Héraut de Guerre, Vendetta, épingles obsolètes) n'est volontairement pas repris.
+    /// Réinitialise l'état lié à l'île en cours (cible de raid, Héraut de Guerre, Vendetta) : à
+    /// appeler explicitement à chaque nouvelle île (prestige, ascension, restart, carte de debug —
+    /// voir PrestigeController.PerformPrestige, AscensionController.FinishAscensionWithRace,
+    /// MainGameController.RestartIsland/GoToDebugMap). Depuis que cette instance vit dans
+    /// GodState.AutomationSettings (cross-prestige ET cross-ascension) plutôt que d'être recréée avec
+    /// chaque WorldState, cet état éphémère ne se réinitialise plus tout seul : sans cet appel, une
+    /// cible de raid ou de Marche de Dieu référencerait des coordonnées de l'île abandonnée. Ne touche
+    /// ni aux interrupteurs d'automatisation ni aux seuils, qui doivent au contraire survivre — c'est
+    /// tout l'intérêt de leur nouvel emplacement.
     /// </summary>
-    public void CopyEnabledTogglesFrom(AutomationSettings previous)
+    public void ResetIslandEphemeralState()
     {
-        RoadAutomationEnabled = previous.RoadAutomationEnabled;
-        OutpostAutomationEnabled = previous.OutpostAutomationEnabled;
-        TownHallAutomationEnabled = previous.TownHallAutomationEnabled;
-        RoadAutomationEnabledUnderworld = previous.RoadAutomationEnabledUnderworld;
-        OutpostAutomationEnabledUnderworld = previous.OutpostAutomationEnabledUnderworld;
-        ProductionBuildingAutomationEnabled = previous.ProductionBuildingAutomationEnabled;
-        ArtisanBuildingAutomationEnabled = previous.ArtisanBuildingAutomationEnabled;
-        LibraryBuildingAutomationEnabled = previous.LibraryBuildingAutomationEnabled;
-        MarketBuildingAutomationEnabled = previous.MarketBuildingAutomationEnabled;
-        SeaportBuildingAutomationEnabled = previous.SeaportBuildingAutomationEnabled;
-        MilitaryBuildingAutomationEnabled = previous.MilitaryBuildingAutomationEnabled;
-        TempleAutomationEnabled = previous.TempleAutomationEnabled;
-        MithrilMineBuildingAutomationEnabled = previous.MithrilMineBuildingAutomationEnabled;
-        ArcaneTowerBuildingAutomationEnabled = previous.ArcaneTowerBuildingAutomationEnabled;
-        MilitaryReinforcementAutomationEnabled = previous.MilitaryReinforcementAutomationEnabled;
-        MilitaryVendettaAutomationEnabled = previous.MilitaryVendettaAutomationEnabled;
-        MonumentInvestmentAutomationEnabled = previous.MonumentInvestmentAutomationEnabled;
-        RestrictSoldierProductionToFreeSoldiersByLayer = new Dictionary<int, bool>(previous.RestrictSoldierProductionToFreeSoldiersByLayer);
-        AutoSellThresholdPercentByResource = new Dictionary<Resource, int>(previous.AutoSellThresholdPercentByResource);
-        AutoBuyGoldKeepPercent = previous.AutoBuyGoldKeepPercent;
+        RaidTargetVertex = null;
+        RaidTargetHex = null;
+        RaidCurrentUpkeep = 0;
+        WarHeraldTargetVertex = null;
+        VendettaTargetCivIndex = null;
+    }
+
+    /// <summary>
+    /// [Migration héritée v0.20.1] Reporte l'intégralité d'une île déserialisée depuis l'ancien
+    /// emplacement par île (WorldState.AutomationSettings, avant que ce type ne devienne cross-prestige
+    /// ET cross-ascension via GodState.AutomationSettings) vers cette instance — appelée une seule fois
+    /// par MainGameController.InitializeControllersForCurrentIsland, gardée par
+    /// GodState.AutomationSettingsMigrated. Contrairement à l'ancien report inter-prestige (qui
+    /// excluait volontairement l'état éphémère lié à l'île), ce report est exhaustif : il s'agit ici de
+    /// continuer la même île sous le nouveau schéma de stockage, pas de changer d'île.
+    /// </summary>
+    public void MigrateFromLegacyIsland(AutomationSettings legacy)
+    {
+        RoadAutomationEnabled = legacy.RoadAutomationEnabled;
+        OutpostAutomationEnabled = legacy.OutpostAutomationEnabled;
+        TownHallAutomationEnabled = legacy.TownHallAutomationEnabled;
+        RoadAutomationEnabledUnderworld = legacy.RoadAutomationEnabledUnderworld;
+        OutpostAutomationEnabledUnderworld = legacy.OutpostAutomationEnabledUnderworld;
+        ProductionBuildingAutomationEnabled = legacy.ProductionBuildingAutomationEnabled;
+        ArtisanBuildingAutomationEnabled = legacy.ArtisanBuildingAutomationEnabled;
+        LibraryBuildingAutomationEnabled = legacy.LibraryBuildingAutomationEnabled;
+        MarketBuildingAutomationEnabled = legacy.MarketBuildingAutomationEnabled;
+        SeaportBuildingAutomationEnabled = legacy.SeaportBuildingAutomationEnabled;
+        MilitaryBuildingAutomationEnabled = legacy.MilitaryBuildingAutomationEnabled;
+        TempleAutomationEnabled = legacy.TempleAutomationEnabled;
+        MithrilMineBuildingAutomationEnabled = legacy.MithrilMineBuildingAutomationEnabled;
+        ArcaneTowerBuildingAutomationEnabled = legacy.ArcaneTowerBuildingAutomationEnabled;
+        MilitaryReinforcementAutomationEnabled = legacy.MilitaryReinforcementAutomationEnabled;
+        MilitaryVendettaAutomationEnabled = legacy.MilitaryVendettaAutomationEnabled;
+        MonumentInvestmentAutomationEnabled = legacy.MonumentInvestmentAutomationEnabled;
+        RestrictSoldierProductionToFreeSoldiersByLayer = new Dictionary<int, bool>(legacy.RestrictSoldierProductionToFreeSoldiersByLayer);
+        AutoSellThresholdPercentByResource = new Dictionary<Resource, int>(legacy.AutoSellThresholdPercentByResource);
+        AutoBuyGoldKeepPercent = legacy.AutoBuyGoldKeepPercent;
+        RaidTargetVertex = legacy.RaidTargetVertex;
+        RaidTargetHex = legacy.RaidTargetHex;
+        RaidCurrentUpkeep = legacy.RaidCurrentUpkeep;
+        WarHeraldTargetVertex = legacy.WarHeraldTargetVertex;
+        VendettaTargetCivIndex = legacy.VendettaTargetCivIndex;
     }
 }
