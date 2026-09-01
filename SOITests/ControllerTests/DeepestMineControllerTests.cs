@@ -6,6 +6,8 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Races;
 using SOITests.TestUtilities;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +38,7 @@ namespace SOITests.ControllerTests
             state.PlayerCivilization.AddCity(city);
         }
 
-        private static (WorldState state, GameClock clock, DeepestMineController controller) CreateSetup()
+        private static (WorldState state, GameClock clock, DeepestMineController controller) CreateSetup(GodState? godState = null)
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
@@ -46,7 +48,7 @@ namespace SOITests.ControllerTests
             clock.Start();
 
             var controller = new DeepestMineController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, godState: godState);
 
             return (state, clock, controller);
         }
@@ -147,6 +149,42 @@ namespace SOITests.ControllerTests
             Assert.True(state.Layers.ContainsKey(LayerState.UnderworldZ));
             Assert.Equal(citiesBefore + 1, state.PlayerCivilization.Cities.Count);
             Assert.Contains(state.PlayerCivilization.Cities, c => c.Position.Z == LayerState.UnderworldZ);
+
+            // Triangle de départ : Caverne aux champignons (équivalent souterrain de la Forêt)
+            // /Montagne/Colline par défaut (Humain — aucun terrain préféré).
+            var landTerrains = state.Layers[LayerState.UnderworldZ].Map.Tiles.Values
+                .Select(t => t.TerrainType)
+                .ToList();
+            Assert.Equal(
+                new[] { TerrainType.Hill, TerrainType.Mountain, TerrainType.MushroomCave },
+                landTerrains.OrderBy(t => t.ToString()).ToArray());
+        }
+
+        [Fact]
+        public void Investment_CompletingAllResources_MermaidRace_TriangleReplacesHillWithWater()
+        {
+            var godState = new GodState();
+            godState.AscensionState.SelectedRace = RaceId.Mermaid;
+            var (state, clock, controller) = CreateSetup(godState);
+            AddMountainCity(state);
+            var mine = controller.PlaceDeepestMine(MountainHex)!;
+
+            var cost = DeepestMine.GetDigCost();
+            foreach (var kvp in cost)
+            {
+                mine.InvestedResources[kvp.Key] = kvp.Value;
+                mine.InvestmentEnabled.Add(kvp.Key);
+            }
+
+            clock.SimulateAdvance(DeepestMineController.InvestmentIntervalTicks);
+            clock.SimulateAdvance(1);
+
+            var landTerrains = state.Layers[LayerState.UnderworldZ].Map.Tiles.Values
+                .Select(t => t.TerrainType)
+                .ToList();
+            Assert.Equal(
+                new[] { TerrainType.Mountain, TerrainType.MushroomCave, TerrainType.Water },
+                landTerrains.OrderBy(t => t.ToString()).ToArray());
         }
 
         [Fact]

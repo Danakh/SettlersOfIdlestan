@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -17,7 +18,9 @@ namespace SettlersOfIdlestan.Controller.Generator;
 ///
 /// Contrairement à l'Abysse (îles générées à la volée derrière chaque hex de Void, voir
 /// <see cref="AbyssIslandGenerator"/>), cette couche est entièrement posée d'un coup et n'est
-/// jamais étendue : <see cref="LayerState.AutoExtend"/> reste false.
+/// jamais étendue : <see cref="LayerState.AutoExtend"/> reste false. Peut aussi porter une poche
+/// d'Eau isolée, jamais assez proche du centre pour gêner le dieu démon ou les Tentacules (voir
+/// <see cref="CarveLake"/>).
 /// </summary>
 public static class PandemoniumGenerator
 {
@@ -62,26 +65,57 @@ public static class PandemoniumGenerator
     public sealed record PandemoniumLayout(LayerState Layer, IReadOnlyList<MonsterFeature> Monsters);
 
     /// <summary>
-    /// Terrains de l'île, repris de ceux des îles de l'Abysse : le Pandémonium doit rester
-    /// exploitable (bois, nourriture, pierre) pour que le joueur puisse y bâtir de quoi assiéger.
+    /// Terrains de terre de l'île, repris de ceux des îles de l'Abysse hors Eau : le Pandémonium doit
+    /// rester exploitable (bois, nourriture, pierre) pour que le joueur puisse y bâtir de quoi
+    /// assiéger. Contrairement à <see cref="AbyssIslandGenerator.TerrainPool"/>, l'Eau n'est jamais
+    /// tirée hex par hex ici — elle est posée à part comme une poche unique et cohérente (voir
+    /// <see cref="CarveLake"/>), pour ne jamais recouvrir le dieu démon ni une Tentacule (qui ne
+    /// traversent pas l'eau, voir <see cref="Model.Monsters.MonsterFeature.CanCrossWater"/>) et ne pas
+    /// grignoter au hasard l'équilibre du siège calibré ci-dessus.
     /// </summary>
-    private static readonly TerrainType[] TerrainPool = AbyssIslandGenerator.TerrainPool;
+    internal static readonly TerrainType[] LandTerrainPool =
+    {
+        TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain, TerrainType.Plain,
+    };
+
+    /// <summary>Taille (en hexes) de la poche d'eau optionnelle du Pandémonium — voir <see cref="CarveLake"/>.</summary>
+    private const int LakeMinSize = 3;
+    private const int LakeMaxSize = 7;
 
     /// <summary>
     /// Construit la couche et y installe l'avant-poste du joueur (ajouté à <paramref name="playerCiv"/>).
-    /// <paramref name="monsterLevel"/> est appliqué au dieu démon comme aux Tentacules.
+    /// <paramref name="monsterLevel"/> est appliqué au dieu démon comme aux Tentacules. Le triangle
+    /// d'arrivée couvre toujours Forêt/Montagne/Colline, la Colline étant remplacée par
+    /// <paramref name="preferredTerrain"/> — le terrain préféré de la race courante s'il y en a un,
+    /// voir <see cref="Model.Races.RaceDefinition.UndergroundStartVertexTerrain"/> (par défaut la
+    /// Colline elle-même, donc sans effet).
     /// </summary>
-    public static PandemoniumLayout Create(Civilization playerCiv, GamePRNG prng, int monsterLevel = 1)
+    public static PandemoniumLayout Create(
+        Civilization playerCiv, GamePRNG prng, int monsterLevel = 1, TerrainType preferredTerrain = TerrainType.Hill)
     {
         const int z = LayerState.PandemoniumZ;
         var center = new HexCoord(0, 0, z);
 
         var islandHexes = HexesWithinRadius(center, IslandRadius);
         var islandSet = new HashSet<HexCoord>(islandHexes);
+        var lakeHexes = CarveLake(center, islandHexes, prng);
+        var landHexes = new HashSet<HexCoord>(islandHexes.Where(h => !lakeHexes.Contains(h)));
+
+        var arrivalVertex = PickBorderVertex(center, islandSet, landHexes, prng);
+        var arrivalTerrains = AssignArrivalTerrains(arrivalVertex, preferredTerrain);
 
         var tiles = new List<HexTile>(islandHexes.Count);
         foreach (var hex in islandHexes)
-            tiles.Add(new HexTile(hex, TerrainPool[prng.Next(TerrainPool.Length)]));
+        {
+            TerrainType terrain;
+            if (arrivalTerrains.TryGetValue(hex, out var forced))
+                terrain = forced;
+            else if (lakeHexes.Contains(hex))
+                terrain = TerrainType.Water;
+            else
+                terrain = LandTerrainPool[prng.Next(LandTerrainPool.Length)];
+            tiles.Add(new HexTile(hex, terrain));
+        }
 
         // Anneau de Void : la couche ne s'étend jamais, il ne sert qu'à fermer visuellement l'île
         // (un hex de Void n'est pas rendu) et à empêcher route et ville de sortir de l'arène.
@@ -90,7 +124,6 @@ public static class PandemoniumGenerator
                 tiles.Add(new HexTile(hex, TerrainType.Void));
 
         var map = new IslandMap(tiles, z);
-        var arrivalVertex = PickBorderVertex(center, islandSet, prng);
 
         var outpost = new City(arrivalVertex) { CivilizationIndex = playerCiv.Index };
         playerCiv.AddCity(outpost);
@@ -125,11 +158,13 @@ public static class PandemoniumGenerator
 
     /// <summary>
     /// Vertex d'arrivée du joueur : sur le pourtour de l'île (un de ses hexes au moins est à la
-    /// distance maximale du centre), mais dont les trois hexes sont bien de la terre — un avant-poste
-    /// posé sur du Void n'aurait ni récolte ni extension possible. Il en existe toujours : chaque hex
-    /// du dernier anneau partage au moins un vertex avec deux autres hexes de l'île.
+    /// distance maximale du centre), mais dont les trois hexes sont bien de la terre — ni Void
+    /// (un avant-poste posé dessus n'aurait ni récolte ni extension possible) ni Eau (un avant-poste
+    /// n'a rien pour y flotter). Il en existe toujours : la poche d'eau de <see cref="CarveLake"/> ne
+    /// touche jamais plus qu'une poignée d'hexes du dernier anneau, qui en compte 24.
     /// </summary>
-    private static Vertex PickBorderVertex(HexCoord center, HashSet<HexCoord> islandSet, GamePRNG prng)
+    private static Vertex PickBorderVertex(
+        HexCoord center, HashSet<HexCoord> islandSet, HashSet<HexCoord> landHexes, GamePRNG prng)
     {
         var candidates = new List<Vertex>();
         foreach (var hex in islandSet)
@@ -138,10 +173,10 @@ public static class PandemoniumGenerator
             foreach (var dir in SecondaryHexDirectionUtils.AllSecondaryDirections)
             {
                 var vertex = hex.Vertex(dir);
-                bool allOnIsland = true;
+                bool allOnLand = true;
                 foreach (var h in vertex.GetHexes())
-                    if (!islandSet.Contains(h)) { allOnIsland = false; break; }
-                if (allOnIsland) candidates.Add(vertex);
+                    if (!landHexes.Contains(h)) { allOnLand = false; break; }
+                if (allOnLand) candidates.Add(vertex);
             }
         }
 
@@ -149,6 +184,22 @@ public static class PandemoniumGenerator
         // génération doit rester reproductible à seed égal (voir GamePRNG).
         candidates.Sort(CompareVertices);
         return candidates[prng.Next(candidates.Count)];
+    }
+
+    /// <summary>
+    /// Terrains forcés des 3 hexes du vertex d'arrivée — Forêt/Montagne/<paramref name="preferredTerrain"/>,
+    /// dans l'ordre stable de <see cref="Vertex.GetHexes"/> — remplaçant celui tiré au hasard pour ces
+    /// hexes lors de la génération de l'île (voir <see cref="Create"/>).
+    /// </summary>
+    private static Dictionary<HexCoord, TerrainType> AssignArrivalTerrains(Vertex arrivalVertex, TerrainType preferredTerrain)
+    {
+        var hexes = arrivalVertex.GetHexes();
+        var terrains = new[] { TerrainType.Forest, TerrainType.Mountain, preferredTerrain };
+
+        var result = new Dictionary<HexCoord, TerrainType>(hexes.Length);
+        for (int i = 0; i < hexes.Length; i++)
+            result[hexes[i]] = terrains[i];
+        return result;
     }
 
     private static int CompareVertices(Vertex a, Vertex b)
@@ -160,6 +211,26 @@ public static class PandemoniumGenerator
         c = a.Hex2.Q.CompareTo(b.Hex2.Q);
         if (c != 0) return c;
         return a.Hex2.R.CompareTo(b.Hex2.R);
+    }
+
+    /// <summary>
+    /// Poche d'eau optionnelle de l'île : une chaîne connexe de <see cref="LakeMinSize"/> à
+    /// <see cref="LakeMaxSize"/> hexes (voir <see cref="WaterPocketCarver"/>), jamais à moins de
+    /// <see cref="TentacleRadius"/> + 1 hex du centre — pour ne jamais recouvrir le dieu démon (au
+    /// centre) ni un candidat Tentacule (tous à portée <see cref="TentacleRadius"/>, voir
+    /// <see cref="PickTentacleHexes"/>), qui ne traversent pas l'eau. Retourne un ensemble vide si le
+    /// carveur reste bloqué (<see cref="WaterPocketCarver.CarveChain"/> peut retourner null) : ce n'est
+    /// qu'une possibilité, jamais une garantie.
+    /// </summary>
+    private static HashSet<HexCoord> CarveLake(HexCoord center, List<HexCoord> islandHexes, GamePRNG prng)
+    {
+        var candidates = islandHexes.Where(h => h.DistanceTo(center) > TentacleRadius).ToList();
+        if (candidates.Count == 0) return new HashSet<HexCoord>();
+
+        var seed = candidates[prng.Next(candidates.Count)];
+        int size = prng.Next(LakeMinSize, LakeMaxSize + 1);
+        var chain = WaterPocketCarver.CarveChain(prng, seed, size, new HashSet<HexCoord>(candidates));
+        return chain != null ? new HashSet<HexCoord>(chain) : new HashSet<HexCoord>();
     }
 
     /// <summary>

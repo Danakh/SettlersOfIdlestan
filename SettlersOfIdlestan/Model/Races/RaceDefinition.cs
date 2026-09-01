@@ -51,6 +51,20 @@ public class RaceDefinition
             : TerrainType.Hill;
 
     /// <summary>
+    /// Terrain accompagnant la Forêt (ou son équivalent souterrain, la Caverne aux champignons — voir
+    /// <see cref="TerrainType.UnderworldEquivalent"/>) et la Montagne dans le triangle de départ posé
+    /// à l'ouverture de l'Inframonde, de l'Abysse ou du Pandémonium : la Colline par défaut, remplacée
+    /// par le terrain requis de la race quand il y en a un — Eau y compris pour les Sirènes,
+    /// contrairement à <see cref="StartVertexTerrain"/> (triangle de surface, où l'Eau reste
+    /// inchangée car déjà l'un des deux autres hexes fixes). La Forêt et la Montagne, déjà les deux
+    /// autres hexes fixes ici, restent inchangées (Elfes, Nains).
+    /// </summary>
+    public TerrainType UndergroundStartVertexTerrain =>
+        RequiredAdjacentTerrain is { } terrain && terrain != TerrainType.Forest && terrain != TerrainType.Mountain
+            ? terrain
+            : TerrainType.Hill;
+
+    /// <summary>
     /// Bâtiment unique racial, constructible uniquement en jouant cette race (la race fournit son
     /// BUILDING_MAX_LEVEL +1, les prototypes partant de 0 — même patron que les uniques de prestige).
     /// </summary>

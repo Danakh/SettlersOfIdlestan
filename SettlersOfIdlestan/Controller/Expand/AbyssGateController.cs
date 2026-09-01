@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Races;
 using System;
 using System.Linq;
 
@@ -87,7 +88,9 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// <summary>
         /// Ouvre l'Abysse (comme <see cref="DeepestMineController.TryInitializeUnderworld"/> pour
         /// l'Inframonde) une fois la Faille des Abysses bâtie : crée le premier avant-poste, entouré
-        /// de Void pour permettre à AutoExtendController de faire pousser des îles.
+        /// de Void pour permettre à AutoExtendController de faire pousser des îles. Le triangle de
+        /// départ couvre Forêt/Montagne/Colline, la Colline étant remplacée par le terrain préféré de
+        /// la race courante s'il y en a un (voir <see cref="RaceDefinition.UndergroundStartVertexTerrain"/>).
         /// </summary>
         private void TryInitializeAbyss()
         {
@@ -100,7 +103,10 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             if (!HasAbyssGateBuilt()) return;
 
-            var abyssLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv, LayerState.AbyssZ, surroundWithVoid: true);
+            var race = RaceDefinitions.Get(_godState?.AscensionState.SelectedRace ?? RaceId.Human);
+            var triangleTerrains = new[] { TerrainType.Forest, TerrainType.Mountain, race.UndergroundStartVertexTerrain };
+            var abyssLayer = LayerState.EstablishOupostInNewAutoExpandLayer(
+                playerCiv, LayerState.AbyssZ, surroundWithVoid: true, triangleTerrains: triangleTerrains);
             _state.AddLayer(LayerState.AbyssZ, abyssLayer);
 
             // L'avant-poste est posé directement par EstablishOupostInNewAutoExpandLayer, en dehors du

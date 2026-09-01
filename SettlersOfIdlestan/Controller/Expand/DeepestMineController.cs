@@ -4,6 +4,8 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Races;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using System;
 using System.Collections.Generic;
@@ -23,10 +25,15 @@ namespace SettlersOfIdlestan.Controller.Island
         public event EventHandler? OnDeepestMinePlaced;
         public event EventHandler? OnDeepestMineDug;
 
+        private GodState? _godState;
+
         internal DeepestMineController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
-            => InitializeCore(state, clock, harvestController);
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null, GodState? godState = null)
+        {
+            InitializeCore(state, clock, harvestController);
+            _godState = godState;
+        }
 
         protected override void OnClockAdvancedExtra()
         {
@@ -48,7 +55,13 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>
         /// Ouvre l'Inframonde si la Mine Profonde est creusée (feature).
         /// La couche peut déjà exister (vide) après une perte de l'Inframonde : on teste
-        /// la présence d'un avant-poste joueur plutôt que l'existence de la couche.
+        /// la présence d'un avant-poste joueur plutôt que l'existence de la couche. Le triangle de
+        /// départ couvre Caverne aux champignons (équivalent souterrain de la Forêt, voir
+        /// <see cref="TerrainType.UnderworldEquivalent"/>)/Montagne/Colline, la Colline étant
+        /// remplacée par le terrain préféré de la race courante s'il y en a un (voir
+        /// <see cref="RaceDefinition.UndergroundStartVertexTerrain"/>) — Eau comprise pour les
+        /// Sirènes, auquel cas <see cref="AutoExtendController.EnsureRiverPlanned"/> fait
+        /// démarrer la rivière littéralement sur cet hex plutôt qu'à distance.
         /// </summary>
         private void TryInitializeUnderworld()
         {
@@ -63,7 +76,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
             if (!hasDugMine) return;
 
-            var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv);
+            var race = RaceDefinitions.Get(_godState?.AscensionState.SelectedRace ?? RaceId.Human);
+            var triangleTerrains = new[] { TerrainType.MushroomCave, TerrainType.Mountain, race.UndergroundStartVertexTerrain };
+            var underworldLayer = LayerState.EstablishOupostInNewAutoExpandLayer(playerCiv, triangleTerrains: triangleTerrains);
             _state.AddLayer(LayerState.UnderworldZ, underworldLayer);
 
             // Avant-poste posé directement par EstablishOupostInNewAutoExpandLayer, hors du chemin normal

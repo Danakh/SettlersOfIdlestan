@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Races;
 using SOITests.TestUtilities;
 using System.Linq;
 using Xunit;
@@ -30,7 +31,8 @@ namespace SOITests.ControllerTests
 
         private const int TownHallLevel = 20;
 
-        private static (WorldState state, GameClock clock, CorruptionSpireController spireController, AbyssGateController gateController, PrestigeState prestigeState) CreateSetup(int maxCorruptionLevelCleared = 0, int lifetimeCorruptionLevelCleared = 0)
+        private static (WorldState state, GameClock clock, CorruptionSpireController spireController, AbyssGateController gateController, PrestigeState prestigeState) CreateSetup(
+            int maxCorruptionLevelCleared = 0, int lifetimeCorruptionLevelCleared = 0, GodState? godState = null)
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
@@ -58,7 +60,7 @@ namespace SOITests.ControllerTests
             var spireController = new CorruptionSpireController();
             spireController.Initialize(state, clock);
             var gateController = new AbyssGateController();
-            gateController.Initialize(state, clock);
+            gateController.Initialize(state, clock, godState: godState);
 
             return (state, clock, spireController, gateController, prestigeState);
         }
@@ -212,6 +214,44 @@ namespace SOITests.ControllerTests
             Assert.Equal(citiesBefore + 1, state.PlayerCivilization.Cities.Count);
             Assert.Contains(state.PlayerCivilization.Cities, c => c.Position.Z == LayerState.AbyssZ);
             Assert.Contains(state.Layers[LayerState.AbyssZ].Map.Tiles.Values, t => t.TerrainType == TerrainType.Void);
+
+            // Triangle de départ : Forêt/Montagne/Colline par défaut (Humain — aucun terrain préféré).
+            var landTerrains = state.Layers[LayerState.AbyssZ].Map.Tiles.Values
+                .Where(t => t.TerrainType != TerrainType.Void)
+                .Select(t => t.TerrainType)
+                .ToList();
+            Assert.Equal(
+                new[] { TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain },
+                landTerrains.OrderBy(t => t.ToString()).ToArray());
+        }
+
+        [Fact]
+        public void Investment_CompletingAllResources_OpensAbyss_MermaidRace_TriangleReplacesHillWithWater()
+        {
+            var godState = new GodState();
+            godState.AscensionState.SelectedRace = RaceId.Mermaid;
+            var (state, clock, spireController, gateController, _) = CreateSetup(
+                maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel, godState: godState);
+            var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
+            BuildSpireInstantly(state, spire);
+            var gate = gateController.PlaceAbyssGate()!;
+
+            var cost = AbyssGate.GetGateCost();
+            foreach (var kvp in cost)
+            {
+                gate.InvestedResources[kvp.Key] = kvp.Value;
+                gate.InvestmentEnabled.Add(kvp.Key);
+            }
+
+            clock.SimulateAdvance(AbyssGateController.InvestmentIntervalTicks);
+
+            var landTerrains = state.Layers[LayerState.AbyssZ].Map.Tiles.Values
+                .Where(t => t.TerrainType != TerrainType.Void)
+                .Select(t => t.TerrainType)
+                .ToList();
+            Assert.Equal(
+                new[] { TerrainType.Forest, TerrainType.Mountain, TerrainType.Water },
+                landTerrains.OrderBy(t => t.ToString()).ToArray());
         }
 
         [Fact]

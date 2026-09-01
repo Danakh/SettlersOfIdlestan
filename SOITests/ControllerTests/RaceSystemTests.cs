@@ -1086,4 +1086,29 @@ public class RaceSystemTests
         Assert.True(controller.BuildBuilding(city, BuildingType.WarRoom));
     }
 
+    /// <summary>
+    /// UndergroundStartVertexTerrain remplace la Colline du triangle de départ souterrain/void
+    /// (Inframonde/Abysse/Pandémonium, voir DeepestMineController.TryInitializeUnderworld,
+    /// AbyssGateController.TryInitializeAbyss, PandemoniumGateController.TryInitializePandemonium)
+    /// par le terrain requis de la race — sauf Forêt ou Montagne, déjà les deux autres hexes fixes du
+    /// triangle. Contrairement à StartVertexTerrain (triangle de surface), l'Eau n'est pas exclue :
+    /// c'est le seul cas (Sirènes) qui change réellement la Colline ici.
+    /// </summary>
+    [Theory]
+    [InlineData(RaceId.Human, TerrainType.Hill)]
+    [InlineData(RaceId.Elf, TerrainType.Hill)]
+    [InlineData(RaceId.Dwarf, TerrainType.Hill)]
+    [InlineData(RaceId.Goblin, TerrainType.Hill)]
+    [InlineData(RaceId.Orc, TerrainType.Hill)]
+    [InlineData(RaceId.Giant, TerrainType.Hill)]
+    [InlineData(RaceId.Garuda, TerrainType.Hill)]
+    [InlineData(RaceId.Mermaid, TerrainType.Water)]
+    [InlineData(RaceId.DarkElf, TerrainType.Hill)]
+    public void UndergroundStartVertexTerrain_ReplacesHillOnlyWhenPreferredTerrainIsNotForestOrMountain(
+        RaceId raceId, TerrainType expected)
+    {
+        var race = RaceDefinitions.Get(raceId);
+        Assert.Equal(expected, race.UndergroundStartVertexTerrain);
+    }
+
 }

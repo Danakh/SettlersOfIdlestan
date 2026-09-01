@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige;
+using SettlersOfIdlestan.Model.Races;
 using System;
 using System.Linq;
 
@@ -25,6 +26,7 @@ namespace SettlersOfIdlestan.Controller.Expand
     {
         private GamePRNG? _prng;
         private PrestigeState? _prestigeState;
+        private GodState? _godState;
 
         public const long InvestmentIntervalTicks = MonumentInvestment.IntervalTicks;
 
@@ -34,7 +36,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         internal PandemoniumGateController() { }
 
         internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null,
-            GamePRNG? prng = null, PrestigeState? prestigeState = null)
+            GamePRNG? prng = null, PrestigeState? prestigeState = null, GodState? godState = null)
         {
             if (_state != null)
                 _state.FeatureRemoved -= OnFeatureRemoved;
@@ -42,6 +44,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             InitializeCore(state, clock, harvestController);
             _prng = prng;
             _prestigeState = prestigeState;
+            _godState = godState;
 
             if (_state != null)
                 _state.FeatureRemoved += OnFeatureRemoved;
@@ -97,7 +100,9 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// Ouvre le Pandémonium une fois le portail bâti (comme
         /// <see cref="AbyssGateController.TryInitializeAbyss"/> pour l'Abysse) : île unique
         /// entièrement générée d'avance, avec son dieu démon, ses Tentacules et l'avant-poste du
-        /// joueur au bord (voir <see cref="Generator.PandemoniumGenerator"/>).
+        /// joueur au bord (voir <see cref="Generator.PandemoniumGenerator"/>). Le triangle d'arrivée
+        /// couvre Forêt/Montagne/Colline, la Colline étant remplacée par le terrain préféré de la
+        /// race courante s'il y en a un (voir <see cref="RaceDefinition.UndergroundStartVertexTerrain"/>).
         /// </summary>
         private void TryInitializePandemonium()
         {
@@ -113,7 +118,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             int monsterLevel = MonsterLeveling.UndergroundLevel(
                 _prestigeState?.Tier ?? 1, _prestigeState?.CurrentCorruptionLevel ?? 1);
 
-            var layout = Generator.PandemoniumGenerator.Create(playerCiv, _prng, monsterLevel);
+            var race = RaceDefinitions.Get(_godState?.AscensionState.SelectedRace ?? RaceId.Human);
+            var layout = Generator.PandemoniumGenerator.Create(playerCiv, _prng, monsterLevel, race.UndergroundStartVertexTerrain);
             _state.AddLayer(LayerState.PandemoniumZ, layout.Layer);
             // Le dieu démon et ses Tentacules naissent au milieu de leur flaque : leur hex et ses
             // voisins sont corrompus au niveau de l'île, moitié du plafond que leur génération

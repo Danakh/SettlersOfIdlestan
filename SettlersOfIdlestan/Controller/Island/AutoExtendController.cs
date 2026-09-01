@@ -202,6 +202,8 @@ public class AutoExtendController
     /// exige un hex encore libre, alors que la Corruption occupe ensuite chaque hex de terre.
     /// Retourne la Tentacule posée (null si aucune) : l'appelant sème ensuite la Corruption de son
     /// voisinage, une fois PlaceAbyssCorruption passé (voir CorruptionController.SeedCorruptionAroundNewMonster).
+    /// Exclut l'Eau (voir AbyssIslandGenerator.TerrainPool) comme le Void : une Tentacule ne la
+    /// traverse pas (MonsterFeature.CanCrossWater vaut false par défaut, contrairement au Démon mineur).
     /// </summary>
     private Model.Monsters.Tentacle? PlaceTentacle(List<HexTile> newTiles)
     {
@@ -212,7 +214,8 @@ public class AutoExtendController
         if (chancePercent <= 0) return null;
         if (_prng.Next(100) >= chancePercent) return null;
 
-        var landTiles = newTiles.Where(t => t.TerrainType != TerrainType.Void && !_state.HasFeaturesAt(t.Coord)).ToList();
+        var landTiles = newTiles.Where(t => t.TerrainType != TerrainType.Void && !t.TerrainType.IsWater()
+            && !_state.HasFeaturesAt(t.Coord)).ToList();
         if (landTiles.Count == 0) return null;
 
         var hex = landTiles[_prng.Next(landTiles.Count)].Coord;
@@ -858,29 +861,48 @@ public class AutoExtendController
     /// la rivière de s'étendre à l'infini de part et d'autre du point de départ. Ne fait rien pour
     /// les sauvegardes antérieures où la couche a déjà été explorée au-delà de l'avant-poste
     /// initial, afin de ne pas modifier rétroactivement du terrain déjà généré.
+    ///
+    /// <para>Si un hex du triangle d'arrivée est déjà de l'Eau — race dont le terrain préféré
+    /// remplace la Colline par de l'Eau, voir <see cref="Model.Races.RaceDefinition.UndergroundStartVertexTerrain"/> —
+    /// le motif démarre littéralement dessus (distance 0) au lieu de respecter
+    /// <see cref="MinRiverDistanceFromArrival"/> : l'Eau du triangle de départ devient un vrai
+    /// tronçon de la rivière plutôt qu'une flaque isolée.</para>
     /// </summary>
-    private void EnsureRiverPlanned(LayerState layerState)
+    internal void EnsureRiverPlanned(LayerState layerState)
     {
         if (layerState.ArrivalVertex == null) return;
         if (layerState.RiverCycleHexes.Count > 0) return;
         if (layerState.Map.Tiles.Count > InitialOutpostHexCount) return;
 
         var arrivalHexes = layerState.ArrivalVertex.GetHexes();
+        var throughHex = FindArrivalWaterHex(layerState, arrivalHexes);
+        int minDistance = throughHex.HasValue ? 0 : MinRiverDistanceFromArrival;
         var anchor = arrivalHexes[0];
 
         for (int attempt = 0; attempt < RiverGenerationMaxAttempts; attempt++)
         {
-            var radialDir = (HexDirection)_prng!.Next(6);
-            int startDist = _prng.Next(MinRiverDistanceFromArrival, MaxRiverStartDistanceFromArrival + 1);
+            HexCoord start;
+            HexDirection dir;
 
-            var start = anchor;
-            for (int i = 0; i < startDist; i++)
-                start = start.Neighbor(radialDir);
+            if (throughHex is { } waterHex)
+            {
+                start = waterHex;
+                dir = (HexDirection)_prng!.Next(6);
+            }
+            else
+            {
+                var radialDir = (HexDirection)_prng!.Next(6);
+                int startDist = _prng.Next(MinRiverDistanceFromArrival, MaxRiverStartDistanceFromArrival + 1);
 
-            // Direction tangente (rotation de 120°) plutôt que radiale, pour que le motif reste
-            // globalement le long de la bande de distance de départ plutôt que de s'en éloigner direct.
-            bool clockwise = _prng.Next(2) == 0;
-            var dir = clockwise ? radialDir.Next().Next() : radialDir.Previous().Previous();
+                start = anchor;
+                for (int i = 0; i < startDist; i++)
+                    start = start.Neighbor(radialDir);
+
+                // Direction tangente (rotation de 120°) plutôt que radiale, pour que le motif reste
+                // globalement le long de la bande de distance de départ plutôt que de s'en éloigner direct.
+                bool clockwise = _prng.Next(2) == 0;
+                dir = clockwise ? radialDir.Next().Next() : radialDir.Previous().Previous();
+            }
 
             var cycleHexes = new List<HexCoord> { start };
             var current = start;
@@ -898,7 +920,7 @@ public class AutoExtendController
                 for (int s = 0; s < length; s++)
                 {
                     current = current.Neighbor(dir);
-                    if (MinDistanceToAny(current, arrivalHexes) < MinRiverDistanceFromArrival)
+                    if (MinDistanceToAny(current, arrivalHexes) < minDistance)
                     {
                         valid = false;
                         break;
@@ -916,7 +938,7 @@ public class AutoExtendController
             int dispQ = nextCycleStart.Q - start.Q;
             int dispR = nextCycleStart.R - start.R;
 
-            if (!ValidateRepeatedCycles(cycleHexes, start, dispQ, dispR, arrivalHexes))
+            if (!ValidateRepeatedCycles(cycleHexes, start, dispQ, dispR, arrivalHexes, minDistance))
                 continue;
 
             layerState.RiverCycleHexes = cycleHexes;
@@ -927,13 +949,24 @@ public class AutoExtendController
     }
 
     /// <summary>
+    /// Hex du triangle d'arrivée déjà posé en Eau, s'il y en a un (voir <see cref="EnsureRiverPlanned"/>).
+    /// </summary>
+    private static HexCoord? FindArrivalWaterHex(LayerState layerState, HexCoord[] arrivalHexes)
+    {
+        foreach (var hex in arrivalHexes)
+            if (layerState.Map.GetTile(hex)?.TerrainType == TerrainType.Water)
+                return hex;
+        return null;
+    }
+
+    /// <summary>
     /// Vérifie que les quelques répétitions suivantes du motif (translaté par le déplacement de
     /// cycle, dans les deux sens puisque la rivière s'étend à l'infini de part et d'autre du point
     /// de départ) respectent elles aussi la distance minimale au point d'arrivée, par sécurité
     /// au-delà de la validation déjà faite sur le premier cycle.
     /// </summary>
     private static bool ValidateRepeatedCycles(
-        List<HexCoord> cycleHexes, HexCoord start, int dispQ, int dispR, HexCoord[] arrivalHexes)
+        List<HexCoord> cycleHexes, HexCoord start, int dispQ, int dispR, HexCoord[] arrivalHexes, int minDistance)
     {
         for (int k = -RiverValidationCycleCount; k <= RiverValidationCycleCount; k++)
         {
@@ -941,7 +974,7 @@ public class AutoExtendController
             foreach (var hex in cycleHexes)
             {
                 var translated = new HexCoord(hex.Q + k * dispQ, hex.R + k * dispR, hex.Z);
-                if (MinDistanceToAny(translated, arrivalHexes) < MinRiverDistanceFromArrival)
+                if (MinDistanceToAny(translated, arrivalHexes) < minDistance)
                     return false;
             }
         }
@@ -953,7 +986,8 @@ public class AutoExtendController
     /// d'autre du point de départ), quel que soit l'ordre dans lequel il est découvert : on calcule
     /// le nombre de répétitions de cycle (positif ou négatif) qui le sépare du motif de base, puis
     /// on compare ses coordonnées locales (une fois ce décalage retiré) à celles du motif. Une
-    /// vérification finale de distance protège contre tout cas limite.
+    /// vérification finale de distance protège contre tout cas limite — nulle si la rivière démarre
+    /// sur le triangle d'arrivée (voir <see cref="EnsureRiverPlanned"/>).
     /// </summary>
     internal static bool IsRiverHex(HexCoord hex, LayerState layerState)
     {
@@ -980,7 +1014,9 @@ public class AutoExtendController
             {
                 if (cycleHex.Q - start.Q != localQ || cycleHex.R - start.R != localR) continue;
 
-                if (MinDistanceToAny(hex, layerState.ArrivalVertex.GetHexes()) < MinRiverDistanceFromArrival)
+                var arrivalHexes = layerState.ArrivalVertex.GetHexes();
+                int minDistance = FindArrivalWaterHex(layerState, arrivalHexes).HasValue ? 0 : MinRiverDistanceFromArrival;
+                if (MinDistanceToAny(hex, arrivalHexes) < minDistance)
                     return false;
 
                 return true;

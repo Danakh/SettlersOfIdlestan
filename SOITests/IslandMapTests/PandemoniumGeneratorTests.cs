@@ -101,13 +101,81 @@ namespace SOITests.IslandMapTests
             var arrivalHexes = arrival.GetHexes();
             // Au bord : un des trois hexes est sur le dernier anneau de l'île…
             Assert.Contains(arrivalHexes, h => h.DistanceTo(Center) == PandemoniumGenerator.IslandRadius);
-            // …mais aucun n'est du Void : l'avant-poste reste posé sur de la terre.
-            Assert.All(arrivalHexes, h => Assert.NotEqual(TerrainType.Void, layout.Layer.Map.GetTile(h)!.TerrainType));
+            // …mais aucun n'est du Void ni de l'Eau : l'avant-poste reste posé sur de la terre ferme.
+            Assert.All(arrivalHexes, h =>
+            {
+                var terrain = layout.Layer.Map.GetTile(h)!.TerrainType;
+                Assert.NotEqual(TerrainType.Void, terrain);
+                Assert.False(terrain.IsWater(), $"Hex d'arrivée {h} posé sur de l'Eau");
+            });
 
             foreach (var tentacle in layout.Monsters.OfType<Tentacle>())
                 foreach (var arrivalHex in arrivalHexes)
                     Assert.True(tentacle.Position.DistanceTo(arrivalHex) > 1,
                         $"Tentacule en {tentacle.Position} collée à l'hex d'arrivée {arrivalHex}");
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(7)]
+        [InlineData(42)]
+        [InlineData(123)]
+        [InlineData(2024)]
+        public void DemonGodAndTentacles_NeverStandOnWater(int seed)
+        {
+            var (layout, _) = Generate(seed);
+
+            foreach (var monster in layout.Monsters)
+            {
+                var terrain = layout.Layer.Map.GetTile(monster.Position)!.TerrainType;
+                Assert.False(terrain.IsWater(), $"{monster.GetType().Name} en {monster.Position} posé sur de l'Eau");
+            }
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(7)]
+        [InlineData(42)]
+        public void ArrivalTriangle_CoversForestMountainHill_ByDefault(int seed)
+        {
+            var (layout, _) = Generate(seed);
+
+            var arrivalHexes = layout.Layer.ArrivalVertex!.GetHexes();
+            var terrains = arrivalHexes.Select(h => layout.Layer.Map.GetTile(h)!.TerrainType).OrderBy(t => t.ToString());
+
+            Assert.Equal(
+                new[] { TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain },
+                terrains.ToArray());
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(7)]
+        [InlineData(42)]
+        public void ArrivalTriangle_ReplacesHillWithPreferredTerrain_WhenGiven(int seed)
+        {
+            var civ = new Civilization { Index = 0 };
+            var layout = PandemoniumGenerator.Create(civ, new GamePRNG(seed), preferredTerrain: TerrainType.Water);
+
+            var arrivalHexes = layout.Layer.ArrivalVertex!.GetHexes();
+            var terrains = arrivalHexes.Select(h => layout.Layer.Map.GetTile(h)!.TerrainType).OrderBy(t => t.ToString());
+
+            Assert.Equal(
+                new[] { TerrainType.Forest, TerrainType.Mountain, TerrainType.Water },
+                terrains.ToArray());
+        }
+
+        [Fact]
+        public void CanGenerateWaterHexes_AcrossSeeds()
+        {
+            bool sawWater = false;
+            for (int seed = 0; seed < 200 && !sawWater; seed++)
+            {
+                var (layout, _) = Generate(seed);
+                sawWater = layout.Layer.Map.Tiles.Values.Any(t => t.TerrainType == TerrainType.Water);
+            }
+
+            Assert.True(sawWater, "L'Eau devrait pouvoir apparaître sur l'île du Pandémonium.");
         }
 
         [Fact]

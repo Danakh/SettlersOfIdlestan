@@ -9,15 +9,12 @@ using Xunit;
 namespace SOITests.IslandMapTests
 {
     /// <summary>
-    /// Génération d'îles de l'Abysse : 3 à 5 hexes de terrain (Forest/Hill/Mountain/Plain)
+    /// Génération d'îles de l'Abysse : 3 à 5 hexes de terrain (Forest/Hill/Mountain/Plain/Water)
     /// entourés d'un anneau de Void, générés au-delà d'un hex de Void donné.
     /// </summary>
     public class AbyssIslandGeneratorTests
     {
-        private static readonly HashSet<TerrainType> AllowedTerrains = new()
-        {
-            TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain, TerrainType.Plain,
-        };
+        private static readonly HashSet<TerrainType> AllowedTerrains = new(AbyssIslandGenerator.TerrainPool);
 
         private static (IslandMap map, HexCoord voidHex) CreateMapWithVoidHex()
         {
@@ -87,6 +84,20 @@ namespace SOITests.IslandMapTests
             var newTiles = AbyssIslandGenerator.GenerateIslandBeyondVoid(map, voidHex, prng);
 
             Assert.Empty(newTiles);
+        }
+
+        [Fact]
+        public void CanGenerateWaterHexes_AcrossSeeds()
+        {
+            bool sawWater = false;
+            for (int seed = 0; seed < 200 && !sawWater; seed++)
+            {
+                var (map, voidHex) = CreateMapWithVoidHex();
+                var newTiles = AbyssIslandGenerator.GenerateIslandBeyondVoid(map, voidHex, new GamePRNG(seed));
+                sawWater = newTiles.Any(t => t.TerrainType == TerrainType.Water);
+            }
+
+            Assert.True(sawWater, "L'Eau devrait pouvoir apparaître sur une île de l'Abysse.");
         }
 
         [Fact]

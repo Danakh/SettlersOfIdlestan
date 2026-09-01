@@ -15,10 +15,23 @@ public static class AbyssIslandGenerator
     public const int MinIslandHexCount = 3;
     public const int MaxIslandHexCount = 5;
 
-    /// <summary>Terrains des îles de l'Abysse — également repris par <see cref="PandemoniumGenerator"/>.</summary>
+    /// <summary>
+    /// Terrains des îles de l'Abysse — un jet uniforme par hex, Eau comprise (~8%, une entrée sur 13,
+    /// même traitement que les terrains rares de <see cref="SettlersOfIdlestan.Controller.Island.AutoExtendController.TerrainPool"/>) : une
+    /// petite île de 3 à 5 hexes peut donc, rarement, se retrouver entièrement immergée. Sans
+    /// conséquence : elle reste simplement inconstructible tant qu'un futur hex de Void voisin n'en
+    /// fait pas pousser une autre. Le Pandémonium (<see cref="PandemoniumGenerator"/>) ne réutilise
+    /// pas ce pool tel quel : son île fixe de 61 hexes pose plutôt l'Eau comme une poche cohérente
+    /// (voir <see cref="PandemoniumGenerator.LandTerrainPool"/>), pour ne jamais noyer le dieu démon
+    /// ni une Tentacule.
+    /// </summary>
     internal static readonly TerrainType[] TerrainPool =
     {
-        TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain, TerrainType.Plain,
+        TerrainType.Forest, TerrainType.Forest, TerrainType.Forest,
+        TerrainType.Hill, TerrainType.Hill, TerrainType.Hill,
+        TerrainType.Mountain, TerrainType.Mountain, TerrainType.Mountain,
+        TerrainType.Plain, TerrainType.Plain, TerrainType.Plain,
+        TerrainType.Water,
     };
 
     /// <summary>
