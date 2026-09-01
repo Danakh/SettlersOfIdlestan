@@ -1,3 +1,5 @@
+using System.Linq;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SOITests.TestUtilities;
@@ -58,5 +60,27 @@ public class AscensionGrantedUniqueBuildingCacheTests
 
         Assert.NotSame(guild, guildAfter);
         Assert.Equal(0, guildAfter.LastTownHallBuildTick);
+    }
+
+    /// <summary>
+    /// Régression : BuildingController.GetUniqueBuildingsAndBuildables filtrait sur GetMaxLevel(civ)
+    /// avant même de regarder si le type était déjà accordé. La Salle de Guerre (comme la plupart des
+    /// choix de bâtiment permanent) a un GetDefaultMaxLevel de 0 — jamais débloquée par ailleurs dans
+    /// cette partie, son niveau max civ-wide reste 0, et elle disparaissait de la liste du panneau de
+    /// ville malgré ses bonus actifs.
+    /// </summary>
+    [Fact]
+    public void GetUniqueBuildingsAndBuildables_IncludesAscensionGrantedBuildingEvenWhenNeverUnlocked()
+    {
+        var state = IslandTestFactory.CreateSevenHexIslandState();
+        var civ = state.Civilizations[0];
+        var city = civ.Cities[0];
+
+        civ.SetAscensionGrantedUniqueBuildings(new[] { BuildingType.WarRoom });
+
+        var controller = new BuildingController(state);
+        Assert.Equal(0, controller.GetMaxLevel(new WarRoom(), civ));
+        Assert.Contains(controller.GetUniqueBuildingsAndBuildables(city),
+            b => b.Type == BuildingType.WarRoom);
     }
 }

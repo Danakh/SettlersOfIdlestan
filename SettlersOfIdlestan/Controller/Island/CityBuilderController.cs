@@ -138,6 +138,15 @@ namespace SettlersOfIdlestan.Controller.Island
                 return;
             }
 
+            // coldStartOnZero explicite (comme RoadController.LastRoadBuildTick) : un Hôtel de Guilde
+            // des Bâtisseurs tout juste promu au niveau 4 en cours de partie déjà avancée ne doit pas
+            // rattraper tout l'écoulé depuis le tick 0 en une rafale d'avant-postes.
+            if (guild.LastOutpostBuildTick == 0)
+            {
+                guild.LastOutpostBuildTick = now;
+                return;
+            }
+
             long lastTick = guild.LastOutpostBuildTick;
             long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, AutoOutpostBuildCooldownTicks);
             guild.LastOutpostBuildTick = lastTick;

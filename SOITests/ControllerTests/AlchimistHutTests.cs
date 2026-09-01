@@ -92,6 +92,10 @@ namespace SOITests.ControllerTests
             clock.Start();
             new HarvestController(state, clock);
 
+            // Sentinel: prime LastCrystalProductionTick (coldStartOnZero) so the cooldown below is measured
+            // from an actual tick rather than catching up from tick 0.
+            clock.SimulateAdvance(1);
+
             clock.SimulateAdvance(AlchimistHut.CrystalHarvestBaseCooldownTicks - 1);
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Crystal));
 
@@ -139,6 +143,9 @@ namespace SOITests.ControllerTests
             clock.Start();
             new HarvestController(state, clock);
 
+            // Sentinel: prime LastCrystalProductionTick (coldStartOnZero).
+            clock.SimulateAdvance(1);
+
             // Vitesse doublée (×2.0) : récolte dès la moitié du cooldown de base
             clock.SimulateAdvance(AlchimistHut.CrystalHarvestBaseCooldownTicks / 2);
 
@@ -162,6 +169,9 @@ namespace SOITests.ControllerTests
             var clock = new GameClock();
             clock.Start();
             new HarvestController(state, clock);
+
+            // Sentinel: prime LastPotionProductionTick (coldStartOnZero).
+            clock.SimulateAdvance(1);
 
             clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks);
 

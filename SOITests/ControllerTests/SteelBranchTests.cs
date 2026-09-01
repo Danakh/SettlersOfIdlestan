@@ -144,7 +144,8 @@ namespace SOITests.ControllerTests
             var (state, clock, city) = CreateSmithSetup(weaponSmithLevel: 1);
             var civ = state.Civilizations[0];
 
-            clock.SimulateAdvance(HarvestController.WeaponSmithBaseIntervalTicks);
+            // First Advanced tick only primes LastProductionTick (coldStartOnZero), so allow one extra chunk.
+            clock.SimulateAdvance(HarvestController.WeaponSmithBaseIntervalTicks + 100);
 
             Assert.True(civ.GetResourceQuantity(Resource.SteelWeapon) >= 1);
             Assert.Equal(999 - WeaponSmith.SteelInputPerWeapon, civ.GetResourceQuantity(Resource.Steel));
@@ -156,7 +157,8 @@ namespace SOITests.ControllerTests
             var (state, clock, city) = CreateSmithSetup(armorSmithLevel: 1);
             var civ = state.Civilizations[0];
 
-            clock.SimulateAdvance(HarvestController.ArmorSmithBaseIntervalTicks);
+            // First Advanced tick only primes LastProductionTick (coldStartOnZero), so allow one extra chunk.
+            clock.SimulateAdvance(HarvestController.ArmorSmithBaseIntervalTicks + 100);
 
             Assert.True(civ.GetResourceQuantity(Resource.SteelArmor) >= 1);
             Assert.Equal(999 - ArmorSmith.SteelInputPerArmor, civ.GetResourceQuantity(Resource.Steel));
@@ -168,7 +170,8 @@ namespace SOITests.ControllerTests
             var (state, clock, city) = CreateSmithSetup(weaponSmithLevel: 1, armorSmithLevel: 1);
             var civ = state.Civilizations[0];
 
-            clock.SimulateAdvance(HarvestController.WeaponSmithBaseIntervalTicks);
+            // First Advanced tick only primes LastProductionTick (coldStartOnZero), so allow one extra chunk.
+            clock.SimulateAdvance(HarvestController.WeaponSmithBaseIntervalTicks + 100);
 
             Assert.True(civ.GetResourceQuantity(Resource.SteelWeapon) >= 1);
             Assert.True(civ.GetResourceQuantity(Resource.SteelArmor)  >= 1);

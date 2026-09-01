@@ -41,8 +41,11 @@ internal sealed class AlchimistHutProductionEngine
                 if (hut == null || hut.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                 long interval = HarvestController.GetAlchimistHutPotionInterval(hut.Level);
+                // coldStartOnZero: true — une Hutte d'Alchimie tout juste construite/promue en cours de
+                // partie déjà avancée ne doit pas rattraper tout l'écoulé depuis le tick 0 (voir
+                // SoldierProductionEngine.ProduceSoldiers).
                 long lastTick = hut.LastPotionProductionTick;
-                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, interval);
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, interval, coldStartOnZero: true);
                 hut.LastPotionProductionTick = lastTick;
                 if (cycles <= 0) continue;
 
@@ -93,8 +96,9 @@ internal sealed class AlchimistHutProductionEngine
                 double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(hut.Type), 1.0);
                 long effective = System.Math.Max(1L, (long)(raw / speedMultiplier));
 
+                // coldStartOnZero: true — même garde-fou que TickPotions ci-dessus.
                 long lastTick = hut.LastCrystalProductionTick;
-                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, effective);
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, effective, coldStartOnZero: true);
                 hut.LastCrystalProductionTick = lastTick;
                 if (cycles <= 0) continue;
 

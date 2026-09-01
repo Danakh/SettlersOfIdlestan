@@ -55,6 +55,11 @@ public class CivilizationLowStockTests
         var clock = new GameClock();
         clock.Start();
         new MilitaryController().Initialize(state, clock, prng: new GamePRNG());
+
+        // Sentinelle : consomme le coldStartOnZero de LastSoldierProductionTick (voir
+        // SoldierProductionEngine.ProduceSoldiers).
+        clock.SimulateAdvance(1);
+
         return (clock, civ);
     }
 

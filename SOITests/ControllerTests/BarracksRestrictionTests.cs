@@ -73,6 +73,11 @@ public class BarracksRestrictionTests
         var clock = new GameClock();
         clock.Start();
         new MilitaryController().Initialize(state, clock, prng: new GamePRNG());
+
+        // Sentinelle : consomme le coldStartOnZero de LastSoldierProductionTick/LastArsenalProductionTick
+        // (voir SoldierProductionEngine) pour compter les cycles depuis un point de départ non nul.
+        clock.SimulateAdvance(1);
+
         return (state, clock, surfaceCity, underworldCity);
     }
 
@@ -184,6 +189,10 @@ public class BarracksRestrictionTests
         clock.Start();
         new MilitaryController().Initialize(state, clock, prng: new GamePRNG());
 
+        // Sentinelle : consomme le coldStartOnZero de LastSoldierProductionTick (voir
+        // SoldierProductionEngine.ProduceSoldiers).
+        clock.SimulateAdvance(1);
+
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
@@ -231,6 +240,11 @@ public class BarracksRestrictionTests
         var clock = new GameClock();
         clock.Start();
         new MilitaryController().Initialize(state, clock, prng: new GamePRNG());
+
+        // Sentinelle : consomme le coldStartOnZero de LastSoldierProductionTick/LastArsenalProductionTick
+        // (voir SoldierProductionEngine) pour compter les cycles depuis un point de départ non nul.
+        clock.SimulateAdvance(1);
+
         return (state, clock, city);
     }
 

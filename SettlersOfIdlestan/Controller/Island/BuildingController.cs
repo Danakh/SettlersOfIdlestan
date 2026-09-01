@@ -750,7 +750,7 @@ namespace SettlersOfIdlestan.Controller.Island
             foreach (var bt in _allBuildingTypes)
             {
                 var prototype = BuildingFactory.Create(bt);
-                if (prototype == null || !prototype.IsUnique || GetMaxLevel(prototype, civ) <= 0)
+                if (prototype == null || !prototype.IsUnique)
                     continue;
 
                 // Same live-cache reasoning as BuildBuilding(): civ.UniqueBuildings never clears on
@@ -759,25 +759,38 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 if (existingInstance != null)
                 {
+                    // Toujours affiché une fois acquis — y compris un bâtiment accordé en
+                    // permanence par l'Ascension (Civilization.IsAscensionGrantedUniqueBuilding),
+                    // dont GetMaxLevel civ-wide peut valoir 0 si la recherche/le prestige qui le
+                    // débloque normalement n'a pas été pris dans cette partie (GetDefaultMaxLevel
+                    // vaut 0 pour la plupart de ces bâtiments) : il ne doit pas dépendre du filtre
+                    // ci-dessous, sans quoi il disparaîtrait de la liste malgré ses bonus actifs.
                     result.Add(existingInstance);
+                    continue;
                 }
+
+                if (GetMaxLevel(prototype, civ) <= 0)
+                    continue;
+
                 // Ziggourat : reste cachée tant que le pouvoir divin Foi (UNLOCK_DOMINION) n'est pas
                 // débloqué, même verrou que les recherches/vertex du Dominion (voir ResearchController.IsDominionRequirementMet).
-                else if (bt == BuildingType.Ziggurat &&
-                         !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION))
+                if (bt == BuildingType.Ziggurat &&
+                    !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_DOMINION))
                 {
                     continue;
                 }
+
                 // Alchimist Hut / Volcanic Forge : prérequis lié à une feature de carte (Cercle de
-                // Fées / Volcan) découverte, pas à un autre bâtiment construisible — reste masqué
+                // Fées / Volcan) découverte, pas à un autre bâtiment constructible — reste masqué
                 // tant que la feature n'est pas trouvée, plutôt qu'affiché grisé avec tooltip.
-                else if ((bt == BuildingType.AlchimistHut || bt == BuildingType.VolcanicForge) &&
-                         !prototype.HasBuildPrerequisites(buildContext, _state))
+                if ((bt == BuildingType.AlchimistHut || bt == BuildingType.VolcanicForge) &&
+                    !prototype.HasBuildPrerequisites(buildContext, _state))
                 {
                     continue;
                 }
-                else if (_state.GetMapFor(city.Position) is { } map2 &&
-                         prototype.IsBuildingAvailableForCity(map2, buildContext, civ))
+
+                if (_state.GetMapFor(city.Position) is { } map2 &&
+                    prototype.IsBuildingAvailableForCity(map2, buildContext, civ))
                 {
                     result.Add(prototype);
                 }

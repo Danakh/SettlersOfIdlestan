@@ -57,8 +57,13 @@ internal class SoldierProductionEngine
                 if (city.Soldiers + city.IncomingSoldiers.Count >= city.MaxSoldiers + maxSoldiersBonus) continue;
                 long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / (civUnitProductionSpeed + city.UnitProductionSpeedBonus));
 
+                // coldStartOnZero: true — LastSoldierProductionTick reste à 0 tant que la ville n'a
+                // jamais encore produit (Caserne construite/promue en cours de partie déjà avancée).
+                // Sans ce garde-fou, ConsumeElapsedCycles traiterait ce 0 comme un tracker actif depuis
+                // le tick 0 et rattraperait tout l'écoulé de la partie en un seul appel — une Caserne
+                // tout juste construite peuplerait aussitôt la ville de soldats.
                 long lastTick = city.LastSoldierProductionTick;
-                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, productionInterval);
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, productionInterval, coldStartOnZero: true);
                 city.LastSoldierProductionTick = lastTick;
                 if (cycles <= 0) continue;
 
@@ -137,8 +142,10 @@ internal class SoldierProductionEngine
 
                 long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / (civUnitProductionSpeed + city.UnitProductionSpeedBonus));
 
+                // coldStartOnZero: true — même garde-fou que ProduceSoldiers ci-dessus, pour un Arsenal
+                // tout juste construit en cours de partie déjà avancée.
                 long lastTick = city.LastArsenalProductionTick;
-                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, productionInterval);
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, productionInterval, coldStartOnZero: true);
                 city.LastArsenalProductionTick = lastTick;
                 if (cycles <= 0) continue;
 

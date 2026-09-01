@@ -41,8 +41,11 @@ internal sealed class SmithProductionEngine
                 if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                 long cooldown = HarvestController.GetWeaponSmithInterval(smith.Level);
+                // coldStartOnZero: true — une Forge d'Armes tout juste construite/promue en cours de
+                // partie déjà avancée ne doit pas rattraper tout l'écoulé depuis le tick 0 (voir
+                // SoldierProductionEngine.ProduceSoldiers).
                 long lastTick = smith.LastProductionTick;
-                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, cooldown);
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, cooldown, coldStartOnZero: true);
                 smith.LastProductionTick = lastTick;
                 if (cycles <= 0) continue;
 
@@ -81,8 +84,9 @@ internal sealed class SmithProductionEngine
                 if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
                 long cooldown = HarvestController.GetArmorSmithInterval(smith.Level);
+                // coldStartOnZero: true — même garde-fou que TickWeaponSmiths ci-dessus.
                 long lastTick = smith.LastProductionTick;
-                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, cooldown);
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, cooldown, coldStartOnZero: true);
                 smith.LastProductionTick = lastTick;
                 if (cycles <= 0) continue;
 

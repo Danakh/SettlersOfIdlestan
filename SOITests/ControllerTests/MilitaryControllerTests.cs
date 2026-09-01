@@ -56,6 +56,11 @@ namespace SOITests.ControllerTests
             var controller = new MilitaryController();
             controller.Initialize(state, clock, prng: new GamePRNG());
 
+            // Sentinelle : consomme le coldStartOnZero de LastSoldierProductionTick (voir
+            // SoldierProductionEngine.ProduceSoldiers) pour que les tests puissent compter les cycles
+            // de production depuis un point de départ non nul.
+            clock.SimulateAdvance(1);
+
             return (state, clock, controller, city);
         }
 
