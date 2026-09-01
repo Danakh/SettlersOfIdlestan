@@ -51,5 +51,7 @@ public class BlastFurnace : Building, IUniqueBuilding
     {
         if (Level <= 0) yield break;
         yield return new Modifier(ECategory.BUILDING_PRODUCTION, "Smelter", EType.ADDITIVE, BonusSteelPerSmelterCycle);
+        yield return new Modifier(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Steel), EType.ADDITIVE, 1);
+        yield return new Modifier(ECategory.UNLOCK_RESOURCE, nameof(Resource.Steel), EType.ADDITIVE, 1);
     }
 }

@@ -48,5 +48,6 @@ public class Academy : Building, IUniqueBuilding
         yield return new Modifier(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.1 * Level);
         yield return new Modifier(ECategory.RESEARCH_INVESTMENT_SPEED, EType.ADDITIVE, 1.0);
         yield return new Modifier(ECategory.RESEARCH_CANCEL_REFUND_BONUS, EType.ADDITIVE, Math.Min(0.5, 0.125 * Level));
+        yield return new Modifier(ECategory.RESEARCH_POINTS_PASSIVE_GENERATION, EType.ADDITIVE, 1.0 * Level);
     }
 }

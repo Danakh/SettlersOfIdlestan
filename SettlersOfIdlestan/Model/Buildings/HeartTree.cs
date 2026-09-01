@@ -6,8 +6,10 @@ namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
 /// Arbre-Cœur : bâtiment unique racial des Elfes (voir RaceDefinitions). Accélère la génération de
-/// points de recherche et produit du Bois passivement. Niveau max par défaut 0 : constructible
-/// uniquement quand la race Elfe fournit son BUILDING_MAX_LEVEL +1.
+/// points de recherche et produit du Bois passivement. Relie aussi par la Forêt les villes du
+/// joueur toutes deux adjacentes à une case Forêt et sur le même plan : le renfort entre elles
+/// ignore alors la portée normale (voir ReinforcementEngine.IsForestLinkedPair). Niveau max par
+/// défaut 0 : constructible uniquement quand la race Elfe fournit son BUILDING_MAX_LEVEL +1.
 /// </summary>
 public class HeartTree : Building, IUniqueBuilding
 {
@@ -33,5 +35,6 @@ public class HeartTree : Building, IUniqueBuilding
         if (Level <= 0) yield break;
         yield return new Modifier(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.25);
         yield return new Modifier(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Wood), EType.ADDITIVE, 5);
+        yield return new Modifier(ECategory.UNLOCK_FOREST_REINFORCEMENT_LINK, EType.ADDITIVE, 1);
     }
 }

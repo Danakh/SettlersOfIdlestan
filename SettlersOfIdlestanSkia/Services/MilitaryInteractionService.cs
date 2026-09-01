@@ -141,6 +141,7 @@ public sealed class MilitaryInteractionService
         bool isAlly = target.CivilizationIndex == playerCiv.Index;
         return isAlly
             ? dist <= _militaryController.ReinforcementRange(playerCiv)
+                || _militaryController.HasUnlimitedRangeReinforcementLink(playerCiv, source, target)
             : dist <= _militaryController.CityAttackRange(playerCiv);
     }
 

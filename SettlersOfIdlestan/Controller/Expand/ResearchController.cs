@@ -29,6 +29,12 @@ namespace SettlersOfIdlestan.Controller.Expand
         // long : la somme des coûts de base (et les coûts unitaires des tiers 13+) dépasse int.MaxValue.
         private long _totalBaseResearchCostCompleted;
 
+        /// <summary>Intervalle du cycle de génération plate de points de recherche (RESEARCH_POINTS_PASSIVE_GENERATION, ex. Académie) : 100 ticks = 1 seconde.</summary>
+        private const long FlatResearchGenerationIntervalTicks = 100L;
+
+        /// <summary>Dernier tick de génération plate, non persisté — voir PassiveGenerationEngine pour le même patron.</summary>
+        private long _lastFlatResearchGenTick;
+
         public event EventHandler<TechnologyId>? OnResearchCompleted;
 
         // Convenience accessors for renderers — go through PrestigeState so the source is explicit.
@@ -54,6 +60,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             _godState = godState;
 
             _totalBaseResearchCostCompleted = 0;
+            // Non persisté (recréé/réinitialisé à chaque Initialize, y compris au chargement d'une
+            // sauvegarde) : le seeder au tick courant plutôt qu'à 0, sinon TickCooldown calcule un
+            // nombre de cycles de rattrapage proportionnel à tout le tick courant (voir PassiveGenerationEngine).
+            _lastFlatResearchGenTick = clock?.CurrentTick ?? 0;
             if (prestigeState != null)
                 foreach (var id in prestigeState.TechnologyTree.CompletedTechnologies)
                 {
@@ -95,6 +105,18 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             long now = _clock.CurrentTick;
             double productionSpeed = _state.PlayerCivilization.ResearchProductionSpeed;
+
+            long flatLast = _lastFlatResearchGenTick;
+            long flatCycles = TickCooldown.ConsumeElapsedCycles(now, ref flatLast, FlatResearchGenerationIntervalTicks, coldStartOnZero: true);
+            _lastFlatResearchGenTick = flatLast;
+            if (flatCycles > 0)
+            {
+                double flatPerSecond = _state.PlayerCivilization.ModifierAggregator.ApplyModifiers(
+                    Modifier.ECategory.RESEARCH_POINTS_PASSIVE_GENERATION, "", 0.0);
+                if (flatPerSecond > 0)
+                    tree.ResearchPoints = Math.Min(tree.ResearchPoints + (long)(flatPerSecond * flatCycles), MaxResearchPoints);
+            }
+
             foreach (var city in _state.PlayerCivilization.Cities)
             {
                 var library = city.FindBuilding<Library>(BuildingType.Library);
@@ -468,7 +490,8 @@ namespace SettlersOfIdlestan.Controller.Expand
         {
             if (_state == null) return 0.0;
             double productionSpeed = _state.PlayerCivilization.ResearchProductionSpeed;
-            double total = 0.0;
+            double total = _state.PlayerCivilization.ModifierAggregator.ApplyModifiers(
+                Modifier.ECategory.RESEARCH_POINTS_PASSIVE_GENERATION, "", 0.0);
             foreach (var city in _state.PlayerCivilization.Cities)
             {
                 var library = city.FindBuilding<Library>(BuildingType.Library);

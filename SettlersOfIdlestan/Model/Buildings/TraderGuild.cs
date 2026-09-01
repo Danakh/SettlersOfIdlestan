@@ -51,5 +51,6 @@ public class TraderGuild : Building, IUniqueBuilding
     {
         if (Level <= 0) yield break;
         yield return new Modifier(ECategory.BUILDING_MAX_LEVEL, "Market", EType.ADDITIVE, 2);
+        yield return new Modifier(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Gold), EType.ADDITIVE, 1);
     }
 }

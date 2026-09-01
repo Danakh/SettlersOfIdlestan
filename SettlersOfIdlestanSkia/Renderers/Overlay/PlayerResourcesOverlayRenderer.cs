@@ -68,13 +68,12 @@ public class PlayerResourcesOverlayRenderer
     {
         if (civilization == null) return ResourceBarSnapshot.Unavailable;
 
-        var map = PrestigeMapController.DefaultMap;
         var items = new List<ResourceSnapshot>();
 
         foreach (var resource in Enum.GetValues<Resource>())
         {
             if (ResourceUtils.DiscoverableResources.Contains(resource)
-                && !(prestigeState?.IsResourceDiscovered(resource, map) ?? false)) continue;
+                && !(prestigeState?.IsResourceDiscovered(resource, civilization) ?? false)) continue;
 
             if (ResourceUtils.ConsumableResources.Contains(resource)
                 && !IsConsumableUnlocked(resource, civilization)) continue;

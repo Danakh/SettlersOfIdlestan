@@ -67,6 +67,29 @@ internal class ReinforcementEngine
     }
 
     /// <summary>
+    /// Vrai si l'Arbre-Cœur relie ces deux villes par la Forêt (UNLOCK_FOREST_REINFORCEMENT_LINK) :
+    /// deux villes de la civilisation, sur le même plan, toutes deux adjacentes à une case Forêt, et
+    /// reliées par une route — sans limite de longueur, contrairement à REINFORCEMENT_RANGE. Seule la
+    /// portée est ignorée, pas le réseau routier : deux villes forestières sans route entre elles ne
+    /// sont toujours pas éligibles.
+    /// </summary>
+    internal bool HasUnlimitedRangeReinforcementLink(Civilization civ, IMilitaryVertex source, IMilitaryVertex target)
+    {
+        if (source is not City || target is not City) return false;
+        if (source.Position.Z != target.Position.Z) return false;
+        if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_FOREST_REINFORCEMENT_LINK)) return false;
+
+        var map = _state?.GetMapForZ(source.Position.Z);
+        if (map == null) return false;
+        if (!map.VertexHasTerrainType(source.Position, TerrainType.Forest) ||
+            !map.VertexHasTerrainType(target.Position, TerrainType.Forest))
+            return false;
+
+        var adj = GetAdjacency(civ, source.Position.Z);
+        return RoadPathfinder.HasPathInGraph(adj, source.Position, target.Position);
+    }
+
+    /// <summary>
     /// Convertit les soldats dont le tick d'arrivée est atteint de IncomingSoldiers vers la garnison.
     /// </summary>
     internal void ResolveArrivals(long currentTick)
@@ -124,6 +147,8 @@ internal class ReinforcementEngine
 
                 var adj = GetAdjacency(civ, sourceVertex.Position.Z);
                 var roadPath = RoadPathfinder.FindPathInGraph(adj, sourceVertex.Position, targetVertex.Position, range);
+                if (roadPath == null && HasUnlimitedRangeReinforcementLink(civ, sourceVertex, targetVertex))
+                    roadPath = RoadPathfinder.FindPathInGraph(adj, sourceVertex.Position, targetVertex.Position);
                 if (roadPath == null) continue;
 
                 int roadSegments = roadPath.Count - 1;
@@ -211,7 +236,7 @@ internal class ReinforcementEngine
                 IMilitaryVertex? currentTarget = vertex.FlowTarget != null
                     && ownByPosition.TryGetValue(vertex.FlowTarget, out var existing) ? existing : null;
 
-                IMilitaryVertex? target = currentTarget != null && IsEligibleTarget(currentTarget, vertex, z, range, reachable)
+                IMilitaryVertex? target = currentTarget != null && IsEligibleTarget(currentTarget, vertex, civ, z, range, reachable)
                     ? currentTarget : null;
                 int fewestSoldiers = target?.Soldiers ?? vertex.Soldiers;
 
@@ -221,7 +246,7 @@ internal class ReinforcementEngine
                     var friendly = candidates[i];
                     if (friendly == target) continue;
                     if (friendly.Soldiers > fewestSoldiers) continue;
-                    if (!IsEligibleTarget(friendly, vertex, z, range, reachable)) continue;
+                    if (!IsEligibleTarget(friendly, vertex, civ, z, range, reachable)) continue;
 
                     target = friendly;
                     fewestSoldiers = friendly.Soldiers;
@@ -244,8 +269,8 @@ internal class ReinforcementEngine
     /// l'ensemble atteignable allouait une classe de fermeture à chaque emplacement traité, sur un
     /// chemin parcouru à chaque tour d'IA de chaque civilisation PNJ.
     /// </summary>
-    private static bool IsEligibleTarget(
-        IMilitaryVertex friendly, IMilitaryVertex source, int z, int range, HashSet<Vertex> reachable)
+    private bool IsEligibleTarget(
+        IMilitaryVertex friendly, IMilitaryVertex source, Civilization civ, int z, int range, HashSet<Vertex> reachable)
     {
         if (friendly == source) return false;
         if (friendly.Position.Z != z) return false;
@@ -255,9 +280,11 @@ internal class ReinforcementEngine
         if (tCap == 0 || effectiveFriendly * 2 > tCap) return false;
         if (friendly.Soldiers + 2 >= source.Soldiers) return false;
 
-        if (friendly.Position.EdgeDistanceTo(source.Position) > range) return false;
+        if (friendly.Position.EdgeDistanceTo(source.Position) <= range)
+            return reachable.Contains(friendly.Position);
 
-        return reachable.Contains(friendly.Position);
+        // Hors de portée normale : encore éligible si l'Arbre-Cœur relie ces deux villes par la Forêt.
+        return HasUnlimitedRangeReinforcementLink(civ, source, friendly);
     }
 
     internal bool IsEnemyCityAt(Vertex target, Civilization civ)

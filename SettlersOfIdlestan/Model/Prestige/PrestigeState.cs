@@ -117,11 +117,13 @@ public class PrestigeState
         WorldState = worldState;
     }
 
-    public bool IsResourceDiscovered(Resource resource, PrestigeMap.PrestigeMap map)
-    {
-        var resourceName = resource.ToString();
-        return PurchasedVertices.Any(v =>
-            map.GetVertex(v)?.Modifiers.Any(m =>
-                m.Category == Modifier.ECategory.UNLOCK_RESOURCE && m.SubCategory == resourceName) == true);
-    }
+    /// <summary>
+    /// Vrai si la ressource a été découverte pour cette civilisation — vertex de prestige acheté, ou
+    /// bâtiment unique produisant la ressource (voir ArcaneTower, BlastFurnace) : l'un comme l'autre
+    /// portent un modifier UNLOCK_RESOURCE, agrégé sur <see cref="Civilization.ModifierAggregator"/>
+    /// (voir PrestigeModifierProvider et Civilization.RebuildUniqueBuildingsModifiers) — un seul
+    /// endroit à consulter plutôt que de reparcourir PurchasedVertices ici.
+    /// </summary>
+    public bool IsResourceDiscovered(Resource resource, Civilization.Civilization civ)
+        => civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_RESOURCE, resource.ToString());
 }

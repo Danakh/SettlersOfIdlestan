@@ -9,6 +9,9 @@ public class ArcaneTower : Building, IUniqueBuilding
     /// <summary>Fraction de réduction du coût d'entretien des rituels accordée par la Tour des Arcanes.</summary>
     public const double RitualUpkeepReduction = 0.25;
 
+    /// <summary>Cristal généré passivement par cycle de 5 secondes (voir HarvestController.PassiveCrystalGenerationIntervalTicks) — soit 1 Cristal/s.</summary>
+    public const int CrystalGenerationPerCrystalCycle = 5;
+
     public long LastMagicBuildTick { get; set; }
 
     public ArcaneTower() : base(BuildingType.ArcaneTower)
@@ -42,5 +45,7 @@ public class ArcaneTower : Building, IUniqueBuilding
     {
         if (Level <= 0) yield break;
         yield return new Modifier(ECategory.RITUAL_UPKEEP_REDUCTION, EType.ADDITIVE, RitualUpkeepReduction);
+        yield return new Modifier(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Crystal), EType.ADDITIVE, CrystalGenerationPerCrystalCycle * Level);
+        yield return new Modifier(ECategory.UNLOCK_RESOURCE, nameof(Resource.Crystal), EType.ADDITIVE, 1);
     }
 }

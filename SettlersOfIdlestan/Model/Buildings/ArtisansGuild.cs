@@ -6,6 +6,12 @@ namespace SettlersOfIdlestan.Model.Buildings;
 
 public class ArtisansGuild : Building, IUniqueBuilding
 {
+    /// <summary>Bonus de capacité de stockage des ressources basiques accordé par niveau.</summary>
+    public const int StorageCapacityBasicBonusPerLevel = 100;
+
+    /// <summary>Bonus de capacité de stockage des ressources avancées accordé par niveau.</summary>
+    public const int StorageCapacityAdvancedBonusPerLevel = 50;
+
     public long LastArtisanBuildTick { get; set; }
 
     public ArtisansGuild() : base(BuildingType.ArtisansGuild)
@@ -39,5 +45,7 @@ public class ArtisansGuild : Building, IUniqueBuilding
         if (Level <= 0) yield break;
 
         yield return new Modifier(ECategory.BUILDING_MAX_LEVEL, "Forge", EType.ADDITIVE, 1);
+        yield return new Modifier(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, StorageCapacityBasicBonusPerLevel * Level);
+        yield return new Modifier(ECategory.STORAGE_CAPACITY_ADVANCED, EType.ADDITIVE, StorageCapacityAdvancedBonusPerLevel * Level);
     }
 }

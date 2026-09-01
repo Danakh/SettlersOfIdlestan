@@ -257,6 +257,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             REPEATABLE_RESEARCH_SCALING_REDUCTION,
             /// <summary>Bonus additif de vitesse de régénération de défense, appliqué uniquement aux villes de l'Inframonde (voir MilitaryController.GetDefenseRegenSpeed). Base = 0.0 ; +0.2 = +20%. SubCategory unused.</summary>
             UNDERWORLD_CITY_DEFENSE_REGEN_SPEED,
+            /// <summary>Points de recherche générés directement chaque seconde, indépendamment des Bibliothèques/Laboratoires (voir ResearchController.ProduceResearchPoints). Base = 0.0. SubCategory unused. Accordé par l'Académie.</summary>
+            RESEARCH_POINTS_PASSIVE_GENERATION,
+            /// <summary>Flags que le renfort entre deux villes du même joueur, toutes deux adjacentes à une case Forêt et sur le même plan, ignore la portée de renfort (REINFORCEMENT_RANGE) — la route doit tout de même exister. SubCategory unused. Accordé par l'Arbre-Cœur.</summary>
+            UNLOCK_FOREST_REINFORCEMENT_LINK,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

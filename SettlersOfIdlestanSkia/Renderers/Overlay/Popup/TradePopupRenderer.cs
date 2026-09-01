@@ -273,9 +273,8 @@ public sealed class TradePopupRenderer : PopupRendererBase
     {
         var tc = _gameControllerService.MainGameController.TradeController;
         var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
-        var map = PrestigeMapController.DefaultMap;
-        bool glassDiscovered = prestigeState?.IsResourceDiscovered(Resource.Glass, map) ?? false;
-        bool steelDiscovered = prestigeState?.IsResourceDiscovered(Resource.Steel, map) ?? false;
+        bool glassDiscovered = prestigeState?.IsResourceDiscovered(Resource.Glass, civ) ?? false;
+        bool steelDiscovered = prestigeState?.IsResourceDiscovered(Resource.Steel, civ) ?? false;
 
         var sellable = ResourceUtils.BasicResources.Where(r => tc.CanTradeResource(civ, r)).ToList();
         if (tc.IsIntermediateTradeUnlocked(civ.Index))
@@ -294,13 +293,12 @@ public sealed class TradePopupRenderer : PopupRendererBase
     {
         var tc = _gameControllerService.MainGameController.TradeController;
         var prestigeState = _gameControllerService.CurrentGameState?.PrestigeState;
-        var map = PrestigeMapController.DefaultMap;
         return ResourceUtils.BasicResources
             .Concat(Enum.GetValues<Resource>()
                 .Where(r => !ResourceUtils.BasicResources.Contains(r) && r != Resource.Gold)
                 .Where(r => !ResourceUtils.ConsumableResources.Contains(r))
                 .Where(r => !ResourceUtils.DiscoverableResources.Contains(r)
-                            || (prestigeState?.IsResourceDiscovered(r, map) ?? false)))
+                            || (prestigeState?.IsResourceDiscovered(r, civ) ?? false)))
             .Where(r => tc.CanTradeResource(civ, r))
             .ToList();
     }

@@ -61,5 +61,8 @@ public class HarvestersGuild : Building, IUniqueBuilding
                 EType.ADDITIVE,
                 1);
         }
+
+        foreach (var resource in ResourceUtils.BasicResources)
+            yield return new Modifier(ECategory.PASSIVE_RESOURCE_GENERATION, resource.ToString(), EType.ADDITIVE, 1);
     }
 }

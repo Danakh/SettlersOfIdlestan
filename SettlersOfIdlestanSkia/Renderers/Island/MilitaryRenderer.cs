@@ -288,7 +288,8 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
                         reinforcementRange = _militaryController.ReinforcementRange(civ);
                     }
 
-                    bool hasRoute = RoadPathfinder.HasPathInGraph(roadAdjacency, sourceVertex.Position, targetVertex.Position, reinforcementRange);
+                    bool hasRoute = RoadPathfinder.HasPathInGraph(roadAdjacency, sourceVertex.Position, targetVertex.Position, reinforcementRange)
+                        || _militaryController.HasUnlimitedRangeReinforcementLink(civ, sourceVertex, targetVertex);
                     arrowColor = hasRoute ? ReinforcementFlowColor : PulseBlockedColor(context.TotalTime);
                     _flowGreenPaint.Color = arrowColor;
                     linePaint = _flowGreenPaint;

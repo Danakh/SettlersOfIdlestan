@@ -414,6 +414,17 @@ public class Civilization
     private readonly HashSet<BuildingType> _ascensionGrantedUniqueBuildings = new();
 
     /// <summary>
+    /// Instances des bâtiments uniques permanents de l'Ascension, conservées d'un appel à l'autre de
+    /// <see cref="RebuildUniqueBuildingCache"/> — voir ce dernier pour la raison : recréer l'instance à
+    /// chaque appel réinitialise silencieusement l'état runtime de l'automatisation de guilde
+    /// (<c>LastRoadBuildTick</c>/<c>LastOutpostBuildTick</c>/<c>LastTownHallBuildTick</c> sur
+    /// BuildersGuild) porté par cette instance. Vidé uniquement quand la liste accordée change (nouvelle
+    /// île, voir <see cref="SetAscensionGrantedUniqueBuildings"/>) : les types retirés n'ont plus lieu
+    /// d'exister, les types ajoutés doivent repartir d'une instance neuve.
+    /// </summary>
+    private readonly Dictionary<BuildingType, Building> _ascensionGrantedBuildingInstances = new();
+
+    /// <summary>
     /// Retourne l'instance du bâtiment unique de ce type construit dans une ville de la civilisation,
     /// ou null s'il n'existe pas. Sert à éviter de parcourir toutes les villes/bâtiments à chaque appel
     /// (ex: automatisations des guildes). Le cache est reconstruit à chaque <see cref="City.BuildingsChanged"/>
@@ -452,6 +463,10 @@ public class Civilization
     {
         _ascensionGrantedUniqueBuildings.Clear();
         _ascensionGrantedUniqueBuildings.UnionWith(types);
+        // Nouvelle île : les instances de l'île précédente n'ont plus lieu d'exister (voir doc du
+        // dictionnaire) — repartir propre plutôt que de laisser une instance orpheline d'un type qui
+        // ne serait plus accordé continuer à occuper de la mémoire pour rien.
+        _ascensionGrantedBuildingInstances.Clear();
         RebuildUniqueBuildingCache();
         RebuildUniqueBuildingsModifiers();
     }
@@ -461,6 +476,17 @@ public class Civilization
     /// bâtiments uniques permanents accordés par l'Ascension le cas échéant (voir
     /// <see cref="SetAscensionGrantedUniqueBuildings"/>). À appeler après la perte d'une ville
     /// (destruction) ou après chargement d'une sauvegarde.
+    ///
+    /// <para>Appelé très fréquemment en pratique — à chaque changement de bâtiments de n'importe
+    /// quelle ville de la civilisation (voir <see cref="OnCityBuildingsChanged"/>), pas seulement à
+    /// l'ajout/retrait d'une ville. Pour un bâtiment unique accordé par l'Ascension (aucune ville ne le
+    /// porte), l'instance est donc réutilisée depuis <see cref="_ascensionGrantedBuildingInstances"/>
+    /// plutôt que recréée à chaque appel : une nouvelle instance perdrait silencieusement l'état
+    /// runtime que l'automatisation de guilde stocke dessus (<c>LastRoadBuildTick</c>,
+    /// <c>LastOutpostBuildTick</c>, <c>LastTownHallBuildTick</c> sur BuildersGuild) — chaque
+    /// construction/amélioration ailleurs dans la civilisation aurait alors réarmé son cooldown avant
+    /// qu'il n'ait pu s'écouler, l'automatisation ne progressant plus qu'au hasard des créneaux libres
+    /// entre deux de ces changements plutôt qu'à son rythme normal.</para>
     /// </summary>
     public void RebuildUniqueBuildingCache()
     {
@@ -471,13 +497,22 @@ public class Civilization
 
         foreach (var grantedType in _ascensionGrantedUniqueBuildings)
         {
-            if (_uniqueBuildingCache.ContainsKey(grantedType) || BuildingFactory.Create(grantedType) is not { } granted)
+            if (_uniqueBuildingCache.ContainsKey(grantedType))
                 continue;
 
-            // Sans ville pour les faire monter de niveau via les modifiers dynamiques (recherche
-            // faite, vertex de prestige achetés, race actuellement jouée...), on les accorde
-            // d'emblée au niveau max absolu, en dur par bâtiment (voir Building.GetAbsoluteMaxLevel).
-            granted.Level = Math.Max(1, granted.GetAbsoluteMaxLevel());
+            if (!_ascensionGrantedBuildingInstances.TryGetValue(grantedType, out var granted))
+            {
+                if (BuildingFactory.Create(grantedType) is not { } created)
+                    continue;
+
+                // Sans ville pour les faire monter de niveau via les modifiers dynamiques (recherche
+                // faite, vertex de prestige achetés, race actuellement jouée...), on les accorde
+                // d'emblée au niveau max absolu, en dur par bâtiment (voir Building.GetAbsoluteMaxLevel).
+                created.Level = Math.Max(1, created.GetAbsoluteMaxLevel());
+                granted = created;
+                _ascensionGrantedBuildingInstances[grantedType] = granted;
+            }
+
             _uniqueBuildingCache[grantedType] = granted;
             if (!_uniqueBuildings.Contains(grantedType))
                 _uniqueBuildings.Add(grantedType);
