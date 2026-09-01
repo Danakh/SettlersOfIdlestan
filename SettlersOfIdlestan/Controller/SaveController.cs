@@ -55,6 +55,7 @@ namespace SettlersOfIdlestan.Controller
         {
             state.Clock.LastSaveTime = DateTimeOffset.UtcNow;
             state.Clock.WasPausedAtSave = state.Clock.SpeedMultiplier == 0;
+            state.SavedGameVersion = GameVersion.Current;
             var json = JsonSerializer.Serialize(state, _serializationOptions);
             return Encrypt(json);
         }

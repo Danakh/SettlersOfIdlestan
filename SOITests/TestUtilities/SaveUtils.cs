@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
 using Xunit;
@@ -44,7 +45,14 @@ public static class SaveUtils
     public static bool SaveExists(string folder, string name)
         => TryReadWithRetry(ResolvePath(folder, name), out _);
 
-    /// <summary>Loads saves/{folder}/{name}.json into a fresh controller (retries briefly — see TryReadWithRetry).</summary>
+    /// <summary>
+    /// Loads saves/{folder}/{name}.json into a fresh controller (retries briefly — see TryReadWithRetry).
+    /// For folder "current", also asserts the save's stamped GameVersion matches GameVersion.Current:
+    /// StepIslandSaveGeneratorTests.Rebuild_All_Current_Saves is now a deliberate, manual action (see
+    /// ManualFactAttribute) rather than something every test run regenerates, so a version bump with no
+    /// matching rebuild would otherwise silently leave StepIslandCurrentTests running against saves
+    /// produced by older game logic.
+    /// </summary>
     public static MainGameController LoadSave(string folder, string name)
     {
         var filePath = ResolvePath(folder, name);
@@ -52,6 +60,16 @@ public static class SaveUtils
 
         var controller = new MainGameController();
         controller.ImportMainState(content);
+
+        if (string.Equals(folder, "current", StringComparison.OrdinalIgnoreCase))
+        {
+            var savedVersion = controller.CurrentMainState?.SavedGameVersion;
+            Assert.True(savedVersion == GameVersion.Current,
+                $"saves/current/{name}.json was saved with version '{savedVersion ?? "(none)"}', current is " +
+                $"'{GameVersion.Current}'. Run Rebuild_All_Current_Saves (SOI_MANUAL_TESTS=1 dotnet test " +
+                "--filter \"FullyQualifiedName~Rebuild_All_Current_Saves\") to regenerate saves/current/.");
+        }
+
         return controller;
     }
 

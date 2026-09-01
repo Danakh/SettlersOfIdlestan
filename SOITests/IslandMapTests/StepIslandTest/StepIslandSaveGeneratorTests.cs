@@ -5,12 +5,16 @@ using Xunit;
 namespace SOITests.IslandMapTests.StepIslandTest
 {
     /// <summary>
-    /// Rebuilds every "current" save used by StepIslandCurrentTests, in guaranteed order.
+    /// Rebuilds every "current" save used by StepIslandCurrentTests, in guaranteed order. A deliberate
+    /// action, not something "run all tests" should trigger as a side effect — see ManualFactAttribute.
+    /// Run it explicitly (SOI_MANUAL_TESTS=1 dotnet test --filter "FullyQualifiedName~Rebuild_All_Current_Saves")
+    /// after any change that could affect these saves, and whenever GameVersion.Current changes:
+    /// StepIslandCurrentTests fails if a loaded save's SavedGameVersion doesn't match the current version.
     /// </summary>
     [Collection(StepIslandTestCollection.Name)]
     public class StepIslandSaveGeneratorTests
     {
-        [Fact]
+        [ManualFact]
         public void Rebuild_All_Current_Saves()
         {
             RunSummaryReporter.Reset("current");
@@ -28,9 +32,9 @@ namespace SOITests.IslandMapTests.StepIslandTest
 
             // Nettoie les fichiers obsolètes (ex: ancien format JSON non-chiffré) seulement après
             // la reconstruction : chaque save régénérée est remplacée de façon atomique pendant la
-            // boucle ci-dessus, donc elle reste lisible par StepIslandCurrentTests/FullIslandTest
-            // tout le temps du rebuild — seul ce nettoyage final retire les fichiers qui ne
-            // correspondent plus à aucun step.
+            // boucle ci-dessus, donc elle reste lisible par StepIslandCurrentTests tout le temps du
+            // rebuild — seul ce nettoyage final retire les fichiers qui ne correspondent plus à
+            // aucun step.
             var expectedNames = steps.Select(s => s.scenario.Steps[s.stepIndex].SaveName);
             SaveUtils.PruneFolder("current", expectedNames);
         }

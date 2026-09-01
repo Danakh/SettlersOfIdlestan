@@ -60,6 +60,13 @@ namespace SettlersOfIdlestan.Model.Game
         public bool IsDemoSave { get; set; } = false;
 
         /// <summary>
+        /// Version du jeu (<see cref="GameVersion.Current"/>) au moment de la dernière sauvegarde —
+        /// écrasée à chaque <see cref="SettlersOfIdlestan.Controller.SaveController.Export"/>. Absente
+        /// (null) sur les sauvegardes antérieures à l'introduction de ce champ.
+        /// </summary>
+        public string? SavedGameVersion { get; set; }
+
+        /// <summary>
         /// Constructeur sans paramètre requis par la désérialisation JSON. <see cref="WorldPRNG"/> est
         /// seedé aléatoirement (plutôt que sur la seed par défaut de <see cref="GamePRNG"/>) car les
         /// sauvegardes antérieures à l'introduction de ce champ ne le contiennent pas : sans cela,

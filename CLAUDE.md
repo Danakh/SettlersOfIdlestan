@@ -189,6 +189,8 @@ The changelog files are at `SettlersOfIdlestanSkia/Resources/changelog/changelog
 
 Add content under the latest version block. Do not create a new version entry unless explicitly asked to.
 
+**Game version:** `SettlersOfIdlestan/Model/Game/GameVersion.cs` (`GameVersion.Current`) must stay in sync with the changelog and be bumped in the same change. The first two digits (X.Y) mirror the changelog's latest `vX.Y` entry — bump them together with a new changelog block. The third digit (patch) never appears in the changelog and is not touched by changelog edits; bump it manually for a patch (balance/bug-fix-only release) that doesn't warrant a new changelog entry. This version is stamped into every save (`MainGameState.SavedGameVersion`, written by `SaveController.Export`) and is checked against the fixtures in `saves/current/` by `SOITests`' `StepIslandCurrentTests` — see `SOITests/IslandMapTests/StepIslandTest/StepIslandSaveGeneratorTests.cs`.
+
 ---
 
 ## Tooltips & Localization
