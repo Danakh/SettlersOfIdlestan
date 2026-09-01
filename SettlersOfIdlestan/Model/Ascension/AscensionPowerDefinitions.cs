@@ -47,6 +47,12 @@ public static class AscensionPowerDefinitions
 
         new AscensionPowerDefinition(AscensionPowerId.WrathOfGod,
             "ascension_power_wrathofgod_name", "ascension_power_wrathofgod_desc", column: 3, godPointCost: 7),
+
+        new AscensionPowerDefinition(AscensionPowerId.DivineConstruction,
+            "ascension_power_divineconstruction_name", "ascension_power_divineconstruction_desc", column: 4, godPointCost: 2),
+
+        new AscensionPowerDefinition(AscensionPowerId.DivineConquest,
+            "ascension_power_divineconquest_name", "ascension_power_divineconquest_desc", column: 4, godPointCost: 5),
     };
 
     /// <summary>Nombre de colonnes (hors Foi) : les colonnes vont de 0 à ColumnCount - 1.</summary>

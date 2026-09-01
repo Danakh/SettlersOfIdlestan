@@ -685,6 +685,7 @@ namespace SettlersOfIdlestan.Controller.Island
             civ.AddCity(city);
 
             if (civilizationIndex == _state.PlayerCivilization.Index)
+            {
                 foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))
                     if (!city.Buildings.Any(b => b.Type == bt))
                     {
@@ -702,12 +703,98 @@ namespace SettlersOfIdlestan.Controller.Island
                         }
                     }
 
+                // Pouvoirs divins Construction/Conquête : exécutés après la boucle générique ci-dessus,
+                // pour que Conquête Divine voie la Palissade déjà posée par un éventuel Avant-poste
+                // fortifié (NEW_CITY_BUILDING) et cumule dessus (voir GrantDivineConquestGarrison).
+                if (civ.ModifierAggregator.HasModifier(ECategory.NEW_CITY_DIVINE_CONSTRUCTION))
+                    GrantDivineConstructionBuildings(city, vertexMap, civ);
+
+                if (civ.ModifierAggregator.HasModifier(ECategory.NEW_CITY_DIVINE_CONQUEST))
+                    GrantDivineConquestGarrison(city, civ);
+            }
+
             _state.Visibility.RecalculateFor(civilizationIndex);
 
             ClaimTreasureTrovesAt(city, civ);
 
             OnCityBuilt?.Invoke(this, new OutpostAutoBuiltEventArgs(civilizationIndex, vertex));
             return city;
+        }
+
+        /// <summary>
+        /// Bâtiments de production basique tentés par Construction Divine (voir
+        /// <see cref="GrantDivineConstructionBuildings"/>) : Mine est incluse pour la forme, mais son
+        /// AvailableAtLevel (3) n'est jamais atteint par une ville qui vient de naître à niveau 1 — elle
+        /// n'est donc essentiellement jamais accordée en pratique.
+        /// </summary>
+        private static readonly BuildingType[] DivineConstructionBuildingTypes =
+        {
+            BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Mill, BuildingType.Quarry, BuildingType.Mine,
+        };
+
+        /// <summary>
+        /// Pouvoir divin Construction Divine (ECategory.NEW_CITY_DIVINE_CONSTRUCTION) : accorde à la
+        /// ville un Hôtel de ville niveau 1 — sans lui, elle resterait niveau 0 et rien d'autre n'y
+        /// serait constructible (voir City.Level) — puis tente chacun des
+        /// <see cref="DivineConstructionBuildingTypes"/> ; seuls ceux réellement constructibles à cet
+        /// emplacement (terrain requis, niveau de ville — voir Building.IsBuildingAvailableForCity) sont
+        /// effectivement ajoutés.
+        /// </summary>
+        private static void GrantDivineConstructionBuildings(City city, IslandMap map, Civilization civ)
+        {
+            if (!city.Buildings.Any(b => b.Type == BuildingType.TownHall))
+            {
+                var townHall = BuildingFactory.Create(BuildingType.TownHall)!;
+                townHall.Level = 1;
+                city.AddBuilding(townHall);
+                city.InvalidateLevelCache();
+            }
+
+            foreach (var bt in DivineConstructionBuildingTypes)
+            {
+                if (city.Buildings.Any(b => b.Type == bt)) continue;
+
+                var building = BuildingFactory.Create(bt);
+                if (building == null || !building.IsAvailableInLayer(map.Z)) continue;
+
+                building.Level = 1;
+                if (!building.IsBuildingAvailableForCity(map, city, civ)) continue;
+
+                city.AddBuilding(building);
+            }
+        }
+
+        /// <summary>
+        /// Pouvoir divin Conquête Divine (ECategory.NEW_CITY_DIVINE_CONQUEST) : accorde à la ville une
+        /// Palissade — ou +1 niveau si elle en a déjà une, par exemple posée juste avant par le vertex
+        /// de prestige Avant-poste fortifié (NEW_CITY_BUILDING) ; les deux se cumulent alors en
+        /// Palissade niveau 2 — une Caserne niveau 1, et jusqu'à 20 soldats en garnison (moins si la
+        /// capacité maximale de la ville, recalculée après la Caserne, est inférieure).
+        /// </summary>
+        private static void GrantDivineConquestGarrison(City city, Civilization civ)
+        {
+            var palisade = city.Buildings.FirstOrDefault(b => b.Type == BuildingType.Palisade);
+            int previousDefenseBonus = palisade?.GetDefenseBonus() ?? 0;
+            if (palisade == null)
+            {
+                palisade = BuildingFactory.Create(BuildingType.Palisade)!;
+                city.AddBuilding(palisade);
+            }
+            palisade.Level++;
+            city.InvalidateMaxSoldiersCache();
+
+            int addedDefenseBonus = palisade.GetDefenseBonus() - previousDefenseBonus;
+            if (addedDefenseBonus > 0 && civ.ModifierAggregator.HasModifier(ECategory.BUILDING_DEFENSE_ON_CONSTRUCT))
+                city.CurrentDefense += addedDefenseBonus;
+
+            if (!city.Buildings.Any(b => b.Type == BuildingType.Barracks))
+            {
+                var barracks = BuildingFactory.Create(BuildingType.Barracks)!;
+                barracks.Level = 1;
+                city.AddBuilding(barracks);
+            }
+
+            city.Soldiers = Math.Min(20, city.MaxSoldiers);
         }
 
         /// <summary>

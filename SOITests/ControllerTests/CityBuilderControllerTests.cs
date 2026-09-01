@@ -3,12 +3,15 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.ControllerTests;
 
@@ -61,6 +64,60 @@ public class CityBuilderControllerTests
         var controller = new CityBuilderController();
         controller.Initialize(state);
         return controller;
+    }
+
+    /// <summary>
+    /// Même disposition que <see cref="RibbonIsland"/>, mais h2/h3/h4 portent respectivement Forêt,
+    /// Plaine et Montagne au lieu de Plaine partout : VMiddle touche donc les trois terrains
+    /// nécessaires à Scierie, Moulin et Carrière, mais aucune Colline (pas de Briqueterie).
+    /// </summary>
+    private static (WorldState state, Civilization civ, Vertex v1, Vertex vMiddle, Vertex v2) ForestPlainMountainRibbonIsland()
+    {
+        var h1 = H(0, 0);
+        var h2 = H(1, 0);
+        var h3 = H(0, 1);
+        var h4 = H(1, 1);
+        var h5 = H(0, 2);
+
+        var map = new IslandMap(new HexTile[]
+        {
+            new(h1, TerrainType.Plain),
+            new(h2, TerrainType.Forest),
+            new(h3, TerrainType.Plain),
+            new(h4, TerrainType.Mountain),
+            new(h5, TerrainType.Plain),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        var v1 = Vertex.Create(h1, h2, h3);
+        var vMiddle = Vertex.Create(h2, h3, h4);
+        var v2 = Vertex.Create(h3, h4, h5);
+
+        civ.AddRoad(new Road(Edge.Create(h2, h3)) { CivilizationIndex = 0 });
+        civ.AddRoad(new Road(Edge.Create(h3, h4)) { CivilizationIndex = 0 });
+
+        return (state, civ, v1, vMiddle, v2);
+    }
+
+    /// <summary>Fournisseur de modifiers de test à valeurs fixes — voir TradeControllerTests, même patron.</summary>
+    private sealed class FlatModifierProvider : IModifierProvider
+    {
+        private readonly List<Modifier> _mods;
+        public FlatModifierProvider(params Modifier[] mods) => _mods = new(mods);
+        public IEnumerable<Modifier> GetModifiers() => _mods;
+#pragma warning disable CS0067
+        public event Action? OnModifiersChanged;
+#pragma warning restore CS0067
+    }
+
+    private static void GrantBasicResourcesForCityConstruction(Civilization civ)
+    {
+        civ.SetStorageCapacityCache(1000, 1000);
+        civ.AddResource(Resource.Brick, 10);
+        civ.AddResource(Resource.Wood, 10);
+        civ.AddResource(Resource.Food, 15);
     }
 
     [Fact]
@@ -366,5 +423,64 @@ public class CityBuilderControllerTests
         Assert.Equal(15, cost[Resource.Brick]);
         Assert.Equal(15, cost[Resource.Wood]);
         Assert.Equal(23, cost[Resource.Food]);
+    }
+
+    // ── Pouvoirs divins Construction/Conquête ───────────────────────────────
+
+    [Fact]
+    public void BuildCity_DivineConstructionActive_GrantsTownHallAndOnlyTerrainConstructibleProductionBuildings()
+    {
+        var (state, civ, _, vMiddle, _) = ForestPlainMountainRibbonIsland();
+        civ.AddCustomAggregator(new FlatModifierProvider(
+            new Modifier(ECategory.NEW_CITY_DIVINE_CONSTRUCTION, EType.ADDITIVE, 1)));
+        GrantBasicResourcesForCityConstruction(civ);
+
+        var city = Controller(state).BuildCity(0, vMiddle);
+
+        Assert.NotNull(city);
+        Assert.Equal(1, city!.Buildings.Single(b => b.Type == BuildingType.TownHall).Level);
+        // VMiddle touche Forêt, Plaine et Montagne : Scierie, Moulin et Carrière y sont constructibles.
+        Assert.Contains(city.Buildings, b => b.Type == BuildingType.Sawmill);
+        Assert.Contains(city.Buildings, b => b.Type == BuildingType.Mill);
+        Assert.Contains(city.Buildings, b => b.Type == BuildingType.Quarry);
+        // Aucune Colline adjacente (Briqueterie), et la Mine exige le niveau de ville 3 (jamais atteint ici).
+        Assert.DoesNotContain(city.Buildings, b => b.Type == BuildingType.Brickworks);
+        Assert.DoesNotContain(city.Buildings, b => b.Type == BuildingType.Mine);
+    }
+
+    [Fact]
+    public void BuildCity_DivineConquestActive_GrantsPalisadeBarracksAndSoldiersCappedByCityCapacity()
+    {
+        var (state, civ, _, vMiddle, _) = RibbonIsland();
+        civ.AddCustomAggregator(new FlatModifierProvider(
+            new Modifier(ECategory.NEW_CITY_DIVINE_CONQUEST, EType.ADDITIVE, 1)));
+        GrantBasicResourcesForCityConstruction(civ);
+
+        var city = Controller(state).BuildCity(0, vMiddle);
+
+        Assert.NotNull(city);
+        Assert.Equal(1, city!.Buildings.Single(b => b.Type == BuildingType.Palisade).Level);
+        Assert.Equal(1, city.Buildings.Single(b => b.Type == BuildingType.Barracks).Level);
+        // Caserne niveau 1 seule -> capacité 5 (Barracks.MaxSoldiersPerLevel), plafonnée sous 20.
+        Assert.Equal(Barracks.MaxSoldiersPerLevel, city.MaxSoldiers);
+        Assert.Equal(city.MaxSoldiers, city.Soldiers);
+    }
+
+    [Fact]
+    public void BuildCity_DivineConquestActive_StacksPalisadeLevelWithFortifiedOutpostGrant()
+    {
+        // Simule le cumul avec le vertex de prestige Avant-poste fortifié (NEW_CITY_BUILDING
+        // "Palisade") : les deux sources doivent produire une Palissade niveau 2, pas une seule
+        // Palissade niveau 1 partagée (voir CityBuilderController.GrantDivineConquestGarrison).
+        var (state, civ, _, vMiddle, _) = RibbonIsland();
+        civ.AddCustomAggregator(new FlatModifierProvider(
+            new Modifier(ECategory.NEW_CITY_BUILDING, "Palisade", EType.ADDITIVE, 1),
+            new Modifier(ECategory.NEW_CITY_DIVINE_CONQUEST, EType.ADDITIVE, 1)));
+        GrantBasicResourcesForCityConstruction(civ);
+
+        var city = Controller(state).BuildCity(0, vMiddle);
+
+        Assert.NotNull(city);
+        Assert.Equal(2, city!.Buildings.Single(b => b.Type == BuildingType.Palisade).Level);
     }
 }

@@ -37,6 +37,18 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             STARTING_CITY_BUILDING,
             /// <summary>SubCategory = BuildingType name. Granted to every new outpost, including the initial city.</summary>
             NEW_CITY_BUILDING,
+            /// <summary>Pouvoir divin Construction Divine (AscensionPowerId.DivineConstruction) : chaque nouvel
+            /// avant-poste du joueur reçoit un Hôtel de ville niveau 1, puis tout bâtiment de production basique
+            /// (Scierie, Briqueterie, Moulin, Carrière, Mine) réellement constructible à cet emplacement — seul
+            /// le terrain (et, pour la Mine, le niveau de ville) en décide. Voir
+            /// CityBuilderController.GrantDivineConstructionBuildings. SubCategory unused.</summary>
+            NEW_CITY_DIVINE_CONSTRUCTION,
+            /// <summary>Pouvoir divin Conquête Divine (AscensionPowerId.DivineConquest) : chaque nouvel avant-poste
+            /// du joueur reçoit une Palissade (+1 niveau si une Palissade lui a déjà été accordée par ailleurs,
+            /// ex. le vertex de prestige Avant-poste fortifié — les deux se cumulent alors en Palissade niveau 2),
+            /// une Caserne niveau 1, et jusqu'à 20 soldats en garnison (moins si la capacité maximale de la ville
+            /// est inférieure). Voir CityBuilderController.GrantDivineConquestGarrison. SubCategory unused.</summary>
+            NEW_CITY_DIVINE_CONQUEST,
             /// <summary>Flat bonus added to the city defense score. SubCategory unused.</summary>
             CITY_DEFENSE,
             /// <summary>SubCategory = TechnologyId name. Signals that this vertex unlocks the given technology.</summary>

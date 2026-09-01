@@ -5,6 +5,7 @@ The changelog is not actively maintained at the moment.
 
 v0.20
 • New Milestones tab on the Ascension screen: unlocks equivalent divine powers for free based on how many different races have already completed an Ascension
+• New Divine Construction and Divine Conquest divine powers: every new outpost automatically gets its basic buildings (Town Hall, production, Palisade, Barracks) and a starting garrison
 
 ---
 

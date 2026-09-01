@@ -1374,4 +1374,48 @@ public class AscensionControllerTests
         godState.DivineEssence = AscensionController.MinDivineEssenceForAscension;
         return controller;
     }
+
+    // ── Construction Divine / Conquête Divine ───────────────────────────────
+    // Le comportement d'octroi (bâtiments réellement constructibles, cumul de la Palissade) vit dans
+    // CityBuilderController.CreateCityAt — voir CityBuilderControllerTests. Ces tests-ci ne couvrent
+    // que le drapeau de modifier et l'ordre de déblocage de la colonne.
+
+    [Fact]
+    public void GetModifiers_DivineConstruction_GrantsNewCityDivineConstructionFlag()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.NEW_CITY_DIVINE_CONSTRUCTION);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
+
+        Assert.Contains(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.NEW_CITY_DIVINE_CONSTRUCTION);
+    }
+
+    [Fact]
+    public void GetModifiers_DivineConquest_GrantsNewCityDivineConquestFlag()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.NEW_CITY_DIVINE_CONQUEST);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConquest));
+
+        Assert.Contains(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.NEW_CITY_DIVINE_CONQUEST);
+    }
+
+    [Fact]
+    public void DivineConquest_RequiresDivineConstructionFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.DivineConquest));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineConquest));
+    }
 }
