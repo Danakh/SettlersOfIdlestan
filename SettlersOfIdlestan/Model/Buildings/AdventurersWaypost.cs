@@ -1,4 +1,3 @@
-using System.Linq;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Model.Buildings;
@@ -55,18 +54,23 @@ public class AdventurersWaypost : Building
     /// <summary>
     /// La Guilde doit être bâtie quelque part dans la civilisation — pas nécessairement dans cette
     /// ville : c'est ce qui permet d'ouvrir des Relais dans d'autres villes (voir
-    /// building_adventurersguild_desc).
+    /// building_adventurersguild_desc). Passe par <see cref="Civilization.GetUniqueBuilding"/>
+    /// plutôt que par un scan de <c>civ.Cities</c> : une Guilde accordée en permanence par
+    /// l'Ascension (<see cref="Civilization.IsAscensionGrantedUniqueBuilding"/>) ne vit dans
+    /// aucune ville, et un scan direct ne la verrait jamais.
     /// </summary>
     public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state)
     {
         if (state == null) return false;
         var owner = state.FindCityAt(city.Position);
         var civ = owner != null ? state.GetCivilization(owner.CivilizationIndex) : null;
-        return civ != null && civ.Cities.Any(c => c.FindBuilding(BuildingType.AdventurersGuild) is { Level: > 0 });
+        return civ?.GetUniqueBuilding(BuildingType.AdventurersGuild) is { Level: > 0 };
     }
 
     public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
         => HasBuildPrerequisites(city, state) ? null : "tooltip_requires_adventurersguild";
+
+    public override BuildingType? RequiredUniqueBuildingType => BuildingType.AdventurersGuild;
 
     /// <summary>
     /// Coût = coût de base de la Guilde des Aventuriers × (0,5 + 1,0 × PriorWaypostCount). Le

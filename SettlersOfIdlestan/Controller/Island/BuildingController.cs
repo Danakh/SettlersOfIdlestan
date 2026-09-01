@@ -536,11 +536,14 @@ namespace SettlersOfIdlestan.Controller.Island
                 return null;
 
             // Alchimist Hut / Mage Tower : prérequis lié à une feature de carte (Cercle de Fées) ou
-            // à un terrain (Grotte de Cristal) découvert, pas à un autre bâtiment construisible —
-            // reste masquée tant que le prérequis n'est pas rempli, plutôt qu'affichée grisée avec
-            // tooltip (voir GetUniqueBuildingsAndBuildables pour le même traitement des bâtiments
-            // uniques équivalents comme la Forge Volcanique).
-            if ((bt == BuildingType.AlchimistHut || bt == BuildingType.MageTower) &&
+            // à un terrain (Grotte de Cristal) découvert. RequiredUniqueBuildingType renseigné (ex :
+            // Relais des Aventuriers → Guilde des Aventuriers) : prérequis lié à un bâtiment unique
+            // pas encore construit ailleurs dans la civilisation. Dans les deux cas ce n'est pas un
+            // bâtiment normal constructible dans cette ville — la liste reste masquée tant que le
+            // prérequis n'est pas rempli, plutôt qu'affichée grisée avec tooltip (voir
+            // GetUniqueBuildingsAndBuildables pour le même traitement des bâtiments uniques
+            // équivalents comme la Forge Volcanique).
+            if ((bt == BuildingType.AlchimistHut || bt == BuildingType.MageTower || prototype.RequiredUniqueBuildingType != null) &&
                 _state != null && !prototype.HasBuildPrerequisites(city, _state))
                 return null;
 

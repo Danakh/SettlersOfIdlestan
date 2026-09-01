@@ -320,4 +320,64 @@ public class BuildingControllerTests
 
         Assert.Contains(buildings, b => b.Type == BuildingType.AlchimistHut);
     }
+
+    /// <summary>
+    /// Ajoute une couche Inframonde avec deux villes géométriquement séparées (la Guilde des
+    /// Aventuriers n'est pas unique dans SON HasBuildPrerequisites, seule sa présence quelque part
+    /// dans la civilisation compte) : celle passée à l'appelant, sans Hôtel de Ville, et une
+    /// seconde éventuellement porteuse de la Guilde.
+    /// </summary>
+    private static City AddUnderworldCity(WorldState state, Civilization civ, HexCoord anchor)
+    {
+        var tiles = new[] { new HexTile(anchor, TerrainType.Mountain) };
+        if (!state.Layers.ContainsKey(LayerState.UnderworldZ))
+            state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(tiles, LayerState.UnderworldZ)));
+
+        var vertex = Vertex.Create(anchor, anchor.Neighbor(HexDirection.E), anchor.Neighbor(HexDirection.NE));
+        var city = new City(vertex) { CivilizationIndex = civ.Index };
+        city.AddBuilding(new TownHall { Level = 1 });
+        civ.AddCity(city);
+        return city;
+    }
+
+    [Fact]
+    public void GetBuildingsAndBuildables_AdventurersWaypostWithoutGuildAnywhere_IsHiddenFromList()
+    {
+        var (state, controller, _) = CreateTestSetup();
+        var civ = state.Civilizations[0];
+        var underworldCity = AddUnderworldCity(state, civ, new HexCoord(0, 0, LayerState.UnderworldZ));
+
+        var buildings = controller.GetBuildingsAndBuildables(underworldCity);
+
+        Assert.DoesNotContain(buildings, b => b.Type == BuildingType.AdventurersWaypost);
+    }
+
+    [Fact]
+    public void GetBuildingsAndBuildables_AdventurersWaypostWithGuildBuiltInAnotherCity_AppearsInList()
+    {
+        var (state, controller, _) = CreateTestSetup();
+        var civ = state.Civilizations[0];
+        var guildCity = AddUnderworldCity(state, civ, new HexCoord(0, 0, LayerState.UnderworldZ));
+        guildCity.AddBuilding(new AdventurersGuild { Level = 1 });
+        var otherCity = AddUnderworldCity(state, civ, new HexCoord(10, 0, LayerState.UnderworldZ));
+
+        var buildings = controller.GetBuildingsAndBuildables(otherCity);
+
+        Assert.Contains(buildings, b => b.Type == BuildingType.AdventurersWaypost);
+    }
+
+    [Fact]
+    public void GetBuildingsAndBuildables_AdventurersWaypostWithGuildGrantedByAscension_AppearsInList()
+    {
+        var (state, controller, _) = CreateTestSetup();
+        var civ = state.Civilizations[0];
+        // Guilde accordée en permanence par l'Ascension : ne vit dans aucune ville (voir
+        // Civilization.SetAscensionGrantedUniqueBuildings), donc invisible à un scan de civ.Cities.
+        civ.SetAscensionGrantedUniqueBuildings(new[] { BuildingType.AdventurersGuild });
+        var underworldCity = AddUnderworldCity(state, civ, new HexCoord(0, 0, LayerState.UnderworldZ));
+
+        var buildings = controller.GetBuildingsAndBuildables(underworldCity);
+
+        Assert.Contains(buildings, b => b.Type == BuildingType.AdventurersWaypost);
+    }
 }

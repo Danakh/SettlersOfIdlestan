@@ -502,6 +502,17 @@ public class Building
     public virtual bool HasBuildPrerequisites(IBuildingContext city, WorldState? state) => true;
 
     /// <summary>
+    /// Type du bâtiment unique dont ce bâtiment dépend pour pouvoir être bâti (ex : Relais des
+    /// Aventuriers → Guilde des Aventuriers), ou <c>null</c> si son prérequis n'en est pas un.
+    /// Sert uniquement à décider si la liste des bâtiments constructibles doit masquer l'entrée
+    /// plutôt que l'afficher grisée avec tooltip tant que le prérequis n'est pas rempli (voir
+    /// BuildingController.GetBuildingOrBuildableEntry) — même traitement que les prérequis liés à
+    /// une feature de carte (Cercle de Fées, Volcan), pour la même raison : ce n'est pas un
+    /// bâtiment normal constructible dans cette ville.
+    /// </summary>
+    public virtual BuildingType? RequiredUniqueBuildingType => null;
+
+    /// <summary>
     /// Returns the localization key describing the missing prerequisite, or null if none.
     /// Used by the UI to show a tooltip warning when HasBuildPrerequisites is false.
     /// </summary>

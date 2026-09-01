@@ -1278,6 +1278,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.GetFormated("event_monument_investment_blocked_body",
                     _localizationService.Get(entry.Message ?? "")),
                 NotificationIcon.StoreFail),
+            GameEventType.CityLostToTerrain => (
+                _localizationService.Get("event_city_lost_to_terrain_title"),
+                _localizationService.Get("event_city_lost_to_terrain_body"),
+                NotificationIcon.StoreFail),
             _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
         };
         _notificationToastRenderer.ShowNotification(title, message, icon);
