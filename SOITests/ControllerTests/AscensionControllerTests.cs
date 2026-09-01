@@ -626,12 +626,45 @@ public class AscensionControllerTests
         Assert.Empty(ascension.GetWalkOfGodTargetHexes());
 
         var (weakHex, _) = SeedDominion(state, level: 1, q: 1, r: 0);
-        var (strongHex, _) = SeedDominion(state, level: 2, q: -1, r: 0);
+        // NE (0,1) plutôt que Ouest (-1,0) : ce dernier n'est pas dans le champ de vision de la
+        // ville de test (voir IsVisibleToPlayer), qui ne couvre que centre/NE/Est.
+        var (strongHex, _) = SeedDominion(state, level: 2, q: 0, r: 1);
 
         var targets = ascension.GetWalkOfGodTargetHexes();
         Assert.DoesNotContain(weakHex, targets);
         Assert.Contains(strongHex, targets);
         Assert.Single(targets);
+    }
+
+    [Fact]
+    public void GetWalkOfGodTargetHexes_ExcludesDeepWaterAndVoid()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+
+        var (deepWaterHex, _) = SeedDominion(state, level: 2, q: 0, r: 0);
+        state.GetMapFor(deepWaterHex)!.GetTile(deepWaterHex)!.TerrainType = TerrainType.DeepWater;
+        var (voidHex, _) = SeedDominion(state, level: 2, q: 0, r: 1);
+        state.GetMapFor(voidHex)!.GetTile(voidHex)!.TerrainType = TerrainType.Void;
+
+        Assert.Empty(ascension.GetWalkOfGodTargetHexes());
+    }
+
+    [Fact]
+    public void ApplyWalkOfGod_OnDeepWaterOrVoid_FailsAndCostsNothing()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+
+        var (deepWaterHex, _) = SeedDominion(state, level: 2, q: 0, r: 0);
+        state.GetMapFor(deepWaterHex)!.GetTile(deepWaterHex)!.TerrainType = TerrainType.DeepWater;
+        var (voidHex, _) = SeedDominion(state, level: 2, q: 0, r: 1);
+        state.GetMapFor(voidHex)!.GetTile(voidHex)!.TerrainType = TerrainType.Void;
+
+        Assert.False(ascension.ApplyWalkOfGod(deepWaterHex));
+        Assert.False(ascension.ApplyWalkOfGod(voidHex));
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(0, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
     }
 
     [Fact]
@@ -869,13 +902,16 @@ public class AscensionControllerTests
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockPresenceOfGod(ascension);
 
+        // Est (1,0) plutôt qu'Ouest (-1,0) : ce dernier n'est pas dans le champ de vision de la
+        // ville de test (voir IsVisibleToPlayer), qui ne couvre que centre/NE/Est.
+        var east = new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
         var west = new HexCoord(-1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
-        state.GetMapFor(west)!.GetTile(west)!.TerrainType = SettlersOfIdlestan.Model.IslandMap.TerrainType.Water;
-        int tileCount = state.GetMapForZ(SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer)!.Tiles.Count;
+        state.GetMapFor(east)!.GetTile(east)!.TerrainType = SettlersOfIdlestan.Model.IslandMap.TerrainType.Water;
 
         var targets = ascension.GetPresenceOfGodTargetHexes();
-        Assert.Contains(west, targets);
-        Assert.Equal(tileCount, targets.Count);
+        Assert.Contains(east, targets);
+        // Hex hors du brouillard de guerre découvert : jamais ciblable, même sur la surface.
+        Assert.DoesNotContain(west, targets);
     }
 
     [Fact]
@@ -884,13 +920,41 @@ public class AscensionControllerTests
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockPresenceOfGod(ascension);
 
-        var west = new HexCoord(-1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
-        state.GetMapFor(west)!.GetTile(west)!.TerrainType = SettlersOfIdlestan.Model.IslandMap.TerrainType.Water;
+        // Est (1,0) plutôt qu'Ouest (-1,0) : ce dernier n'est pas dans le champ de vision de la
+        // ville de test (voir IsVisibleToPlayer), qui ne couvre que centre/NE/Est.
+        var east = new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        state.GetMapFor(east)!.GetTile(east)!.TerrainType = SettlersOfIdlestan.Model.IslandMap.TerrainType.Water;
 
-        Assert.True(ascension.ApplyPresenceOfGod(west));
+        Assert.True(ascension.ApplyPresenceOfGod(east));
 
         // L'eau est un hex valide : le Dominion y naît comme sur la terre (prélude à Marche de Dieu).
-        Assert.Equal(5, state.GetFeaturesAt(west).OfType<Dominion>().Single().Level);
+        Assert.Equal(5, state.GetFeaturesAt(east).OfType<Dominion>().Single().Level);
+    }
+
+    [Fact]
+    public void GetPresenceOfGodTargetHexes_ExcludesDeepWater()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockPresenceOfGod(ascension);
+
+        var east = new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        state.GetMapFor(east)!.GetTile(east)!.TerrainType = TerrainType.DeepWater;
+
+        Assert.DoesNotContain(east, ascension.GetPresenceOfGodTargetHexes());
+    }
+
+    [Fact]
+    public void ApplyPresenceOfGod_OnDeepWater_FailsAndCostsNothing()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockPresenceOfGod(ascension);
+
+        var east = new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        state.GetMapFor(east)!.GetTile(east)!.TerrainType = TerrainType.DeepWater;
+
+        Assert.False(ascension.ApplyPresenceOfGod(east));
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal(0, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
     }
 
     [Fact]

@@ -773,9 +773,13 @@ public class AscensionController : IModifierProvider
     /// Hexs ciblables par Marche de Dieu : les hexs de la surface et de l'Inframonde (Eau incluse,
     /// voir <see cref="WalkOfGodLayers"/>) portant un Dominion de niveau
     /// <see cref="WalkOfGodMinDominionLevel"/> ou plus — Dieu ne marche que là où son emprise est
-    /// déjà établie. L'Abysse et le Pandémonium restent hors de portée (voir
-    /// <see cref="ApplyWalkOfGod"/>). Le Dominion pouvant s'étendre sur l'eau, c'est ainsi qu'on
-    /// terraforme la mer : y faire croître le Dominion, puis y marcher.
+    /// déjà établie — et actuellement découverts par le joueur (voir <see cref="IsVisibleToPlayer"/>) :
+    /// comme Poing de Dieu, la marche reste bornée au brouillard de guerre. L'Eau Profonde et le Void
+    /// sont exclus quel que soit le Dominion qui s'y trouve : la première ne mène nulle part de
+    /// constructible une fois terraformée, le second n'est qu'un remplissage de bordure de carte sans
+    /// terrain réel dessous. L'Abysse et le Pandémonium restent hors de portée (voir
+    /// <see cref="ApplyWalkOfGod"/>). Le Dominion pouvant s'étendre sur l'eau (peu profonde), c'est
+    /// ainsi qu'on terraforme la mer : y faire croître le Dominion, puis y marcher.
     /// </summary>
     public IReadOnlyList<HexCoord> GetWalkOfGodTargetHexes()
     {
@@ -788,8 +792,9 @@ public class AscensionController : IModifierProvider
             if (map == null) continue;
 
             result.AddRange(map.Tiles.Values
+                .Where(t => t.TerrainType != TerrainType.DeepWater && t.TerrainType != TerrainType.Void)
                 .Select(t => t.Coord)
-                .Where(c => GetWalkOfGodDominion(c) != null));
+                .Where(c => GetWalkOfGodDominion(c) != null && IsVisibleToPlayer(c)));
         }
 
         return result;
@@ -798,6 +803,17 @@ public class AscensionController : IModifierProvider
     /// <summary>Dominion de niveau suffisant (voir <see cref="WalkOfGodMinDominionLevel"/>) sur l'hex, ou null.</summary>
     private Dominion? GetWalkOfGodDominion(HexCoord hex) =>
         _state?.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault(d => d.Level >= WalkOfGodMinDominionLevel);
+
+    /// <summary>
+    /// Vrai si l'hex est actuellement découvert par le joueur (brouillard de guerre levé) sur sa
+    /// propre couche — les pouvoirs divins ciblés ne s'exercent jamais à l'aveugle (voir
+    /// <see cref="GetFistOfGodTargetHexes"/>, <see cref="GetWalkOfGodTargetHexes"/>,
+    /// <see cref="GetPresenceOfGodTargetHexes"/>).
+    /// </summary>
+    private bool IsVisibleToPlayer(HexCoord hex) =>
+        _state != null
+        && _state.Visibility.GetForZ(hex.Z).TryGetValue(_state.PlayerCivilization.Index, out var visibleMap)
+        && visibleMap.HasTile(hex);
 
     /// <summary>
     /// Coût en points de prestige de la prochaine utilisation d'un pouvoir divin ciblé (Marche,
@@ -877,8 +893,18 @@ public class AscensionController : IModifierProvider
         var tile = map?.GetTile(hex);
         if (tile == null) return false;
 
+        // Marche de Dieu exclut l'Eau Profonde et le Void, quel que soit le Dominion qui s'y trouve
+        // (voir GetWalkOfGodTargetHexes) : ce garde-fou rend l'invariant vrai même pour un appelant
+        // direct qui passerait un tel hex.
+        if (tile.TerrainType == TerrainType.DeepWater || tile.TerrainType == TerrainType.Void) return false;
+
         var dominion = GetWalkOfGodDominion(hex);
         if (dominion == null) return false;
+
+        // Marche de Dieu ne cible que le brouillard de guerre découvert (voir
+        // GetWalkOfGodTargetHexes) : ce garde-fou rend l'invariant vrai même pour un appelant direct
+        // qui passerait un hex non visible.
+        if (!IsVisibleToPlayer(hex)) return false;
 
         bool wasWater = tile.TerrainType == TerrainType.Water;
 
@@ -935,9 +961,13 @@ public class AscensionController : IModifierProvider
     public const int PresenceOfGodNeighborPoints = 3;
 
     /// <summary>
-    /// Hexs ciblables par Présence de Dieu : tous les hexs de la carte de surface, Eau incluse —
-    /// la Corruption et le Dominion peuvent exister sur l'eau (voir CorruptionController.IsValidHex),
-    /// et semer du Dominion en mer est le prélude à la terraformation par Marche de Dieu.
+    /// Hexs ciblables par Présence de Dieu : les hexs de la carte de surface, Eau (peu profonde)
+    /// incluse — la Corruption et le Dominion peuvent exister sur l'eau (voir
+    /// CorruptionController.IsValidHex), et semer du Dominion en mer est le prélude à la
+    /// terraformation par Marche de Dieu — mais pas l'Eau Profonde, qui reste hors de portée comme
+    /// pour Marche de Dieu — et actuellement découverts par le joueur (voir
+    /// <see cref="IsVisibleToPlayer"/>) : comme les autres pouvoirs divins ciblés, la Présence ne
+    /// s'exerce pas à l'aveugle.
     /// </summary>
     public IReadOnlyList<HexCoord> GetPresenceOfGodTargetHexes()
     {
@@ -947,7 +977,9 @@ public class AscensionController : IModifierProvider
         if (map == null) return Array.Empty<HexCoord>();
 
         return map.Tiles.Values
+            .Where(t => t.TerrainType != TerrainType.DeepWater)
             .Select(t => t.Coord)
+            .Where(IsVisibleToPlayer)
             .ToList();
     }
 
@@ -979,7 +1011,18 @@ public class AscensionController : IModifierProvider
     {
         if (_state == null || !CanUsePresenceOfGod()) return false;
 
-        if (_state.GetMapFor(hex)?.GetTile(hex) == null) return false;
+        var tile = _state.GetMapFor(hex)?.GetTile(hex);
+        if (tile == null) return false;
+
+        // Présence de Dieu exclut l'Eau Profonde, comme Marche de Dieu (voir
+        // GetPresenceOfGodTargetHexes) : ce garde-fou rend l'invariant vrai même pour un appelant
+        // direct qui passerait un tel hex.
+        if (tile.TerrainType == TerrainType.DeepWater) return false;
+
+        // Présence de Dieu ne cible que le brouillard de guerre découvert (voir
+        // GetPresenceOfGodTargetHexes) : ce garde-fou rend l'invariant vrai même pour un appelant
+        // direct qui passerait un hex non visible.
+        if (!IsVisibleToPlayer(hex)) return false;
 
         ApplyPresencePoints(hex, PresenceOfGodCenterPoints);
         foreach (var neighbor in hex.Neighbors())
@@ -1071,8 +1114,7 @@ public class AscensionController : IModifierProvider
         // Poing de Dieu ne cible que le brouillard de guerre découvert (voir
         // GetFistOfGodTargetHexes) : ce garde-fou rend l'invariant vrai même pour un appelant direct
         // qui passerait un hex non visible.
-        if (!_state.Visibility.GetForZ(hex.Z).TryGetValue(_state.PlayerCivilization.Index, out var visibleMap) || !visibleMap.HasTile(hex))
-            return false;
+        if (!IsVisibleToPlayer(hex)) return false;
 
         StrikeMonsterAt(hex);
         StrikeCitiesAdjacentTo(hex);
