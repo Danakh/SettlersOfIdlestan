@@ -147,8 +147,13 @@ public class CorruptionController
                 var temple = city.FindBuilding<Temple>(BuildingType.Temple) is { } t0 && t0.Level >= TempleMinDominionLevel && t0.Level <= TempleMaxDominionLevel ? t0 : null;
                 if (temple == null) continue;
 
+                // coldStartOnZero: true — LastDominionProductionTick est persisté à 0 tant que le Temple
+                // n'a jamais encore produit (construction/promotion au niveau 2 en cours de partie déjà
+                // avancée). Sans ce garde-fou, ConsumeElapsedCycles traiterait ce 0 comme un tracker actif
+                // depuis le tick 0 et rattraperait tout l'écoulé de la partie en un seul appel — un Temple
+                // tout juste construit inonderait aussitôt ses hexes voisins de Dominion.
                 long lastTick = temple.LastDominionProductionTick;
-                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, ProductionIntervalTicks);
+                long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, ProductionIntervalTicks, coldStartOnZero: true);
                 temple.LastDominionProductionTick = lastTick;
                 if (cycles <= 0) continue;
 

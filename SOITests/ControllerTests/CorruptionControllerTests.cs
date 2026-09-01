@@ -120,6 +120,7 @@ public class CorruptionControllerTests
         clock.Start();
         CreateController(state, clock);
 
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         var dominion = state.GetFeaturesAt(landHex).OfType<Dominion>().SingleOrDefault();
@@ -138,6 +139,7 @@ public class CorruptionControllerTests
         clock.Start();
         CreateController(state, clock);
 
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         var dominion = state.GetFeaturesAt(landHex).OfType<Dominion>().Single();
@@ -155,6 +157,7 @@ public class CorruptionControllerTests
         clock.Start();
         CreateController(state, clock);
 
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         var dominion = state.GetFeaturesAt(landHex).OfType<Dominion>().Single();
@@ -172,6 +175,7 @@ public class CorruptionControllerTests
         clock.Start();
         CreateController(state, clock);
 
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         var corruption = state.GetFeaturesAt(landHex).OfType<Corruption>().Single();
@@ -190,6 +194,7 @@ public class CorruptionControllerTests
         clock.Start();
         CreateController(state, clock);
 
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
@@ -401,6 +406,7 @@ public class CorruptionControllerTests
         clock.Start();
         CreateController(state, clock);
 
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         var dominion = state.GetFeaturesAt(landHex).OfType<Dominion>().Single();
@@ -610,6 +616,7 @@ public class CorruptionControllerTests
         clock.Start();
         CreateController(state, clock);
 
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         Assert.Single(state.GetFeaturesAt(landHex).OfType<Dominion>());
@@ -664,6 +671,7 @@ public class CorruptionControllerTests
         clock.Start();
         CreateController(state, clock);
 
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         Assert.Single(state.GetFeaturesAt(landHex).OfType<Dominion>());
