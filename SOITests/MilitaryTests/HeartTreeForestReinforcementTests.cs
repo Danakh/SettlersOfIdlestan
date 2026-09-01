@@ -101,18 +101,28 @@ public class HeartTreeForestReinforcementTests
     [Fact]
     public void Reinforcement_AllowedBeyondRange_WithHeartTree_WhenBothCitiesForestAdjacent()
     {
+        // Le lien forestier ignore la portée ET transite instantanément : pas de soldat en transit,
+        // le renfort arrive dans la même résolution que l'expédition.
         var (clock, _, source, target) = Setup(withHeartTree: true, sourceForest: true, targetForest: true);
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
         Assert.Equal(4, source.Soldiers);
-        Assert.Single(target.IncomingSoldiers);
-
-        // Le trajet (6 segments = 120 ticks) dépasse l'intervalle entre deux expéditions (100 ticks) :
-        // un second soldat est expédié avant l'arrivée du premier. On ne vérifie donc que l'arrivée du
-        // premier, preuve suffisante que le lien forestier a bien laissé passer le renfort malgré la
-        // distance hors de portée normale.
-        clock.SimulateAdvance(6 * MilitaryController.ReinforcementTicksPerRoadSegment);
         Assert.Equal(1, target.Soldiers);
+        Assert.Empty(target.IncomingSoldiers);
+    }
+
+    [Fact]
+    public void Reinforcement_ForestLink_DoesNotFireVisualParticleEvent()
+    {
+        // Pas d'animation de soldat en marche pour un renfort magique instantané.
+        var (clock, ctrl, _, _) = Setup(withHeartTree: true, sourceForest: true, targetForest: true);
+
+        bool fired = false;
+        ctrl.ReinforcementSent += (_, _) => fired = true;
+
+        clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
+
+        Assert.False(fired);
     }
 
     [Fact]

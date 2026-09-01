@@ -71,7 +71,8 @@ internal class ReinforcementEngine
     /// deux villes de la civilisation, sur le même plan, toutes deux adjacentes à une case Forêt, et
     /// reliées par une route — sans limite de longueur, contrairement à REINFORCEMENT_RANGE. Seule la
     /// portée est ignorée, pas le réseau routier : deux villes forestières sans route entre elles ne
-    /// sont toujours pas éligibles.
+    /// sont toujours pas éligibles. Un renfort emprunté sur ce lien est en plus instantané (voir
+    /// ResolveReinforcements) — pas de soldat en transit ni d'animation sur la carte.
     /// </summary>
     internal bool HasUnlimitedRangeReinforcementLink(Civilization civ, IMilitaryVertex source, IMilitaryVertex target)
     {
@@ -146,9 +147,24 @@ internal class ReinforcementEngine
                 if (!vertexByPos.TryGetValue(sourceVertex.FlowTarget, out var targetVertex) || targetVertex == sourceVertex) continue;
 
                 var adj = GetAdjacency(civ, sourceVertex.Position.Z);
+
+                // Lien forestier de l'Arbre-Cœur : renfort magique instantané, sans soldat en transit
+                // ni animation sur la carte — seule la connectivité routière compte, pas la portée.
+                bool forestLinked = HasUnlimitedRangeReinforcementLink(civ, sourceVertex, targetVertex);
+                if (forestLinked)
+                {
+                    if (!RoadPathfinder.HasPathInGraph(adj, sourceVertex.Position, targetVertex.Position)) continue;
+
+                    int effectiveForestTarget = targetVertex.Soldiers + targetVertex.IncomingSoldiers.Count;
+                    if (effectiveForestTarget >= _productionEngine!.GetMaximumSoldierCapacity(targetVertex)) continue;
+
+                    sourceVertex.Soldiers--;
+                    sourceVertex.LastReinforcementTick = currentTick;
+                    targetVertex.Soldiers++;
+                    continue;
+                }
+
                 var roadPath = RoadPathfinder.FindPathInGraph(adj, sourceVertex.Position, targetVertex.Position, range);
-                if (roadPath == null && HasUnlimitedRangeReinforcementLink(civ, sourceVertex, targetVertex))
-                    roadPath = RoadPathfinder.FindPathInGraph(adj, sourceVertex.Position, targetVertex.Position);
                 if (roadPath == null) continue;
 
                 int roadSegments = roadPath.Count - 1;
