@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -63,4 +64,9 @@ public class ResourceUtils
         Resource.MithrilArmor,
         Resource.HealingPotion,
     };
+    /// <summary>Basic + Intermediate + Advanced resources — every resource except the crafted consumables.</summary>
+    public static List<Resource> NonConsumableResources = BasicResources
+        .Concat(IntermediateResources)
+        .Concat(AdvancedResources)
+        .ToList();
 }

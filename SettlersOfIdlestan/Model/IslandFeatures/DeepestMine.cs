@@ -31,7 +31,7 @@ public class DeepestMine : Monument
         { Resource.Gold,  2000 },
     };
 
-    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetDigCost();
+    public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetDigCost();
 
     [JsonIgnore]
     public override string PanelTitleKey => "deepest_mine_panel_title";

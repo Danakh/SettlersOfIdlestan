@@ -25,7 +25,7 @@ public class PandemoniumGate : Monument
     public bool Built { get; set; } = false;
 
     /// <summary>Même coût que la Faille des Abysses — voir le commentaire de classe.</summary>
-    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => AbyssGate.GetGateCost();
+    public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => AbyssGate.GetGateCost();
 
     [JsonIgnore]
     public override string PanelTitleKey => "pandemonium_gate_panel_title";

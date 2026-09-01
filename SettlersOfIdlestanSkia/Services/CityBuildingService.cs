@@ -199,7 +199,9 @@ public class CityBuildingService
 
     public long GetEffectiveSeaportGenerationCooldown(Seaport seaport)
     {
-        return HarvestController.GetEffectiveSeaportGenerationCooldown(seaport);
+        var civ = SelectedCivilization;
+        return civ == null ? HarvestController.SeaportGenerationCooldownTicks
+            : HarvestController.GetEffectiveSeaportGenerationCooldown(civ, seaport);
     }
 
     /// <summary>Cooldown effectif de génération d'or du Marché de la civilisation sélectionnée.</summary>

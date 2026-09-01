@@ -173,9 +173,10 @@ public class TraderGuildTests
     [Fact]
     public void Seaport_Level3_HasBaseCooldown()
     {
+        var (_, _, civ) = CreateSetup();
         var seaport = new Seaport { Level = 3 };
 
-        long cooldown = HarvestController.GetEffectiveSeaportGenerationCooldown(seaport);
+        long cooldown = HarvestController.GetEffectiveSeaportGenerationCooldown(civ, seaport);
 
         Assert.Equal(HarvestController.SeaportGenerationCooldownTicks, cooldown);
     }
@@ -183,9 +184,10 @@ public class TraderGuildTests
     [Fact]
     public void Seaport_Level4_ReducesCooldownBy20Percent()
     {
+        var (_, _, civ) = CreateSetup();
         var seaport = new Seaport { Level = 4 };
 
-        long cooldown = HarvestController.GetEffectiveSeaportGenerationCooldown(seaport);
+        long cooldown = HarvestController.GetEffectiveSeaportGenerationCooldown(civ, seaport);
 
         // Level 4: multiplier = 0.8^(4-3) = 0.8 → 1000 * 0.8 = 800
         Assert.Equal(800L, cooldown);

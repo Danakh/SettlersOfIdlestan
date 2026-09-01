@@ -107,7 +107,7 @@ public class DivineBones : Monument
     }
 
     /// <summary>Coût en Cristal, Mithril et Acier, après DivineBonesCostReduction de la civilisation (hex de prestige Ossuaire).</summary>
-    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
     {
         long multiplier = GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected);
         return new()

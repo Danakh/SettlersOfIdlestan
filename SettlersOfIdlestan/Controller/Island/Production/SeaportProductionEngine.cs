@@ -40,16 +40,18 @@ internal sealed class SeaportProductionEngine
                 var seaport = city.FindBuilding<Seaport>(BuildingType.Seaport);
                 if (seaport == null || seaport.Level < 3) continue;
 
-                long effectiveCooldown = HarvestController.GetEffectiveSeaportGenerationCooldown(seaport);
+                long effectiveCooldown = HarvestController.GetEffectiveSeaportGenerationCooldown(civ, seaport);
                 long lastTick = seaport.LastGenerationTick;
                 long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, effectiveCooldown, coldStartOnZero: true);
                 seaport.LastGenerationTick = lastTick;
                 if (cycles <= 0) continue;
 
+                var resourcePool = HarvestController.GetSeaportResourcePool(civ);
+
                 // Rejoué cycle par cycle : la ressource tirée est indépendante à chaque cycle.
                 for (long c = 0; c < cycles; c++)
                 {
-                    var resource = ResourceUtils.BasicResources[_prng!.Next(ResourceUtils.BasicResources.Count)];
+                    var resource = resourcePool[_prng!.Next(resourcePool.Count)];
                     _trader!.TryAutoTradeOnOverflow(civ, city, resource);
                     civ.AddResource(resource, 1);
                     ResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, resource, city.Position));

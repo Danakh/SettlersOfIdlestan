@@ -582,6 +582,14 @@ public class Civilization
     public double DivineBonesCostReduction => ModifierAggregator.ApplyModifiers(ECategory.DIVINE_BONES_COST_REDUCTION, "", 0.0);
 
     /// <summary>
+    /// Monument investment cost reduction fraction (0.0 = no reduction, 0.25 = 25% cheaper). Applies
+    /// to all Monuments (Wonder, DeepestMine, CorruptionSpire, AbyssGate, Necropolis, Observatory,
+    /// PandemoniumGate, GreatLighthouse, DivineBones), on top of any Monument-specific reduction.
+    /// </summary>
+    [JsonIgnore]
+    public double MonumentCostReduction => ModifierAggregator.ApplyModifiers(ECategory.MONUMENT_COST_REDUCTION, "", 0.0);
+
+    /// <summary>
     /// Nombre d'essences divines (GodState.DivineEssence) conservées lors d'un prestige, au lieu
     /// d'être remises à zéro (voir PrestigeController.PerformPrestige).
     /// </summary>

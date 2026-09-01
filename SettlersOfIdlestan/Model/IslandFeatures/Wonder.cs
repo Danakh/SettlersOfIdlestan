@@ -46,7 +46,7 @@ public class Wonder : Monument
     }
 
     /// <summary>Coût applique WonderCostReduction de la civilisation</summary>
-    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
     {
         var baseCost = GetLevelCost(Level + 1);
         double reduction = playerCiv.WonderCostReduction;

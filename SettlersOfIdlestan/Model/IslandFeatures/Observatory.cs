@@ -63,7 +63,7 @@ public class Observatory : Monument
     /// <summary>Coût en points de recherche du level-up : 1 000 000 × niveau visé.</summary>
     public static long GetLevelResearchCost(int level) => 1_000_000L * level;
 
-    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
         => GetLevelCost(Level + 1);
 
     /// <summary>Chaque niveau consomme aussi des points de recherche, jusqu'au niveau maximum.</summary>

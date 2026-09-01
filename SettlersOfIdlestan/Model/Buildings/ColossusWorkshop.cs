@@ -6,7 +6,8 @@ namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
 /// Atelier des Colosses : bâtiment unique racial des Géants (voir RaceDefinitions). Donne une
-/// chance de doubler le rendement de toutes les récoltes automatiques. Niveau max par défaut 0 :
+/// chance de doubler le rendement de toutes les récoltes automatiques et réduit de 25% le coût
+/// d'investissement de tous les Monuments (MONUMENT_COST_REDUCTION). Niveau max par défaut 0 :
 /// constructible uniquement quand la race Géante fournit son BUILDING_MAX_LEVEL +1.
 /// </summary>
 public class ColossusWorkshop : Building, IUniqueBuilding
@@ -32,5 +33,6 @@ public class ColossusWorkshop : Building, IUniqueBuilding
     {
         if (Level <= 0) yield break;
         yield return new Modifier(ECategory.HARVEST_PRODUCTION_BONUS, EType.ADDITIVE, 10);
+        yield return new Modifier(ECategory.MONUMENT_COST_REDUCTION, EType.ADDITIVE, 0.25);
     }
 }

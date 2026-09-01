@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
@@ -48,8 +49,21 @@ public abstract class Monument : IslandFeature
     /// <summary>Tick du dernier cycle d'investissement en recherche (indépendant de <see cref="LastInvestmentTick"/>, dédié aux ressources).</summary>
     public long LastResearchInvestmentTick { get; set; } = 0;
 
-    /// <summary>Coût total de l'objectif d'investissement courant (modificateurs de la civilisation appliqués).</summary>
-    public abstract ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv);
+    /// <summary>Coût total de l'objectif d'investissement courant, avant MONUMENT_COST_REDUCTION (les réductions propres au Monument, ex. WONDER_COST_REDUCTION, sont déjà appliquées ici).</summary>
+    public abstract ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv);
+
+    /// <summary>Coût total de l'objectif d'investissement courant (modificateurs de la civilisation appliqués, y compris MONUMENT_COST_REDUCTION, commun à tous les Monuments).</summary>
+    public ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    {
+        var baseCost = GetBaseInvestmentCost(playerCiv);
+        double reduction = playerCiv.MonumentCostReduction;
+        if (reduction <= 0) return baseCost;
+
+        var reduced = new ResourceSet();
+        foreach (var kvp in baseCost)
+            reduced.Add(kvp.Key, Math.Max(1, (int)(kvp.Value * (1.0 - reduction))));
+        return reduced;
+    }
 
     /// <summary>
     /// True si l'objectif courant demande aussi des points de recherche — le panneau d'investissement

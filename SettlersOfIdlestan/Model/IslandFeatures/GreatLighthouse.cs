@@ -32,7 +32,7 @@ public class GreatLighthouse : Monument
         { Resource.Gold, 5000 * level * level },
     };
 
-    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
         => GetLevelCost(Level + 1);
 
     [JsonIgnore]

@@ -56,7 +56,7 @@ public class Necropolis : Monument
         { Resource.Mithril,  400 * level * level },
     };
 
-    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
         => GetLevelCost(Level + 1);
 
     [JsonIgnore]

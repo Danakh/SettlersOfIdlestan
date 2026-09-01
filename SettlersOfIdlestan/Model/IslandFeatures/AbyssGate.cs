@@ -40,7 +40,7 @@ public class AbyssGate : Monument
         { Resource.Mithril,    500 },
     };
 
-    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetGateCost();
+    public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetGateCost();
 
     [JsonIgnore]
     public override string PanelTitleKey => "abyss_gate_panel_title";

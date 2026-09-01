@@ -87,14 +87,16 @@ public class UniqueBuildingBonusTests
     }
 
     [Fact]
-    public void SkullPit_GrantsFreeSoldierFoodPerCity()
+    public void SkullPit_GrantsFreeSoldierFoodPerCityAndAttackRange()
     {
         var (_, city, civ) = CreateSetup();
         Assert.Equal(0, civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0));
+        Assert.Equal(0, civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_ATTACK_RANGE, "", 0));
 
         BuildUnique(city, civ, new SkullPit { Level = 1 });
 
-        Assert.Equal(5, civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0));
+        Assert.Equal(3, civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0));
+        Assert.Equal(1, civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_ATTACK_RANGE, "", 0));
     }
 
     [Fact]
@@ -105,8 +107,10 @@ public class UniqueBuildingBonusTests
 
         BuildUnique(city, civ, new PearlGrotto { Level = 1 });
 
-        Assert.Equal(3, civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
+        Assert.Equal(8, civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0));
         Assert.Equal(5, civ.ModifierAggregator.ApplyModifiers(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Food), 0));
+        Assert.Equal(2.0, civ.ModifierAggregator.ApplyModifiers(ECategory.SEAPORT_RANDOM_RESOURCE_SPEED, "", 1.0));
+        Assert.True(civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_SEAPORT_ADVANCED_RESOURCE_GENERATION));
     }
 
     [Fact]

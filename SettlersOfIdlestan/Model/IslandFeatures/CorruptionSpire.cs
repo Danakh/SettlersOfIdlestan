@@ -48,7 +48,7 @@ public class CorruptionSpire : Monument
         return cost;
     }
 
-    public override ResourceSet GetInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
+    public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
         => Built ? GetRadiusUpgradeCost(Radius + 1) : GetSpireCost();
 
     [JsonIgnore]

@@ -261,6 +261,12 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             RESEARCH_POINTS_PASSIVE_GENERATION,
             /// <summary>Flags que le renfort entre deux villes du même joueur, toutes deux adjacentes à une case Forêt et sur le même plan, ignore la portée de renfort (REINFORCEMENT_RANGE) — la route doit tout de même exister. SubCategory unused. Accordé par l'Arbre-Cœur.</summary>
             UNLOCK_FOREST_REINFORCEMENT_LINK,
+            /// <summary>Fraction de réduction du coût d'investissement de tous les Monuments (Merveille, Mine Profonde, Spire de Corruption, Faille des Abysses, Nécropole, Observatoire, Porte du Pandémonium, Grand Phare, Os Divins…), en plus de toute réduction spécifique au Monument (ex. WONDER_COST_REDUCTION). Base = 0.0 ; 0.25 = -25%. SubCategory unused. Accordé par l'Atelier des Colosses.</summary>
+            MONUMENT_COST_REDUCTION,
+            /// <summary>Multiplicateur de vitesse de génération périodique d'une ressource aléatoire par les Ports maritimes de niveau 3+ (voir HarvestController.GetEffectiveSeaportGenerationCooldown). Base = 1.0 ; +1.0 = intervalle divisé par 2. SubCategory unused. Accordé par la Grotte aux Perles.</summary>
+            SEAPORT_RANDOM_RESOURCE_SPEED,
+            /// <summary>Flags que les Ports maritimes tirent leur ressource aléatoire parmi toutes les ressources non consommables (basiques, intermédiaires et avancées) plutôt que les seules ressources basiques (voir HarvestController.GetSeaportResourcePool). SubCategory unused. Accordé par la Grotte aux Perles.</summary>
+            UNLOCK_SEAPORT_ADVANCED_RESOURCE_GENERATION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

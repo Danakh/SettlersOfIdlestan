@@ -477,10 +477,19 @@ namespace SettlersOfIdlestan.Controller.Island
 
 
 
-        public static long GetEffectiveSeaportGenerationCooldown(Seaport seaport)
+        public static long GetEffectiveSeaportGenerationCooldown(Civilization civ, Seaport seaport)
         {
             double multiplier = seaport.GetGenerationCooldownMultiplier();
-            return Math.Max(1L, (long)(SeaportGenerationCooldownTicks * multiplier));
+            double speedMultiplier = civ.ModifierAggregator.ApplyModifiers(ECategory.SEAPORT_RANDOM_RESOURCE_SPEED, "", 1.0);
+            return Math.Max(1L, (long)(SeaportGenerationCooldownTicks * multiplier / speedMultiplier));
+        }
+
+        /// <summary>Ressources dont un Port maritime peut tirer au sort — élargi aux ressources intermédiaires/avancées (hors consommables) par la Grotte aux Perles.</summary>
+        public static IReadOnlyList<Resource> GetSeaportResourcePool(Civilization civ)
+        {
+            return civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_SEAPORT_ADVANCED_RESOURCE_GENERATION)
+                ? ResourceUtils.NonConsumableResources
+                : ResourceUtils.BasicResources;
         }
 
         /// <summary>Cooldown effectif de génération d'or du Marché (×0.9 par niveau), après application du modificateur MARKET_GOLD_SPEED.</summary>
@@ -673,10 +682,11 @@ namespace SettlersOfIdlestan.Controller.Island
                 var seaport = city.FindBuilding<Seaport>(BuildingType.Seaport);
                 if (seaport != null && seaport.Level >= 3)
                 {
-                    long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(seaport);
+                    long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(civ, seaport);
                     double seaportRate = 100.0 / effectiveCooldown;
-                    foreach (var basicResource in ResourceUtils.BasicResources)
-                        AddProductionRate(result, basicResource, seaportRate / ResourceUtils.BasicResources.Count);
+                    var seaportPool = GetSeaportResourcePool(civ);
+                    foreach (var poolResource in seaportPool)
+                        AddProductionRate(result, poolResource, seaportRate / seaportPool.Count);
                 }
 
                 var market = city.FindBuilding<Market>(BuildingType.Market);
@@ -803,11 +813,12 @@ namespace SettlersOfIdlestan.Controller.Island
                 var seaport = city.FindBuilding<Seaport>(BuildingType.Seaport);
                 if (seaport != null && seaport.Level >= 3)
                 {
-                    long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(seaport);
+                    long effectiveCooldown = GetEffectiveSeaportGenerationCooldown(civ, seaport);
                     double seaportRate = 100.0 / effectiveCooldown;
                     string seaportKey = BuildingSourceKey(BuildingType.Seaport);
-                    foreach (var basicResource in ResourceUtils.BasicResources)
-                        AddSourceRate(result, basicResource, seaportKey, seaportRate / ResourceUtils.BasicResources.Count);
+                    var seaportPool = GetSeaportResourcePool(civ);
+                    foreach (var poolResource in seaportPool)
+                        AddSourceRate(result, poolResource, seaportKey, seaportRate / seaportPool.Count);
                 }
 
                 var market = city.FindBuilding<Market>(BuildingType.Market);
