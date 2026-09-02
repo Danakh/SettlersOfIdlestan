@@ -114,6 +114,11 @@ public class AutomationSettings
     public bool MonumentInvestmentAutomationEnabled { get; set; } = false;
     [JsonIgnore] public bool IsMonumentInvestmentAutomationActive => Active(MonumentInvestmentAutomationEnabled);
 
+    /// <summary>Lance automatiquement le sort Abondance (Magie Divine) dès que sa cinquième charge
+    /// est générée, voir MagicController.ProcessAbundanceAutoCast.</summary>
+    public bool AbundanceAutoCastEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsAbundanceAutoCastActive => Active(AbundanceAutoCastEnabled);
+
     /// <summary>Seuil de stock (en % du max) par ressource à partir duquel la vente automatique du
     /// surplus se déclenche (recherche Marché Automatique, voir HarvestController.TryAutoTradeOnOverflow).
     /// Une ressource absente du dictionnaire vaut AutoSellThresholdDefaultPercent. Borné à
@@ -242,6 +247,7 @@ public class AutomationSettings
         MilitaryReinforcementAutomationEnabled = legacy.MilitaryReinforcementAutomationEnabled;
         MilitaryVendettaAutomationEnabled = legacy.MilitaryVendettaAutomationEnabled;
         MonumentInvestmentAutomationEnabled = legacy.MonumentInvestmentAutomationEnabled;
+        AbundanceAutoCastEnabled = legacy.AbundanceAutoCastEnabled;
         RestrictSoldierProductionToFreeSoldiersByLayer = new Dictionary<int, bool>(legacy.RestrictSoldierProductionToFreeSoldiersByLayer);
         AutoSellThresholdPercentByResource = new Dictionary<Resource, int>(legacy.AutoSellThresholdPercentByResource);
         AutoBuyGoldKeepPercent = legacy.AutoBuyGoldKeepPercent;

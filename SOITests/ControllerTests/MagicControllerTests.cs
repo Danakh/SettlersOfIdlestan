@@ -992,6 +992,66 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void ProcessAbundanceAutoCast_CastsSpellWhenChargesReachMaxAndAutomationEnabled()
+        {
+            var godState = CreateDivineMagicGodState();
+            var (state, clock, controller) = CreateSetup(godState);
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            GrantCrystalStorage(civ, 10000);
+            civ.AddResource(Resource.Crystal, 10000);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 2000),
+            }));
+            state.AutomationSettings.AbundanceAutoCastEnabled = true;
+            int goldBefore = civ.GetResourceQuantity(Resource.Gold);
+
+            clock.SimulateAdvance(1, chunkTicks: 1);
+            clock.SimulateAdvance(6000 * 20, chunkTicks: 6000 * 20);
+
+            // Une seule tentative de lancement automatique par cycle d'horloge : la charge qui vient
+            // d'atteindre le plafond est immédiatement consommée dans le même événement.
+            Assert.Equal(MagicController.MaxSpellCharges - 1, controller.GetSpellCharges(SpellId.Abundance));
+            Assert.Equal(0, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+            Assert.Equal(10000 - 50, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(goldBefore + 1000, civ.GetResourceQuantity(Resource.Gold));
+        }
+
+        [Fact]
+        public void ProcessAbundanceAutoCast_DoesNothingWhenAutomationDisabled()
+        {
+            var godState = CreateDivineMagicGodState();
+            var (state, clock, controller) = CreateSetup(godState);
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            GrantCrystalStorage(civ, 10000);
+            civ.AddResource(Resource.Crystal, 10000);
+
+            clock.SimulateAdvance(1, chunkTicks: 1);
+            clock.SimulateAdvance(6000 * 20, chunkTicks: 6000 * 20);
+
+            Assert.Equal(MagicController.MaxSpellCharges, controller.GetSpellCharges(SpellId.Abundance));
+            Assert.Equal(10000, civ.GetResourceQuantity(Resource.Crystal));
+        }
+
+        [Fact]
+        public void ProcessAbundanceAutoCast_DoesNothingWithoutEnoughCrystals()
+        {
+            var godState = CreateDivineMagicGodState();
+            var (state, clock, controller) = CreateSetup(godState);
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            state.AutomationSettings.AbundanceAutoCastEnabled = true;
+
+            clock.SimulateAdvance(1, chunkTicks: 1);
+            clock.SimulateAdvance(6000 * 20, chunkTicks: 6000 * 20);
+
+            Assert.Equal(MagicController.MaxSpellCharges, controller.GetSpellCharges(SpellId.Abundance));
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Crystal));
+        }
+
+        [Fact]
         public void ProcessSpellExhaustion_PrioritizesExhaustionDecayOverChargeGrantWhenBothPending()
         {
             var godState = CreateDivineMagicGodState();

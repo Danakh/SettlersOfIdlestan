@@ -540,6 +540,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             [AutomationRenderer.PinKeyMithrilMine]        = "automation_mithrilmine",
             [AutomationRenderer.PinKeyArcaneTower]        = "automation_arcanetower",
             [AutomationRenderer.PinKeyMonumentInvestment] = "automation_monument_investment",
+            [AutomationRenderer.PinKeyAbundanceAutoCast]  = "automation_abundance_autocast",
             [AutomationRenderer.PinKeyRoad]               = "automation_road",
             [AutomationRenderer.PinKeyOutpost]            = "automation_outpost",
             [AutomationRenderer.PinKeyRoadUnderworld]     = "automation_road_underworld",

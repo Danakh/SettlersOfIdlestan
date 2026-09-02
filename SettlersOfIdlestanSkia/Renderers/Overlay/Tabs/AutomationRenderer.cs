@@ -32,6 +32,7 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyMilReinforce  = "MilitaryReinforcement";
     internal const string PinKeyMilVendetta   = "MilitaryVendetta";
     internal const string PinKeyMonumentInvestment = "MonumentInvestment";
+    internal const string PinKeyAbundanceAutoCast = "AbundanceAutoCast";
     internal const string PinKeyBarracks      = "Barracks";
     internal const string PinKeyArsenal       = "Arsenal";
     internal const string PinKeyLaboratory    = "Laboratory";
@@ -75,6 +76,7 @@ public sealed class AutomationRenderer : IDisposable
             [PinKeyMilReinforce] = AutomationCategory.Behavior,
             [PinKeyMilVendetta] = AutomationCategory.Behavior,
             [PinKeyMonumentInvestment] = AutomationCategory.Behavior,
+            [PinKeyAbundanceAutoCast] = AutomationCategory.Behavior,
 
             [PinKeyBarracks] = AutomationCategory.Activation,
             [PinKeyArsenal] = AutomationCategory.Activation,
@@ -211,6 +213,7 @@ public sealed class AutomationRenderer : IDisposable
             [PinKeyMilReinforce] = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics),
             [PinKeyMilVendetta] = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.Vendetta),
             [PinKeyMonumentInvestment] = true,
+            [PinKeyAbundanceAutoCast] = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SPELL, nameof(SettlersOfIdlestan.Model.Magic.SpellId.Abundance)),
         };
     }
 
@@ -258,6 +261,7 @@ public sealed class AutomationRenderer : IDisposable
             Row(PinKeyMilVendetta, "automation_military_vendetta",
                 unlocks[PinKeyMilVendetta], settings.MilitaryVendettaAutomationEnabled),
             Row(PinKeyMonumentInvestment, "automation_monument_investment", unlocks[PinKeyMonumentInvestment], settings.MonumentInvestmentAutomationEnabled),
+            Row(PinKeyAbundanceAutoCast, "automation_abundance_autocast", unlocks[PinKeyAbundanceAutoCast], settings.AbundanceAutoCastEnabled),
         };
 
         var right = new List<SectionModel> { new("automation_header_behaviors", behaviors) };
@@ -485,6 +489,7 @@ public sealed class AutomationRenderer : IDisposable
             case PinKeyMithrilMine:        settings.MithrilMineBuildingAutomationEnabled = !settings.MithrilMineBuildingAutomationEnabled; return;
             case PinKeyArcaneTower:        settings.ArcaneTowerBuildingAutomationEnabled = !settings.ArcaneTowerBuildingAutomationEnabled; return;
             case PinKeyMonumentInvestment: settings.MonumentInvestmentAutomationEnabled = !settings.MonumentInvestmentAutomationEnabled; return;
+            case PinKeyAbundanceAutoCast:  settings.AbundanceAutoCastEnabled = !settings.AbundanceAutoCastEnabled; return;
 
             // Couper le renfort automatique doit aussi vider les flux deja etablis, sans quoi ils
             // continueraient de tourner apres l'arret.

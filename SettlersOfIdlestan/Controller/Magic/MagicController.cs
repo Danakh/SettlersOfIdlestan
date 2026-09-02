@@ -103,6 +103,8 @@ namespace SettlersOfIdlestan.Controller.Magic
             catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessTempleMonsterDamage), ex); }
             try { ProcessSpellExhaustion(); }
             catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessSpellExhaustion), ex); }
+            try { ProcessAbundanceAutoCast(); }
+            catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessAbundanceAutoCast), ex); }
         }
 
         // ── État général ──────────────────────────────────────────────────────
@@ -825,6 +827,22 @@ namespace SettlersOfIdlestan.Controller.Magic
                 int charges = GetSpellCharges(def.Id);
                 _state.Magic.SpellCharges[def.Id] = (int)Math.Min(MaxSpellCharges, charges + cycles);
             }
+        }
+
+        /// <summary>
+        /// Automatisation (catégorie Comportements) : lance Abondance dès qu'elle a accumulé
+        /// <see cref="MaxSpellCharges"/> charges (voir <see cref="ProcessSpellExhaustion"/>, qui les
+        /// crédite), tant que l'entretien du sort le permet — sans quoi le lancement échoue en
+        /// silence et sera retenté au tick suivant, le plafond de charges bloquant leur accumulation
+        /// ultérieure tant qu'aucune n'est consommée.
+        /// </summary>
+        private void ProcessAbundanceAutoCast()
+        {
+            if (_state == null) return;
+            if (!_state.AutomationSettings.IsAbundanceAutoCastActive) return;
+            if (GetSpellCharges(SpellId.Abundance) < MaxSpellCharges) return;
+            if (CanCastSpell(SpellId.Abundance))
+                CastSpell(SpellId.Abundance);
         }
 
         private void NotifyRitualsChanged()
