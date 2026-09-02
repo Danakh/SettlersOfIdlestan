@@ -94,15 +94,23 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Même sauvegarde que <see cref="Export"/>, rendue directement en UTF-8 : le JSON est écrit
-        /// dans un tampon d'octets, brouillé sur place puis encodé en Base64 vers le tableau
-        /// retourné, sans jamais matérialiser de <see cref="string"/>. Sur une partie de fin de jeu,
-        /// la sauvegarde automatique allouait ~13,5 Mo à chaque passage — dont deux chaînes de
-        /// plusieurs mégaoctets partant droit dans le tas des grands objets, toutes les 5 secondes —
-        /// contre ~4,5 Mo ici. Les appelants qui ont besoin d'un texte (Steam Cloud, export manuel)
-        /// gardent <see cref="Export"/>.
+        /// Première moitié d'<see cref="Export"/> : le JSON de l'état, en UTF-8, non brouillé.
+        /// <para>
+        /// C'est la <b>seule</b> partie de la sauvegarde qui lit le modèle vivant, donc la seule qui
+        /// doive tourner sous le verrou du runtime. Le brouillage
+        /// (<see cref="EncryptUtf8"/>) ne travaille plus que sur les octets rendus ici et peut partir
+        /// sur un autre thread — voir la sauvegarde automatique dans <c>GameScreen</c>.
+        /// </para>
+        /// <para>
+        /// La mémoire retournée appartient à l'appelant : elle porte sur un tampon dédié qu'aucun
+        /// autre code ne touche, et reste donc valide et immuable une fois passée à un autre thread.
+        /// Rien n'est jamais matérialisé en <see cref="string"/> : sur une partie de fin de jeu, la
+        /// sauvegarde automatique allouait ~13,5 Mo à chaque passage — dont deux chaînes de plusieurs
+        /// mégaoctets partant droit dans le tas des grands objets, toutes les 5 secondes. Les
+        /// appelants qui ont besoin d'un texte (export manuel) gardent <see cref="Export"/>.
+        /// </para>
         /// </summary>
-        public byte[] ExportUtf8(MainGameState state)
+        public ReadOnlyMemory<byte> SerializeUtf8(MainGameState state)
         {
             StampSaveMetadata(state);
 
@@ -112,7 +120,7 @@ namespace SettlersOfIdlestan.Controller
             using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { SkipValidation = true }))
                 JsonSerializer.Serialize(writer, state, _serializationOptions);
 
-            return EncryptUtf8(buffer.WrittenSpan);
+            return buffer.WrittenMemory;
         }
 
         private static void StampSaveMetadata(MainGameState state)

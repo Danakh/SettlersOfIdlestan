@@ -11,6 +11,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Store;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
@@ -85,6 +86,14 @@ public sealed class GameScreen : IDisposable
     private double _autoSaveTimer;
     private const double AutoSaveInterval = 5.0;
     private const string CloudSaveFileName = "autosave.json";
+
+    /// <summary>
+    /// Sauvegarde automatique en cours, ou null si aucune. Lu et écrit uniquement depuis
+    /// <see cref="Tick"/>, donc depuis le seul thread de jeu : pas de synchronisation nécessaire.
+    /// C'est ce champ qui garantit l'unicité de l'écriture disque et de l'appel Steam — tant qu'il
+    /// désigne une tâche non terminée, aucune nouvelle sauvegarde n'est lancée.
+    /// </summary>
+    private Task? _autoSaveTask;
 
     private Func<int> _currentLayer => () => _gameControllerService.CurrentGameState?.CurrentWorldState?.CurrentViewedLayer ?? 0;
 
@@ -733,32 +742,55 @@ public sealed class GameScreen : IDisposable
         _frameCount++;
 
         _autoSaveTimer += deltaTime;
-        if (_autoSaveTimer >= AutoSaveInterval)
-        {
-            _autoSaveTimer = 0;
-            if (!_corruptSavePending && _gameControllerService.MainGameController.CurrentMainState is { } mainState)
-            {
-                // ExportMainStateUtf8 (sérialisation JSON + XOR/Base64) doit lire l'état vivant,
-                // donc reste ici sous le verrou de GameRuntimeHost (partagé avec le rendu) — le XOR
-                // est rapide depuis sa vectorisation (~5 ms au lieu de ~26 ms) et la sauvegarde
-                // cloud Steam a besoin du résultat chiffré avant de partir. Seule l'écriture disque
-                // locale (SaveAuto, du I/O pur, pas d'API tierce) part en tâche de fond : c'est
-                // elle qui pouvait geler le rendu si le dossier saves est sur un disque lent ou
-                // scanné par un antivirus. SaveCloudFile (API Steamworks native, affinité de
-                // thread non vérifiée) reste volontairement sur le thread principal.
-                //
-                // Variante octets : sur une fin de partie, la version qui rendait une chaîne
-                // allouait ~13,5 Mo par sauvegarde — dont deux chaînes de plusieurs mégaoctets
-                // allant droit dans le tas des grands objets, toutes les 5 secondes — contre
-                // ~4,5 Mo ici. La chaîne n'est reconstruite que si le cloud Steam la réclame.
-                var encrypted = _gameControllerService.MainGameController.ExportMainStateUtf8();
-                _ = Task.Run(() => _fileSystemService.SaveAuto(encrypted));
-                if (mainState.Settings.CloudSaveEnabled)
-                    _storeController?.SaveCloudFile(CloudSaveFileName, System.Text.Encoding.UTF8.GetString(encrypted));
-            }
+        if (_autoSaveTimer < AutoSaveInterval) return;
 
-            var statsJson = System.Text.Json.JsonSerializer.Serialize(_gameControllerService.MainGameController.LifetimeStats);
-            _fileSystemService.SaveStats(statsJson);
+        // Une sauvegarde automatique encore en vol interdit d'en lancer une seconde : l'écriture du
+        // fichier local et la poussée Steam Cloud doivent rester uniques à tout instant. Le minuteur
+        // n'est volontairement pas remis à zéro — la prochaine frame réessaiera dès que la tâche
+        // précédente aura rendu la main, plutôt que de repartir pour un intervalle complet.
+        if (_autoSaveTask is { IsCompleted: false }) return;
+
+        _autoSaveTimer = 0;
+
+        if (!_corruptSavePending && _gameControllerService.MainGameController.CurrentMainState is { } mainState)
+        {
+            // Seule la sérialisation JSON lit le modèle vivant : elle seule reste ici, sous le verrou
+            // de GameRuntimeHost (partagé avec le rendu). Le brouillage XOR/Base64, l'écriture disque
+            // et l'appel Steam ne touchent plus qu'à des octets déjà figés et partent ensemble en
+            // tâche de fond — c'est cette partie-là qui pouvait geler le rendu quand le dossier saves
+            // est sur un disque lent ou scanné par un antivirus, et quand Steam pousse 2 Mo.
+            var json = _gameControllerService.MainGameController.SerializeMainStateUtf8();
+            bool cloudSaveEnabled = mainState.Settings.CloudSaveEnabled;
+            _autoSaveTask = Task.Run(() => PersistAutoSave(json, cloudSaveEnabled));
+        }
+
+        var statsJson = System.Text.Json.JsonSerializer.Serialize(_gameControllerService.MainGameController.LifetimeStats);
+        _fileSystemService.SaveStats(statsJson);
+    }
+
+    /// <summary>
+    /// Fin de la sauvegarde automatique, hors du thread de jeu : brouillage du JSON déjà sérialisé,
+    /// écriture du fichier local, puis poussée vers le cloud du store. Le fichier local passe en
+    /// premier — c'est lui la source de vérité, un cloud lent ou indisponible ne doit pas le retarder.
+    /// <para>
+    /// Les exceptions sont journalisées ici plutôt que laissées filer : la tâche n'est plus
+    /// « oubliée » (<c>GameScreen</c> la garde pour interdire les sauvegardes concurrentes), et une
+    /// exception qu'aucun code n'observe ne laissait au joueur aucune trace d'un autosave qui ne
+    /// s'écrit plus.
+    /// </para>
+    /// </summary>
+    private async Task PersistAutoSave(ReadOnlyMemory<byte> json, bool cloudSaveEnabled)
+    {
+        try
+        {
+            var encrypted = SaveController.EncryptUtf8(json.Span);
+            await _fileSystemService.SaveAuto(encrypted);
+            if (cloudSaveEnabled)
+                _storeController?.SaveCloudFile(CloudSaveFileName, System.Text.Encoding.UTF8.GetString(encrypted));
+        }
+        catch (Exception ex)
+        {
+            GameLog.Error(nameof(GameScreen), nameof(PersistAutoSave), ex);
         }
     }
 
