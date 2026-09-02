@@ -420,7 +420,7 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.ImperialPortVertex),
                 modifiers: new Modifier[]
                 {
-                    new(ECategory.UNLOCK_SEAPORT_AUTOMATION, EType.ADDITIVE, 1),
+                    new(ECategory.BUILDING_MAX_LEVEL, "ImperialPort", EType.ADDITIVE, 1),
                     new(ECategory.PRESTIGE_GAIN_PER_SEAPORT_LEVEL4, EType.ADDITIVE, 0.05),
                 }
             ),

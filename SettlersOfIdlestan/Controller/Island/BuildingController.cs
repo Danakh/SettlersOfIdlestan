@@ -302,9 +302,10 @@ namespace SettlersOfIdlestan.Controller.Island
             long now = _clock.CurrentTick;
 
             var civ = _state.PlayerCivilization;
-            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_SEAPORT_AUTOMATION)) return;
 
-            if (civ.GetUniqueBuilding(BuildingType.ImperialPort) is not ImperialPort imperialPort) return;
+            // L'automatisation des ports exige le Port Impérial niveau 2 (débloqué par le vertex de
+            // prestige Port Impérial, voir BUILDING_MAX_LEVEL/ImperialPort dans PrestigeMapFactory).
+            if (civ.GetUniqueBuilding(BuildingType.ImperialPort) is not ImperialPort imperialPort || imperialPort.Level < 2) return;
 
             bool enabled = _state.AutomationSettings.IsSeaportBuildingAutomationActive;
             long tick = imperialPort.LastSeaportBuildTick;

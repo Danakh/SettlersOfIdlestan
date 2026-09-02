@@ -188,7 +188,6 @@ public sealed class AutomationRenderer : IDisposable
         volcanicForge ??= civ.GetUniqueBuilding(BuildingType.VolcanicForge) as VolcanicForge;
         arcaneTower ??= civ.GetUniqueBuilding(BuildingType.ArcaneTower) as ArcaneTower;
 
-        bool hasSeaportAutomation = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SEAPORT_AUTOMATION);
         bool hasBuildersGuildUnderworld = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
         bool roadUnlocked = buildersGuild != null && buildersGuild.Level >= 1;
         bool outpostUnlocked = buildersGuild != null && buildersGuild.Level >= 4;
@@ -204,7 +203,7 @@ public sealed class AutomationRenderer : IDisposable
             [PinKeyArtisan] = artisansGuild is { Level: >= 1 },
             [PinKeyLibrary] = academy is { Level: >= 1 },
             [PinKeyMarket] = traderGuild is { Level: >= 1 },
-            [PinKeySeaport] = hasSeaportAutomation && imperialPort != null,
+            [PinKeySeaport] = imperialPort is { Level: >= 2 },
             [PinKeyMilBuildings] = warRoom is { Level: >= 1 },
             [PinKeyGrandTemple] = grandTemple is { Level: >= 1 },
             [PinKeyMithrilMine] = volcanicForge is { Level: >= 1 },

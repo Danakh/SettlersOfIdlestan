@@ -2,14 +2,11 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
-using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SOITests.TestUtilities;
-using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.ControllerTests;
 
@@ -26,13 +23,6 @@ public class ImperialPortAutomationTests
         // Seaport exige un hex Eau adjacent — on convertit l'hex Est de l'île de test.
         state.GetMapFor(EastHex)!.GetTile(EastHex)!.TerrainType = TerrainType.Water;
 
-        // L'automatisation du Port Impérial est en plus gardée par UNLOCK_SEAPORT_AUTOMATION
-        // (normalement accordé par le vertex de prestige Port Impérial).
-        civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
-        {
-            new(ECategory.UNLOCK_SEAPORT_AUTOMATION, EType.ADDITIVE, 1),
-        }));
-
         var controller = new BuildingController(state);
         return (state, controller, civ);
     }
@@ -43,7 +33,9 @@ public class ImperialPortAutomationTests
         var (state, controller, civ) = CreateSetup();
         var city = civ.Cities[0];
 
-        city.AddBuilding(new ImperialPort { Level = 1 }); // niveau max absolu (voir Building.GetAbsoluteMaxLevel, base=1)
+        // Niveau 2 = niveau max débloqué par le vertex de prestige Port Impérial (BUILDING_MAX_LEVEL),
+        // requis pour l'automatisation des ports (voir BuildingController.PerformImperialPortSeaportAutomation).
+        city.AddBuilding(new ImperialPort { Level = 2 });
 
         state.AutomationSettings.SeaportBuildingAutomationEnabled = true;
 
@@ -66,7 +58,7 @@ public class ImperialPortAutomationTests
         var (state, controller, civ) = CreateSetup();
         var city = civ.Cities[0];
 
-        city.AddBuilding(new ImperialPort { Level = 1 });
+        city.AddBuilding(new ImperialPort { Level = 2 });
 
         state.AutomationSettings.SeaportBuildingAutomationEnabled = false;
 
@@ -82,13 +74,14 @@ public class ImperialPortAutomationTests
     }
 
     [Fact]
-    public void ImperialPort_WithoutSeaportAutomationUnlock_DoesNotBuildSeaport()
+    public void ImperialPort_BelowLevel2_DoesNotBuildSeaport()
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];
         var city = civ.Cities[0];
         state.GetMapFor(EastHex)!.GetTile(EastHex)!.TerrainType = TerrainType.Water;
 
+        // Niveau 1 (avant achat du vertex de prestige Port Impérial) : automatisation non débloquée.
         city.AddBuilding(new ImperialPort { Level = 1 });
         state.AutomationSettings.SeaportBuildingAutomationEnabled = true;
 
