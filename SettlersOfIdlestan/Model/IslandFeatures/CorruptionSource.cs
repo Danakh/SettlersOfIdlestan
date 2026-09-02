@@ -27,6 +27,9 @@ public class CorruptionSource : IslandFeature
     public override bool BlocksHarvest => false;
     public override bool BlocksMonumentPlacement => false;
 
+    // Découvrable (IsDiscoverable par défaut) : c'est le brouillard de guerre qui la marque Found, et
+    // donc qui fait apparaître son icône. Mais elle n'annonce rien dans le journal — FeatureController
+    // ne journalise pas les découvertes déclarées NoEvent.
     public override GameEventType DiscoveredEventType => GameEventType.NoEvent;
     public override GameEventType RemovedEventType => GameEventType.NoEvent;
 

@@ -130,8 +130,17 @@ public class FeatureController
             if (visible)
             {
                 feature.Found = true;
-                bool featureToast = feature.DiscoveredEventType is GameEventType.BanditHideoutDiscovered or GameEventType.DragonDiscovered or GameEventType.MinorDemonDiscovered or GameEventType.MajorDemonDiscovered or GameEventType.VolcanoDiscovered or GameEventType.TentacleDiscovered or GameEventType.DemonGodDiscovered;
-                _state.EventLog.Add(feature.DiscoveredEventType, toast: featureToast);
+
+                // Une feature découvrable peut n'avoir aucun événement à annoncer : la Source de
+                // Corruption est marquée trouvée par le brouillard de guerre (c'est ce qui fait
+                // apparaître son icône) mais déclare NoEvent. Sans ce filtre, le journal recevait une
+                // entrée NoEvent et affichait « ? NoEvent » à chaque Source rencontrée.
+                if (feature.DiscoveredEventType != GameEventType.NoEvent)
+                {
+                    bool featureToast = feature.DiscoveredEventType is GameEventType.BanditHideoutDiscovered or GameEventType.DragonDiscovered or GameEventType.MinorDemonDiscovered or GameEventType.MajorDemonDiscovered or GameEventType.VolcanoDiscovered or GameEventType.TentacleDiscovered or GameEventType.DemonGodDiscovered;
+                    _state.EventLog.Add(feature.DiscoveredEventType, toast: featureToast);
+                }
+
                 OnFeatureDiscovered?.Invoke(this, feature);
             }
         }

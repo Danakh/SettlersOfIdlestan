@@ -1,3 +1,5 @@
+using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.Game;
@@ -109,8 +111,32 @@ public class GameEventLog
 
     private readonly Queue<GameLogEntry> _pendingToasts = new();
 
-    public void Add(GameEventType type, string? message = null, bool toast = false)
+    /// <summary>
+    /// Ajoute une entrée au journal.
+    ///
+    /// <para><see cref="GameEventType.NoEvent"/> veut dire « rien à annoncer » : c'est ce que
+    /// déclarent les features dépourvues d'événement de découverte ou de disparition (Monument,
+    /// Corruption, Dominion, CorruptionSource, ContestedTerritory...). Un appelant qui le transmet a
+    /// donc relayé un type d'événement non renseigné — typiquement un
+    /// <c>feature.DiscoveredEventType</c> passé sans filtre. L'entrée était alors ajoutée telle
+    /// quelle et le journal affichait « ? NoEvent », sans la moindre indication de son origine.
+    /// Elle est désormais refusée et remplacée par une erreur d'exécution qui nomme le fichier, la
+    /// ligne et la méthode appelante ; <see cref="GameLog"/> la déduplique (une occurrence par tick
+    /// reste une seule ligne) et la route vers ce même journal en RuntimeError.</para>
+    /// </summary>
+    public void Add(GameEventType type, string? message = null, bool toast = false,
+        [CallerFilePath] string? callerFile = null,
+        [CallerLineNumber] int callerLine = 0,
+        [CallerMemberName] string? callerMember = null)
     {
+        if (type == GameEventType.NoEvent)
+        {
+            GameLog.Error(nameof(GameEventLog), callerMember ?? nameof(Add),
+                $"NoEvent journalisé depuis {Path.GetFileName(callerFile) ?? "?"}:{callerLine}"
+                + $" (toast={toast}, message={message ?? "aucun"})");
+            return;
+        }
+
         var entry = new GameLogEntry(type, message, toast);
         Entries.Insert(0, entry);
         if (Entries.Count > MaxEntries)
