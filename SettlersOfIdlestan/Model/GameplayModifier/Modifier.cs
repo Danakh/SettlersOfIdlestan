@@ -267,6 +267,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             SEAPORT_RANDOM_RESOURCE_SPEED,
             /// <summary>Flags que les Ports maritimes tirent leur ressource aléatoire parmi toutes les ressources non consommables (basiques, intermédiaires et avancées) plutôt que les seules ressources basiques (voir HarvestController.GetSeaportResourcePool). SubCategory unused. Accordé par la Grotte aux Perles.</summary>
             UNLOCK_SEAPORT_ADVANCED_RESOURCE_GENERATION,
+            /// <summary>Réduction fixe (en points) appliquée aux dégâts de chaque attaque de monstre visant une ville de la civilisation, avant répartition sur soldats/défense/Hôtel de ville (plancher 0). Base = 0 ; 1 = -1 dégât par attaque. SubCategory unused. Accordé par le Sanctuaire de l'Araignée (Elfes noirs).</summary>
+            MONSTER_DAMAGE_REDUCTION_ON_CITIES,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

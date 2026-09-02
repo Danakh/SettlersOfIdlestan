@@ -1,16 +1,15 @@
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
-using SettlersOfIdlestan.Model.Monsters;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
 /// Sanctuaire de l'Araignée : bâtiment unique racial des Elfes noirs (voir RaceDefinitions).
-/// Prolonge le Pacte des Profondeurs — la race est déjà épargnée par les Trolls et les Ogres — aux
-/// autres habitants de l'Inframonde : Rats et Démons mineurs cessent à leur tour de prendre les
-/// villes pour cible (ils continuent d'occuper et de stériliser leurs hexes, voir BlocksHarvest).
+/// Complète le Pacte des Profondeurs — la race est déjà épargnée par les Trolls et les Ogres — en
+/// réduisant de 1 les dégâts de toute attaque de monstre visant les villes de la civilisation
+/// (MONSTER_DAMAGE_REDUCTION_ON_CITIES, voir MonsterController.ApplyMonsterAttack).
 /// Souterrain uniquement, comme la Guilde des Aventuriers. Niveau max par défaut 0 : constructible
 /// uniquement quand la race Elfes noirs fournit son BUILDING_MAX_LEVEL +1.
 /// </summary>
@@ -41,7 +40,6 @@ public class SpiderShrine : Building, IUniqueBuilding
     public IEnumerable<Modifier> GetUniqueBuildingModifiers()
     {
         if (Level <= 0) yield break;
-        yield return new Modifier(ECategory.MONSTER_ATTACK_IMMUNITY, nameof(Rats), EType.ADDITIVE, 1);
-        yield return new Modifier(ECategory.MONSTER_ATTACK_IMMUNITY, nameof(MinorDemon), EType.ADDITIVE, 1);
+        yield return new Modifier(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, EType.ADDITIVE, 1);
     }
 }

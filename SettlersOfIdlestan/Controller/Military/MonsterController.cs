@@ -717,6 +717,14 @@ public class MonsterFeatureController
         // ── Dégâts en cascade ────────────────────────────────────────────────
         int damage = monster.AttackDamage;
 
+        // Sanctuaire de l'Araignée (Elfes noirs, MONSTER_DAMAGE_REDUCTION_ON_CITIES) : réduit les
+        // dégâts de toute attaque de monstre visant une ville, avant répartition sur la cascade.
+        if (damage > 0 && target is City)
+        {
+            int reduction = civ.ModifierAggregator.ApplyModifiers(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, "", 0);
+            damage = Math.Max(0, damage - reduction);
+        }
+
         if (damage > 0)
         {
             // 1. Soldats — Armures d'Acier : chaque soldat touché peut survivre en consommant 1 Acier

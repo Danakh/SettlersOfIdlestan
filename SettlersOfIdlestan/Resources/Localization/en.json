@@ -1529,7 +1529,7 @@
   "building_pearlgrotto_name": "Pearl Grotto",
   "building_pearlgrotto_desc": "Mermaid racial building. +8 city defense and generates Food passively. Doubles Seaports' random resource generation speed and lets them generate intermediate/advanced resources (excluding consumables).",
   "building_spidershrine_name": "Spider Shrine",
-  "building_spidershrine_desc": "Dark Elf racial building, buildable in the Underworld only. Rats and Minor Demons also stop attacking your cities.",
+  "building_spidershrine_desc": "Dark Elf racial building, buildable in the Underworld only. Reduces all monster damage dealt to your cities by 1.",
   "tooltip_requires_dominion": "⚠ Requires the Dominion (Faith divine power)",
   "tooltip_requires_temple_level4": "⚠ Requires a level 4 Temple in this city",
   "prestige_tooltip_city_min_distance": "Minimum distance between your cities",

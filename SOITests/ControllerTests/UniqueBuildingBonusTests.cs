@@ -125,15 +125,13 @@ public class UniqueBuildingBonusTests
     }
 
     [Fact]
-    public void SpiderShrine_GrantsMonsterAttackImmunityToRatsAndMinorDemons()
+    public void SpiderShrine_ReducesMonsterDamageOnCities()
     {
         var (_, city, civ) = CreateSetup();
-        Assert.False(civ.ModifierAggregator.HasModifier(ECategory.MONSTER_ATTACK_IMMUNITY, "Rats"));
-        Assert.False(civ.ModifierAggregator.HasModifier(ECategory.MONSTER_ATTACK_IMMUNITY, "MinorDemon"));
+        Assert.Equal(0, civ.ModifierAggregator.ApplyModifiers(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, "", 0));
 
         BuildUnique(city, civ, new SpiderShrine { Level = 1 });
 
-        Assert.True(civ.ModifierAggregator.HasModifier(ECategory.MONSTER_ATTACK_IMMUNITY, "Rats"));
-        Assert.True(civ.ModifierAggregator.HasModifier(ECategory.MONSTER_ATTACK_IMMUNITY, "MinorDemon"));
+        Assert.Equal(1, civ.ModifierAggregator.ApplyModifiers(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, "", 0));
     }
 }

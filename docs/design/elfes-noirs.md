@@ -301,7 +301,7 @@ Obligatoire pour rendre la race sélectionnable (§2). Disponible à partir du n
 | Clés | `building_spidershrine_name` / `_desc` |
 | Disponibilité | Souterrain uniquement — `IsAvailableInLayer(z) => z != IslandMap.SurfaceLayer`, même patron que `AdventurersGuild.cs:26` |
 | Unicité | `IsUnique => true`, `GetDefaultMaxLevel() => 0` + `BUILDING_MAX_LEVEL SpiderShrine +1` par la race (patron standard des uniques) |
-| Effet | Étend le Pacte des Profondeurs aux **autres monstres de l'Inframonde** (rats, démons mineurs) via des `MONSTER_ATTACK_IMMUNITY` supplémentaires |
+| Effet | *(changé depuis)* Réduit de 1 les dégâts de toute attaque de monstre visant une ville de la civilisation (`MONSTER_DAMAGE_REDUCTION_ON_CITIES`) — remplace l'immunité `MONSTER_ATTACK_IMMUNITY` initialement accordée sur Rats et Démons mineurs |
 
 L'effet prolonge la fantasy raciale au lieu d'ajouter un bonus économique générique : le sanctuaire
 achève ce que le Pacte commence.

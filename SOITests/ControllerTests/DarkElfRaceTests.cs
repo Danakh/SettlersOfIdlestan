@@ -240,6 +240,12 @@ public class DarkElfRaceTests
             new(ECategory.MONSTER_ATTACK_IMMUNITY, monsterTypeName, EType.ADDITIVE, 1),
         }));
 
+    private static void GrantDamageReduction(Civilization civ, int amount)
+        => civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+        {
+            new(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, EType.ADDITIVE, amount),
+        }));
+
     [Fact]
     public void Troll_WithoutImmunity_AttacksTheCity()
     {
@@ -293,6 +299,23 @@ public class DarkElfRaceTests
         Assert.False(civ.ModifierAggregator.HasModifier(ECategory.MONSTER_ATTACK_IMMUNITY, nameof(Rats)));
     }
 
+    [Fact]
+    public void MonsterDamageReductionOnCities_LowersDamageDealtByAnAttackingMonster()
+    {
+        var (_, clockBase, civBase) = CreateTrollOnCitySetup();
+        civBase.Cities[0].CurrentDefense = 100;
+        clockBase.SimulateAdvance(Troll.TrollHpRegenIntervalTicks * 10);
+        int defenseWithoutReduction = civBase.Cities[0].CurrentDefense;
+
+        var (_, clockReduced, civReduced) = CreateTrollOnCitySetup();
+        civReduced.Cities[0].CurrentDefense = 100;
+        GrantDamageReduction(civReduced, 1);
+        clockReduced.SimulateAdvance(Troll.TrollHpRegenIntervalTicks * 10);
+        int defenseWithReduction = civReduced.Cities[0].CurrentDefense;
+
+        Assert.True(defenseWithReduction > defenseWithoutReduction);
+    }
+
     // ── Sanctuaire de l'Araignée ─────────────────────────────────────────────
 
     [Fact]
@@ -307,7 +330,7 @@ public class DarkElfRaceTests
     }
 
     [Fact]
-    public void SpiderShrine_ExtendsImmunityToRatsAndMinorDemons()
+    public void SpiderShrine_GrantsMonsterDamageReductionOnCities()
     {
         var shrine = (SpiderShrine)BuildingFactory.Create(BuildingType.SpiderShrine)!;
 
@@ -315,7 +338,6 @@ public class DarkElfRaceTests
 
         shrine.Level = 1;
         var modifiers = shrine.GetUniqueBuildingModifiers().ToList();
-        Assert.Contains(modifiers, m => m.Category == ECategory.MONSTER_ATTACK_IMMUNITY && m.SubCategory == nameof(Rats));
-        Assert.Contains(modifiers, m => m.Category == ECategory.MONSTER_ATTACK_IMMUNITY && m.SubCategory == nameof(MinorDemon));
+        Assert.Contains(modifiers, m => m.Category == ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES && m.Value == 1);
     }
 }
