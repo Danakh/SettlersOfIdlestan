@@ -56,6 +56,9 @@ public static class AscensionPowerDefinitions
 
         new AscensionPowerDefinition(AscensionPowerId.DivineMagic,
             "ascension_power_divinemagic_name", "ascension_power_divinemagic_desc", column: 5, godPointCost: 2),
+
+        new AscensionPowerDefinition(AscensionPowerId.DivineRituals,
+            "ascension_power_divinerituals_name", "ascension_power_divinerituals_desc", column: 5, godPointCost: 5),
     };
 
     /// <summary>Nombre de colonnes (hors Foi) : les colonnes vont de 0 à ColumnCount - 1.</summary>

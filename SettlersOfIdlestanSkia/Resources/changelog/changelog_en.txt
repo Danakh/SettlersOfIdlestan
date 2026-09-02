@@ -7,6 +7,7 @@ v0.20
 • New Milestones tab on the Ascension screen: unlocks equivalent divine powers for free based on how many different races have already completed an Ascension
 • New Divine Construction and Divine Conquest divine powers: every new outpost automatically gets its basic buildings (Town Hall, production, Palisade, Barracks) and a starting garrison
 • New Divine Magic divine power: spells can accumulate up to 5 launch charges free of exhaustion once their cooldown completes, shown as circles; each prestige grants one back
+• New Divine Rituals divine power: +1 ritual active in parallel, +25% maximum power, and -20% on the ritual cost scaling
 
 ---
 

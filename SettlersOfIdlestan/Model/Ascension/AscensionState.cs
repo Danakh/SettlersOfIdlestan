@@ -20,6 +20,11 @@ public class AscensionState
     /// MagicController.MaxSpellCharges et MagicState.SpellCharges.</summary>
     public bool IsDivineMagicActive => UnlockedPowers.Contains(AscensionPowerId.DivineMagic);
 
+    /// <summary>Rituels Divins : +1 rituel actif simultané, +25% de budget de puissance, et -20% sur le
+    /// scaling du coût des rituels — voir AscensionController.GetModifiers (RITUAL_MAX_COUNT,
+    /// RITUAL_TOTAL_POWER, RITUAL_COST_SCALING_REDUCTION).</summary>
+    public bool IsDivineRitualsActive => UnlockedPowers.Contains(AscensionPowerId.DivineRituals);
+
     /// <summary>Purification Supérieure : la Nécropole récolte les Os Divins sur lesquels elle est
     /// bâtie au lieu de les détruire (voir NecropolisController.PlaceNecropolis).</summary>
     public bool IsGreaterPurificationActive => UnlockedPowers.Contains(AscensionPowerId.GreaterPurification);

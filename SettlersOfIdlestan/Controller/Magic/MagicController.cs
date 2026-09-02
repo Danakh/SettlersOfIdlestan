@@ -216,17 +216,31 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         // ── Coûts ─────────────────────────────────────────────────────────────
 
-        /// <summary>Coût de lancement en cristaux : base × puissance².</summary>
-        public static int GetLaunchCost(RitualDefinition def, int power)
-            => def.BaseLaunchCost * power * power;
+        /// <summary>
+        /// Exposant de la puissance dans les formules de coût des rituels (base 2, coût = base × puissance²),
+        /// réduit par RITUAL_COST_SCALING_REDUCTION (0.2 = -20% → exposant 1,6). Partagé par
+        /// <see cref="GetLaunchCost"/> et <see cref="GetUpkeepCost"/>.
+        /// </summary>
+        private double GetRitualCostExponent()
+        {
+            double reduction = GetPlayerCiv()?.ModifierAggregator
+                .ApplyModifiers(ECategory.RITUAL_COST_SCALING_REDUCTION, "", 0.0) ?? 0.0;
+            reduction = Math.Clamp(reduction, 0.0, 0.9);
+            return 2.0 * (1.0 - reduction);
+        }
 
-        /// <summary>Coût d'entretien par cycle : base × puissance², réduit par RITUAL_UPKEEP_REDUCTION.</summary>
+        /// <summary>Coût de lancement en cristaux : base × puissance², réduit par RITUAL_COST_SCALING_REDUCTION.</summary>
+        public int GetLaunchCost(RitualDefinition def, int power)
+            => (int)Math.Ceiling(def.BaseLaunchCost * Math.Pow(power, GetRitualCostExponent()));
+
+        /// <summary>Coût d'entretien par cycle : base × puissance², réduit par RITUAL_UPKEEP_REDUCTION et
+        /// RITUAL_COST_SCALING_REDUCTION.</summary>
         public int GetUpkeepCost(RitualDefinition def, int power)
         {
             double reduction = GetPlayerCiv()?.ModifierAggregator
                 .ApplyModifiers(ECategory.RITUAL_UPKEEP_REDUCTION, "", 0.0) ?? 0.0;
             reduction = Math.Clamp(reduction, 0.0, 0.9);
-            return (int)Math.Ceiling(def.BaseUpkeepCost * power * power * (1.0 - reduction));
+            return (int)Math.Ceiling(def.BaseUpkeepCost * Math.Pow(power, GetRitualCostExponent()) * (1.0 - reduction));
         }
 
         // ── Lancement / arrêt / puissance ─────────────────────────────────────

@@ -285,6 +285,34 @@ namespace SOITests.ControllerTests
             Assert.Equal(2, controller.GetUpkeepCost(def, 1));
         }
 
+        [Fact]
+        public void CostScalingReductionModifier_LowersGrowthButNotBaseCostAtPowerOne()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.MartialBlessing);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.RITUAL_COST_SCALING_REDUCTION, EType.ADDITIVE, 0.2),
+            }));
+
+            var def = RitualDefinitions.Get(RitualId.MartialBlessing)!;
+
+            // À puissance 1, puissance^exposant vaut toujours 1 : le coût de base n'est pas affecté par
+            // la réduction de scaling, seule sa croissance avec la puissance l'est.
+            Assert.Equal(def.BaseLaunchCost, controller.GetLaunchCost(def, 1));
+            Assert.Equal(def.BaseUpkeepCost, controller.GetUpkeepCost(def, 1));
+
+            // Exposant réduit à 2 × (1 − 0.2) = 1.6 : coût à puissance 2 = base × 2^1.6, arrondi au
+            // supérieur, strictement inférieur à base × 2² (scaling non réduit).
+            int reducedLaunchCost = controller.GetLaunchCost(def, 2);
+            int reducedUpkeepCost = controller.GetUpkeepCost(def, 2);
+            Assert.True(reducedLaunchCost < def.BaseLaunchCost * 4);
+            Assert.True(reducedUpkeepCost < def.BaseUpkeepCost * 4);
+            Assert.Equal((int)Math.Ceiling(def.BaseLaunchCost * Math.Pow(2, 1.6)), reducedLaunchCost);
+            Assert.Equal((int)Math.Ceiling(def.BaseUpkeepCost * Math.Pow(2, 1.6)), reducedUpkeepCost);
+        }
+
         // ── Cercles de Fées ───────────────────────────────────────────────────
 
         private static void AddInvisibleCircles(WorldState state, int landmassIndex, int count)

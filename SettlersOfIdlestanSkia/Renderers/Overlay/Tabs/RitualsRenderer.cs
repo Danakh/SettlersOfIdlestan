@@ -136,8 +136,7 @@ public sealed class RitualsRenderer : IDisposable
                 Description: _localization.Get(def.DescKey),
                 CostText: isActive
                     ? _localization.GetFormated("ritual_upkeep_cost", magic.GetUpkeepCost(def, active!.Power))
-                    : _localization.GetFormated("ritual_launch_cost",
-                        SettlersOfIdlestan.Controller.Magic.MagicController.GetLaunchCost(def, 1)),
+                    : _localization.GetFormated("ritual_launch_cost", magic.GetLaunchCost(def, 1)),
                 BonusText: isActive
                     ? _localization.GetFormated("ritual_bonus_current", FormatRitualTotalBonus(def, active!.Power))
                     : null,

@@ -121,6 +121,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             RITUAL_TOTAL_POWER,
             /// <summary>Fraction de réduction du coût d'entretien des rituels (0.2 = -20%).</summary>
             RITUAL_UPKEEP_REDUCTION,
+            /// <summary>Fraction de réduction du scaling du coût des rituels (lancement et entretien) : la formule
+            /// base × puissance² devient base × puissance^(2 × (1 − reduction)). Base = 0.0 ; 0.2 = -20% (exposant
+            /// 1,6 au lieu de 2). Voir MagicController.GetLaunchCost / GetUpkeepCost.</summary>
+            RITUAL_COST_SCALING_REDUCTION,
             /// <summary>
             /// Nombre de Cercles de Fées révélés sur CHAQUE masse continentale de la carte, indépendamment
             /// les unes des autres (voir MagicController.EnsureMagicFeatures et FairyCircle.MaxPerLandmass).

@@ -767,6 +767,13 @@ public class AscensionController : IModifierProvider
         if (IsPowerUnlocked(AscensionPowerId.DivineConquest))
             yield return new Modifier(Modifier.ECategory.NEW_CITY_DIVINE_CONQUEST, Modifier.EType.ADDITIVE, 1.0);
 
+        if (IsPowerUnlocked(AscensionPowerId.DivineRituals))
+        {
+            yield return new Modifier(Modifier.ECategory.RITUAL_MAX_COUNT, Modifier.EType.ADDITIVE, 1);
+            yield return new Modifier(Modifier.ECategory.RITUAL_TOTAL_POWER, Modifier.EType.ADDITIVE, 0.25);
+            yield return new Modifier(Modifier.ECategory.RITUAL_COST_SCALING_REDUCTION, Modifier.EType.ADDITIVE, 0.2);
+        }
+
         // Jalon Ferveur Studieuse (AscensionMilestoneId.ResearchProduction) : double la génération de
         // points de recherche, base 1.0 (100%) additionnée aux autres sources — voir
         // Civilization.RESEARCH_PRODUCTION_SPEED.

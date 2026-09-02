@@ -1497,4 +1497,20 @@ public class AscensionControllerTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagic));
         Assert.True(godState.AscensionState.IsDivineMagicActive);
     }
+
+    [Fact]
+    public void DivineRituals_RequiresDivineMagicFirstAndActivatesInAscensionState()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.DivineRituals));
+        Assert.False(godState.AscensionState.IsDivineRitualsActive);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagic));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineRituals));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineRituals));
+        Assert.True(godState.AscensionState.IsDivineRitualsActive);
+    }
 }

@@ -1456,6 +1456,8 @@
   "ascension_power_divineconquest_desc": "Chaque nouvel avant-poste reçoit une Palissade (niveau 2 si le vertex de prestige Avant-poste fortifié est acquis, les deux se cumulant), une Caserne niveau 1, et jusqu'à 20 soldats en garnison (moins si la capacité de la ville est inférieure).",
   "ascension_power_divinemagic_name": "Magie Divine",
   "ascension_power_divinemagic_desc": "Les sorts peuvent accumuler jusqu'à 5 charges de lancement quand leur cooldown arrive à son terme sans épuisement accumulé. Lancer un sort avec une charge disponible la consomme sans accumuler d'épuisement. Chaque prestige recrédite 1 charge par sort.",
+  "ascension_power_divinerituals_name": "Rituels Divins",
+  "ascension_power_divinerituals_desc": "Un rituel supplémentaire peut être actif en même temps, le budget de puissance maximal est augmenté de 25%, et le scaling du coût des rituels (lancement et entretien) est réduit de 20%.",
   "ascension_power_unlock_button": "Débloquer",
   "ascension_power_unlocked_label": "Débloqué",
   "ascension_power_locked_tooltip": "Débloquez d'abord le pouvoir situé juste en dessous dans la colonne",

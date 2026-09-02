@@ -1456,6 +1456,8 @@
   "ascension_power_divineconquest_desc": "Every new outpost is granted a Palisade (level 2 if the Fortified Outpost prestige vertex is owned, the two stacking), a level 1 Barracks, and up to 20 garrisoned soldiers (fewer if the city's capacity is lower).",
   "ascension_power_divinemagic_name": "Divine Magic",
   "ascension_power_divinemagic_desc": "Spells can accumulate up to 5 launch charges when their cooldown completes with no accumulated exhaustion. Casting a spell with a charge available consumes it without accumulating exhaustion. Each prestige grants back 1 charge per spell.",
+  "ascension_power_divinerituals_name": "Divine Rituals",
+  "ascension_power_divinerituals_desc": "One more ritual can be active at the same time, maximum power budget is increased by 25%, and the ritual cost scaling (launch and upkeep) is reduced by 20%.",
   "ascension_power_unlock_button": "Unlock",
   "ascension_power_unlocked_label": "Unlocked",
   "ascension_power_locked_tooltip": "Unlock the power just below it in the column first",
