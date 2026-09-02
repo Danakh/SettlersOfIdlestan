@@ -63,6 +63,10 @@ public sealed class SpellRowViewModel : ViewModelBase
     public bool HasExhaustion => _snapshot.ExhaustionStacks > 0;
     public double CooldownRatio => _snapshot.CooldownRatio;
     public string CooldownTooltip => _snapshot.CooldownTooltip;
+    public int Charges => _snapshot.Charges;
+    public int MaxCharges => _snapshot.MaxCharges;
+    public bool HasCharges => _snapshot.MaxCharges > 0;
+    public string ChargesTooltip => _snapshot.ChargesTooltip;
 
     internal void Apply(SkiaLayer.SpellRowSnapshot snapshot)
     {
@@ -85,6 +89,13 @@ public sealed class SpellRowViewModel : ViewModelBase
         }
         if (previous.CooldownRatio != snapshot.CooldownRatio) RaisePropertyChanged(nameof(CooldownRatio));
         if (previous.CooldownTooltip != snapshot.CooldownTooltip) RaisePropertyChanged(nameof(CooldownTooltip));
+        if (previous.Charges != snapshot.Charges) RaisePropertyChanged(nameof(Charges));
+        if (previous.MaxCharges != snapshot.MaxCharges)
+        {
+            RaisePropertyChanged(nameof(MaxCharges));
+            RaisePropertyChanged(nameof(HasCharges));
+        }
+        if (previous.ChargesTooltip != snapshot.ChargesTooltip) RaisePropertyChanged(nameof(ChargesTooltip));
     }
 }
 

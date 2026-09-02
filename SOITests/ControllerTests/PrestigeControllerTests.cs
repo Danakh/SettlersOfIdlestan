@@ -320,6 +320,43 @@ namespace SOITests.ControllerTests
             Assert.Equal(5, controller.CurrentMainState.GodState.DivineEssence);
         }
 
+        // ── Magie Divine — recrédit d'une charge de lancement par sort au prestige ────
+
+        [Fact]
+        public void MainGameController_PerformPrestige_WithDivineMagic_GrantsOneChargePerSpell()
+        {
+            var controller = new MainGameController();
+            controller.CreateNewGame();
+            var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
+            for (int i = 0; i < 20; i++)
+                civ.Cities[0].AddBuilding(new Temple());
+            civ.AddUniqueBuilding(BuildingType.ImperialPort);
+            controller.CurrentMainState.GodState.AscensionState.UnlockedPowers.Add(
+                SettlersOfIdlestan.Model.Ascension.AscensionPowerId.DivineMagic);
+
+            controller.PerformPrestige();
+
+            var magic = controller.CurrentMainState.CurrentWorldState!.Magic;
+            foreach (var def in SettlersOfIdlestan.Model.Magic.SpellDefinitions.All)
+                Assert.Equal(1, magic.SpellCharges[def.Id]);
+        }
+
+        [Fact]
+        public void MainGameController_PerformPrestige_WithoutDivineMagic_GrantsNoCharge()
+        {
+            var controller = new MainGameController();
+            controller.CreateNewGame();
+            var civ = controller.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
+            for (int i = 0; i < 20; i++)
+                civ.Cities[0].AddBuilding(new Temple());
+            civ.AddUniqueBuilding(BuildingType.ImperialPort);
+
+            controller.PerformPrestige();
+
+            var magic = controller.CurrentMainState.CurrentWorldState!.Magic;
+            Assert.Empty(magic.SpellCharges);
+        }
+
         // ── Essences divines conservées au prestige (Reliquaire Sacré / Renforcé) ────
 
         [Fact]

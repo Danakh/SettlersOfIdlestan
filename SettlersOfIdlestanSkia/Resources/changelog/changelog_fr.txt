@@ -6,6 +6,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 v0.20
 • Nouvel onglet Jalons sur l'écran d'Ascension : débloque gratuitement des pouvoirs divins équivalents selon le nombre de races différentes ayant déjà accompli une Ascension
 • Nouveaux pouvoirs divins Construction Divine et Conquête Divine : chaque nouvel avant-poste reçoit automatiquement ses bâtiments de base (Hôtel de ville, production, Palissade, Caserne) et une garnison de départ
+• Nouveau pouvoir divin Magie Divine : les sorts peuvent accumuler jusqu'à 5 charges de lancement sans épuisement quand leur cooldown arrive à son terme, affichées sous forme de cercles ; chaque prestige en recrédite une
 
 ---
 

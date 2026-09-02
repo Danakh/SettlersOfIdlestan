@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Magic;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Prestige;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using System;
 using System.Collections.Generic;
@@ -34,6 +35,12 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// <summary>Bonus additif de puissance maximale par niveau cumulé de Tour de Mages (10 %).</summary>
         public const double MageTowerPowerBonusPerLevel = 0.10;
 
+        /// <summary>
+        /// Nombre maximum de charges de lancement qu'un sort peut accumuler sous Magie Divine (voir
+        /// <see cref="GetSpellCharges"/>), affiché sous forme de 5 cercles sous la barre de cooldown.
+        /// </summary>
+        public const int MaxSpellCharges = 5;
+
         private WorldState? _state;
         private GameClock? _clock;
         private GamePRNG? _prng;
@@ -44,6 +51,7 @@ namespace SettlersOfIdlestan.Controller.Magic
         private BuildingController? _buildingController;
         private HarvestController? _harvestController;
         private RoadController? _roadController;
+        private GodState? _godState;
 
         /// <summary>Déclenché à chaque lancement/arrêt/changement de puissance d'un rituel.</summary>
         public event EventHandler? OnRitualsChanged;
@@ -52,7 +60,8 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null,
             CityBuilderController? cityBuilder = null, BuildingController? buildingController = null,
-            HarvestController? harvestController = null, RoadController? roadController = null)
+            HarvestController? harvestController = null, RoadController? roadController = null,
+            GodState? godState = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
@@ -64,6 +73,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             _buildingController = buildingController;
             _harvestController = harvestController;
             _roadController = roadController;
+            _godState = godState;
             _lastPassiveTick = 0;
             // Non persisté (recréé à chaque Initialize, y compris au chargement d'une sauvegarde) :
             // seedé au tick courant plutôt qu'à 0, sinon TickCooldown calcule un nombre de cycles de
@@ -367,10 +377,38 @@ namespace SettlersOfIdlestan.Controller.Magic
             return cost >= int.MaxValue ? int.MaxValue : (int)cost;
         }
 
-        /// <summary>Enregistre un lancement réussi — ajoute un cran d'épuisement, qui fait doubler le coût.</summary>
+        /// <summary>
+        /// Vrai si Magie Divine est débloquée (pouvoir divin, voir <see cref="AscensionState.IsDivineMagicActive"/>) :
+        /// seule condition qui permet aux sorts d'accumuler des charges (<see cref="GetSpellCharges"/>).
+        /// </summary>
+        public bool IsDivineMagicActive => _godState?.AscensionState.IsDivineMagicActive == true;
+
+        /// <summary>
+        /// Charges de lancement actuellement disponibles pour ce sort (voir <see cref="MagicState.SpellCharges"/>) :
+        /// toujours 0 tant que Magie Divine n'a jamais été active, la charge initiale de chaque prestige
+        /// (<see cref="MagicState.GrantInitialSpellCharges"/>) n'étant accordée que dans ce cas.
+        /// </summary>
+        public int GetSpellCharges(SpellId id)
+            => _state != null && _state.Magic.SpellCharges.TryGetValue(id, out var charges) ? charges : 0;
+
+        /// <summary>Charges maximales accumulables pour ce sort : <see cref="MaxSpellCharges"/> si Magie
+        /// Divine est active, sinon 0 (voir <see cref="IsDivineMagicActive"/>) — sert à l'UI pour décider
+        /// si la rangée de cercles de charges doit être affichée.</summary>
+        public int GetSpellMaxCharges(SpellId id) => IsDivineMagicActive ? MaxSpellCharges : 0;
+
+        /// <summary>Enregistre un lancement réussi : consomme une charge disponible sans épuisement
+        /// (voir <see cref="GetSpellCharges"/>), sinon ajoute un cran d'épuisement qui fait doubler le coût.</summary>
         private void RegisterSpellCast(SpellId id)
         {
             if (_state == null) return;
+
+            int charges = GetSpellCharges(id);
+            if (charges > 0)
+            {
+                _state.Magic.SpellCharges[id] = charges - 1;
+                return;
+            }
+
             _state.Magic.SpellExhaustionStacks[id] = GetSpellExhaustionStacks(id) + 1;
         }
 
@@ -738,11 +776,17 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// peut donc avoir déjà consommé un ou plusieurs cycles sans effet visible (rien à retirer à 0
         /// cran) — c'est ce qui rend le tout premier lancement d'un sort gratuit de tout épuisement si son
         /// cooldown a eu le temps de s'écouler depuis le début du run.
+        ///
+        /// <para>Sous Magie Divine (<see cref="IsDivineMagicActive"/>), un cycle écoulé qui ne trouve plus
+        /// aucun cran d'épuisement à retirer crédite une charge de lancement (<see cref="MagicState.SpellCharges"/>)
+        /// à la place, jusqu'à <see cref="MaxSpellCharges"/> — voir <see cref="RegisterSpellCast"/>, qui
+        /// consomme ces charges en priorité.</para>
         /// </summary>
         private void ProcessSpellExhaustion()
         {
             if (_state == null || _clock == null || _state.Civilizations.Count == 0) return;
             long now = _clock.CurrentTick;
+            bool divineMagicActive = IsDivineMagicActive;
 
             foreach (var def in SpellDefinitions.All)
             {
@@ -754,8 +798,18 @@ namespace SettlersOfIdlestan.Controller.Magic
                 if (cycles <= 0) continue;
 
                 int stacks = GetSpellExhaustionStacks(def.Id);
-                if (stacks <= 0) continue;
-                _state.Magic.SpellExhaustionStacks[def.Id] = (int)Math.Max(0, stacks - cycles);
+                if (stacks > 0)
+                {
+                    long consumed = Math.Min(stacks, cycles);
+                    stacks -= (int)consumed;
+                    _state.Magic.SpellExhaustionStacks[def.Id] = stacks;
+                    cycles -= consumed;
+                }
+
+                if (!divineMagicActive || cycles <= 0 || stacks > 0) continue;
+
+                int charges = GetSpellCharges(def.Id);
+                _state.Magic.SpellCharges[def.Id] = (int)Math.Min(MaxSpellCharges, charges + cycles);
             }
         }
 

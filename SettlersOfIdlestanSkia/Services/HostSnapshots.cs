@@ -509,6 +509,11 @@ public sealed record RitualRowSnapshot(
 /// du prochain cran ; affichee comme une petite barre sous le bouton, visible uniquement si
 /// <see cref="ExhaustionStacks"/> est superieur a 0.</param>
 /// <param name="CooldownTooltip">Infobulle de la barre de cooldown, deja formatee et localisee.</param>
+/// <param name="Charges">Charges de lancement disponibles (pouvoir divin Magie Divine) : consommees en
+/// priorite au lancement, sans accumuler d'epuisement.</param>
+/// <param name="MaxCharges">Charges maximales accumulables ; 0 tant que Magie Divine n'est pas active,
+/// auquel cas la rangee de cercles de charges reste masquee.</param>
+/// <param name="ChargesTooltip">Infobulle de la rangee de charges, deja formatee et localisee.</param>
 public sealed record SpellRowSnapshot(
     string Key,
     string Name,
@@ -519,7 +524,10 @@ public sealed record SpellRowSnapshot(
     bool CanCast,
     int ExhaustionStacks,
     double CooldownRatio,
-    string CooldownTooltip);
+    string CooldownTooltip,
+    int Charges,
+    int MaxCharges,
+    string ChargesTooltip);
 
 /// <summary>
 /// Onglet plein ecran des rituels : puissance disponible, cristaux, rituels connus et sorts

@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Magic;
+using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -8,6 +9,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Magic;
+using SettlersOfIdlestan.Model.Prestige;
 using SOITests.TestUtilities;
 using System;
 using System.Collections.Generic;
@@ -44,7 +46,7 @@ namespace SOITests.ControllerTests
             return tower;
         }
 
-        private static (WorldState state, GameClock clock, MagicController controller) CreateSetup()
+        private static (WorldState state, GameClock clock, MagicController controller) CreateSetup(GodState? godState = null)
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
@@ -56,9 +58,17 @@ namespace SOITests.ControllerTests
             var buildingController = new BuildingController(state);
 
             var controller = new MagicController();
-            controller.Initialize(state, clock, new GamePRNG(42), cityBuilder, buildingController);
+            controller.Initialize(state, clock, new GamePRNG(42), cityBuilder, buildingController, godState: godState);
 
             return (state, clock, controller);
+        }
+
+        /// <summary>GodState de test avec Magie Divine débloquée.</summary>
+        private static GodState CreateDivineMagicGodState()
+        {
+            var godState = new GodState();
+            godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.DivineMagic);
+            return godState;
         }
 
         /// <summary>Ajoute une route lointaine offrant un vertex constructible, hors de portée de la ville existante.</summary>
@@ -881,6 +891,109 @@ namespace SOITests.ControllerTests
 
             Assert.True(controller.CastSpell(SpellId.Abundance));
             Assert.Equal(1, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+        }
+
+        // ── Magie Divine — charges de lancement ─────────────────────────────
+
+        [Fact]
+        public void CastSpell_ConsumesChargeInsteadOfAccumulatingExhaustion()
+        {
+            var godState = CreateDivineMagicGodState();
+            var (state, _, controller) = CreateSetup(godState);
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            GrantCrystalStorage(civ, 10000);
+            civ.AddResource(Resource.Crystal, 10000);
+            var def = SpellDefinitions.Get(SpellId.Abundance)!;
+
+            state.Magic.SpellCharges[SpellId.Abundance] = 1;
+
+            Assert.True(controller.CastSpell(SpellId.Abundance));
+
+            Assert.Equal(0, controller.GetSpellCharges(SpellId.Abundance));
+            Assert.Equal(0, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+            Assert.Equal(def.CrystalCost, controller.GetSpellCost(def));
+        }
+
+        [Fact]
+        public void CastSpell_FallsBackToExhaustionWhenNoChargeAvailableEvenWithDivineMagic()
+        {
+            var godState = CreateDivineMagicGodState();
+            var (state, _, controller) = CreateSetup(godState);
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            GrantCrystalStorage(civ, 10000);
+            civ.AddResource(Resource.Crystal, 10000);
+
+            Assert.Equal(0, controller.GetSpellCharges(SpellId.Abundance));
+
+            Assert.True(controller.CastSpell(SpellId.Abundance));
+
+            Assert.Equal(1, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+        }
+
+        [Fact]
+        public void ProcessSpellExhaustion_GrantsChargeWhenCooldownElapsesWithoutExhaustion()
+        {
+            var godState = CreateDivineMagicGodState();
+            var (state, clock, controller) = CreateSetup(godState);
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+
+            // Amorce le suivi du cooldown (voir ProcessSpellExhaustion) avant de mesurer un cycle complet.
+            clock.SimulateAdvance(1, chunkTicks: 1);
+            Assert.Equal(0, controller.GetSpellCharges(SpellId.Abundance));
+
+            clock.SimulateAdvance(6000, chunkTicks: 6000);
+
+            Assert.Equal(1, controller.GetSpellCharges(SpellId.Abundance));
+        }
+
+        [Fact]
+        public void ProcessSpellExhaustion_CapsChargesAtMaxSpellCharges()
+        {
+            var godState = CreateDivineMagicGodState();
+            var (state, clock, controller) = CreateSetup(godState);
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+
+            clock.SimulateAdvance(1, chunkTicks: 1);
+            clock.SimulateAdvance(6000 * 20, chunkTicks: 6000 * 20);
+
+            Assert.Equal(MagicController.MaxSpellCharges, controller.GetSpellCharges(SpellId.Abundance));
+        }
+
+        [Fact]
+        public void ProcessSpellExhaustion_PrioritizesExhaustionDecayOverChargeGrantWhenBothPending()
+        {
+            var godState = CreateDivineMagicGodState();
+            var (state, clock, controller) = CreateSetup(godState);
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            GrantCrystalStorage(civ, 10000);
+            civ.AddResource(Resource.Crystal, 10000);
+
+            clock.SimulateAdvance(1, chunkTicks: 1);
+            Assert.True(controller.CastSpell(SpellId.Abundance));
+            Assert.Equal(1, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+
+            // Deux cycles de cooldown : le premier retire l'unique cran d'épuisement, le second se
+            // convertit en charge puisqu'il ne reste alors plus rien à retirer.
+            clock.SimulateAdvance(6000 * 2, chunkTicks: 6000 * 2);
+
+            Assert.Equal(0, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+            Assert.Equal(1, controller.GetSpellCharges(SpellId.Abundance));
+        }
+
+        [Fact]
+        public void GrantInitialSpellCharges_SetsOneChargePerSpell()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+
+            state.Magic.GrantInitialSpellCharges();
+
+            foreach (var def in SpellDefinitions.All)
+                Assert.Equal(1, state.Magic.SpellCharges[def.Id]);
         }
 
         [Fact]

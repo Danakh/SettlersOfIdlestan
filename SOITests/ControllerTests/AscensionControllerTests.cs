@@ -1482,4 +1482,19 @@ public class AscensionControllerTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
         Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineConquest));
     }
+
+    [Fact]
+    public void DivineMagic_IsPurchasableRightAfterFaithAndActivatesInAscensionState()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100);
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.DivineMagic));
+        Assert.False(godState.AscensionState.IsDivineMagicActive);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineMagic));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagic));
+        Assert.True(godState.AscensionState.IsDivineMagicActive);
+    }
 }

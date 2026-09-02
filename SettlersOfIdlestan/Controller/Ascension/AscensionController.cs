@@ -638,6 +638,11 @@ public class AscensionController : IModifierProvider
         godState.PrestigeState = new PrestigeState(worldState);
         GrantFreePrestigeVertices(godState.PrestigeState, chosenRace);
 
+        // Magie Divine : chaque nouveau cycle recrédite 1 charge de lancement par sort — voir
+        // Model.Magic.MagicState.GrantInitialSpellCharges.
+        if (godState.AscensionState.IsDivineMagicActive)
+            worldState.Magic.GrantInitialSpellCharges();
+
         // Nouvelle île : l'état éphémère d'automatisation (cible de raid, Héraut de Guerre, Vendetta)
         // référencerait sinon des coordonnées de l'île abandonnée — voir
         // AutomationSettings.ResetIslandEphemeralState. Les interrupteurs/seuils, eux, survivent sans

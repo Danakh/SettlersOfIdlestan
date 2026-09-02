@@ -16,6 +16,10 @@ public class AscensionState
 
     public bool IsEyeOfGodActive => UnlockedPowers.Contains(AscensionPowerId.EyeOfGod);
 
+    /// <summary>Magie Divine : les sorts (Model.Magic) peuvent accumuler des charges de lancement — voir
+    /// MagicController.MaxSpellCharges et MagicState.SpellCharges.</summary>
+    public bool IsDivineMagicActive => UnlockedPowers.Contains(AscensionPowerId.DivineMagic);
+
     /// <summary>Purification Supérieure : la Nécropole récolte les Os Divins sur lesquels elle est
     /// bâtie au lieu de les détruire (voir NecropolisController.PlaceNecropolis).</summary>
     public bool IsGreaterPurificationActive => UnlockedPowers.Contains(AscensionPowerId.GreaterPurification);

@@ -29,6 +29,7 @@ public enum AscensionPowerId
     WrathOfGod,
     DivineConstruction,
     DivineConquest,
+    DivineMagic,
 
     // Valeur de repli utilisée par AscensionPowerIdJsonConverter pour tout pouvoir supprimé lu depuis
     // une ancienne sauvegarde. Absente de AscensionPowerDefinitions.All, donc AscensionPowerDefinitions.Get

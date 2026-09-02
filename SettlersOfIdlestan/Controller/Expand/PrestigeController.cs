@@ -488,6 +488,11 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             mainGameState.PrestigeState.WorldState = nextWorldState;
 
+            // Magie Divine : chaque prestige recrédite 1 charge de lancement par sort — voir
+            // MagicState.GrantInitialSpellCharges.
+            if (mainGameState.GodState.AscensionState.IsDivineMagicActive)
+                nextWorldState.Magic.GrantInitialSpellCharges();
+
             // Nouvelle île : l'état éphémère d'automatisation (cible de raid, Héraut de Guerre,
             // Vendetta) référencerait sinon des coordonnées de l'île abandonnée — voir
             // AutomationSettings.ResetIslandEphemeralState. Les interrupteurs/seuils, eux, survivent

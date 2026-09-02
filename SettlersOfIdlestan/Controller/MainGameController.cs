@@ -587,7 +587,7 @@ namespace SettlersOfIdlestan.Controller
                 AbyssGateController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
                 PandemoniumGateController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState, CurrentMainState!.GodState);
                 DivineBonesController.Initialize(WorldState, Clock, CurrentMainState!.GodState, CurrentMainState!.PRNG, HarvestController);
-                MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController, RoadController);
+                MagicController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, BuildingController, HarvestController, RoadController, CurrentMainState!.GodState);
                 ResearchController.Initialize(WorldState, Clock, CurrentMainState?.PrestigeState, CurrentMainState?.Settings, CurrentMainState?.GodState);
                 NpcGameController.Initialize(WorldState, Clock, MilitaryController, CreateAutoplayControllers());
 

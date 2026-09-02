@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
@@ -28,6 +29,7 @@ public sealed class RitualsView : UserControl
     private static readonly SolidColorBrush Stop = new(Color.FromRgb(120, 55, 55));
     private static readonly SolidColorBrush Disabled = new(Color.FromRgb(60, 60, 70));
     private static readonly SolidColorBrush Accent = new(Color.FromRgb(190, 150, 255));
+    private static readonly SolidColorBrush ChargeDotEmpty = new(Color.FromArgb(160, 50, 50, 65));
     private static readonly SolidColorBrush NameText = new(Color.FromRgb(230, 230, 240));
     private static readonly SolidColorBrush Desc = new(Color.FromRgb(150, 150, 165));
     private static readonly SolidColorBrush Cost = new(Color.FromRgb(170, 150, 220));
@@ -351,9 +353,35 @@ public sealed class RitualsView : UserControl
                 [!ToolTip.TipProperty] = new Binding(nameof(SpellRowViewModel.CooldownTooltip)),
             };
 
+            var charges = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 3,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 4, 0, 0),
+                [!IsVisibleProperty] = new Binding(nameof(SpellRowViewModel.HasCharges)),
+                [!ToolTip.TipProperty] = new Binding(nameof(SpellRowViewModel.ChargesTooltip)),
+            };
+            for (int i = 0; i < SettlersOfIdlestan.Controller.Magic.MagicController.MaxSpellCharges; i++)
+            {
+                int dotIndex = i;
+                charges.Children.Add(new Ellipse
+                {
+                    Width = 7,
+                    Height = 7,
+                    Stroke = Accent,
+                    StrokeThickness = 1,
+                    [!Ellipse.FillProperty] = new Binding(nameof(SpellRowViewModel.Charges))
+                    {
+                        Converter = new FuncValueConverter<int, IBrush>(c => c > dotIndex ? Accent : ChargeDotEmpty),
+                    },
+                });
+            }
+
             var right = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };
             right.Children.Add(cast);
             right.Children.Add(cooldownBar);
+            right.Children.Add(charges);
 
             var layout = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(right, Dock.Right);

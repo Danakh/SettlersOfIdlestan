@@ -47,4 +47,26 @@ public class MagicState
     /// démarre dès la première fois où le sort est observé comme connu, indépendamment des lancements.
     /// </summary>
     public Dictionary<SpellId, long> SpellCooldownLastTick { get; set; } = new();
+
+    /// <summary>
+    /// Charges de lancement accumulées par sort (pouvoir divin Magie Divine, voir
+    /// <c>AscensionState.IsDivineMagicActive</c>) : chaque cycle de cooldown écoulé sans épuisement
+    /// accumulé (<see cref="SpellExhaustionStacks"/> à zéro) en ajoute une, jusqu'à
+    /// <c>MagicController.MaxSpellCharges</c>. Lancer le sort en consomme une au lieu d'ajouter un cran
+    /// d'épuisement (voir <c>MagicController.RegisterSpellCast</c>). Remis à zéro au prestige comme tout
+    /// le <see cref="MagicState"/> ; <see cref="GrantInitialSpellCharges"/> en recrédite une aussitôt.
+    /// </summary>
+    public Dictionary<SpellId, int> SpellCharges { get; set; } = new();
+
+    /// <summary>
+    /// Crédite 1 charge de lancement à chaque sort défini — à appeler une fois par prestige/Ascension
+    /// sur le <see cref="MagicState"/> fraîchement créé, seulement si Magie Divine est active (voir
+    /// <c>AscensionState.IsDivineMagicActive</c>), depuis <c>PrestigeController.PerformPrestige</c> et
+    /// <c>AscensionController.FinishAscensionWithRace</c>.
+    /// </summary>
+    public void GrantInitialSpellCharges()
+    {
+        foreach (var def in SpellDefinitions.All)
+            SpellCharges[def.Id] = 1;
+    }
 }

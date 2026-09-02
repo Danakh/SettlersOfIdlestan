@@ -134,7 +134,7 @@ public class RitualsViewTests
     {
         var (_, _, view) = BuildProbeWindow(visible: true, spells:
         [
-            new("Gold", "Filon", "Convertit des cristaux", "Cout : 10", "Pas assez de cristaux", "Lancer", false, 0, 0.0, ""),
+            new("Gold", "Filon", "Convertit des cristaux", "Cout : 10", "Pas assez de cristaux", "Lancer", false, 0, 0.0, "", 0, 0, ""),
         ]);
 
         var texts = view.GetVisualDescendants().OfType<TextBlock>()

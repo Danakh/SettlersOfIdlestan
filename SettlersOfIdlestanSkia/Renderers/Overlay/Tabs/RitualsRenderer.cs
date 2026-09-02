@@ -161,6 +161,10 @@ public sealed class RitualsRenderer : IDisposable
             string cooldownTooltip = _localization.GetFormated("spell_cooldown_tooltip",
                 FormatSpellDuration(magic.GetSpellCooldownRemainingTicks(def.Id)), FormatSpellDuration(def.CooldownTicks));
 
+            int charges = magic.GetSpellCharges(def.Id);
+            int maxCharges = magic.GetSpellMaxCharges(def.Id);
+            string chargesTooltip = _localization.GetFormated("spell_charges_tooltip", charges, maxCharges);
+
             spells.Add(new SpellRowSnapshot(
                 Key: def.Id.ToString(),
                 Name: _localization.Get(def.NameKey),
@@ -177,7 +181,10 @@ public sealed class RitualsRenderer : IDisposable
                 CanCast: canCast,
                 ExhaustionStacks: stacks,
                 CooldownRatio: magic.GetSpellCooldownRatio(def.Id),
-                CooldownTooltip: cooldownTooltip));
+                CooldownTooltip: cooldownTooltip,
+                Charges: charges,
+                MaxCharges: maxCharges,
+                ChargesTooltip: chargesTooltip));
         }
 
         return new RitualsSnapshot(
