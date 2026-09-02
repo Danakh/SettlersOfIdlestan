@@ -174,23 +174,38 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 
                 if (hoveredBuilding is VolcanicForge volcanicForge && volcanicForge.Level > 0)
                 {
-                    int glassBonus   = VolcanicForge.GlassGenerationPerLevel * volcanicForge.Level;
+                    // Le Verre est distribué par la génération passive, un cycle toutes les
+                    // PassiveResourceGenerationIntervalTicks : on affiche le débit par seconde.
+                    double passiveCycleSecs = HarvestController.PassiveResourceGenerationIntervalTicks / 100.0;
+                    double glassPerSecond = VolcanicForge.GlassGenerationPerLevel * volcanicForge.Level / passiveCycleSecs;
                     int oreBonus     = VolcanicForge.OreHarvestBonusPerLevel * volcanicForge.Level;
                     int steelBonus   = VolcanicForge.SteelBonusPerLevel * volcanicForge.Level;
                     int mithrilBonus = VolcanicForge.MithrilHarvestBonusPerLevel * volcanicForge.Level;
-                    tooltipLines.Add(_localization.GetFormated("volcanicforge_glass_bonus", glassBonus));
+                    tooltipLines.Add(_localization.GetFormated("volcanicforge_glass_bonus", glassPerSecond.ToString("G3")));
                     tooltipLines.Add(_localization.GetFormated("volcanicforge_ore_bonus", oreBonus));
                     tooltipLines.Add(_localization.GetFormated("volcanicforge_steel_bonus", steelBonus));
                     tooltipLines.Add(_localization.GetFormated("volcanicforge_mithril_bonus", mithrilBonus));
                     if (!_cityBuildingService.IsAtMaxLevel(volcanicForge))
                     {
                         int nextLevel = volcanicForge.Level + 1;
+                        double nextGlassPerSecond = VolcanicForge.GlassGenerationPerLevel * nextLevel / passiveCycleSecs;
                         tooltipLines.Add(_localization.Get("tooltip_harvest_auto_next")
-                            + $" +{VolcanicForge.GlassGenerationPerLevel * nextLevel} " + _localization.Get("resource_glass")
+                            + $" +{nextGlassPerSecond:G3} " + _localization.Get("resource_glass") + "/s"
                             + $", +{VolcanicForge.OreHarvestBonusPerLevel * nextLevel}% " + _localization.Get("resource_ore")
                             + $", +{VolcanicForge.SteelBonusPerLevel * nextLevel} " + _localization.Get("resource_steel")
                             + $", +{VolcanicForge.MithrilHarvestBonusPerLevel * nextLevel}% " + _localization.Get("resource_mithril"));
                     }
+                    tooltipLines.Add("");
+                }
+
+                // L'automatisation des Ports maritimes n'arrive qu'au niveau 2, lui-même débloqué par
+                // le vertex de prestige Port Impérial : on ne mentionne le palier que si le niveau max
+                // atteint 2, sinon la ligne promettrait un niveau inaccessible.
+                if (hoveredBuilding is ImperialPort imperialPort && _cityBuildingService.GetMaxLevel(imperialPort) >= 2)
+                {
+                    tooltipLines.Add(imperialPort.Level >= 2
+                        ? _localization.Get("imperialport_seaport_automation")
+                        : _localization.Get("imperialport_seaport_automation_locked"));
                     tooltipLines.Add("");
                 }
 
