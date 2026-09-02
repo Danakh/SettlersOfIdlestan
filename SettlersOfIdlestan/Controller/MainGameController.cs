@@ -131,6 +131,17 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
+        /// Même sauvegarde que <see cref="ExportMainState"/>, rendue en UTF-8 sans passer par une
+        /// chaîne — voir <see cref="SaveController.ExportUtf8"/>. C'est la forme à privilégier pour
+        /// la sauvegarde automatique, qui repasse ici toutes les 5 secondes.
+        /// </summary>
+        public byte[] ExportMainStateUtf8()
+        {
+            if (CurrentMainState == null) throw new InvalidOperationException("No main state available to export.");
+            return _saveController.ExportUtf8(CurrentMainState);
+        }
+
+        /// <summary>
         /// Importe un MainGameState depuis une sauvegarde chiffrée (ou JSON brut pour les anciennes sauvegardes).
         /// Retourne le MainGameState désérialisé et connecte les contrôleurs.
         /// </summary>

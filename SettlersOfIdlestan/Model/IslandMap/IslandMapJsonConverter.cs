@@ -8,6 +8,20 @@ namespace SettlersOfIdlestan.Model.IslandMap
 {
     public class IslandMapJsonConverter : JsonConverter<IslandMap>
     {
+        // HexTile uses a [JsonConstructor] with camelCase parameters — needs case-insensitive matching.
+        // JsonStringEnumConverter handles both legacy numeric TerrainType values and new string values.
+        // Statique : construire un JsonSerializerOptions reconstruit tout son cache de métadonnées
+        // par réflexion, et cet objet était recréé à chaque couche de chaque chargement.
+        private static readonly JsonSerializerOptions _tilesOptions = MakeTilesOptions();
+
+        private static JsonSerializerOptions MakeTilesOptions()
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            options.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
+            options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+            return options;
+        }
+
         public override IslandMap Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             using var doc = JsonDocument.ParseValue(ref reader);
@@ -19,16 +33,10 @@ namespace SettlersOfIdlestan.Model.IslandMap
             if (!root.TryGetProperty("Tiles", out var tilesElem))
                 throw new JsonException("Missing 'Tiles' property for IslandMap.");
 
-            // HexTile uses a [JsonConstructor] with camelCase parameters — needs case-insensitive matching.
-            // JsonStringEnumConverter handles both legacy numeric TerrainType values and new string values.
-            var localOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            localOptions.Converters.Add(new SettlersOfIdlestan.Model.HexGrid.HexCoordJsonConverter());
-            localOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-
             Dictionary<HexCoord, HexTile> dict;
             try
             {
-                dict = JsonSerializer.Deserialize<Dictionary<HexCoord, HexTile>>(tilesElem.GetRawText(), localOptions)
+                dict = tilesElem.Deserialize<Dictionary<HexCoord, HexTile>>(_tilesOptions)
                        ?? new Dictionary<HexCoord, HexTile>();
             }
             catch (Exception ex)

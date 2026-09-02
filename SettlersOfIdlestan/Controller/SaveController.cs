@@ -3,6 +3,8 @@ using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using System;
+using System.Buffers;
+using System.Buffers.Text;
 using System.Numerics;
 using System.Text;
 using System.Text.Json;
@@ -35,29 +37,89 @@ namespace SettlersOfIdlestan.Controller
         }
 
         private static readonly JsonSerializerOptions _serializationOptions = MakeSerializationOptions();
+        private static readonly JsonSerializerOptions _deserializationOptions = MakeDeserializationOptions();
+
+        /// <summary>
+        /// Taille initiale du tampon d'écriture JSON. Une sauvegarde de fin de partie pèse ~1 Mo :
+        /// partir de 2 Mo évite la dizaine de doublements de <see cref="ArrayBufferWriter{T}"/>, dont
+        /// les derniers recopient chacun tout le tampon.
+        /// </summary>
+        private const int InitialJsonBufferBytes = 2 * 1024 * 1024;
 
         public static JsonSerializerOptions SerializationOptions() => _serializationOptions;
 
-        private static JsonSerializerOptions MakeSerializationOptions()
+        private static void AddSaveConverters(JsonSerializerOptions options)
         {
-            // WriteIndented=false : cette sortie n'est jamais lue par un humain (elle passe ensuite
-            // par XOR+Base64), l'indentation ne fait que doubler la taille de la sauvegarde pour rien.
-            var options = new JsonSerializerOptions { WriteIndented = false };
             options.Converters.Add(new HexCoordJsonConverter());
             options.Converters.Add(new EdgeJsonConverter());
             options.Converters.Add(new BuildingJsonConverter());
             options.Converters.Add(new IslandMapJsonConverter());
             options.Converters.Add(new VertexJsonConverter());
+        }
+
+        private static JsonSerializerOptions MakeSerializationOptions()
+        {
+            // WriteIndented=false : cette sortie n'est jamais lue par un humain (elle passe ensuite
+            // par XOR+Base64), l'indentation ne fait que doubler la taille de la sauvegarde pour rien.
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                // Retire de la sauvegarde tout ce qui ne peut de toute façon pas en revenir — voir
+                // SavePropertyTrimmer. Uniquement à l'écriture : la lecture garde le résolveur par
+                // défaut, pour ne rien changer à la façon dont les anciennes sauvegardes sont relues.
+                TypeInfoResolver = SavePropertyTrimmer.Resolver,
+            };
+            AddSaveConverters(options);
+            return options;
+        }
+
+        /// <summary>
+        /// Options de lecture. Mises en cache : construire un <see cref="JsonSerializerOptions"/>
+        /// reconstruit tout son cache de métadonnées par réflexion, et cet objet était auparavant
+        /// recréé à chaque import — 95 ms au lieu de 63 ms sur une sauvegarde de fin de partie, pour
+        /// un travail rigoureusement identique d'un chargement à l'autre.
+        /// </summary>
+        private static JsonSerializerOptions MakeDeserializationOptions()
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            AddSaveConverters(options);
             return options;
         }
 
         public string Export(MainGameState state)
         {
+            StampSaveMetadata(state);
+            var json = JsonSerializer.Serialize(state, _serializationOptions);
+            return Encrypt(json);
+        }
+
+        /// <summary>
+        /// Même sauvegarde que <see cref="Export"/>, rendue directement en UTF-8 : le JSON est écrit
+        /// dans un tampon d'octets, brouillé sur place puis encodé en Base64 vers le tableau
+        /// retourné, sans jamais matérialiser de <see cref="string"/>. Sur une partie de fin de jeu,
+        /// la sauvegarde automatique allouait ~13,5 Mo à chaque passage — dont deux chaînes de
+        /// plusieurs mégaoctets partant droit dans le tas des grands objets, toutes les 5 secondes —
+        /// contre ~4,5 Mo ici. Les appelants qui ont besoin d'un texte (Steam Cloud, export manuel)
+        /// gardent <see cref="Export"/>.
+        /// </summary>
+        public byte[] ExportUtf8(MainGameState state)
+        {
+            StampSaveMetadata(state);
+
+            var buffer = new ArrayBufferWriter<byte>(InitialJsonBufferBytes);
+            // SkipValidation : le graphe est écrit par JsonSerializer, qui ne produit pas de JSON
+            // déséquilibré — la validation ne ferait que coûter sur ~1 Mo de sortie.
+            using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { SkipValidation = true }))
+                JsonSerializer.Serialize(writer, state, _serializationOptions);
+
+            return EncryptUtf8(buffer.WrittenSpan);
+        }
+
+        private static void StampSaveMetadata(MainGameState state)
+        {
             state.Clock.LastSaveTime = DateTimeOffset.UtcNow;
             state.Clock.WasPausedAtSave = state.Clock.SpeedMultiplier == 0;
             state.SavedGameVersion = GameVersion.Current;
-            var json = JsonSerializer.Serialize(state, _serializationOptions);
-            return Encrypt(json);
         }
 
         public MainGameState Import(string data)
@@ -77,7 +139,8 @@ namespace SettlersOfIdlestan.Controller
             byte[] unXored;
             try
             {
-                unXored = XorCycle(Convert.FromBase64String(data), _key);
+                unXored = Convert.FromBase64String(data);
+                XorCycle(unXored, unXored);
             }
             catch
             {
@@ -107,8 +170,31 @@ namespace SettlersOfIdlestan.Controller
         public static string Encrypt(string json)
         {
             var data = Encoding.UTF8.GetBytes(json);
-            var xored = XorCycle(data, _key);
-            return Convert.ToBase64String(xored);
+            XorCycle(data, data);
+            return Convert.ToBase64String(data);
+        }
+
+        /// <summary>
+        /// Même brouillage que <see cref="Encrypt"/>, d'un JSON déjà en UTF-8 vers du Base64 en
+        /// UTF-8 : octet pour octet, le résultat est celui qu'aurait produit
+        /// <c>Encrypt(Encoding.UTF8.GetString(json))</c>, sans les deux chaînes intermédiaires.
+        /// </summary>
+        public static byte[] EncryptUtf8(ReadOnlySpan<byte> json)
+        {
+            // Base64.GetMaxEncodedToUtf8Length est la longueur exacte pour un bloc final complet
+            // (4 × ⌈n/3⌉, remplissage compris) : le tableau retourné est plein, pas surdimensionné.
+            var result = new byte[Base64.GetMaxEncodedToUtf8Length(json.Length)];
+            var scrambled = ArrayPool<byte>.Shared.Rent(json.Length);
+            try
+            {
+                XorCycle(json, scrambled.AsSpan(0, json.Length));
+                Base64.EncodeToUtf8(scrambled.AsSpan(0, json.Length), result, out _, out _);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(scrambled);
+            }
+            return result;
         }
 
         /// <summary>
@@ -119,47 +205,49 @@ namespace SettlersOfIdlestan.Controller
         /// sur toute la longueur du buffer (copie doublante, O(n) séquentiel) puis on XOR par blocs
         /// SIMD (<see cref="Vector{T}"/>) ; le résultat reste identique octet pour octet à l'ancienne
         /// implémentation, seule la méthode de calcul change.
+        /// <para>
+        /// <paramref name="source"/> et <paramref name="destination"/> peuvent désigner le même
+        /// tampon : chaque octet n'est lu qu'une fois, à la position où il est réécrit.
+        /// </para>
         /// </summary>
-        private static byte[] XorCycle(byte[] data, byte[] key)
+        private static void XorCycle(ReadOnlySpan<byte> source, Span<byte> destination)
         {
-            int len = data.Length;
-            var result = new byte[len];
-            if (len == 0) return result;
+            int len = source.Length;
+            if (len == 0) return;
 
-            var keyStream = new byte[len];
-            int filled = Math.Min(key.Length, len);
-            Array.Copy(key, keyStream, filled);
-            while (filled < len)
+            var rented = ArrayPool<byte>.Shared.Rent(len);
+            try
             {
-                int toCopy = Math.Min(filled, len - filled);
-                Array.Copy(keyStream, 0, keyStream, filled, toCopy);
-                filled += toCopy;
-            }
+                var keyStream = rented.AsSpan(0, len);
+                int filled = Math.Min(_key.Length, len);
+                _key.AsSpan(0, filled).CopyTo(keyStream);
+                while (filled < len)
+                {
+                    int toCopy = Math.Min(filled, len - filled);
+                    keyStream[..toCopy].CopyTo(keyStream[filled..]);
+                    filled += toCopy;
+                }
 
-            int vectorSize = Vector<byte>.Count;
-            int i = 0;
-            for (; i <= len - vectorSize; i += vectorSize)
+                int vectorSize = Vector<byte>.Count;
+                int i = 0;
+                for (; i <= len - vectorSize; i += vectorSize)
+                {
+                    var vData = new Vector<byte>(source[i..]);
+                    var vKey = new Vector<byte>(keyStream[i..]);
+                    (vData ^ vKey).CopyTo(destination[i..]);
+                }
+                for (; i < len; i++)
+                    destination[i] = (byte)(source[i] ^ keyStream[i]);
+            }
+            finally
             {
-                var vData = new Vector<byte>(data, i);
-                var vKey = new Vector<byte>(keyStream, i);
-                (vData ^ vKey).CopyTo(result, i);
+                ArrayPool<byte>.Shared.Return(rented);
             }
-            for (; i < len; i++)
-                result[i] = (byte)(data[i] ^ keyStream[i]);
-
-            return result;
         }
 
         private static MainGameState DeserializeJson(string json)
         {
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            options.Converters.Add(new HexCoordJsonConverter());
-            options.Converters.Add(new EdgeJsonConverter());
-            options.Converters.Add(new BuildingJsonConverter());
-            options.Converters.Add(new IslandMapJsonConverter());
-            options.Converters.Add(new VertexJsonConverter());
-
-            return JsonSerializer.Deserialize<MainGameState>(json, options)
+            return JsonSerializer.Deserialize<MainGameState>(json, _deserializationOptions)
                    ?? throw new InvalidOperationException("Échec de la désérialisation du MainGameState.");
         }
     }

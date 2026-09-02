@@ -738,18 +738,23 @@ public sealed class GameScreen : IDisposable
             _autoSaveTimer = 0;
             if (!_corruptSavePending && _gameControllerService.MainGameController.CurrentMainState is { } mainState)
             {
-                // ExportMainState (sérialisation JSON + XOR/Base64) doit lire l'état vivant, donc
-                // reste ici sous le verrou de GameRuntimeHost (partagé avec le rendu) — le XOR est
-                // rapide depuis sa vectorisation (~5 ms au lieu de ~26 ms) et la sauvegarde cloud
-                // Steam a besoin du résultat chiffré avant de partir. Seule l'écriture disque
+                // ExportMainStateUtf8 (sérialisation JSON + XOR/Base64) doit lire l'état vivant,
+                // donc reste ici sous le verrou de GameRuntimeHost (partagé avec le rendu) — le XOR
+                // est rapide depuis sa vectorisation (~5 ms au lieu de ~26 ms) et la sauvegarde
+                // cloud Steam a besoin du résultat chiffré avant de partir. Seule l'écriture disque
                 // locale (SaveAuto, du I/O pur, pas d'API tierce) part en tâche de fond : c'est
                 // elle qui pouvait geler le rendu si le dossier saves est sur un disque lent ou
                 // scanné par un antivirus. SaveCloudFile (API Steamworks native, affinité de
                 // thread non vérifiée) reste volontairement sur le thread principal.
-                var encrypted = _gameControllerService.MainGameController.ExportMainState();
+                //
+                // Variante octets : sur une fin de partie, la version qui rendait une chaîne
+                // allouait ~13,5 Mo par sauvegarde — dont deux chaînes de plusieurs mégaoctets
+                // allant droit dans le tas des grands objets, toutes les 5 secondes — contre
+                // ~4,5 Mo ici. La chaîne n'est reconstruite que si le cloud Steam la réclame.
+                var encrypted = _gameControllerService.MainGameController.ExportMainStateUtf8();
                 _ = Task.Run(() => _fileSystemService.SaveAuto(encrypted));
                 if (mainState.Settings.CloudSaveEnabled)
-                    _storeController?.SaveCloudFile(CloudSaveFileName, encrypted);
+                    _storeController?.SaveCloudFile(CloudSaveFileName, System.Text.Encoding.UTF8.GetString(encrypted));
             }
 
             var statsJson = System.Text.Json.JsonSerializer.Serialize(_gameControllerService.MainGameController.LifetimeStats);

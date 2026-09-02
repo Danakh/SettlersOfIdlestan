@@ -23,6 +23,16 @@ namespace SettlersOfIdlestanSkia.Services
         Task SaveAuto(string content);
 
         /// <summary>
+        /// Variante octets de <see cref="SaveAuto(string)"/>, alimentée par
+        /// <c>MainGameController.ExportMainStateUtf8</c> : le contenu est déjà l'ASCII du Base64,
+        /// une implémentation qui écrit un fichier peut le poser tel quel sans le transcoder.
+        /// L'implémentation par défaut retombe sur la variante texte, pour les backends dont le
+        /// support est de toute façon une chaîne (localStorage du head navigateur).
+        /// </summary>
+        Task SaveAuto(ReadOnlyMemory<byte> utf8Content)
+            => SaveAuto(System.Text.Encoding.UTF8.GetString(utf8Content.Span));
+
+        /// <summary>
         /// Load the game from the auto-save file. Returns null if not found.
         /// </summary>
         Task<string?> LoadAuto();

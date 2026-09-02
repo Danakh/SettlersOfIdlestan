@@ -42,15 +42,16 @@ namespace SettlersOfIdlestan.Model.Buildings
                 throw new JsonException("Invalid 'Type' property for Building.");
             }
 
-            var raw = root.GetRawText();
             // Correspondance tenue par BuildingFactory, partagée avec BuildingController.CreateBuilding :
             // ces deux switch étaient auparavant maintenus en parallèle, et oublier celui-ci rendait
             // illisible toute sauvegarde contenant le nouveau bâtiment.
             Type concrete = BuildingFactory.GetClrType(bType)
                 ?? throw new JsonException($"Unknown building type: {bType}");
 
-            var result = (Building?)JsonSerializer.Deserialize(raw, concrete, options);
-            return result;
+            // JsonElement.Deserialize plutôt que Deserialize(root.GetRawText(), ...) : GetRawText
+            // matérialise une chaîne par bâtiment, soit près de 4 000 chaînes intermédiaires (et
+            // leur transcodage UTF-16 → UTF-8) au chargement d'une partie de fin de jeu.
+            return root.Deserialize(concrete, options) as Building;
         }
 
         public override void Write(Utf8JsonWriter writer, Building value, JsonSerializerOptions options)

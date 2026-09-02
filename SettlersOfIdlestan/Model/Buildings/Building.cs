@@ -392,13 +392,31 @@ public class Building
     [JsonIgnore]
     public int AvailableAtLevel { get; set; }
 
-    private readonly Dictionary<HexCoord, long> _autoHarvestLastTicks = new();
+    private Dictionary<HexCoord, long> _autoHarvestLastTicks = new();
 
     /// <summary>
     /// Tick de la dernière récolte automatique par hex, pour ce bâtiment spécifique.
     /// Clé = coordonnée hex ; valeur = tick de la dernière récolte.
+    /// Ignoré en JSON au profit de <see cref="AutoHarvestLastTicksSerialized"/>.
     /// </summary>
+    [JsonIgnore]
     public IReadOnlyDictionary<HexCoord, long> AutoHarvestLastTicks => _autoHarvestLastTicks;
+
+    /// <summary>
+    /// Jumeau sérialisable de <see cref="AutoHarvestLastTicks"/>, même motif que
+    /// <c>Civilization.CitiesSerialized</c>. Sans lui, le dictionnaire était bien écrit dans la
+    /// sauvegarde mais jamais relu — System.Text.Json ne sait pas alimenter une propriété
+    /// <c>IReadOnlyDictionary</c> sans accesseur d'écriture — et toutes les récoltes automatiques
+    /// repartaient donc de zéro à chaque chargement, c'est-à-dire dues immédiatement (voir le cas
+    /// « jamais récolté » dans <c>HarvestController</c>).
+    /// </summary>
+    [JsonPropertyName("AutoHarvestLastTicks")]
+    [JsonInclude]
+    public Dictionary<HexCoord, long> AutoHarvestLastTicksSerialized
+    {
+        get => _autoHarvestLastTicks;
+        private set => _autoHarvestLastTicks = value ?? new();
+    }
 
     public void SetAutoHarvestTick(HexCoord hex, long tick) => _autoHarvestLastTicks[hex] = tick;
 
@@ -509,7 +527,10 @@ public class Building
     /// BuildingController.GetBuildingOrBuildableEntry) — même traitement que les prérequis liés à
     /// une feature de carte (Cercle de Fées, Volcan), pour la même raison : ce n'est pas un
     /// bâtiment normal constructible dans cette ville.
+    /// Ignoré en JSON (voir AutomaticHarvestUnlockLevel) : constante par type de bâtiment, elle
+    /// pesait à elle seule 126 Ko sur une sauvegarde de fin de partie.
     /// </summary>
+    [JsonIgnore]
     public virtual BuildingType? RequiredUniqueBuildingType => null;
 
     /// <summary>

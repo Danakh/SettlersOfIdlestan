@@ -130,8 +130,36 @@ public class DesktopFileSystemService : IFileSystemService
 
     public Task SaveAuto(string content)
     {
-        File.WriteAllText(AutoSavePath(), content);
+        WriteAtomic(AutoSavePath(), File.WriteAllText, content);
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Chemin emprunte par la sauvegarde automatique : le contenu arrive deja en UTF-8 (l'ASCII du
+    /// Base64), il n'y a donc rien a transcoder avant de l'ecrire.
+    /// </summary>
+    public Task SaveAuto(ReadOnlyMemory<byte> utf8Content)
+    {
+        WriteAtomic(AutoSavePath(), static (path, bytes) =>
+        {
+            using var stream = File.Create(path);
+            stream.Write(bytes.Span);
+        }, utf8Content);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Ecrit a cote puis remplace, plutot que d'ecrire par-dessus. La sauvegarde automatique fait
+    /// ~2 Mo toutes les 5 secondes : une coupure de courant ou un arret force pendant l'ecriture
+    /// laissait un autosave.json tronque, donc une partie perdue. File.Move remplace en une seule
+    /// operation du systeme de fichiers — soit l'ancienne version, soit la nouvelle, jamais un
+    /// melange des deux.
+    /// </summary>
+    private static void WriteAtomic<T>(string path, Action<string, T> write, T content)
+    {
+        var temporary = path + ".tmp";
+        write(temporary, content);
+        File.Move(temporary, path, overwrite: true);
     }
 
     public Task<string?> LoadAuto()
