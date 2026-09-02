@@ -209,6 +209,16 @@ internal class ReinforcementEngine
     private readonly HashSet<Vertex> _reachableScratch = new();
     private readonly Queue<Vertex> _reachableQueueScratch = new();
 
+    /// <summary>
+    /// Réassigne les flux de renfort d'une civilisation. Toutes les capacités comparées ici sont les
+    /// capacités <b>effectives</b> (<see cref="SoldierProductionEngine.GetMaximumSoldierCapacity"/> :
+    /// bâtiments + <see cref="ECategory.CITY_MAX_SOLDIERS_BONUS"/> de la civilisation), les mêmes que
+    /// celles que <see cref="ResolveReinforcements"/> et <see cref="SoldierProductionEngine"/>
+    /// appliquent ensuite. Sur la capacité brute des seuls bâtiments, une ville à Caserne niveau 1
+    /// (5 places) était déclarée « plus qu'à moitié pleine » dès 3 soldats alors que les bonus
+    /// civ-wide lui en donnent une trentaine : elle sortait des cibles éligibles quasi immédiatement
+    /// et restait éternellement sous-garnie, pendant que les grosses villes débordaient.
+    /// </summary>
     internal void UpdateCivilizationReinforcementFlows(Civilization civ)
     {
         // HashSet des positions ennemies — évite le double Any() pour chaque emplacement
@@ -236,7 +246,7 @@ internal class ReinforcementEngine
             if (vertex.MonsterAttackTarget != null) continue;
 
             Vertex? newFlow = null;
-            int capacity = vertex.MaxSoldiers;
+            int capacity = _productionEngine!.GetMaximumSoldierCapacity(vertex);
             if (capacity > 0 && vertex.Soldiers * 4 >= capacity)
             {
                 int z = vertex.Position.Z;
@@ -274,7 +284,8 @@ internal class ReinforcementEngine
 
             // ownByPosition indexe exactement ce que SetCityFlow retrouvait par FirstOrDefault sur
             // civ.MilitaryVertices — un scan complet par emplacement, donc un produit cartésien.
-            if (newFlow != null && ownByPosition.TryGetValue(newFlow, out var allyTarget) && allyTarget.MaxSoldiers == 0)
+            if (newFlow != null && ownByPosition.TryGetValue(newFlow, out var allyTarget)
+                && _productionEngine!.GetMaximumSoldierCapacity(allyTarget) == 0)
                 newFlow = null;
             vertex.FlowTarget = newFlow;
         }
@@ -291,7 +302,7 @@ internal class ReinforcementEngine
         if (friendly == source) return false;
         if (friendly.Position.Z != z) return false;
 
-        int tCap = friendly.MaxSoldiers;
+        int tCap = _productionEngine!.GetMaximumSoldierCapacity(friendly);
         int effectiveFriendly = friendly.Soldiers + friendly.IncomingSoldiers.Count;
         if (tCap == 0 || effectiveFriendly * 2 > tCap) return false;
         if (friendly.Soldiers + 2 >= source.Soldiers) return false;
@@ -312,7 +323,9 @@ internal class ReinforcementEngine
         {
             var sourceCiv = _state.GetCivilization(vertex.CivilizationIndex);
             var allyTarget = sourceCiv?.MilitaryVertices.FirstOrDefault(v => v.Position.Equals(target));
-            if (allyTarget != null && allyTarget.MaxSoldiers == 0)
+            // Capacité effective : un emplacement n'est refusé comme cible que s'il ne peut accueillir
+            // aucun soldat, bonus civ-wide compris — pas parce qu'il lui manque tel ou tel bâtiment.
+            if (allyTarget != null && _productionEngine!.GetMaximumSoldierCapacity(allyTarget) == 0)
                 target = null;
         }
         vertex.FlowTarget = target;

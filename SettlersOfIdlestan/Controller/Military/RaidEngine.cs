@@ -23,6 +23,7 @@ internal class RaidEngine
     private CityAttackEngine? _cityAttackEngine;
     private ReinforcementEngine? _reinforcementEngine;
     private MonsterCombatEngine? _monsterCombatEngine;
+    private SoldierProductionEngine? _productionEngine;
 
     private const long RaidCheckIntervalTicks = 100L;
     private long _lastRaidCheckTick = 0;
@@ -30,12 +31,13 @@ internal class RaidEngine
     private const long AutoVendettaIntervalTicks = 100L;
     private long _lastPlayerAutoVendettaTick = 0;
 
-    internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, ReinforcementEngine reinforcementEngine, MonsterCombatEngine monsterCombatEngine)
+    internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, ReinforcementEngine reinforcementEngine, MonsterCombatEngine monsterCombatEngine, SoldierProductionEngine productionEngine)
     {
         _state = state;
         _cityAttackEngine = cityAttackEngine;
         _reinforcementEngine = reinforcementEngine;
         _monsterCombatEngine = monsterCombatEngine;
+        _productionEngine = productionEngine;
     }
 
     internal bool IsRaidUnlocked(Civilization civ)
@@ -91,7 +93,7 @@ internal class RaidEngine
         return visibleMap.IsVertexVisible(vertex.Position);
     }
 
-    private const int NearestCitiesCheckedForBarracks = 3;
+    private const int NearestCitiesCheckedForSoldierCapacity = 3;
 
     internal void StartRaid(Civilization civ, Vertex targetCityVertex)
     {
@@ -114,7 +116,7 @@ internal class RaidEngine
         var nearestCities = civ.Cities
             .Where(c => c.Position.Z == targetCityVertex.Z)
             .OrderBy(c => c.Position.EdgeDistanceTo(targetCityVertex));
-        WarnIfMissingBarracksNearTarget(nearestCities);
+        WarnIfNoSoldierCapacityNearTarget(nearestCities);
     }
 
     internal void StartMonsterRaid(Civilization civ, HexCoord targetHex)
@@ -129,7 +131,7 @@ internal class RaidEngine
         var nearestCities = civ.Cities
             .Where(c => c.Position.Z == targetHex.Z)
             .OrderBy(c => c.Position.GetHexes().Max(h => h.DistanceTo(targetHex)));
-        WarnIfMissingBarracksNearTarget(nearestCities);
+        WarnIfNoSoldierCapacityNearTarget(nearestCities);
     }
 
     /// <summary>
@@ -206,17 +208,22 @@ internal class RaidEngine
     }
 
     /// <summary>
-    /// Avertit le joueur si une des villes les plus proches de la cible n'a pas de Barracks (vulnérable
-    /// en cas de contre-attaque). Ne concerne que les villes — une Flotte de Guerre n'a jamais de
-    /// bâtiment (voir WarFleet) donc n'est pas prise en compte par cet avertissement.
+    /// Avertit le joueur si une des villes les plus proches de la cible ne peut accueillir aucun soldat
+    /// (vulnérable en cas de contre-attaque). Le critère est la capacité <b>effective</b>
+    /// (<see cref="SoldierProductionEngine.GetMaximumSoldierCapacity"/>), pas la présence d'une Caserne :
+    /// une capacité nulle n'arrive qu'en tout début de partie, où la Caserne est effectivement le seul
+    /// moyen d'ouvrir des places — d'où le libellé du toast (event_raid_missing_barracks_*). Dès le
+    /// premier bonus civ-wide (CITY_MAX_SOLDIERS_BONUS), plus aucune ville n'est concernée.
+    /// Ne concerne que les villes — une Flotte de Guerre n'a jamais de bâtiment (voir WarFleet) mais a
+    /// toujours une capacité fixe non nulle, donc n'est pas prise en compte par cet avertissement.
     /// </summary>
-    private void WarnIfMissingBarracksNearTarget(IEnumerable<City> citiesOrderedByDistance)
+    private void WarnIfNoSoldierCapacityNearTarget(IEnumerable<City> citiesOrderedByDistance)
     {
         if (_state == null) return;
-        bool missingBarracks = citiesOrderedByDistance
-            .Take(NearestCitiesCheckedForBarracks)
-            .Any(c => !c.Buildings.Any(b => b.Type == BuildingType.Barracks));
-        if (missingBarracks)
+        bool anyWithoutCapacity = citiesOrderedByDistance
+            .Take(NearestCitiesCheckedForSoldierCapacity)
+            .Any(c => _productionEngine!.GetMaximumSoldierCapacity(c) == 0);
+        if (anyWithoutCapacity)
             _state.EventLog.Add(GameEventType.RaidMissingBarracks, toast: true);
     }
 

@@ -19,7 +19,7 @@ public sealed class MilitaryInteractionService
     public const string RequiresWatchtowerMessageKey = "tooltip_monster_attack_requires_watchtower";
     /// <summary>Clé de localisation du tooltip affiché en survol quand la cible (ville ou monstre) est hors de portée.</summary>
     public const string TooFarMessageKey = "tooltip_attack_too_far";
-    /// <summary>Clé de localisation du tooltip affiché en survol quand la ville alliée ciblée n'a aucune capacité de soldats (pas de Caserne/Arsenal).</summary>
+    /// <summary>Clé de localisation du tooltip affiché en survol quand la ville alliée ciblée n'a aucune capacité de soldats.</summary>
     public const string NoSoldierCapacityMessageKey = "tooltip_reinforcement_no_capacity";
 
     private readonly GameControllerService _gameControllerService;
@@ -123,14 +123,16 @@ public sealed class MilitaryInteractionService
     }
 
     /// <summary>
-    /// True si la cible est une ville alliée sans aucune capacité de soldats (pas de Caserne/Arsenal
-    /// construit). Reflète la même condition que <see cref="Controller.Military.MilitaryController.SetCityFlow"/>
-    /// (capacité brute, hors bonus civ-wide) : inutile de proposer un flux que le moteur rejettera silencieusement.
+    /// True si la cible est une ville alliée dont la capacité de soldats effective est nulle. Reflète
+    /// la même condition que <see cref="Controller.Military.MilitaryController.SetCityFlow"/> — capacité
+    /// des bâtiments <b>plus</b> les bonus civ-wide (CITY_MAX_SOLDIERS_BONUS) : inutile de proposer un
+    /// flux que le moteur rejettera silencieusement, mais une ville sans bâtiment militaire reste une
+    /// cible valable dès que la civilisation lui donne de la place.
     /// </summary>
     private bool IsAllyTargetWithoutCapacity(IMilitaryVertex target)
     {
         var playerIndex = _gameControllerService.CurrentWorldState?.PlayerCivilization?.Index ?? -1;
-        return target.CivilizationIndex == playerIndex && target.MaxSoldiers == 0;
+        return target.CivilizationIndex == playerIndex && _militaryController.GetMaximumSoldierCapacity(target) == 0;
     }
 
     private bool IsInRange(IMilitaryVertex source, IMilitaryVertex target)

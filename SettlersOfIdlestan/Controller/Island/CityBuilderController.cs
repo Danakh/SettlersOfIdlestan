@@ -781,7 +781,8 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Palissade — ou +1 niveau si elle en a déjà une, par exemple posée juste avant par le vertex
         /// de prestige Avant-poste fortifié (NEW_CITY_BUILDING) ; les deux se cumulent alors en
         /// Palissade niveau 2 — une Caserne niveau 1, et jusqu'à 20 soldats en garnison (moins si la
-        /// capacité maximale de la ville, recalculée après la Caserne, est inférieure).
+        /// capacité maximale <b>effective</b> de la ville — bâtiments recalculés après la Caserne, plus
+        /// le bonus civ-wide CITY_MAX_SOLDIERS_BONUS — est inférieure).
         /// </summary>
         private static void GrantDivineConquestGarrison(City city, Civilization civ)
         {
@@ -806,7 +807,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 city.AddBuilding(barracks);
             }
 
-            city.Soldiers = Math.Min(20, city.MaxSoldiers);
+            city.Soldiers = Math.Min(20, city.MaxSoldiers + civ.CityMaxSoldiersBonus);
         }
 
         /// <summary>

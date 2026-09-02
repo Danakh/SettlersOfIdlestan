@@ -347,7 +347,7 @@ public class MilitaryController
         _monsterCombatEngine.Initialize(state, prng);
         _cityAttackEngine.Initialize(state, cityBuilderController, warFleetController, mobileCampController, prng);
         _reinforcementEngine.Initialize(state, _productionEngine);
-        _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine);
+        _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine, _productionEngine);
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
