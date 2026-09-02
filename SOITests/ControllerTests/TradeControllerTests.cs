@@ -206,6 +206,26 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void TradeRatioBonus_IncreasesSellYieldAndReducesBuyCost()
+        {
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].AddBuilding(new Market());
+            civ.Cities[0].AddBuilding(new TownHall { Level = 8 }); // capacity=50
+            civ.RecalculateStorageCapacity();
+
+            civ.AddCustomAggregator(new FlatModifierProvider(
+                new Modifier(ECategory.TRADE_RATIO_BONUS, EType.ADDITIVE, 0.2)));
+
+            var controller = new TradeController(state);
+
+            Assert.Equal(24, controller.GetSellGoldYield(0, Resource.Wood, 20)); // 20 * 1.2
+
+            civ.AddResource(Resource.Gold, 100);
+            Assert.Equal(4, controller.GetBuyCost(0, Resource.Ore)); // 5 * (1 - 0.2)
+        }
+
+        [Fact]
         public void BuyResource_Ore_CostsFiveGold()
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();

@@ -87,7 +87,7 @@ public class UniqueBuildingBonusTests
     }
 
     [Fact]
-    public void SkullPit_GrantsFreeSoldierFoodPerCityAndAttackRange()
+    public void SkullPit_GrantsFreeSoldierFoodPerCityAndAttackRangeAndAttackSpeed()
     {
         var (_, city, civ) = CreateSetup();
         Assert.Equal(0, civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0));
@@ -97,6 +97,7 @@ public class UniqueBuildingBonusTests
 
         Assert.Equal(3, civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0));
         Assert.Equal(1, civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_ATTACK_RANGE, "", 0));
+        Assert.Equal(1.1, civ.ModifierAggregator.ApplyModifiers(ECategory.ATTACK_SPEED, "", 1.0));
     }
 
     [Fact]
@@ -125,13 +126,27 @@ public class UniqueBuildingBonusTests
     }
 
     [Fact]
-    public void SpiderShrine_ReducesMonsterDamageOnCities()
+    public void SpiderShrine_ReducesMonsterDamageOnCitiesAndCorruptionAndBoostsMushroomFarms()
     {
         var (_, city, civ) = CreateSetup();
         Assert.Equal(0, civ.ModifierAggregator.ApplyModifiers(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, "", 0));
+        Assert.Equal(0, civ.ModifierAggregator.ApplyModifiers(ECategory.CORRUPTION_LEVEL_REDUCTION, "", 0));
 
         BuildUnique(city, civ, new SpiderShrine { Level = 1 });
 
         Assert.Equal(1, civ.ModifierAggregator.ApplyModifiers(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, "", 0));
+        Assert.Equal(1, civ.ModifierAggregator.ApplyModifiers(ECategory.CORRUPTION_LEVEL_REDUCTION, "", 0));
+        Assert.Equal(1.25, civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, nameof(BuildingType.MushroomFarm), 1.0));
+    }
+
+    [Fact]
+    public void ThroneOfWinds_ImprovesTradeRatioBonus()
+    {
+        var (_, city, civ) = CreateSetup();
+        Assert.Equal(0.0, civ.ModifierAggregator.ApplyModifiers(ECategory.TRADE_RATIO_BONUS, "", 0.0));
+
+        BuildUnique(city, civ, new ThroneOfWinds { Level = 1 });
+
+        Assert.Equal(0.15, civ.ModifierAggregator.ApplyModifiers(ECategory.TRADE_RATIO_BONUS, "", 0.0));
     }
 }

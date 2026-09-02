@@ -114,7 +114,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
         var buyRows = new List<TradeRowSnapshot>();
         foreach (var resource in GetBuyableResources(civ))
         {
-            int cost = tc.BuyRate(resource) * multiplier;
+            int cost = tc.GetBuyCost(civ.Index, resource) * multiplier;
             bool canBuy = tc.CanBuyResource(civ.Index, resource, multiplier);
             int qty = civ.GetResourceQuantity(resource);
             int maxQty = civ.GetResourceMaxQuantity(resource);

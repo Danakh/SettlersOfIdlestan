@@ -269,6 +269,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_SEAPORT_ADVANCED_RESOURCE_GENERATION,
             /// <summary>Réduction fixe (en points) appliquée aux dégâts de chaque attaque de monstre visant une ville de la civilisation, avant répartition sur soldats/défense/Hôtel de ville (plancher 0). Base = 0 ; 1 = -1 dégât par attaque. SubCategory unused. Accordé par le Sanctuaire de l'Araignée (Elfes noirs).</summary>
             MONSTER_DAMAGE_REDUCTION_ON_CITIES,
+            /// <summary>Fraction bonus appliquée aux deux sens du commerce au Marché : réduit le coût en or à l'achat et augmente l'or reçu à la vente. Base = 0.0 ; 0.15 = -15% au coût d'achat, +15% au produit de la vente (voir TradeController.GetBuyCost / GetSellGoldYield). SubCategory unused. Accordé par le Trône des Vents (Garudas).</summary>
+            TRADE_RATIO_BONUS,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

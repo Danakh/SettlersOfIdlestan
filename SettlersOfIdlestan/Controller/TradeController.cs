@@ -73,18 +73,19 @@ namespace SettlersOfIdlestan.Controller
             return civ?.ModifierAggregator.HasModifier(ECategory.UNLOCK_INTERMEDIATE_TRADE) ?? false;
         }
 
-        /// <summary>Or total reçu pour la vente de <paramref name="quantity"/> paquets de la ressource.</summary>
+        /// <summary>Or total reçu pour la vente de <paramref name="quantity"/> paquets de la ressource, TRADE_RATIO_BONUS inclus.</summary>
         public int GetSellGoldYield(int civilizationIndex, Resource resource, int quantity)
         {
+            double bonus = GetTradeRatioBonus(civilizationIndex);
             if (resource == Resource.Steel || resource == Resource.Glass || resource == Resource.Ore)
-                return quantity * (BuyRate(resource) / 5);
+                return (int)Math.Round(quantity * (BuyRate(resource) / 5) * (1.0 + bonus));
             var civ = _state?.GetCivilization(civilizationIndex);
             int bulkBonus = civ?.ModifierAggregator.ApplyModifiers(ECategory.TRADE_BULK_GOLD_BONUS, "", 0) ?? 0;
-            return quantity + (quantity / 10) * bulkBonus;
+            return (int)Math.Round((quantity + (quantity / 10) * bulkBonus) * (1.0 + bonus));
         }
 
         /// <summary>
-        /// Gold cost to buy one unit of the given resource.
+        /// Gold cost to buy one unit of the given resource, before TRADE_RATIO_BONUS.
         /// Basic resources: 1 gold. Ore: 5 gold. Advanced (Glass, Crystal): 20 gold.
         /// </summary>
         public int BuyRate(Resource resource)
@@ -94,6 +95,20 @@ namespace SettlersOfIdlestan.Controller
             if (resource == Resource.Crystal) return BuyRateCrystal;
             if (resource == Resource.Mithril) return BuyRateMithril;
             return BuyRateAdvanced;
+        }
+
+        /// <summary>Coût en or effectif pour acheter une unité de la ressource, TRADE_RATIO_BONUS déduit (plancher 1).</summary>
+        public int GetBuyCost(int civilizationIndex, Resource resource)
+        {
+            int baseCost = BuyRate(resource);
+            double bonus = GetTradeRatioBonus(civilizationIndex);
+            return Math.Max(1, (int)Math.Round(baseCost * (1.0 - bonus)));
+        }
+
+        private double GetTradeRatioBonus(int civilizationIndex)
+        {
+            var civ = _state?.GetCivilization(civilizationIndex);
+            return civ?.ModifierAggregator.ApplyModifiers(ECategory.TRADE_RATIO_BONUS, "", 0.0) ?? 0.0;
         }
 
         /// <summary>
@@ -141,7 +156,7 @@ namespace SettlersOfIdlestan.Controller
             var civ = _state.GetCivilization(civIndex);
             if (civ == null) return false;
 
-            return civ.GetResourceQuantity(Resource.Gold) >= BuyRate(resource) * quantity
+            return civ.GetResourceQuantity(Resource.Gold) >= GetBuyCost(civIndex, resource) * quantity
                 && CanRecieveTrade(civ, resource, quantity);
         }
 
@@ -151,7 +166,7 @@ namespace SettlersOfIdlestan.Controller
             if (!CanBuyResource(civIndex, resource, quantity)) return;
 
             var civ = _state.GetCivilization(civIndex)!;
-            int cost = BuyRate(resource) * quantity;
+            int cost = GetBuyCost(civIndex, resource) * quantity;
             civ.RemoveResource(Resource.Gold, cost);
             civ.AddResource(resource, quantity);
             TradeExecuted?.Invoke(TradeDirection.Buy, resource, quantity, cost, civIndex);
