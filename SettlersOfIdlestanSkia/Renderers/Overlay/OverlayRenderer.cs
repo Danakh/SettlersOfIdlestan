@@ -411,7 +411,6 @@ public sealed class OverlayRenderer : IGameRenderer
     }
     public void InvokePrestigeActionFromHost(string key) => _prestigeRenderer.InvokeActionFromHost(key);
     public void PrestigeSkipWonderTimeFromHost() => _prestigeRenderer.SkipWonderTimeFromHost();
-    public void PrestigeChangeTierFromHost(bool increase) => _prestigeRenderer.ChangeTierChoiceFromHost(increase);
     public void ClosePrestigePopupFromHost() => _prestigeRenderer.Close();
 
     /// <summary>Instantané du popup de réglages pour une vue portée par l'hôte.</summary>

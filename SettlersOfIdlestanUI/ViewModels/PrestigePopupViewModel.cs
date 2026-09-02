@@ -55,10 +55,6 @@ public sealed class PrestigePopupViewModel : ViewModelBase
     private string _title = "";
     private string _totalLabel = "";
     private string _totalValue = "";
-    private string? _tierPickerLabel;
-    private string _tierPickerTooltip = "";
-    private bool _canDecreaseTier;
-    private bool _canIncreaseTier;
     private string? _warning;
     private bool _hasWonderRow;
     private string _wonderLabel = "";
@@ -79,27 +75,12 @@ public sealed class PrestigePopupViewModel : ViewModelBase
     public string Title { get => _title; private set => SetProperty(ref _title, value); }
     public string TotalLabel { get => _totalLabel; private set => SetProperty(ref _totalLabel, value); }
     public string TotalValue { get => _totalValue; private set => SetProperty(ref _totalValue, value); }
-    public bool CanDecreaseTier { get => _canDecreaseTier; private set => SetProperty(ref _canDecreaseTier, value); }
-    public bool CanIncreaseTier { get => _canIncreaseTier; private set => SetProperty(ref _canIncreaseTier, value); }
-    public string TierPickerTooltip { get => _tierPickerTooltip; private set => SetProperty(ref _tierPickerTooltip, value); }
     public bool HasWonderRow { get => _hasWonderRow; private set => SetProperty(ref _hasWonderRow, value); }
     public string WonderLabel { get => _wonderLabel; private set => SetProperty(ref _wonderLabel, value); }
     public string WonderValue { get => _wonderValue; private set => SetProperty(ref _wonderValue, value); }
     public string WonderTooltip { get => _wonderTooltip; private set => SetProperty(ref _wonderTooltip, value); }
     public string WonderSkipTooltip { get => _wonderSkipTooltip; private set => SetProperty(ref _wonderSkipTooltip, value); }
     public bool CanSkipWonderTime { get => _canSkipWonderTime; private set => SetProperty(ref _canSkipWonderTime, value); }
-
-    /// Null tant que le choix de palier n'est pas debloque (Grand Phare niveau 3).
-    public string? TierPickerLabel
-    {
-        get => _tierPickerLabel;
-        private set
-        {
-            if (SetProperty(ref _tierPickerLabel, value)) RaisePropertyChanged(nameof(HasTierPicker));
-        }
-    }
-
-    public bool HasTierPicker => _tierPickerLabel != null;
 
     /// Rappel affiche sous les actions : Port Imperial manquant, plafond de prestige de la demo atteint.
     public string? Warning
@@ -121,10 +102,6 @@ public sealed class PrestigePopupViewModel : ViewModelBase
         Title = snapshot.Title;
         TotalLabel = snapshot.TotalLabel;
         TotalValue = snapshot.TotalValue;
-        TierPickerLabel = snapshot.TierPickerLabel;
-        CanDecreaseTier = snapshot.CanDecreaseTier;
-        CanIncreaseTier = snapshot.CanIncreaseTier;
-        TierPickerTooltip = string.Join('\n', snapshot.TierPickerTooltip);
         Warning = snapshot.Warning;
 
         HasWonderRow = snapshot.WonderRow != null;
@@ -171,12 +148,6 @@ public sealed class PrestigePopupViewModel : ViewModelBase
     public void SkipWonderTime()
     {
         _host.PrestigeSkipWonderTime();
-        Refresh();
-    }
-
-    public void ChangeTier(bool increase)
-    {
-        _host.PrestigeChangeTier(increase);
         Refresh();
     }
 

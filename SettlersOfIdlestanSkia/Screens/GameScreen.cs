@@ -532,7 +532,6 @@ public sealed class GameScreen : IDisposable
 
     public void InvokePrestigeActionFromHost(string key) => _overlayRenderer?.InvokePrestigeActionFromHost(key);
     public void PrestigeSkipWonderTimeFromHost() => _overlayRenderer?.PrestigeSkipWonderTimeFromHost();
-    public void PrestigeChangeTierFromHost(bool increase) => _overlayRenderer?.PrestigeChangeTierFromHost(increase);
     public void ClosePrestigePopupFromHost() => _overlayRenderer?.ClosePrestigePopupFromHost();
 
     /// <summary>Instantané du popup de réglages pour une vue portée par l'hôte.</summary>

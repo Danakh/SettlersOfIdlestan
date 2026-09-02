@@ -223,7 +223,6 @@ public sealed class GameRuntimeHost : IDisposable
 
     public void InvokePrestigeAction(string key) => Invoke(r => r.InvokePrestigeAction(key));
     public void PrestigeSkipWonderTime() => Invoke(r => r.PrestigeSkipWonderTime());
-    public void PrestigeChangeTier(bool increase) => Invoke(r => r.PrestigeChangeTier(increase));
     public void ClosePrestigePopup() => Invoke(r => r.ClosePrestigePopup());
 
     public SkiaLayer.SettingsPopupSnapshot GetSettingsPopupSnapshot() =>

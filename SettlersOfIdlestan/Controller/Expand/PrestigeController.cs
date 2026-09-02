@@ -289,28 +289,8 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         // Grand Phare niveau 2 : débloque la construction de Balises Maritimes — voir
         // GreatLighthouseController.AreMaritimeBeaconsUnlocked / MaritimeBeaconController.
-
-        /// <summary>
-        /// Grand Phare niveau 3 : permet de choisir le Tier cible de la prochaine île au moment du
-        /// prestige (le Tier calculé à partir des points de prestige devient un minimum).
-        /// </summary>
-        public bool CanChooseNextIslandTier() => GetGreatLighthouseLevel() >= 3;
-
-        public const int MaxNextIslandTierChoiceBonus = 1;
-
-        public int GetNextIslandTierChoice()
-        {
-            int minTier = GetTier();
-            int chosen = _prestigeState?.SelectedNextIslandTier ?? minTier;
-            return Math.Clamp(chosen, minTier, minTier + MaxNextIslandTierChoiceBonus);
-        }
-
-        public void SetNextIslandTierChoice(int tier)
-        {
-            if (_prestigeState == null || !CanChooseNextIslandTier()) return;
-            int minTier = GetTier();
-            _prestigeState.SelectedNextIslandTier = Math.Clamp(tier, minTier, minTier + MaxNextIslandTierChoiceBonus);
-        }
+        // Grand Phare niveau 3 : débloque la construction de Flottes de Guerre — voir
+        // WarFleetController.IsWarFleetUnlocked.
 
         public int CalculatePrestigePoints()
         {
@@ -502,11 +482,10 @@ namespace SettlersOfIdlestan.Controller.Expand
                 mainGameState.Clock.CurrentTick,
                 startTick: mainGameState.Clock.CurrentTick,
                 surfaceCorruptionLevel: mainGameState.PrestigeState.SurfaceCorruptionLevel,
-                tier: mainGameState.PrestigeState.EffectiveNextIslandTier,
+                tier: mainGameState.PrestigeState.Tier,
                 race: RaceDefinitions.Get(mainGameState.GodState.AscensionState.SelectedRace))
                 ?? throw new InvalidOperationException("Failed to generate next island.");
 
-            mainGameState.PrestigeState.SelectedNextIslandTier = null;
             mainGameState.PrestigeState.WorldState = nextWorldState;
 
             // Nouvelle île : l'état éphémère d'automatisation (cible de raid, Héraut de Guerre,

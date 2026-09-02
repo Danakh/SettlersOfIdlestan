@@ -760,9 +760,10 @@ namespace SettlersOfIdlestan.Controller
                 }
                 else
                 {
-                    // Le tier retenu à la génération, pas le tier courant : le joueur peut choisir le
-                    // tier de sa prochaine île (EffectiveNextIslandTier), qui n'est donc pas toujours
-                    // le sien. Null = sauvegarde antérieure à ce champ.
+                    // Le tier retenu à la génération, pas forcément le tier courant recalculé : sur une
+                    // sauvegarde antérieure à la suppression du choix de Tier de la prochaine île, le
+                    // joueur pouvait viser un tier supérieur à celui calculé. Null = sauvegarde
+                    // antérieure à ce champ.
                     civ.SetNpcModifiers(NpcModifierSetMaker.CreateForNpc(
                         civ.NpcParameters?.ModifierTier ?? tier,
                         civ.NpcParameters?.AggressivityLevel ?? NpcAggressivityLevel.Cautious));

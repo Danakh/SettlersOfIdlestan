@@ -187,11 +187,7 @@ public class GameControllerService
         return _controller.MaritimeBeaconController.BuildMaritimeBeacon(playerIndex, vertex);
     }
 
-    public bool IsWarFleetUnlockedForPlayer()
-    {
-        var civ = PlayerCivilization;
-        return civ != null && _controller.WarFleetController.IsWarFleetUnlocked(civ);
-    }
+    public bool IsWarFleetUnlockedForPlayer() => _controller.WarFleetController.IsWarFleetUnlocked();
 
     public List<Vertex> GetPotentialWarFleetVerticesForPlayer()
     {

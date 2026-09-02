@@ -77,7 +77,7 @@ public class PrestigePopupViewModelTests
     }
 
     /// <summary>
-    /// Le choix de palier et le rappel du Port Imperial sont conditionnels : ils ne doivent pas
+    /// Le rappel du Port Imperial et la ligne de merveille sont conditionnels : ils ne doivent pas
     /// apparaitre tant que l'instantane ne les fournit pas.
     /// </summary>
     [Fact]
@@ -87,7 +87,6 @@ public class PrestigePopupViewModelTests
         var vm = new PrestigePopupViewModel(host);
         vm.Refresh();
 
-        Assert.False(vm.HasTierPicker);
         Assert.False(vm.HasWarning);
         Assert.False(vm.HasWonderRow);
     }

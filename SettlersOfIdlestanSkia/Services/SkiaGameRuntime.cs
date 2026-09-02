@@ -355,7 +355,6 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void InvokePrestigeAction(string key) => _gameScreen?.InvokePrestigeActionFromHost(key);
     public void PrestigeSkipWonderTime() => _gameScreen?.PrestigeSkipWonderTimeFromHost();
-    public void PrestigeChangeTier(bool increase) => _gameScreen?.PrestigeChangeTierFromHost(increase);
     public void ClosePrestigePopup() => _gameScreen?.ClosePrestigePopupFromHost();
 
     /// <summary>Instantané du popup de réglages pour une vue portée par l'hôte.</summary>

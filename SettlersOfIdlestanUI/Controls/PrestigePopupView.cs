@@ -79,7 +79,6 @@ public sealed class PrestigePopupView : UserControl
         var footer = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 10, ScrollGutter, 0) };
         footer.Children.Add(BuildWonderRow(viewModel));
         footer.Children.Add(BuildTotalRow());
-        footer.Children.Add(BuildTierPicker(viewModel));
         footer.Children.Add(BuildActions(viewModel));
         footer.Children.Add(new TextBlock
         {
@@ -279,64 +278,6 @@ public sealed class PrestigePopupView : UserControl
             BorderThickness = new Thickness(0, 1, 0, 0),
             Child = layout,
         };
-    }
-
-    /// <summary>Choix du palier de la prochaine ile, debloque par le Grand Phare niveau 3.</summary>
-    private static Control BuildTierPicker(PrestigePopupViewModel viewModel)
-    {
-        var minus = TierButton("-", nameof(PrestigePopupViewModel.CanDecreaseTier));
-        minus.Click += (_, _) => viewModel.ChangeTier(increase: false);
-
-        var plus = TierButton("+", nameof(PrestigePopupViewModel.CanIncreaseTier));
-        plus.Click += (_, _) => viewModel.ChangeTier(increase: true);
-
-        var label = new TextBlock
-        {
-            FontSize = 13,
-            Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center,
-            TextAlignment = TextAlignment.Center,
-            [!TextBlock.TextProperty] = new Binding(nameof(PrestigePopupViewModel.TierPickerLabel)),
-        };
-
-        var layout = new DockPanel { LastChildFill = true };
-        DockPanel.SetDock(minus, Dock.Left);
-        DockPanel.SetDock(plus, Dock.Right);
-        layout.Children.Add(minus);
-        layout.Children.Add(plus);
-        layout.Children.Add(label);
-
-        return new Border
-        {
-            Padding = new Thickness(0, 6),
-            Child = layout,
-            [!IsVisibleProperty] = new Binding(nameof(PrestigePopupViewModel.HasTierPicker)),
-            [!ToolTip.TipProperty] = new Binding(nameof(PrestigePopupViewModel.TierPickerTooltip)),
-        };
-    }
-
-    private static Button TierButton(string glyph, string enabledPath)
-    {
-        var button = new Button
-        {
-            Width = 24,
-            Height = 24,
-            FontSize = 13,
-            FontWeight = FontWeight.Bold,
-            Padding = new Thickness(0),
-            CornerRadius = new CornerRadius(4),
-            BorderThickness = new Thickness(0),
-            Foreground = Brushes.White,
-            Content = glyph,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            [!BackgroundProperty] = new Binding(enabledPath)
-            {
-                Converter = new FuncValueConverter<bool, IBrush>(e => e ? ActionEnabled : ActionDisabled),
-            },
-        };
-        button.Classes.Add(GameControlStyles.ToneButton);
-        return button;
     }
 
     private static Control BuildActions(PrestigePopupViewModel viewModel) => new ItemsControl

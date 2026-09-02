@@ -19,9 +19,6 @@ public sealed class PrestigeRenderer : PopupRendererBase
     private readonly PrestigeEssenceLossPopupRenderer _essenceLossPopup;
     private readonly PrestigeCorruptionWarningPopupRenderer _corruptionWarningPopup;
 
-    private bool ShowTierPicker
-        => _gameControllerService.MainGameController.PrestigeController.CanChooseNextIslandTier();
-
     public PrestigeRenderer(
         GameControllerService gameControllerService,
         LocalizationService   localization,
@@ -104,7 +101,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
             int level = controller.GetGreatLighthouseLevel();
             var tooltip = new List<string> { _localization.Get("prestige_tooltip_great_lighthouse_bonus") };
             if (level >= 2) tooltip.Add(_localization.Get("prestige_tooltip_great_lighthouse_secondary_maritime"));
-            if (level >= 3) tooltip.Add(_localization.Get("prestige_tooltip_great_lighthouse_secondary_tier_picker"));
+            if (level >= 3) tooltip.Add(_localization.Get("prestige_tooltip_great_lighthouse_secondary_war_fleet"));
             rows.Add(new PrestigeRowSnapshot(
                 _localization.GetFormated("prestige_great_lighthouse_bonus", level),
                 $"+{greatLighthouseBonus * 100:0}%", false, tooltip));
@@ -180,20 +177,6 @@ public sealed class PrestigeRenderer : PopupRendererBase
             }
         }
 
-        // Choix du palier de la prochaine ile : debloque par le Grand Phare niveau 3.
-        string? tierPickerLabel = null;
-        bool canDecreaseTier = false, canIncreaseTier = false;
-        var tierPickerTooltip = new List<string>();
-        if (ShowTierPicker)
-        {
-            int chosenTier = controller.GetNextIslandTierChoice();
-            int maxTier = tier + PrestigeController.MaxNextIslandTierChoiceBonus;
-            tierPickerLabel = _localization.GetFormated("prestige_next_island_tier_picker", chosenTier);
-            canDecreaseTier = chosenTier > tier;
-            canIncreaseTier = chosenTier < maxTier;
-            tierPickerTooltip.Add(_localization.Get("tooltip_prestige_next_island_tier_picker"));
-        }
-
         bool canPrestige = controller.PrestigeIsAvailable();
         var actions = new List<PrestigeActionSnapshot>
         {
@@ -258,10 +241,6 @@ public sealed class PrestigeRenderer : PopupRendererBase
             WonderSkipTooltip: wonderSkipTooltip,
             TotalLabel: _localization.Get("prestige_total"),
             TotalValue: SkiaTextUtils.FormatNumber(controller.CalculatePrestigePoints()),
-            TierPickerLabel: tierPickerLabel,
-            CanDecreaseTier: canDecreaseTier,
-            CanIncreaseTier: canIncreaseTier,
-            TierPickerTooltip: tierPickerTooltip,
             Actions: actions,
             Warning: warning);
     }
@@ -301,14 +280,6 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
         _gameControllerService.RequestTimeJump(
             prestige.GetTicksUntilNextWonderMultiplier(), "time_jump_reason_wonder");
-    }
-
-    /// <summary>Ajuste le palier choisi pour la prochaine ile, depuis la vue de l'hote.</summary>
-    public void ChangeTierChoiceFromHost(bool increase)
-    {
-        if (!IsOpen) return;
-        var controller = _gameControllerService.MainGameController.PrestigeController;
-        controller.SetNextIslandTierChoice(controller.GetNextIslandTierChoice() + (increase ? 1 : -1));
     }
 
     // Deux confirmations possibles, dans cet ordre : d'abord la montee de corruption avant la

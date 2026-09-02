@@ -170,7 +170,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
             }
             else
             {
-                _tooltipTexts = new string[] { _localizationService.Get("tooltip_requires_imperial_port") };
+                _tooltipTexts = new string[] { _localizationService.Get("tooltip_requires_great_lighthouse_3") };
                 _tooltipCost = null; _tooltipResearchCost = null;
             }
 

@@ -83,7 +83,7 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                 }
 
                 if (greatLighthouse.Level >= 3)
-                    lines.Add((_localization.Get("monument_bonus_great_lighthouse_tier_picker_active"), true));
+                    lines.Add((_localization.Get("monument_bonus_great_lighthouse_war_fleet_active"), true));
                 break;
             }
             case Observatory observatory:

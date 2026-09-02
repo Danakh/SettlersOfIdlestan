@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 
 namespace SettlersOfIdlestan.Controller.Island
@@ -11,7 +11,7 @@ namespace SettlersOfIdlestan.Controller.Island
     /// <summary>
     /// Contrôle la construction des Flottes de Guerre (<see cref="WarFleet"/>) : des emplacements
     /// militaires sans bâtiment, construits sur une Balise Maritime existante (voir
-    /// MaritimeBeaconController), débloqués par le Port Impérial. Une flotte a une défense et une
+    /// MaritimeBeaconController), débloqués par le Grand Phare niveau 3. Une flotte a une défense et une
     /// capacité de soldats fixes et reste une cible normale de renfort et d'attaque via
     /// <see cref="IMilitaryVertex"/> — voir MilitaryController.
     /// </summary>
@@ -34,8 +34,9 @@ namespace SettlersOfIdlestan.Controller.Island
             { Resource.Gold, 200 },
         };
 
-        /// <summary>Débloqué par le Port Impérial, construit dans n'importe quelle ville de la civilisation.</summary>
-        public bool IsWarFleetUnlocked(Civilization civ) => civ.GetUniqueBuilding(BuildingType.ImperialPort) != null;
+        /// <summary>Débloqué par le Grand Phare niveau 3 (voir GreatLighthouseController.GetGreatLighthouseLevel).</summary>
+        public bool IsWarFleetUnlocked()
+            => (_state?.Features.OfType<GreatLighthouse>().FirstOrDefault()?.Level ?? 0) >= 3;
 
         /// <summary>
         /// Retourne les vertex où la civilisation pourrait construire une flotte — un de ses propres balises
@@ -64,10 +65,10 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
-            var civ = _state.GetCivilization(civilizationIndex)
-                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+            if (_state.GetCivilization(civilizationIndex) == null)
+                throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            if (!IsWarFleetUnlocked(civ)) return new List<Vertex>();
+            if (!IsWarFleetUnlocked()) return new List<Vertex>();
 
             return GetPotentialVertices(civilizationIndex);
         }
@@ -88,7 +89,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!GetPotentialVertices(civilizationIndex).Any(v => v.Equals(vertex)))
                 throw new InvalidOperationException("Vertex not buildable by this civilization");
 
-            if (!IsWarFleetUnlocked(civ))
+            if (!IsWarFleetUnlocked())
                 return null;
 
             var cost = GetBuildCost();

@@ -38,10 +38,10 @@ public class NpcParameters
     /// reconstruise exactement le jeu de modificateurs de la génération
     /// (<see cref="NpcModifierSetMaker.CreateForNpc"/>).
     ///
-    /// <para>Le relire depuis <c>PrestigeState.Tier</c> au chargement serait faux : le joueur peut
-    /// choisir le tier de sa prochaine île (<c>PrestigeState.EffectiveNextIslandTier</c>), qui n'est
-    /// donc pas toujours son tier courant. Null = sauvegarde antérieure à ce champ, on retombe alors
-    /// sur le tier courant.</para>
+    /// <para>Le relire depuis <c>PrestigeState.Tier</c> au chargement serait faux pour une sauvegarde
+    /// antérieure à la suppression du choix de Tier de la prochaine île : le joueur pouvait alors
+    /// viser un tier supérieur à celui calculé, qui n'était donc pas toujours son tier courant. Null =
+    /// sauvegarde antérieure à ce champ, on retombe alors sur le tier courant.</para>
     /// </summary>
     public int? ModifierTier { get; set; }
 
