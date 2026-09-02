@@ -822,14 +822,65 @@ namespace SOITests.ControllerTests
             Assert.Equal(VoidBridgeCost, controller.GetSpellCost(def));
 
             Assert.True(controller.CastSpellOnVoidVertex(SpellId.VoidBridge, voidVertex));
-            Assert.Equal(VoidBridgeCost * 6, controller.GetSpellCost(def));
+            Assert.Equal(VoidBridgeCost * 2, controller.GetSpellCost(def));
 
             // Le vertex voisin, révélé par les routes qui viennent d'être bâties, borde lui aussi le Vide.
             var nextTarget = controller.GetVoidBridgeTargets().First(v => !v.Equals(voidVertex));
             Assert.True(controller.CastSpellOnVoidVertex(SpellId.VoidBridge, nextTarget));
-            Assert.Equal(VoidBridgeCost * 36, controller.GetSpellCost(def));
+            Assert.Equal(VoidBridgeCost * 4, controller.GetSpellCost(def));
 
-            Assert.Equal(100000 - VoidBridgeCost - VoidBridgeCost * 6, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(100000 - VoidBridgeCost - VoidBridgeCost * 2, civ.GetResourceQuantity(Resource.Crystal));
+        }
+
+        [Fact]
+        public void ProcessSpellExhaustion_RemovesOneStackPerCooldownCycleElapsed()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            GrantCrystalStorage(civ, 10000);
+            civ.AddResource(Resource.Crystal, 10000);
+            var def = SpellDefinitions.Get(SpellId.Abundance)!;
+
+            // Ancre le suivi du cooldown à un tick connu (le premier Advanced() l'amorce, voir
+            // ProcessSpellExhaustion) avant de mesurer des cycles complets de 6000 ticks.
+            clock.SimulateAdvance(1, chunkTicks: 1);
+
+            Assert.True(controller.CastSpell(SpellId.Abundance));
+            Assert.True(controller.CastSpell(SpellId.Abundance));
+            Assert.Equal(2, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+            Assert.Equal(def.CrystalCost * 4, controller.GetSpellCost(def));
+
+            clock.SimulateAdvance(6000, chunkTicks: 6000);
+            Assert.Equal(1, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+            Assert.Equal(def.CrystalCost * 2, controller.GetSpellCost(def));
+
+            clock.SimulateAdvance(6000, chunkTicks: 6000);
+            Assert.Equal(0, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+            Assert.Equal(def.CrystalCost, controller.GetSpellCost(def));
+
+            // Plus rien à retirer : les cycles suivants sont sans effet.
+            clock.SimulateAdvance(6000, chunkTicks: 6000);
+            Assert.Equal(0, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+        }
+
+        [Fact]
+        public void ProcessSpellExhaustion_FirstCastIsFreeOfExhaustionOnceCooldownHasElapsedSinceKnown()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            GrantCrystalStorage(civ, 10000);
+            civ.AddResource(Resource.Crystal, 10000);
+            var def = SpellDefinitions.Get(SpellId.Abundance)!;
+
+            // Le cooldown démarre dès que le sort est connu : ici avant tout lancement, et largement écoulé.
+            clock.SimulateAdvance(20000, chunkTicks: 20000);
+            Assert.Equal(0, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+            Assert.Equal(def.CrystalCost, controller.GetSpellCost(def));
+
+            Assert.True(controller.CastSpell(SpellId.Abundance));
+            Assert.Equal(1, controller.GetSpellExhaustionStacks(SpellId.Abundance));
         }
 
         [Fact]

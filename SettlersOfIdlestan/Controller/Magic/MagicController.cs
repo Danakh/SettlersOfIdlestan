@@ -91,6 +91,8 @@ namespace SettlersOfIdlestan.Controller.Magic
             catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessPassiveCycle), ex); }
             try { ProcessTempleMonsterDamage(e.CurrentTick); }
             catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessTempleMonsterDamage), ex); }
+            try { ProcessSpellExhaustion(); }
+            catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessSpellExhaustion), ex); }
         }
 
         // ── État général ──────────────────────────────────────────────────────
@@ -300,24 +302,61 @@ namespace SettlersOfIdlestan.Controller.Magic
         public IReadOnlyList<SpellDefinition> GetKnownSpells()
             => SpellDefinitions.All.Where(s => IsSpellKnown(s.Id)).ToList();
 
-        /// <summary>Nombre de lancements réussis de ce sort depuis le début du run.</summary>
-        public int GetSpellCastCount(SpellId id)
-            => _state != null && _state.Magic.SpellCastCounts.TryGetValue(id, out var count) ? count : 0;
+        /// <summary>Crans d'épuisement actuellement accumulés sur ce sort (voir <see cref="MagicState.SpellExhaustionStacks"/>).</summary>
+        public int GetSpellExhaustionStacks(SpellId id)
+            => _state != null && _state.Magic.SpellExhaustionStacks.TryGetValue(id, out var stacks) ? stacks : 0;
+
+        /// <summary>
+        /// Facteur multiplicatif actuel appliqué au coût de base par l'épuisement — <see cref="SpellDefinition.CostMultiplierPerCast"/>
+        /// élevé à la puissance du nombre de crans, saturé à <see cref="int.MaxValue"/> comme <see cref="GetSpellCost"/>.
+        /// Utilisé pour l'affichage (description du sort).
+        /// </summary>
+        public long GetSpellCostMultiplier(SpellId id)
+        {
+            var def = SpellDefinitions.Get(id);
+            if (def == null) return 1;
+            long factor = 1;
+            int stacks = GetSpellExhaustionStacks(id);
+            for (int i = 0; i < stacks && factor < int.MaxValue; i++)
+                factor *= def.CostMultiplierPerCast;
+            return factor;
+        }
+
+        /// <summary>
+        /// Fraction écoulée (0 à 1) du cycle de cooldown en cours vers le retrait du prochain cran
+        /// d'épuisement. Le cooldown tourne en continu dès que le sort est connu, même à 0 cran.
+        /// </summary>
+        public double GetSpellCooldownRatio(SpellId id)
+        {
+            var def = SpellDefinitions.Get(id);
+            if (def == null || def.CooldownTicks <= 0 || _clock == null || _state == null) return 0.0;
+            long lastTick = _state.Magic.SpellCooldownLastTick.TryGetValue(id, out var t) ? t : _clock.CurrentTick;
+            return Math.Clamp((double)(_clock.CurrentTick - lastTick) / def.CooldownTicks, 0.0, 1.0);
+        }
+
+        /// <summary>Ticks restants avant le retrait du prochain cran d'épuisement.</summary>
+        public long GetSpellCooldownRemainingTicks(SpellId id)
+        {
+            var def = SpellDefinitions.Get(id);
+            if (def == null || _clock == null || _state == null) return 0;
+            long lastTick = _state.Magic.SpellCooldownLastTick.TryGetValue(id, out var t) ? t : _clock.CurrentTick;
+            return Math.Clamp(def.CooldownTicks - (_clock.CurrentTick - lastTick), 0, def.CooldownTicks);
+        }
 
         /// <summary>
         /// Coût en cristaux d'un sort, réduit par SPELL_COST_REDUCTION (SubCategory = SpellId name).
-        /// Pour un sort à coût croissant (<see cref="SpellDefinition.CostMultiplierPerCast"/>), le coût de
-        /// base est d'abord multiplié par ce facteur à chaque lancement déjà effectué dans le run. Le
-        /// calcul passe par un long et sature à <see cref="int.MaxValue"/> : au-delà de quelques
-        /// lancements le coût dépasse la capacité d'un int, et un débordement rendrait le sort gratuit.
+        /// Le coût de base est d'abord multiplié par <see cref="GetSpellCostMultiplier"/>, qui reflète
+        /// les crans d'épuisement accumulés (chaque lancement en ajoute un, le cooldown en retire un).
+        /// Le calcul passe par un long et sature à <see cref="int.MaxValue"/> : au-delà de quelques
+        /// crans le coût dépasse la capacité d'un int, et un débordement rendrait le sort gratuit.
         /// </summary>
         public int GetSpellCost(SpellDefinition def)
         {
             long baseCost = def.CrystalCost;
             if (def.CostMultiplierPerCast > 1)
             {
-                int casts = GetSpellCastCount(def.Id);
-                for (int i = 0; i < casts && baseCost < int.MaxValue; i++)
+                int stacks = GetSpellExhaustionStacks(def.Id);
+                for (int i = 0; i < stacks && baseCost < int.MaxValue; i++)
                     baseCost *= def.CostMultiplierPerCast;
             }
 
@@ -328,11 +367,11 @@ namespace SettlersOfIdlestan.Controller.Magic
             return cost >= int.MaxValue ? int.MaxValue : (int)cost;
         }
 
-        /// <summary>Enregistre un lancement réussi — c'est ce compteur qui fait doubler le coût des sorts concernés.</summary>
+        /// <summary>Enregistre un lancement réussi — ajoute un cran d'épuisement, qui fait doubler le coût.</summary>
         private void RegisterSpellCast(SpellId id)
         {
             if (_state == null) return;
-            _state.Magic.SpellCastCounts[id] = GetSpellCastCount(id) + 1;
+            _state.Magic.SpellExhaustionStacks[id] = GetSpellExhaustionStacks(id) + 1;
         }
 
         public bool CanCastSpell(SpellId id)
@@ -689,6 +728,36 @@ namespace SettlersOfIdlestan.Controller.Magic
         }
 
         private bool IsValidHex(HexCoord hex) => _state!.GetMapFor(hex)?.GetTile(hex) != null;
+
+        // ── Épuisement des sorts ────────────────────────────────────────────────
+
+        /// <summary>
+        /// Retire un cran d'épuisement à chaque sort connu par cycle de <see cref="SpellDefinition.CooldownTicks"/>
+        /// écoulé. Le décompte démarre dès la première fois qu'un sort est observé comme connu (via
+        /// <c>coldStartOnZero</c>), pas au lancement : un sort connu depuis longtemps mais jamais lancé
+        /// peut donc avoir déjà consommé un ou plusieurs cycles sans effet visible (rien à retirer à 0
+        /// cran) — c'est ce qui rend le tout premier lancement d'un sort gratuit de tout épuisement si son
+        /// cooldown a eu le temps de s'écouler depuis le début du run.
+        /// </summary>
+        private void ProcessSpellExhaustion()
+        {
+            if (_state == null || _clock == null || _state.Civilizations.Count == 0) return;
+            long now = _clock.CurrentTick;
+
+            foreach (var def in SpellDefinitions.All)
+            {
+                if (!IsSpellKnown(def.Id)) continue;
+
+                long lastTick = _state.Magic.SpellCooldownLastTick.TryGetValue(def.Id, out var t) ? t : 0;
+                long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, def.CooldownTicks, coldStartOnZero: true);
+                _state.Magic.SpellCooldownLastTick[def.Id] = lastTick;
+                if (cycles <= 0) continue;
+
+                int stacks = GetSpellExhaustionStacks(def.Id);
+                if (stacks <= 0) continue;
+                _state.Magic.SpellExhaustionStacks[def.Id] = (int)Math.Max(0, stacks - cycles);
+            }
+        }
 
         private void NotifyRitualsChanged()
         {

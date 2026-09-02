@@ -93,6 +93,15 @@ public sealed class RitualsRenderer : IDisposable
         return string.Join(", ", parts);
     }
 
+    /// <summary>Formate une durée en ticks (100 ticks = 1 s) dans l'unité la plus grande atteinte, 1 décimale.</summary>
+    private static string FormatSpellDuration(long ticks)
+    {
+        double seconds = ticks / 100.0;
+        if (seconds >= 3600) return $"{seconds / 3600:0.#}h";
+        if (seconds >= 60) return $"{seconds / 60:0.#}m";
+        return $"{seconds:0.#}s";
+    }
+
     // ── Pont vers l'hôte Avalonia ─────────────────────────────────────────────
 
     /// <summary>
@@ -146,10 +155,16 @@ public sealed class RitualsRenderer : IDisposable
             bool canCast = magic.CanCastSpell(def.Id);
             string? blockedReasonKey = canCast ? null : magic.GetSpellBlockedReasonKey(def.Id);
 
+            int stacks = magic.GetSpellExhaustionStacks(def.Id);
+            string description = _localization.Get(def.DescKey) + "\n"
+                + _localization.GetFormated("spell_exhaustion_desc", stacks, magic.GetSpellCostMultiplier(def.Id));
+            string cooldownTooltip = _localization.GetFormated("spell_cooldown_tooltip",
+                FormatSpellDuration(magic.GetSpellCooldownRemainingTicks(def.Id)), FormatSpellDuration(def.CooldownTicks));
+
             spells.Add(new SpellRowSnapshot(
                 Key: def.Id.ToString(),
                 Name: _localization.Get(def.NameKey),
-                Description: _localization.Get(def.DescKey),
+                Description: description,
                 CostText: def.TargetKind switch
                 {
                     SpellTargetKind.AllyCity => _localization.GetFormated("spell_cast_cost_troops", spellCost, def.TroopReward),
@@ -159,7 +174,10 @@ public sealed class RitualsRenderer : IDisposable
                 },
                 WarningText: blockedReasonKey != null ? _localization.Get(blockedReasonKey) : null,
                 ButtonLabel: _localization.Get("spell_button_cast"),
-                CanCast: canCast));
+                CanCast: canCast,
+                ExhaustionStacks: stacks,
+                CooldownRatio: magic.GetSpellCooldownRatio(def.Id),
+                CooldownTooltip: cooldownTooltip));
         }
 
         return new RitualsSnapshot(

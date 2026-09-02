@@ -504,6 +504,11 @@ public sealed record RitualRowSnapshot(
     bool CanIncreasePower);
 
 /// <param name="WarningText">Raison du blocage, deja localisee ; null si le sort est lancable.</param>
+/// <param name="ExhaustionStacks">Crans d'epuisement accumules (double le cout par cran).</param>
+/// <param name="CooldownRatio">Fraction ecoulee (0 a 1) du cycle de cooldown en cours vers le retrait
+/// du prochain cran ; affichee comme une petite barre sous le bouton, visible uniquement si
+/// <see cref="ExhaustionStacks"/> est superieur a 0.</param>
+/// <param name="CooldownTooltip">Infobulle de la barre de cooldown, deja formatee et localisee.</param>
 public sealed record SpellRowSnapshot(
     string Key,
     string Name,
@@ -511,7 +516,10 @@ public sealed record SpellRowSnapshot(
     string CostText,
     string? WarningText,
     string ButtonLabel,
-    bool CanCast);
+    bool CanCast,
+    int ExhaustionStacks,
+    double CooldownRatio,
+    string CooldownTooltip);
 
 /// <summary>
 /// Onglet plein ecran des rituels : puissance disponible, cristaux, rituels connus et sorts

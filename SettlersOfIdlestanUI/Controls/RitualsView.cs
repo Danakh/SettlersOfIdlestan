@@ -333,12 +333,31 @@ public sealed class RitualsView : UserControl
             BorderBrush = CardBorder;
 
             var cast = ActionButton(nameof(SpellRowViewModel.ButtonLabel), nameof(SpellRowViewModel.CanCast), Launch);
-            cast.VerticalAlignment = VerticalAlignment.Center;
             cast.Click += (_, _) => { if (_row != null) _owner.CastSpell(_row); };
 
+            var cooldownBar = new ProgressBar
+            {
+                Minimum = 0,
+                Maximum = 1,
+                Width = 76,
+                MinWidth = 0,
+                Height = 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 4, 0, 0),
+                Foreground = Accent,
+                Background = new SolidColorBrush(Color.FromArgb(160, 50, 50, 65)),
+                [!RangeBase.ValueProperty] = new Binding(nameof(SpellRowViewModel.CooldownRatio)),
+                [!IsVisibleProperty] = new Binding(nameof(SpellRowViewModel.HasExhaustion)),
+                [!ToolTip.TipProperty] = new Binding(nameof(SpellRowViewModel.CooldownTooltip)),
+            };
+
+            var right = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };
+            right.Children.Add(cast);
+            right.Children.Add(cooldownBar);
+
             var layout = new DockPanel { LastChildFill = true };
-            DockPanel.SetDock(cast, Dock.Right);
-            layout.Children.Add(cast);
+            DockPanel.SetDock(right, Dock.Right);
+            layout.Children.Add(right);
             layout.Children.Add(CardText(
                 nameof(SpellRowViewModel.Name), nameof(SpellRowViewModel.Description),
                 nameof(SpellRowViewModel.CostText), nameof(SpellRowViewModel.WarningText),

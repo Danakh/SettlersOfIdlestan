@@ -59,6 +59,10 @@ public sealed class SpellRowViewModel : ViewModelBase
     public bool HasWarning => _snapshot.WarningText != null;
     public string ButtonLabel => _snapshot.ButtonLabel;
     public bool CanCast => _snapshot.CanCast;
+    public int ExhaustionStacks => _snapshot.ExhaustionStacks;
+    public bool HasExhaustion => _snapshot.ExhaustionStacks > 0;
+    public double CooldownRatio => _snapshot.CooldownRatio;
+    public string CooldownTooltip => _snapshot.CooldownTooltip;
 
     internal void Apply(SkiaLayer.SpellRowSnapshot snapshot)
     {
@@ -66,6 +70,7 @@ public sealed class SpellRowViewModel : ViewModelBase
         var previous = _snapshot;
         _snapshot = snapshot;
 
+        if (previous.Description != snapshot.Description) RaisePropertyChanged(nameof(Description));
         if (previous.CostText != snapshot.CostText) RaisePropertyChanged(nameof(CostText));
         if (previous.WarningText != snapshot.WarningText)
         {
@@ -73,6 +78,13 @@ public sealed class SpellRowViewModel : ViewModelBase
             RaisePropertyChanged(nameof(HasWarning));
         }
         if (previous.CanCast != snapshot.CanCast) RaisePropertyChanged(nameof(CanCast));
+        if (previous.ExhaustionStacks != snapshot.ExhaustionStacks)
+        {
+            RaisePropertyChanged(nameof(ExhaustionStacks));
+            RaisePropertyChanged(nameof(HasExhaustion));
+        }
+        if (previous.CooldownRatio != snapshot.CooldownRatio) RaisePropertyChanged(nameof(CooldownRatio));
+        if (previous.CooldownTooltip != snapshot.CooldownTooltip) RaisePropertyChanged(nameof(CooldownTooltip));
     }
 }
 

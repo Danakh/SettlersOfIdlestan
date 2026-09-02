@@ -48,13 +48,23 @@ public class SpellDefinition
     public SpellTargetKind TargetKind { get; }
 
     /// <summary>
-    /// Quand supérieur à 1, le coût en cristaux est multiplié par cette valeur à chaque lancement
-    /// réussi du run (voir <c>MagicState.SpellCastCounts</c> et <c>MagicController.GetSpellCost</c>).
+    /// Quand supérieur à 1, le coût en cristaux est multiplié par cette valeur pour chaque cran
+    /// d'épuisement accumulé (voir <c>MagicState.SpellExhaustionStacks</c> et
+    /// <c>MagicController.GetSpellCost</c>). Chaque lancement réussi ajoute un cran ; le cooldown
+    /// <see cref="CooldownTicks"/> en retire un à chaque cycle écoulé.
     /// </summary>
     public int CostMultiplierPerCast { get; }
 
+    /// <summary>
+    /// Durée en ticks du cooldown qui retire un cran d'épuisement (voir <see cref="CostMultiplierPerCast"/>).
+    /// Le décompte démarre dès que le sort est connu (voir <c>MagicController.ProcessSpellExhaustion</c>),
+    /// indépendamment des lancements — un sort jamais lancé mais connu depuis longtemps peut donc avoir
+    /// déjà consommé un ou plusieurs cycles sans effet visible (rien à retirer à 0 cran).
+    /// </summary>
+    public long CooldownTicks { get; }
+
     public SpellDefinition(SpellId id, int crystalCost, int goldReward = 0, int troopReward = 0,
-        SpellTargetKind targetKind = SpellTargetKind.None, int costMultiplierPerCast = 1)
+        SpellTargetKind targetKind = SpellTargetKind.None, int costMultiplierPerCast = 1, long cooldownTicks = 0)
     {
         Id = id;
         NameKey = $"spell_{id.ToString().ToLower()}_name";
@@ -64,5 +74,6 @@ public class SpellDefinition
         TroopReward = troopReward;
         TargetKind = targetKind;
         CostMultiplierPerCast = costMultiplierPerCast;
+        CooldownTicks = cooldownTicks;
     }
 }
