@@ -220,6 +220,60 @@ public class Civilization
     {
         _militaryVerticesCache = null;
         _buildVerticesCache = null;
+        InvalidateCityPositionCache();
+    }
+
+    [NonSerialized]
+    private Dictionary<HexGrid.HexCoord, List<City>>? _citiesByHexCache;
+
+    /// <summary>
+    /// Index hexagone → villes de la civilisation touchant cet hexagone. Chaque ville occupe un
+    /// vertex, donc borde exactement trois hexagones ; l'index est donc trois entrées par ville.
+    ///
+    /// <para><b>Pourquoi.</b> La question « quelles villes bordent cet hexagone ? » était posée par un
+    /// <c>Cities.Where(c =&gt; c.Position.IsAdjacentTo(hex))</c>, c'est-à-dire un balayage de toutes les
+    /// villes — plus une fermeture et un itérateur alloués par appel. Le rendu du plateau la pose une
+    /// fois par tuile et par image : en fin de partie, 1 000 tuiles × 200 villes = 200 000 tests
+    /// d'adjacence à chaque image, avant le moindre pixel dessiné. Avec l'index, chaque question coûte
+    /// une recherche dans un dictionnaire.</para>
+    ///
+    /// <para><b>Invalidation.</b> Contrairement à <see cref="MilitaryVertices"/> et
+    /// <see cref="BuildVertices"/>, qui ne contiennent que des références et survivent donc à un
+    /// déplacement, cet index est <b>indexé par la position</b> : il doit être invalidé aussi quand
+    /// une ville bouge sans que le compte change — voir
+    /// <c>CityBuilderController.RelocateCity</c>, seul chemin qui réaffecte <c>City.Position</c>.</para>
+    /// </summary>
+    public IReadOnlyList<City> GetCitiesAdjacentTo(HexGrid.HexCoord hex)
+    {
+        var index = _citiesByHexCache ??= BuildCitiesByHex();
+        return index.TryGetValue(hex, out var list) ? list : (IReadOnlyList<City>)Array.Empty<City>();
+    }
+
+    /// <summary>
+    /// Invalide l'index <see cref="GetCitiesAdjacentTo"/>. Appelé automatiquement à toute mutation de
+    /// la liste des villes ; à appeler explicitement quand une ville change de position.
+    /// </summary>
+    public void InvalidateCityPositionCache() => _citiesByHexCache = null;
+
+    private Dictionary<HexGrid.HexCoord, List<City>> BuildCitiesByHex()
+    {
+        var index = new Dictionary<HexGrid.HexCoord, List<City>>(_cities.Count * 3);
+        for (int i = 0; i < _cities.Count; i++)
+        {
+            var city = _cities[i];
+            // Une ville désérialisée avant que sa position ne soit relue peut avoir Position == null
+            // (voir le constructeur sans argument de City) : l'ignorer plutôt que de lever.
+            if (city.Position is null) continue;
+
+            var hexes = city.Position.GetHexes();
+            for (int h = 0; h < hexes.Length; h++)
+            {
+                if (!index.TryGetValue(hexes[h], out var list))
+                    index[hexes[h]] = list = new List<City>(1);
+                list.Add(city);
+            }
+        }
+        return index;
     }
 
     /// <summary>

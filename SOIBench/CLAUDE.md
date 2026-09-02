@@ -14,6 +14,10 @@ fin de partie. Il fait deux choses :
 2. **`TickBenchmark` + `ClockProfiler`** — mesurent le coût d'un événement `GameClock.Advanced` et
    l'attribuent à chacun des ~15 contrôleurs abonnés à l'horloge.
 3. **`AllocationSampler`** (`--alloc-types`) — dit *quels types* sont alloués, par contrôleur.
+4. **`RenderQueryBenchmark`** (`--render-queries`) — mesure le travail **modèle** d'une image du
+   plateau : les agrégats par hexagone que `GameBoardRenderer.Render` reconstruit, puis les requêtes
+   que `DrawHarvestIndicator` pose pour chaque tuile. Aucune de ces requêtes ne touche au canvas,
+   donc elles se mesurent depuis `SettlersOfIdlestanCore` seul, sans fenêtre ni GPU.
 
 Il ne dépend que de `SettlersOfIdlestanCore`. `SOITests/PerformanceTests/` dépend de lui (et pas
 l'inverse) pour valider le générateur.
@@ -40,7 +44,15 @@ dotnet run --project SOIBench -c Release -- --cities 400 --ticks-per-event 2
 
 # Chasse aux allocations : quels types, dans quel contrôleur
 dotnet run --project SOIBench -c Release -- --cities 400 --alloc-types --breakdown-top 20
+
+# Coût d'une image du plateau, côté modèle (pas la simulation)
+dotnet run --project SOIBench -c Release -- --cities 240 --player-share 0.85 --render-queries
 ```
+
+⚠️ **`--player-share 0.5` (le défaut) ne ressemble pas à une vraie fin de partie.** Dans une
+sauvegarde réelle le joueur possède ~85 % des villes ; à 50 % on mesure surtout l'IA des PNJ, qui
+domine alors le rattrapage hors-ligne et fait paraître `NpcGameController` bien plus lourd qu'il ne
+l'est en jeu. Pour un profil réaliste, `--cities 240 --player-share 0.85`.
 
 Voir `--help` pour la liste complète des options.
 
@@ -186,3 +198,27 @@ réflexion échoue silencieusement et la répartition par contrôleur devient vi
    scénarios, et c'est voulu.
 4. **Le rendu vient après**, avec la même fixture chargée dans le head Desktop via `--save-fixture`.
    Tant que la simulation mange le budget frame, mesurer le rendu ne dit rien d'utile.
+
+## Le rendu : ce que `--render-queries` mesure, et ce qu'il ne mesure pas
+
+Il mesure les **requêtes modèle** d'une image, pas les appels de dessin. C'est délibéré : ce sont
+elles qui dégénéraient avec la taille de la partie, pas le dessin. Le dessin est proportionnel au
+nombre de tuiles visibles ; les requêtes l'étaient au **produit** tuiles × villes du joueur, parce
+que `GetAutoHarvestInfoForHex` et `GetManualHarvestableResources` répondaient à « quelles villes
+bordent cet hexagone ? » par un balayage de toutes les villes de la civilisation. À 1 027 tuiles et
+200 villes joueur, cela faisait ~200 000 tests d'adjacence et ~700 Ko de déchets **par image**, avant
+le moindre pixel. `Civilization.GetCitiesAdjacentTo` (index hexagone → villes) a ramené la question à
+une recherche dans un dictionnaire.
+
+Trois pièges quand on remesure :
+
+- **La carte visible de la fixture n'est pas celle d'une vraie fin de partie.** Le générateur ne pose
+  ni exploration ni Œil de Dieu, et `Visibility` n'y découvre que ~80 hexagones sur 1 027. Mesurer
+  dessus sous-estime le coût d'un facteur 13 et donne un résultat rassurant et faux. Le banc utilise
+  donc la carte complète (`GetMapForZ`), qui est ce que le joueur voit en fin de partie.
+- **Le générateur ne pose que ~15 features**, là où une sauvegarde réelle en compte plus de 2 000
+  (Dominion et Corruption s'accumulent hexagone par hexagone). Tout ce qui parcourt `Features` est
+  donc massivement sous-estimé ici — c'est le poste « agrégats de features », à relire sur une vraie
+  sauvegarde avant de le déclarer négligeable.
+- **`FeatureAggregates` est une réplique** de ce que fait `GameBoardRenderer` : SOIBench ne dépend pas
+  du projet Skia. Les deux doivent être tenus d'accord à la main.

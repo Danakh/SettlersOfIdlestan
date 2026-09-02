@@ -628,6 +628,9 @@ namespace SettlersOfIdlestan.Controller.Island
             // Position changed without any road/city count change — the count-keyed cache wouldn't
             // otherwise notice, so clear it explicitly.
             _buildableVerticesCache.Clear();
+            // Même raison pour l'index hexagone → villes, qui est lui indexé par la position : aucune
+            // mutation de la liste des villes ne le fera tomber ici (voir GetCitiesAdjacentTo).
+            civ.InvalidateCityPositionCache();
             _state.Visibility.RecalculateFor(city.CivilizationIndex);
             ClaimTreasureTrovesAt(city, civ);
             OnCityRelocated?.Invoke(this, new OutpostAutoBuiltEventArgs(city.CivilizationIndex, destination));

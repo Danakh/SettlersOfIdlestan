@@ -57,6 +57,12 @@ public static class Program
                 Console.WriteLine($"  sauvegarde → {path}");
             }
 
+            if (options.RenderQueries)
+            {
+                PrintRenderQueryResult(RenderQueryBenchmark.Run(fixture, options.RenderFrames, options.RenderWarmupFrames));
+                continue;
+            }
+
             var result = TickBenchmark.Run(fixture, options.ToBenchmarkOptions());
             results.Add(result);
             PrintResult(result, options.BreakdownTop);
@@ -66,6 +72,28 @@ public static class Program
         if (options.CsvPath != null) WriteCsv(results, options.CsvPath);
 
         return 0;
+    }
+
+    /// <summary>
+    /// Travail modèle d'une image du plateau. Le budget de référence est 16,7 ms (60 fps) — et il
+    /// doit rester à peu près intégralement disponible pour le dessin lui-même, que cette mesure ne
+    /// couvre pas.
+    /// </summary>
+    private static void PrintRenderQueryResult(RenderQueryResult result)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"  ── requêtes de rendu : {result.Frames} images de {result.TileCount} tuiles, "
+                        + $"{result.PlayerCityCount} villes joueur, {result.FeatureCount} features ──");
+        Console.WriteLine($"  {"poste",-36}{"ms/image",12}{"%",8}{"alloc/image",14}");
+
+        double total = result.MsPerFrame;
+        foreach (var (name, ms, bytes) in result.Stages)
+            Console.WriteLine($"  {name,-36}{ms,12:F3}{(total <= 0 ? 0 : ms / total * 100.0),7:F1}%{FormatBytes(bytes),14}");
+
+        Console.WriteLine($"  {"TOTAL",-36}{total,12:F3}{100.0,7:F1}%{FormatBytes(result.BytesPerFrame),14}");
+        Console.WriteLine($"  fps plafond (travail modèle seul) : {result.MaxFps:F0}   "
+                        + $"— budget 60 fps consommé : {total / 16.667 * 100.0:F0} %");
+        Console.WriteLine();
     }
 
     private static void PrintResult(TickBenchmarkResult result, int breakdownTop)
@@ -258,6 +286,10 @@ public static class Program
               --alloc-types             Échantillonne aussi les types alloués, par contrôleur
                                          (GCAllocationTick). Fausse un peu les temps : à utiliser
                                          pour diagnostiquer, pas pour comparer.
+              --render-queries          Mesure le travail modèle d'une image du plateau (agrégats de
+                                         features + requêtes par tuile de GameBoardRenderer) au lieu
+                                         de la simulation. Le dessin Skia lui-même n'est pas couvert.
+              --render-frames <n>       Images mesurées par poste (défaut : 200).
 
             Sorties :
               --csv <path>              Écrit les résultats (total + par contrôleur) en CSV.
@@ -286,6 +318,9 @@ internal sealed class BenchCliOptions
     public int TicksPerEvent { get; set; } = 100;
     public int BreakdownTop { get; set; } = 12;
     public bool SampleAllocationTypes { get; set; }
+    public bool RenderQueries { get; set; }
+    public int RenderFrames { get; set; } = 200;
+    public int RenderWarmupFrames { get; set; } = 20;
     public string? CsvPath { get; set; }
     public string? SaveFixtureDirectory { get; set; }
 
@@ -343,6 +378,8 @@ internal sealed class BenchCliOptions
                 case "--ticks-per-event": options.TicksPerEvent = int.Parse(RequireValue(args, ref i)); break;
                 case "--breakdown-top": options.BreakdownTop = int.Parse(RequireValue(args, ref i)); break;
                 case "--alloc-types": options.SampleAllocationTypes = true; break;
+                case "--render-queries": options.RenderQueries = true; break;
+                case "--render-frames": options.RenderFrames = int.Parse(RequireValue(args, ref i)); break;
                 case "--csv": options.CsvPath = RequireValue(args, ref i); break;
                 case "--save-fixture": options.SaveFixtureDirectory = RequireValue(args, ref i); break;
                 default: throw new ArgumentException($"Argument inconnu : {args[i]}");

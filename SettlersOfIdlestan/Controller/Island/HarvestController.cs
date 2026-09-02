@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Game;
@@ -180,13 +180,37 @@ namespace SettlersOfIdlestan.Controller.Island
             }
         }
 
-        /// <summary>Multiplicateur combiné de temps de récolte apporté par toutes les features présentes sur l'hex (Corruption, Dominion, Territoire contesté…).</summary>
+        /// <summary>
+        /// Multiplicateur combiné de temps de récolte apporté par toutes les features présentes sur
+        /// l'hex (Corruption, Dominion, Territoire contesté…).
+        ///
+        /// <para>Boucle indexée : <c>GetFeaturesAt</c> rend un <c>IReadOnlyList</c>, dont un
+        /// <c>foreach</c> boxe l'énumérateur de structure. Cette méthode est appelée une fois par
+        /// hexagone et par civilisation à chaque événement d'horloge — plusieurs milliers de fois par
+        /// seconde en fin de partie.</para>
+        /// </summary>
         private double GetHexHarvestTimeMultiplier(Civilization civ, HexCoord hex)
         {
+            var features = _state!.GetFeaturesAt(hex);
             double multiplier = 1.0;
-            foreach (var feature in _state!.GetFeaturesAt(hex))
-                multiplier *= feature.GetHarvestTimeMultiplier(civ);
+            for (int i = 0; i < features.Count; i++)
+                multiplier *= features[i].GetHarvestTimeMultiplier(civ);
             return multiplier;
+        }
+
+        /// <summary>
+        /// Vrai si une feature de cet hexagone empêche la civilisation d'y récolter. Boucle indexée
+        /// plutôt qu'un <c>Any(f =&gt; f.BlocksHarvestFor(civ))</c>, qui allouait à chaque appel une
+        /// fermeture (elle capture <paramref name="civ"/>) en plus de boxer l'énumérateur — pour la
+        /// même raison que <see cref="GetHexHarvestTimeMultiplier"/>.
+        /// </summary>
+        private bool IsHarvestBlockedAt(Civilization civ, HexCoord hex)
+        {
+            var features = _state!.GetFeaturesAt(hex);
+            for (int i = 0; i < features.Count; i++)
+                if (features[i].BlocksHarvestFor(civ))
+                    return true;
+            return false;
         }
 
         /// <summary>
@@ -245,7 +269,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 {
                     if (!hexBlocked.TryGetValue(hex, out var blockedEntry) || blockedEntry.Generation != generation)
                     {
-                        bool computed = _state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))
+                        bool computed = IsHarvestBlockedAt(civ, hex)
                             || _monsterController?.HasDepartureCooldown(hex, now) == true;
                         hexBlocked[hex] = blockedEntry = (generation, computed);
                     }
@@ -540,14 +564,60 @@ namespace SettlersOfIdlestan.Controller.Island
             var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return Array.Empty<Resource>();
 
-            var resources = new HashSet<Resource>();
-            foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
-                foreach (var building in city.Buildings)
+            var resources = new List<Resource>();
+            // Index hexagone → villes plutôt qu'un balayage de toutes les villes de la civilisation
+            // (voir Civilization.GetCitiesAdjacentTo).
+            var cities = civ.GetCitiesAdjacentTo(hex);
+            for (int c = 0; c < cities.Count; c++)
+            {
+                var buildings = cities[c].Buildings;
+                for (int b = 0; b < buildings.Count; b++)
                 {
-                    var res = building.ManualHarvestCapability(tile.TerrainType);
-                    if (res.HasValue) resources.Add(res.Value);
+                    var res = buildings[b].ManualHarvestCapability(tile.TerrainType);
+                    // Doublons filtrés par un balayage de la liste et non par un HashSet : elle compte
+                    // au plus une poignée d'éléments (une ressource par type de bâtiment récoltant ce
+                    // terrain), taille à laquelle la recherche linéaire bat le hachage.
+                    if (res.HasValue && !resources.Contains(res.Value)) resources.Add(res.Value);
                 }
-            return resources.ToList();
+            }
+            return resources;
+        }
+
+        /// <summary>
+        /// Première ressource récoltable à la main sur cet hexagone, sans rien allouer — c'est la seule
+        /// chose dont le rendu du plateau a besoin (une icône et un anneau de cooldown, voir
+        /// <c>GameBoardRenderer.DrawHarvestIndicator</c>), alors qu'il appelait
+        /// <see cref="GetManualHarvestableResources"/> une fois par tuile et par image et n'en lisait
+        /// que le premier élément.
+        ///
+        /// <para>« Première » a le même sens que dans <see cref="GetManualHarvestableResources"/> :
+        /// premier bâtiment récoltant, dans l'ordre des villes bordant l'hexagone puis de leurs
+        /// bâtiments. Les deux méthodes doivent donc rester d'accord sur ce premier élément.</para>
+        /// </summary>
+        public bool TryGetPrimaryManualHarvestResource(int civilizationIndex, HexCoord hex, out Resource resource)
+        {
+            resource = default;
+            if (_state == null) return false;
+            var civ = _state.GetCivilization(civilizationIndex);
+            if (civ == null) return false;
+            var tile = _state.GetMapFor(hex)?.GetTile(hex);
+            if (tile == null) return false;
+
+            var cities = civ.GetCitiesAdjacentTo(hex);
+            for (int c = 0; c < cities.Count; c++)
+            {
+                var buildings = cities[c].Buildings;
+                for (int b = 0; b < buildings.Count; b++)
+                {
+                    var res = buildings[b].ManualHarvestCapability(tile.TerrainType);
+                    if (res.HasValue)
+                    {
+                        resource = res.Value;
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -576,14 +646,18 @@ namespace SettlersOfIdlestan.Controller.Island
             var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return Array.Empty<Resource>();
 
-            var resources = new HashSet<Resource>();
-            foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
-                foreach (var building in city.Buildings)
+            var resources = new List<Resource>();
+            var cities = civ.GetCitiesAdjacentTo(hex);
+            for (int c = 0; c < cities.Count; c++)
+            {
+                var buildings = cities[c].Buildings;
+                for (int b = 0; b < buildings.Count; b++)
                 {
-                    var res = building.AutomaticHarvestCapability(tile.TerrainType, civ);
-                    if (res.HasValue) resources.Add(res.Value);
+                    var res = buildings[b].AutomaticHarvestCapability(tile.TerrainType, civ);
+                    if (res.HasValue && !resources.Contains(res.Value)) resources.Add(res.Value);
                 }
-            return resources.ToList();
+            }
+            return resources;
         }
 
         /// <summary>Cooldown de récolte manuelle en ticks.</summary>
@@ -598,17 +672,42 @@ namespace SettlersOfIdlestan.Controller.Island
         /// </summary>
         public System.Collections.Generic.IReadOnlyList<(Vertex CityVertex, BuildingType BuildingType, Resource Resource, long LastTick, long Cooldown)> GetAutoHarvestInfoForHex(int civilizationIndex, HexCoord hex)
         {
-            if (_state == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
-            var civ = _state.GetCivilization(civilizationIndex);
-            if (civ == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
-            var tile = _state.GetMapFor(hex)?.GetTile(hex);
-            if (tile == null) return System.Array.Empty<(Vertex, BuildingType, Resource, long, long)>();
-
             var result = new System.Collections.Generic.List<(Vertex, BuildingType, Resource, long, long)>();
+            FillAutoHarvestInfoForHex(civilizationIndex, hex, result);
+            return result;
+        }
+
+        /// <summary>
+        /// Même contenu que <see cref="GetAutoHarvestInfoForHex"/>, écrit dans une liste fournie par
+        /// l'appelant au lieu d'en allouer une. Le rendu du plateau pose cette question une fois par
+        /// tuile et par image : c'est sa seule façon de ne pas allouer une liste par tuile.
+        /// <paramref name="result"/> est vidée avant remplissage.
+        /// </summary>
+        public void FillAutoHarvestInfoForHex(int civilizationIndex, HexCoord hex,
+            System.Collections.Generic.List<(Vertex CityVertex, BuildingType BuildingType, Resource Resource, long LastTick, long Cooldown)> result)
+        {
+            result.Clear();
+            if (_state == null) return;
+            var civ = _state.GetCivilization(civilizationIndex);
+            if (civ == null) return;
+
+            // L'index hexagone → villes est consulté avant la tuile : sur une carte de fin de partie,
+            // l'écrasante majorité des hexagones ne borde aucune ville, et cette sortie anticipée évite
+            // alors la recherche de tuile et le calcul du multiplicateur de features.
+            var cities = civ.GetCitiesAdjacentTo(hex);
+            if (cities.Count == 0) return;
+
+            var tile = _state.GetMapFor(hex)?.GetTile(hex);
+            if (tile == null) return;
+
             double featureMultiplier = GetHexHarvestTimeMultiplier(civ, hex);
-            foreach (var city in civ.Cities.Where(c => c.Position.IsAdjacentTo(hex)))
-                foreach (var building in city.Buildings)
+            for (int c = 0; c < cities.Count; c++)
+            {
+                var city = cities[c];
+                var buildings = city.Buildings;
+                for (int b = 0; b < buildings.Count; b++)
                 {
+                    var building = buildings[b];
                     var resource = building.AutomaticHarvestCapability(tile.TerrainType, civ);
                     if (!resource.HasValue) continue;
                     long raw = building.GetAutomaticHarvestCooldown(AutomaticHarvestCooldownTicks);
@@ -619,7 +718,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     building.AutoHarvestLastTicks.TryGetValue(hex, out var lastTick);
                     result.Add((city.Position, building.Type, resource.Value, lastTick, effective));
                 }
-            return result;
+            }
         }
 
 
@@ -645,7 +744,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 if (!hexAllowed.TryGetValue(hex, out bool allowed))
                 {
-                    allowed = !_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))
+                    allowed = !IsHarvestBlockedAt(civ, hex)
                            && _monsterController?.HasDepartureCooldown(hex, now) != true;
                     hexAllowed[hex] = allowed;
                 }
@@ -775,7 +874,7 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 if (!hexAllowed.TryGetValue(hex, out bool allowed))
                 {
-                    allowed = !_state.GetFeaturesAt(hex).Any(f => f.BlocksHarvestFor(civ))
+                    allowed = !IsHarvestBlockedAt(civ, hex)
                            && _monsterController?.HasDepartureCooldown(hex, now) != true;
                     hexAllowed[hex] = allowed;
                 }
@@ -948,9 +1047,6 @@ namespace SettlersOfIdlestan.Controller.Island
             return total;
         }
 
-        /// <summary>Tampon des villes adjacentes à l'hexagone récolté — voir <see cref="ManualHarvest"/>.</summary>
-        private readonly System.Collections.Generic.List<City> _adjacentCitiesScratch = new();
-
         public bool ManualHarvest(int civilizationIndex, HexCoord hex)
         {
             if (_state == null || _clock == null)
@@ -1017,17 +1113,13 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_monsterController?.HasDepartureCooldown(hex, now) == true)
                 return false;
 
-            // Boucle indexée sur un tampon réutilisé plutôt que Where(...).ToList() : l'autoplayer des
-            // PNJ appelle cette méthode en boucle (objectif de récolte), et chaque appel allouait une
-            // fermeture, un itérateur et une liste pour parcourir les centaines de villes de la
-            // civilisation. Le profilage donnait ce seul ToList à ~4,5 % du temps de simulation.
-            var cities = _adjacentCitiesScratch;
-            cities.Clear();
-            var civCities = civ.Cities;
-            for (int i = 0; i < civCities.Count; i++)
-                if (civCities[i].Position.IsAdjacentTo(hex))
-                    cities.Add(civCities[i]);
-
+            // Index hexagone → villes plutôt qu'un balayage des centaines de villes de la civilisation
+            // (voir Civilization.GetCitiesAdjacentTo) : l'autoplayer des PNJ appelle cette méthode en
+            // boucle (objectif de récolte). La version d'origine allouait en plus une fermeture, un
+            // itérateur et une liste par appel — le profilage donnait ce seul ToList à ~4,5 % du temps
+            // de simulation ; le tampon réutilisé avait supprimé les allocations, l'index supprime le
+            // balayage lui-même.
+            var cities = civ.GetCitiesAdjacentTo(hex);
             if (cities.Count == 0)
                 return false;
 

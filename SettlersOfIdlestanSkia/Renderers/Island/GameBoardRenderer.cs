@@ -12,6 +12,7 @@ using SettlersOfIdlestan.Controller.Island;
 using System.Linq;
 using SettlersOfIdlestanSkia.Renderers.Debug;
 using SettlersOfIdlestan.Model.IslandFeatures;
+using SettlersOfIdlestan.Model.Buildings;
 
 namespace SettlersOfIdlestanSkia.Renderers.Island;
 
@@ -40,6 +41,33 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
 
     private readonly Dictionary<HexCoord, SKPath> _hexPathCache = new();
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
+
+    /// <summary>
+    /// Agrégats par hexagone reconstruits à chaque image, dans des dictionnaires réutilisés.
+    ///
+    /// <para>Ils étaient auparavant cinq chaînes LINQ <c>Where/OfType/GroupBy/ToDictionary</c>
+    /// indépendantes, soit cinq parcours de <c>WorldState.Features</c> et autant de dictionnaires et
+    /// de groupes alloués — à chaque image. En fin de partie la liste des features dépasse les deux
+    /// mille entrées (Dominion et Corruption s'y accumulent hexagone par hexagone), ce qui en faisait
+    /// une source de déchets permanente. Un seul parcours les remplit tous, et les dictionnaires
+    /// vidés-remplis ne réallouent plus une fois leur taille atteinte.</para>
+    ///
+    /// <para>Reconstruits à chaque image et non mis en cache entre deux : le niveau d'une Corruption
+    /// ou d'un Dominion change sans que la feature soit ajoutée ni retirée, donc aucun événement ne
+    /// permettrait d'invalider un cache de façon fiable. Un parcours linéaire sans allocation est
+    /// assez peu cher pour que la question ne se pose pas.</para>
+    /// </summary>
+    private readonly Dictionary<HexCoord, bool> _harvestBlockedByHex = new();
+    private readonly Dictionary<HexCoord, List<IslandFeature>> _iconFeaturesByHex = new();
+    private readonly Dictionary<HexCoord, int> _corruptionByHex = new();
+    private readonly Dictionary<HexCoord, int> _dominionByHex = new();
+    private readonly Dictionary<HexCoord, bool> _portalsByHex = new();
+
+    /// <summary>Tampon de <see cref="HarvestController.FillAutoHarvestInfoForHex"/> — une liste par image au lieu d'une par tuile.</summary>
+    private readonly List<(Vertex CityVertex, BuildingType BuildingType, Resource Resource, long LastTick, long Cooldown)> _autoHarvestScratch = new();
+
+    /// <summary>Index d'arc par vertex de ville, réutilisé d'une tuile à l'autre — voir <see cref="DrawHarvestIndicator"/>.</summary>
+    private readonly Dictionary<Vertex, int> _arcIndexScratch = new();
 
     private const float CorruptionCircleRadiusFactor = 0.8f;
     private const float DominionCircleRadiusFactor = 0.55f;
@@ -165,21 +193,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     : worldState.Visibility.GetForZ(LayerState.UnderworldZ).TryGetValue(playerIdx, out var uvm) ? uvm : null;
                 if (underworldMap != null)
                 {
-                    var harvestBlockers = new HashSet<IslandFeature>(worldState.Features.Where(f => f.BlocksHarvestFor(worldState.PlayerCivilization)));
-                    var uwCorruption = worldState.Features
-                        .OfType<Corruption>()
-                        .GroupBy(f => f.Position)
-                        .ToDictionary(g => g.Key, g => g.Max(c => c.Level));
-                    var uwDominion = worldState.Features
-                        .OfType<Dominion>()
-                        .GroupBy(f => f.Position)
-                        .ToDictionary(g => g.Key, g => g.Max(d => d.Level));
-                    var uwAbyssGate = BuildPortalsByHex(worldState);
-                    var uwFeaturesByPosition = worldState.Features
-                        .Where(f => f.ShouldRenderIconFor(worldState.PlayerCivilization) && (f.SvgIconResourceName != null || f.TextIcon != null))
-                        .GroupBy(f => f.Position)
-                        .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, harvestBlockers, uwFeaturesByPosition, uwCorruption, uwDominion, uwAbyssGate, context.TotalTime,
+                    RebuildFeatureAggregates(worldState);
+                    DrawIslandMap(canvas, underworldMap, playerIdx, mainGameState.Clock.CurrentTick, null, null, null, context.TotalTime,
                         mainGameState.Settings.ShowHarvestCooldown, mainGameState.Settings.ShowCorruptionDominion);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
@@ -212,21 +227,8 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                     var playerIdx = worldState.PlayerCivilization.Index;
                     worldState.HarvestLastTimesByCivilization.TryGetValue(playerIdx, out var manualTimes);
 
-                    var harvestBlockers = new HashSet<IslandFeature>(worldState.Features.Where(f => f.BlocksHarvestFor(worldState.PlayerCivilization)));
-                    var featuresByPosition = worldState.Features
-                        .Where(f => f.ShouldRenderIconFor(worldState.PlayerCivilization) && (f.SvgIconResourceName != null || f.TextIcon != null))
-                        .GroupBy(f => f.Position)
-                        .ToDictionary(g => g.Key, g => (IEnumerable<IslandFeature>)g);
-                    var corruptionByHex = worldState.Features
-                        .OfType<Corruption>()
-                        .GroupBy(f => f.Position)
-                        .ToDictionary(g => g.Key, g => g.Max(c => c.Level));
-                    var dominionByHex = worldState.Features
-                        .OfType<Dominion>()
-                        .GroupBy(f => f.Position)
-                        .ToDictionary(g => g.Key, g => g.Max(d => d.Level));
-                    var abyssGateByHex = BuildPortalsByHex(worldState);
-                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, harvestBlockers, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, context.TotalTime,
+                    RebuildFeatureAggregates(worldState);
+                    DrawIslandMap(canvas, mapToRender, playerIdx, mgs.Clock.CurrentTick, manualTimes, worldState.PlunderCooldownUntil, worldState.PlunderCooldownDuration, context.TotalTime,
                         mgs.Settings.ShowHarvestCooldown, mgs.Settings.ShowCorruptionDominion);
 
                     var selectedInvestable = _monumentService?.SelectedInvestable;
@@ -241,39 +243,95 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     }
 
     /// <summary>
-    /// Hexes portant un portail (Faille des Abysses ou Portail du Pandémonium), avec leur état
-    /// bâti/non bâti : les deux sont rendus par le même tourbillon procédural
-    /// (<see cref="DrawAbyssGatePortal"/>) et il en existe au plus un de chaque par partie.
+    /// Remplit en un seul parcours de <c>WorldState.Features</c> les cinq agrégats par hexagone dont
+    /// le dessin d'une tuile a besoin — voir <see cref="_harvestBlockedByHex"/> pour le pourquoi.
+    ///
+    /// <para><c>_harvestBlockedByHex</c> associe à l'hexagone le <c>CanMove</c> du <b>premier</b>
+    /// bloqueur rencontré : c'est exactement ce que retournait le
+    /// <c>harvestBlockers.FirstOrDefault(f =&gt; f.Position.Equals(coord))</c> d'origine, à ceci près
+    /// qu'il le retournait au prix d'un balayage de tous les bloqueurs pour chacune des ~1 000 tuiles
+    /// de la carte, à chaque image.</para>
     /// </summary>
-    private static Dictionary<HexCoord, bool> BuildPortalsByHex(WorldState worldState)
+    private void RebuildFeatureAggregates(WorldState worldState)
     {
-        var portals = new Dictionary<HexCoord, bool>();
-        foreach (var feature in worldState.Features)
+        _harvestBlockedByHex.Clear();
+        _corruptionByHex.Clear();
+        _dominionByHex.Clear();
+        _portalsByHex.Clear();
+        // Les listes d'icônes sont vidées mais gardées : leur capacité est réutilisée d'une image à
+        // l'autre, alors qu'un Clear() du dictionnaire les rendrait au GC à chaque image.
+        foreach (var list in _iconFeaturesByHex.Values) list.Clear();
+
+        var player = worldState.PlayerCivilization;
+        var features = worldState.Features;
+        for (int i = 0; i < features.Count; i++)
         {
-            if (feature is AbyssGate abyssGate) portals[abyssGate.Position] = abyssGate.Built;
-            else if (feature is PandemoniumGate pandemoniumGate) portals[pandemoniumGate.Position] = pandemoniumGate.Built;
+            var feature = features[i];
+            var position = feature.Position;
+
+            if (feature.BlocksHarvestFor(player) && !_harvestBlockedByHex.ContainsKey(position))
+                _harvestBlockedByHex[position] = feature.CanMove;
+
+            switch (feature)
+            {
+                case Corruption corruption:
+                    if (!_corruptionByHex.TryGetValue(position, out int corruptLevel) || corruption.Level > corruptLevel)
+                        _corruptionByHex[position] = corruption.Level;
+                    break;
+                case Dominion dominion:
+                    if (!_dominionByHex.TryGetValue(position, out int dominionLevel) || dominion.Level > dominionLevel)
+                        _dominionByHex[position] = dominion.Level;
+                    break;
+                case AbyssGate abyssGate:
+                    _portalsByHex[position] = abyssGate.Built;
+                    break;
+                case PandemoniumGate pandemoniumGate:
+                    _portalsByHex[position] = pandemoniumGate.Built;
+                    break;
+            }
+
+            if (feature.ShouldRenderIconFor(player) && (feature.SvgIconResourceName != null || feature.TextIcon != null))
+            {
+                if (!_iconFeaturesByHex.TryGetValue(position, out var list))
+                    _iconFeaturesByHex[position] = list = new List<IslandFeature>(1);
+                list.Add(feature);
+            }
         }
-        return portals;
     }
+
+    /// <summary>
+    /// Marge, en hexagones, ajoutée au rectangle visible avant de rejeter une tuile. Le dessin d'une
+    /// tuile déborde de son propre hexagone — les arcs de récolte automatique sont centrés sur le
+    /// vertex d'une ville voisine, donc jusqu'à un hexagone à côté : sans marge, ils disparaîtraient
+    /// au bord de l'écran.
+    /// </summary>
+    private const float CullMarginHexes = 2f;
 
     private void DrawIslandMap(SKCanvas canvas, IslandMap map, int playerIdx,
         long currentTick,
         Dictionary<HexCoord, long>? manualTimes,
         IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
-        HashSet<IslandFeature>? harvestBlockers,
-        Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null,
-        Dictionary<HexCoord, int>? corruptionByHex = null,
-        Dictionary<HexCoord, int>? dominionByHex = null,
-        Dictionary<HexCoord, bool>? abyssGateByHex = null,
         float totalTime = 0f,
         bool showHarvestCooldown = true,
         bool showCorruptionDominion = true)
     {
+        // Rectangle visible en coordonnées d'île (la transformation caméra est déjà appliquée au
+        // canvas par IslandMainRenderer). Skia écarterait de lui-même les primitives hors champ, mais
+        // seulement après que le travail modèle par tuile a été fait : requêtes de récolte, features,
+        // cooldowns. C'est ce travail-là que le test ci-dessous évite, et il est proportionnel au
+        // nombre de villes du joueur — donc c'est lui qui dérape en fin de partie, pas le dessin.
+        var clip = canvas.LocalClipBounds;
+        float margin = HexSize * CullMarginHexes;
+        float minX = clip.Left - margin, maxX = clip.Right + margin;
+        float minY = clip.Top - margin, maxY = clip.Bottom + margin;
+
         foreach (var (coord, tile) in map.Tiles)
         {
             var (x, y) = AxialToIsland(coord.Q, coord.R);
-            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockers, featuresByPosition, corruptionByHex, dominionByHex, abyssGateByHex, totalTime, showHarvestCooldown, showCorruptionDominion);
+            if (x < minX || x > maxX || y < minY || y > maxY) continue;
+
+            DrawHexagonTile(canvas, coord, x, y, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, totalTime, showHarvestCooldown, showCorruptionDominion);
         }
     }
 
@@ -298,11 +356,6 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? manualTimes,
         IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
-        HashSet<IslandFeature>? harvestBlockers,
-        Dictionary<HexCoord, IEnumerable<IslandFeature>>? featuresByPosition = null,
-        Dictionary<HexCoord, int>? corruptionByHex = null,
-        Dictionary<HexCoord, int>? dominionByHex = null,
-        Dictionary<HexCoord, bool>? abyssGateByHex = null,
         float totalTime = 0f,
         bool showHarvestCooldown = true,
         bool showCorruptionDominion = true)
@@ -323,20 +376,20 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         if (_hexBorderPaint != null)
             canvas.DrawPath(path, _hexBorderPaint);
 
-        if (showCorruptionDominion && corruptionByHex?.TryGetValue(coord, out int corruptLevel) == true && corruptLevel > 0)
+        if (showCorruptionDominion && _corruptionByHex.TryGetValue(coord, out int corruptLevel) && corruptLevel > 0)
             DrawCorruptionCircle(canvas, centerX, centerY, corruptLevel);
 
-        if (showCorruptionDominion && dominionByHex?.TryGetValue(coord, out int dominionLevel) == true && dominionLevel > 0)
+        if (showCorruptionDominion && _dominionByHex.TryGetValue(coord, out int dominionLevel) && dominionLevel > 0)
             DrawDominionCircle(canvas, centerX, centerY, dominionLevel);
 
-        if (abyssGateByHex?.TryGetValue(coord, out bool gateBuilt) == true)
+        if (_portalsByHex.TryGetValue(coord, out bool gateBuilt))
             DrawAbyssGatePortal(canvas, centerX, centerY, gateBuilt, totalTime);
 
-        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, harvestBlockers, showHarvestCooldown);
+        DrawHarvestIndicator(canvas, centerX, centerY, tile, playerIdx, currentTick, manualTimes, plunderCooldownUntil, plunderCooldownDuration, showHarvestCooldown);
 
-        if (featuresByPosition?.TryGetValue(coord, out var features) == true)
-            foreach (var feature in features)
-                DrawFeatureMarker(canvas, centerX, centerY, feature);
+        if (_iconFeaturesByHex.TryGetValue(coord, out var features))
+            for (int i = 0; i < features.Count; i++)
+                DrawFeatureMarker(canvas, centerX, centerY, features[i]);
 
         if (DebugSettings.ShowHexCoords && _textPaint != null)
         {
@@ -465,17 +518,15 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         Dictionary<HexCoord, long>? manualTimes,
         IReadOnlyDictionary<HexCoord, long>? plunderCooldownUntil,
         Dictionary<HexCoord, long>? plunderCooldownDuration,
-        HashSet<IslandFeature>? harvestBlockers,
         bool showHarvestCooldown = true)
     {
         if (_ringBgPaint == null || _ringProgressPaint == null)
             return;
 
         // Anneau pillage (le plus externe)
-        IslandFeature? f = harvestBlockers?.FirstOrDefault(f => f.Position.Equals(tile.Coord));
-        if (f != null)
+        if (_harvestBlockedByHex.TryGetValue(tile.Coord, out bool blockerCanMove))
         {
-            if (f.CanMove)
+            if (blockerCanMove)
                 DrawPlunderCooldownRing(canvas, cx, cy, ratio: 1f);
             return;
         }
@@ -492,29 +543,37 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         // Le rayon s'incrémente uniquement pour plusieurs bâtiments de la MÊME ville sur le même hex.
         if (showHarvestCooldown)
         {
-            var autoInfo = _harvestController.GetAutoHarvestInfoForHex(playerIdx, tile.Coord);
-            var arcIndexByVertex = new Dictionary<Vertex, int>();
-            foreach (var (cityVertex, _, _, lastTick, cooldown) in autoInfo)
+            // Tampons réutilisés : ces deux collections étaient allouées par tuile et par image.
+            var autoInfo = _autoHarvestScratch;
+            _harvestController.FillAutoHarvestInfoForHex(playerIdx, tile.Coord, autoInfo);
+            if (autoInfo.Count > 0)
             {
-                arcIndexByVertex.TryGetValue(cityVertex, out int arcIdx);
-                arcIndexByVertex[cityVertex] = arcIdx + 1;
-                var vp = VertexToIsland(cityVertex);
-                float radius = AutoArcBaseRadius + arcIdx * AutoArcGap;
-                DrawAutoHarvestCornerArc(canvas, vp.X, vp.Y, cx, cy, radius, AutoArcStroke, lastTick, cooldown, currentTick);
+                var arcIndexByVertex = _arcIndexScratch;
+                arcIndexByVertex.Clear();
+                for (int i = 0; i < autoInfo.Count; i++)
+                {
+                    var (cityVertex, _, _, lastTick, cooldown) = autoInfo[i];
+                    arcIndexByVertex.TryGetValue(cityVertex, out int arcIdx);
+                    arcIndexByVertex[cityVertex] = arcIdx + 1;
+                    var vp = VertexToIsland(cityVertex);
+                    float radius = AutoArcBaseRadius + arcIdx * AutoArcGap;
+                    DrawAutoHarvestCornerArc(canvas, vp.X, vp.Y, cx, cy, radius, AutoArcStroke, lastTick, cooldown, currentTick);
+                }
             }
         }
 
-        var manualResources = _harvestController.GetManualHarvestableResources(playerIdx, tile.Coord);
-
-        if (manualResources.Count > 0)
+        // Seule la première ressource récoltable est dessinée : la demander directement évite la liste
+        // que GetManualHarvestableResources allouait pour chaque tuile de chaque image.
+        if (_harvestController.TryGetPrimaryManualHarvestResource(playerIdx, tile.Coord, out var manualResource))
+        {
             DrawCooldownRing(canvas, cx, cy, ManualRingRadius, ManualRingStroke,
                 tile.Coord, currentTick, manualTimes,
                 _harvestController.GetManualHarvestCooldownTicks(playerIdx),
                 new SKColor(60, 60, 60, 150),
                 new SKColor(160, 230, 160, 230));
 
-        if (manualResources.Count > 0)
-            DrawResourceIcon(canvas, cx, cy, manualResources[0]);
+            DrawResourceIcon(canvas, cx, cy, manualResource);
+        }
     }
 
     /// <summary>
