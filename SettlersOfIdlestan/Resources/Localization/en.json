@@ -843,6 +843,7 @@
   "hex_tooltip_contested_diplomacy": "⚔ Contested territory — 50% production",
   "hex_tooltip_corruption_info": "☠ Corruption (lvl. {0}) — production divided by {1}",
   "hex_tooltip_corruption_source": "🌀 Corruption Source — raises its hex's corruption by one level every 10 seconds, up to level {0}. The only hex a Corruption Spire can be built on; finishing it destroys the Source and unlocks Corrupted Prestige",
+  "hex_tooltip_corruption_source_locked": "🌀 Corruption Source — raises its hex's corruption by one level every 10 seconds, up to level {0}",
   "hex_tooltip_dominion_info": "Dominion (lvl. {0}) — +{1}% harvest speed on this hex",
   "hex_tooltip_corruption_spire": "🌑 Corruption Spire — under construction, does not reduce corruption yet; invest resources to complete it and unlock Corrupted Prestige",
   "hex_tooltip_corruption_spire_built": "🌑 Corruption Spire — built, reduces corruption within a radius of {0} hex(es) by 1 level every 10s; can be upgraded indefinitely. Corrupted Prestige is unlocked",

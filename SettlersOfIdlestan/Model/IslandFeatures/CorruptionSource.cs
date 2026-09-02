@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Localization;
+using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
@@ -41,6 +42,18 @@ public class CorruptionSource : IslandFeature
 
     public override LocalizedEntry? GetTooltipEntry() =>
         new("hex_tooltip_corruption_source", new object[] { GetCorruptionCap() });
+
+    /// <summary>
+    /// Tant que les 3 vertex de prestige des Abysses (Porte Planaire / Faille des Abysses / Rituel de
+    /// l'Éclipse Noire) ne sont pas achetés (seuil dupliqué de
+    /// CorruptionSpireController.AbyssUnlockThreshold — le Modèle ne référence pas le Contrôleur), la
+    /// Spire de Corruption ne peut pas encore être bâtie : le tooltip ne doit donc pas la nommer, pour
+    /// ne pas spoiler une mécanique inaccessible.
+    /// </summary>
+    public override LocalizedEntry? GetTooltipEntry(SettlersOfIdlestan.Model.Civilization.Civilization civ) =>
+        civ.ModifierAggregator.ApplyModifiers(ECategory.UNLOCK_ABYSS, "", 0) >= 3
+            ? GetTooltipEntry()
+            : new LocalizedEntry("hex_tooltip_corruption_source_locked", new object[] { GetCorruptionCap() });
 
     public CorruptionSource(HexCoord position, int corruptionLevel) : base(position)
     {
