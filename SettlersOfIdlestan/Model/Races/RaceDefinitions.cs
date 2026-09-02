@@ -18,9 +18,9 @@ namespace SettlersOfIdlestan.Model.Races;
 /// (<see cref="RaceDefinition.RequiredPowers"/>, voir AscensionController.IsRaceUnlocked) —
 /// indépendante des autres races, Base comme Advanced.
 ///
-/// <para>Base (Elfes, Nains, Gobelins, Orcs) : les 4 pouvoirs de premier rang (Main, Mémoire, Marche,
-/// Bras de Dieu) ne suffisent qu'à 4 combinaisons de 3 — chaque race en exclut un différent, donc
-/// acheter n'importe quels 3 des 4 débloque exactement la race qui n'a pas besoin du quatrième.</para>
+/// <para>Base (Elfes, Nains, Gobelins, Orcs) : graphe complet à 4 sommets sur 6 pouvoirs
+/// (Main, Mémoire, Marche, Bras, Construction, Magie Divine) chaque pouvoir relie exactement 2 races, chaque race en requiert 3
+/// (voir le commentaire sur leurs définitions ci-dessous).</para>
 ///
 /// <para>Advanced (Géants, Garudas, Sirènes, Elfes noirs) : graphe complet à 4 sommets sur 6 pouvoirs
 /// plus profonds (Œil de Dieu, Inventaire Divin, Poing de Dieu, Présence de Dieu, Corne d'Abondance,
@@ -85,9 +85,6 @@ public static class RaceDefinitions
         // équivalent souterrain, la Caverne aux champignons (voir
         // TerrainTypeExtensions.UnderworldEquivalent et CityBuilderController.SatisfiesCityTerrainRestriction) ;
         // Marche de Dieu y fait pousser ce même équivalent (AscensionController.ApplyWalkOfGod).
-        // Déblocage : les 4 pouvoirs divins de premier rang (Main/Mémoire/Marche/Bras de Dieu) sauf
-        // Bras de Dieu — chacune des 4 races de base en exclut un différent (voir le commentaire de
-        // classe ci-dessus), Bras de Dieu restant donc superflu pour les Elfes.
         new RaceDefinition(RaceId.Elf, RaceTier.Base,
             requiredAdjacentTerrain: TerrainType.Forest,
             racialBuilding: BuildingType.HeartTree,
@@ -98,11 +95,10 @@ public static class RaceDefinitions
                 new Modifier(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.25),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.HeartTree), EType.ADDITIVE, 1),
             },
-            requiredPowers: new[] { AscensionPowerId.HandOfGod, AscensionPowerId.MemoryOfGod, AscensionPowerId.WalkOfGod }),
+            requiredPowers: new[] { AscensionPowerId.MemoryOfGod, AscensionPowerId.WalkOfGod, AscensionPowerId.DivineMagic }),
 
         // Nains : nouvelles villes uniquement adjacentes à une Montagne ; maîtres de la forge et
-        // de la mine, et solides défenseurs. Déblocage : les 4 pouvoirs de premier rang sauf Main de
-        // Dieu (superflue pour les Nains).
+        // de la mine, et solides défenseurs.
         new RaceDefinition(RaceId.Dwarf, RaceTier.Base,
             requiredAdjacentTerrain: TerrainType.Mountain,
             racialBuilding: BuildingType.RunicForge,
@@ -114,14 +110,13 @@ public static class RaceDefinitions
                 new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, 3),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.RunicForge), EType.ADDITIVE, 1),
             },
-            requiredPowers: new[] { AscensionPowerId.MemoryOfGod, AscensionPowerId.WalkOfGod, AscensionPowerId.ArmOfGod }),
+            requiredPowers: new[] { AscensionPowerId.WalkOfGod, AscensionPowerId.ArmOfGod, AscensionPowerId.DivineConstruction }),
 
         // Gobelins : villes à distance 2 au lieu de 3 (expansion dense), mais « quantité plutôt
         // que qualité » — niveau max -1 sur les bâtiments standards (Temple compris : base 1, plafonné
         // à 3 une fois Foi débloquée au lieu de 4 — voir BuildStandardMaxLevelModifiers, le malus
         // s'applique en dernier et ne peut jamais rendre un bâtiment inconstructible), défense
-        // affaiblie et points de prestige réduits de 25 %. Déblocage : les 4 pouvoirs de premier rang
-        // sauf Mémoire de Dieu (superflue pour les Gobelins).
+        // affaiblie et points de prestige réduits de 25 %.
         new RaceDefinition(RaceId.Goblin, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.GreatBurrow,
@@ -131,13 +126,12 @@ public static class RaceDefinitions
                 .Append(new Modifier(ECategory.PRESTIGE_GAIN_RACE, EType.ADDITIVE, -0.25))
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.GreatBurrow), EType.ADDITIVE, 1))
                 .ToArray(),
-            requiredPowers: new[] { AscensionPowerId.HandOfGod, AscensionPowerId.WalkOfGod, AscensionPowerId.ArmOfGod }),
+            requiredPowers: new[] { AscensionPowerId.HandOfGod, AscensionPowerId.MemoryOfGod, AscensionPowerId.DivineMagic }),
 
         // Orcs : pillards sans terrain de prédilection — tout misé sur l'attaque et le raid plutôt
         // que sur l'économie ou la recherche. UNLOCK_RAID offert gratuitement (normalement un vertex
         // de prestige mi-parcours) ; en échange, recherche ralentie et Bibliothèque/Laboratoire
-        // plafonnent 1 niveau plus bas. Déblocage : les 4 pouvoirs de premier rang sauf Marche de
-        // Dieu (superflue pour les Orcs, qui n'ont pas de terrain de prédilection à faire pousser).
+        // plafonnent 1 niveau plus bas.
         new RaceDefinition(RaceId.Orc, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.SkullPit,
@@ -153,7 +147,7 @@ public static class RaceDefinitions
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Laboratory), EType.ADDITIVE, -1),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.SkullPit), EType.ADDITIVE, 1),
             },
-            requiredPowers: new[] { AscensionPowerId.MemoryOfGod, AscensionPowerId.HandOfGod, AscensionPowerId.ArmOfGod }),
+            requiredPowers: new[] { AscensionPowerId.HandOfGod, AscensionPowerId.ArmOfGod, AscensionPowerId.DivineConstruction }),
 
         // Géants : l'inverse des gobelins — villes à distance 4 minimum (rares), mais bâtiments
         // standards à niveau max +2 et récolte accélérée. Déblocage : Œil de Dieu (partagé avec les

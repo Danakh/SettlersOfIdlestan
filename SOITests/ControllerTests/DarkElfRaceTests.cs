@@ -44,6 +44,11 @@ public class DarkElfRaceTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        // Walk+Arm+Construction complète la combinaison des Nains (voir RaceDefinitions.All) : sans
+        // au moins une race de base débloquée, IsRaceSelectionUnlocked reste faux et
+        // GrantFreePrestigeVertices ne verse ni les 3 voisins du vertex central, ni le vertex racial
+        // des Elfes noirs (MushroomCultureVertex) — même s'ils ascensionnent en Elfe noir, pas en Nain.
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
         // Combinaison propre aux Elfes noirs (voir RaceDefinitions.All) : Poing de Dieu, Présence de
         // Dieu, Purification Supérieure.
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
@@ -145,10 +150,9 @@ public class DarkElfRaceTests
         godState.DivineEssence = 10;
         var ascension = controller.AscensionController;
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
 
         controller.PerformAscension(RaceId.Dwarf);
 
@@ -191,10 +195,9 @@ public class DarkElfRaceTests
         godState.DivineEssence = 10;
         var ascension = controller.AscensionController;
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagic));
 
         controller.PerformAscension(RaceId.Elf);
 

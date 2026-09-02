@@ -45,7 +45,7 @@ public class RaceSystemTests
     }
 
     /// <summary>
-    /// Achète les 4 pouvoirs divins de premier niveau (un par colonne 0 à 3) : l'union des
+    /// Achète les 6 pouvoirs divins de premier niveau (un par colonne 0 à 5) : l'union des
     /// combinaisons requises par chacune des 4 races de base (voir RaceDefinitions.All), donc les
     /// débloque toutes simultanément.
     /// </summary>
@@ -56,6 +56,8 @@ public class RaceSystemTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagic));
     }
 
     /// <summary>
@@ -76,11 +78,10 @@ public class RaceSystemTests
     }
 
     /// <summary>
-    /// Hand+Memory+Arm complète exactement la combinaison des Orcs (chaque race de base exclut un
-    /// pouvoir de premier rang différent — voir le commentaire de classe de RaceDefinitions — les
-    /// Orcs excluent Marche de Dieu, jamais acheté ici) : IsRaceSelectionUnlocked (vraie dès qu'une
-    /// race de base autre qu'Humains devient sélectionnable) ne bascule donc qu'au dernier des 3
-    /// pouvoirs.
+    /// Main+Bras+Construction complète exactement la combinaison des Orcs (voir RaceDefinitions.All —
+    /// aucune autre race de base ne partage cette combinaison exacte) : IsRaceSelectionUnlocked
+    /// (vraie dès qu'une race de base autre qu'Humains devient sélectionnable) ne bascule donc qu'au
+    /// dernier des 3 pouvoirs.
     /// </summary>
     [Fact]
     public void IsRaceSelectionUnlocked_TogglesOnceAnyBaseRaceCombinationIsComplete()
@@ -91,27 +92,27 @@ public class RaceSystemTests
 
         ascension.PurchasePower(AscensionPowerId.Faith);
         ascension.PurchasePower(AscensionPowerId.HandOfGod);
-        ascension.PurchasePower(AscensionPowerId.MemoryOfGod);
+        ascension.PurchasePower(AscensionPowerId.ArmOfGod);
         Assert.False(ascension.IsRaceSelectionUnlocked);
 
-        ascension.PurchasePower(AscensionPowerId.ArmOfGod);
+        ascension.PurchasePower(AscensionPowerId.DivineConstruction);
         Assert.True(ascension.IsRaceSelectionUnlocked);
         Assert.Contains(RaceId.Orc, ascension.GetSelectableRaces());
     }
 
     /// <summary>
     /// Chaque race de base a sa propre combinaison de 3 pouvoirs (RaceDefinition.RequiredPowers),
-    /// indépendante des autres : acheter uniquement celle des Orcs (Mémoire, Main, Bras) ne débloque ni
-    /// les Elfes, ni les Nains, ni les Gobelins.
+    /// indépendante des autres : acheter uniquement celle des Orcs (Main, Bras, Construction) ne
+    /// débloque ni les Elfes, ni les Nains, ni les Gobelins.
     /// </summary>
     [Fact]
     public void IsRaceUnlocked_EachBaseRaceHasItsOwnIndependentCombination()
     {
         var ascension = CreateAscension(out _);
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.HandOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
 
         Assert.True(ascension.IsRaceUnlocked(RaceId.Orc));
         Assert.False(ascension.IsRaceUnlocked(RaceId.Elf));

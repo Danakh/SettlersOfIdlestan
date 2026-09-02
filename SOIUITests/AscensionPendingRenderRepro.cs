@@ -49,6 +49,8 @@ public class AscensionPendingRenderRepro
         Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagic));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
         Assert.True(ascension.IsRaceSelectionUnlocked);
 
         godState.DivineEssence = 10;
