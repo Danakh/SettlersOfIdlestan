@@ -24,6 +24,7 @@ public class MonsterFeatureController
     private WarFleetController? _warFleetController;
     private MobileCampController? _mobileCampController;
     private PrestigeState? _prestigeState;
+    private MilitaryController? _militaryController;
 
     private List<MonsterFeature> _monsters = new();
 
@@ -33,7 +34,7 @@ public class MonsterFeatureController
     /// <summary>Un consommable (Armure d'Acier, Potion de Soin) a été détruit pour sauver un soldat lors d'une attaque de monstre.</summary>
     public event EventHandler<ConsumableConsumedEventArgs>? ConsumableConsumed;
 
-    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null, PrestigeState? prestigeState = null, WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null, BuildingController? buildingController = null)
+    internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null, PrestigeState? prestigeState = null, WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null, BuildingController? buildingController = null, MilitaryController? militaryController = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -58,6 +59,13 @@ public class MonsterFeatureController
         _warFleetController = warFleetController;
         _mobileCampController = mobileCampController;
         _prestigeState = prestigeState;
+
+        // Voir MilitaryController.DeferDefenseClamp/ClampDefenseAfterCombat : reçoit ici la référence
+        // qui autorise MilitaryController à laisser la défense dépasser son maximum pendant ce même
+        // tick (rattrapage de régénération d'un saut de temps), à charge pour Update ci-dessous de la
+        // replafonner une fois toutes les attaques de monstres résolues.
+        _militaryController = militaryController;
+        if (militaryController != null) militaryController.DeferDefenseClamp = true;
 
         RebuildCache();
 
@@ -167,6 +175,11 @@ public class MonsterFeatureController
 
         foreach (var monster in _monsters.ToList())
             UpdateMonster(monster, currentTick);
+
+        // Voir MilitaryController.ClampDefenseAfterCombat : replafonne la défense (laissée au-delà de
+        // son maximum par ResolveDefenseRegen, voir DeferDefenseClamp) maintenant que toutes les
+        // attaques de monstres dues sur ce tick ont été résolues ci-dessus.
+        _militaryController?.ClampDefenseAfterCombat();
     }
 
     /// <summary>

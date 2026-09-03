@@ -396,6 +396,19 @@ public class MilitaryController
     // ── Régénération de défense ──────────────────────────────────────────────
 
     /// <summary>
+    /// Si vrai, <see cref="ResolveDefenseRegen"/> laisse <c>CurrentDefense</c> dépasser <c>MaxDefense</c>
+    /// au lieu de le plafonner immédiatement — voir <see cref="ClampDefenseAfterCombat"/>, que
+    /// l'appelant doit alors invoquer une fois les attaques du tick résolues.
+    ///
+    /// <para>Faux par défaut : préserve le plafonnage immédiat pour tout code qui construit un
+    /// <see cref="MilitaryController"/> seul (la majorité des tests), sans dépendre d'un appelant qui
+    /// sait quand rappeler <see cref="ClampDefenseAfterCombat"/>. Mis à vrai par
+    /// <see cref="MonsterFeatureController.Initialize"/> quand ce dernier reçoit une référence vers ce
+    /// contrôleur — voir son commentaire pour le scénario complet (saut de temps).</para>
+    /// </summary>
+    internal bool DeferDefenseClamp { get; set; } = false;
+
+    /// <summary>
     /// Régénération de défense de tous les emplacements de toutes les civilisations, à chaque
     /// événement d'horloge.
     ///
@@ -423,7 +436,12 @@ public class MilitaryController
             {
                 var vertex = vertices[v];
                 int maxDefense = GetDefenseScore(vertex, civDefenseBonus, hasTempleDefenseBonus);
-                if (vertex.CurrentDefense >= maxDefense) continue;
+                if (maxDefense <= 0) continue;
+                // En mode plafonnage différé, on continue à créditer les cycles même si la défense est
+                // déjà à son maximum : c'est précisément ce surplus, retiré seulement par
+                // ClampDefenseAfterCombat, qui sert de tampon aux attaques résolues plus tard dans le
+                // même tick (voir DeferDefenseClamp). En mode immédiat, ce serait du travail perdu.
+                if (!DeferDefenseClamp && vertex.CurrentDefense >= maxDefense) continue;
 
                 double regenSpeed = GetDefenseRegenSpeed(vertex, civRegenSpeed, perDominionLevel, underworldRegenBonus);
                 long effectiveRegenInterval = (long)(DefenseRegenIntervalTicks / regenSpeed);
@@ -435,7 +453,52 @@ public class MilitaryController
                 vertex.LastDefenseRegenTick = lastTick;
                 if (cycles <= 0) continue;
 
-                vertex.CurrentDefense = (int)Math.Min(maxDefense, vertex.CurrentDefense + cycles);
+                if (DeferDefenseClamp)
+                    vertex.CurrentDefense += (int)cycles;
+                else
+                    vertex.CurrentDefense = (int)Math.Min(maxDefense, vertex.CurrentDefense + cycles);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ramène la défense de tous les emplacements à leur maximum si elle l'a dépassé. À appeler une
+    /// fois que <see cref="MonsterFeatureController"/> a fini de résoudre les attaques du tick — jamais
+    /// par <see cref="ResolveDefenseRegen"/> elle-même, qui laisse volontairement le surplus en place
+    /// quand <see cref="DeferDefenseClamp"/> est actif.
+    ///
+    /// <para>Pendant un saut de temps (<c>TimeJumpService</c>, tranches de 10 000 ticks), un seul
+    /// événement <c>Advanced</c> couvre toute la tranche : <see cref="ResolveDefenseRegen"/> y crédite
+    /// en une fois tout le rattrapage de régénération dû sur la tranche, puis
+    /// <see cref="MonsterFeatureController"/> rejoue en rafale (jusqu'à
+    /// <c>MonsterFeatureController.MaxMonsterCatchUpSteps</c> pas) toutes les attaques dues sur cette
+    /// même tranche. Si la défense était plafonnée à son maximum immédiatement après régénération, la
+    /// rafale ne trouverait plus aucune marge à consommer avant le prochain événement, 100 s plus
+    /// tard — alors qu'en jeu continu (événements rapprochés), régénération et attaques s'entrelacent
+    /// à chaque petit événement et la défense a l'occasion de regénérer entre chaque coup. Laisser le
+    /// surplus disponible pendant la rafale, puis le retirer une fois les attaques résolues, restitue
+    /// cette marge sans rien changer d'autre une fois le tick terminé.</para>
+    /// </summary>
+    internal void ClampDefenseAfterCombat()
+    {
+        if (!DeferDefenseClamp || _state == null) return;
+
+        var civilizations = _state.Civilizations;
+        for (int c = 0; c < civilizations.Count; c++)
+        {
+            var civ = civilizations[c];
+            var aggregator = civ.ModifierAggregator;
+            int civDefenseBonus = aggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
+            bool hasTempleDefenseBonus = aggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS);
+
+            var vertices = civ.MilitaryVertices;
+            for (int v = 0; v < vertices.Count; v++)
+            {
+                var vertex = vertices[v];
+                if (vertex.CurrentDefense <= 0) continue;
+                int maxDefense = GetDefenseScore(vertex, civDefenseBonus, hasTempleDefenseBonus);
+                if (vertex.CurrentDefense > maxDefense)
+                    vertex.CurrentDefense = maxDefense;
             }
         }
     }

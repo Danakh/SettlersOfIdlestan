@@ -569,7 +569,7 @@ namespace SettlersOfIdlestan.Controller
                 MobileCampController.Initialize(WorldState, CityBuilderController, Clock);
                 FeatureController.Initialize(WorldState, Clock);
                 MilitaryController.Initialize(WorldState, Clock, CityBuilderController, WarFleetController, MobileCampController, CurrentMainState!.PRNG);
-                MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, CurrentMainState?.PrestigeState, WarFleetController, MobileCampController, BuildingController);
+                MonsterFeatureController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController, CurrentMainState?.PrestigeState, WarFleetController, MobileCampController, BuildingController, MilitaryController);
                 VolcanoController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CityBuilderController);
                 TradeController.Initialize(WorldState);
                 HarvestController.Initialize(WorldState, Clock, TradeController, MonsterFeatureController, CurrentMainState!.PRNG);
