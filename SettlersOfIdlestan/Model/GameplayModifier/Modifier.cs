@@ -41,7 +41,9 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             /// avant-poste du joueur reçoit un Hôtel de ville niveau 1, puis tout bâtiment de production basique
             /// (Scierie, Briqueterie, Moulin, Carrière, Mine) réellement constructible à cet emplacement — seul
             /// le terrain (et, pour la Mine, le niveau de ville) en décide. Voir
-            /// CityBuilderController.GrantDivineConstructionBuildings. SubCategory unused.</summary>
+            /// CityBuilderController.GrantDivineConstructionBuildings. Fait aussi passer à deux le nombre de
+            /// constructions/améliorations effectuées par cooldown écoulé pour toutes les automatisations de
+            /// guilde (BuildingController.TickGuildAutomation). SubCategory unused.</summary>
             NEW_CITY_DIVINE_CONSTRUCTION,
             /// <summary>Pouvoir divin Conquête Divine (AscensionPowerId.DivineConquest) : chaque nouvel avant-poste
             /// du joueur reçoit une Palissade (+1 niveau si une Palissade lui a déjà été accordée par ailleurs,

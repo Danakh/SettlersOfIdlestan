@@ -401,8 +401,24 @@ namespace SettlersOfIdlestan.Controller.Island
             // cooldown écoulé), rejoué `cycles` fois pour rattraper un saut de temps. S'arrête dès qu'un
             // cycle ne trouve plus rien à faire — les cycles suivants échoueraient pour la même raison
             // (aucune ressource supplémentaire n'est produite entre deux cycles de cette boucle).
+            //
+            // Pouvoir divin Construction Divine (ECategory.NEW_CITY_DIVINE_CONSTRUCTION) : porte
+            // actionsPerCycle à 2, faisant faire deux constructions/améliorations aux guildes par
+            // cooldown écoulé au lieu d'une seule.
+            int actionsPerCycle = civ.ModifierAggregator.HasModifier(ECategory.NEW_CITY_DIVINE_CONSTRUCTION) ? 2 : 1;
+
             for (long i = 0; i < cycles; i++)
-                if (!TryPerformOneGuildAction(civ, presets, targets, out bool blockedByResources))
+            {
+                bool didAnything = false;
+                bool blockedByResources = false;
+                for (int a = 0; a < actionsPerCycle; a++)
+                {
+                    if (!TryPerformOneGuildAction(civ, presets, targets, out blockedByResources))
+                        break;
+                    didAnything = true;
+                }
+
+                if (!didAnything)
                 {
                     // Rien trouvé à ce triplet de versions (celui d'après un éventuel build réussi
                     // plus tôt dans cette même rafale de cycles, cf. BuildingsVersion incrémenté par
@@ -419,6 +435,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         _guildResourceRetryTick.Remove(cacheKey);
                     break;
                 }
+            }
         }
 
         /// <summary>

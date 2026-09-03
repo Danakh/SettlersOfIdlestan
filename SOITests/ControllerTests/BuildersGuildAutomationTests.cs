@@ -455,4 +455,47 @@ public class BuildersGuildAutomationTests
             Assert.Equal(expectedLevel, sawmill.Level);
         }
     }
+
+    // =========================================================================
+    // Test 6 — Divine Construction (NEW_CITY_DIVINE_CONSTRUCTION) doubles the
+    // number of guild automation actions per elapsed cooldown.
+    // =========================================================================
+
+    [Fact]
+    public void AutoTownHall_DivineConstructionActive_UpgradesTwoLevelsPerCooldown()
+    {
+        var state = IslandTestFactory.CreateSevenHexIslandState();
+        var civ   = state.Civilizations[0];
+        var city  = civ.Cities[0];
+
+        city.AddBuilding(new TownHall { Level = 1 });
+        city.AddBuilding(new BuildersGuild { Level = 1 });
+        civ.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(ECategory.NEW_CITY_DIVINE_CONSTRUCTION, EType.ADDITIVE, 1),
+            new Modifier(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 100_000),
+        }));
+        civ.RecalculateStorageCapacity();
+
+        civ.AddResource(Resource.Food,  100_000);
+        civ.AddResource(Resource.Wood,  100_000);
+        civ.AddResource(Resource.Brick, 100_000);
+        civ.AddResource(Resource.Stone, 100_000);
+        civ.AddResource(Resource.Gold,  100_000); // TownHall upgrade cost adds Gold past level 2
+
+        state.AutomationSettings.TownHallAutomationEnabled = true;
+
+        var clock = new GameClock();
+        clock.Start();
+
+        var buildingController = new BuildingController();
+        buildingController.Initialize(state, clock);
+
+        clock.SimulateAdvance(10); // first-fire guard
+        Assert.Equal(1, city.Level);
+
+        // A single elapsed cooldown (1000 ticks) now performs two upgrades: 1 -> 3.
+        clock.SimulateAdvance(1100);
+        Assert.Equal(3, city.Level);
+    }
 }
