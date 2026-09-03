@@ -22,7 +22,14 @@ public class Adventurer : MonsterFeature
     public const long AdventurerHpRegenIntervalTicks = 100L;
     public const int AdventurerWaterCrossingMinLevel = 4;
 
-    public override int MaxHp => AdventurerMaxHpBase + AdventurerMaxHpPerLevel * Level;
+    /// <summary>Bonus figé à l'invocation d'après les modifiers de la civilisation propriétaire (Forge Runique). Voir MonsterController.UpdateAdventurerSpawns.</summary>
+    public int HpBonus { get; set; }
+    /// <summary>Bonus figé à l'invocation d'après les modifiers de la civilisation propriétaire (Trône des Vents). Voir MonsterController.UpdateAdventurerSpawns.</summary>
+    public int AttackRangeBonus { get; set; }
+    /// <summary>Bonus figé à l'invocation d'après les modifiers de la civilisation propriétaire (Sanctuaire de l'Araignée). Voir MonsterController.UpdateAdventurerSpawns.</summary>
+    public int AttackDamageBonus { get; set; }
+
+    public override int MaxHp => AdventurerMaxHpBase + AdventurerMaxHpPerLevel * Level + HpBonus;
     public override bool BlocksHarvest => false;
     public override double Armor => Level - 1;
 
@@ -33,9 +40,9 @@ public class Adventurer : MonsterFeature
     public override double HpRegenAmount => AdventurerHpRegenBase + AdventurerHpRegenPerLevel * Level;
     public override long HpRegenIntervalTicks => AdventurerHpRegenIntervalTicks;
 
-    public override int AttackRangeInHexes => 1;
+    public override int AttackRangeInHexes => 1 + AttackRangeBonus;
     public override long AttackIntervalTicks => 200L;
-    public override int AttackDamage => AdventurerAttackDamageBase + AdventurerAttackDamagePerLevel * Level;
+    public override int AttackDamage => AdventurerAttackDamageBase + AdventurerAttackDamagePerLevel * Level + AttackDamageBonus;
     public override bool AttacksOtherMonsters => true;
 
     public override GameEventType DiscoveredEventType => GameEventType.AdventurerDiscovered;

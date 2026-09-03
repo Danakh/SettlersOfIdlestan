@@ -5,11 +5,15 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
-/// Grotte aux Perles : bâtiment unique racial des Sirènes (voir RaceDefinitions). Rend +8 de
-/// défense des villes (+3 de base, +5) et génère de la Nourriture passivement. Double la vitesse
-/// de génération périodique de ressource aléatoire des Ports maritimes de niveau 3+, et élargit le
-/// tirage aux ressources intermédiaires/avancées (hors consommables). Niveau max par défaut 0 :
-/// constructible uniquement quand la race Sirènes fournit son BUILDING_MAX_LEVEL +1.
+/// Grotte aux Perles : bâtiment unique racial des Sirènes (voir RaceDefinitions). Génère de la
+/// Nourriture passivement, double la vitesse de génération périodique de ressource aléatoire des
+/// Ports maritimes de niveau 3+ et élargit le tirage aux ressources intermédiaires/avancées (hors
+/// consommables). Permet aussi de poser des Balises Maritimes sur un vertex dont les 3 hexs sont de
+/// l'Eau et/ou de l'Eau profonde (au lieu d'exiger les 3 en Eau non profonde stricte), et laisse les
+/// routes rejoindre une telle balise malgré l'Eau profonde qui l'entoure (voir
+/// MaritimeBeaconController.GetBuildableVertices et RoadController.EdgeTouchesDeepWater). Niveau
+/// max par défaut 0 : constructible uniquement quand la race Sirènes fournit son
+/// BUILDING_MAX_LEVEL +1.
 /// </summary>
 public class PearlGrotto : Building, IUniqueBuilding
 {
@@ -33,9 +37,9 @@ public class PearlGrotto : Building, IUniqueBuilding
     public IEnumerable<Modifier> GetUniqueBuildingModifiers()
     {
         if (Level <= 0) yield break;
-        yield return new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, 8);
         yield return new Modifier(ECategory.PASSIVE_RESOURCE_GENERATION, nameof(Resource.Food), EType.ADDITIVE, 5);
         yield return new Modifier(ECategory.SEAPORT_RANDOM_RESOURCE_SPEED, EType.ADDITIVE, 1.0);
         yield return new Modifier(ECategory.UNLOCK_SEAPORT_ADVANCED_RESOURCE_GENERATION, EType.ADDITIVE, 1);
+        yield return new Modifier(ECategory.MARITIME_BEACON_DEEP_WATER_PLACEMENT, EType.ADDITIVE, 1);
     }
 }

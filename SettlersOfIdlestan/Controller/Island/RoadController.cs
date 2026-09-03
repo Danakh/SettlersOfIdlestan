@@ -378,7 +378,7 @@ namespace SettlersOfIdlestan.Controller.Island
             }
             else if (!IsEdgeOnLand(edge))
             {
-                if (EdgeTouchesDeepWater(edge)) return;
+                if (EdgeTouchesDeepWater(edge, civ)) return;
                 if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES) || !IsValidMaritimeEdge(edge, civ)) return;
             }
 
@@ -510,7 +510,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 }
                 else if (!IsEdgeOnLand(edge))
                 {
-                    if (EdgeTouchesDeepWater(edge))
+                    if (EdgeTouchesDeepWater(edge, civ))
                         continue;
                     if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES)
                         || !IsValidMaritimeEdge(edge, civ))
@@ -611,7 +611,7 @@ namespace SettlersOfIdlestan.Controller.Island
             }
             else if (isMaritimePath)
             {
-                if (EdgeTouchesDeepWater(edge))
+                if (EdgeTouchesDeepWater(edge, civ))
                     throw new InvalidOperationException("Cannot build a road through deep water");
                 if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES))
                     throw new InvalidOperationException("Cannot build a road on an edge between two water hexes");
@@ -1039,16 +1039,25 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Vrai si l'un des deux hexagones de l'arête est de l'eau profonde (bordure cosmétique,
-        /// jamais traversable ni constructible — voir <see cref="TerrainTypeExtensions.IsWater"/>).
+        /// jamais traversable ni constructible — voir <see cref="TerrainTypeExtensions.IsWater"/>) —
+        /// sauf si <paramref name="civ"/> possède MARITIME_BEACON_DEEP_WATER_PLACEMENT (Grotte aux
+        /// Perles, Sirènes) et que l'arête rejoint l'un de ses vertex : la balise en Eau profonde ne
+        /// serait sinon jamais atteignable par route (voir MaritimeBeaconController.GetBuildableVertices).
         /// </summary>
-        private bool EdgeTouchesDeepWater(Edge edge)
+        private bool EdgeTouchesDeepWater(Edge edge, Civilization civ)
         {
             if (_state == null) return false;
             var mapTiles = _state.GetMapFor(edge)?.Tiles;
             if (mapTiles == null) return false;
             bool hex1IsDeepWater = mapTiles.TryGetValue(edge.Hex1, out var tile1) && tile1.TerrainType == TerrainType.DeepWater;
             bool hex2IsDeepWater = mapTiles.TryGetValue(edge.Hex2, out var tile2) && tile2.TerrainType == TerrainType.DeepWater;
-            return hex1IsDeepWater || hex2IsDeepWater;
+            if (!hex1IsDeepWater && !hex2IsDeepWater) return false;
+
+            if (civ.ModifierAggregator.HasModifier(Modifier.ECategory.MARITIME_BEACON_DEEP_WATER_PLACEMENT)
+                && edge.GetVertices().Any(v => civ.MaritimeBeacons.Any(b => b.Position.Equals(v))))
+                return false;
+
+            return true;
         }
 
         /// <summary>Les trois arêtes qui se rejoignent sur ce vertex.</summary>

@@ -6,8 +6,9 @@ namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
 /// Forge Runique : bâtiment unique racial des Nains (voir RaceDefinitions). Améliore la chance de
-/// double récolte des Forges, la chance d'or des Mines et la production des Fonderies. Niveau max
-/// par défaut 0 : constructible uniquement quand la race Naine fournit son BUILDING_MAX_LEVEL +1.
+/// double récolte des Forges, la chance d'or des Mines, la production des Fonderies et les points
+/// de vie maximum de l'Aventurier. Niveau max par défaut 0 : constructible uniquement quand la race
+/// Naine fournit son BUILDING_MAX_LEVEL +1.
 /// </summary>
 public class RunicForge : Building, IUniqueBuilding
 {
@@ -34,5 +35,6 @@ public class RunicForge : Building, IUniqueBuilding
         yield return new Modifier(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 15);
         yield return new Modifier(ECategory.MINE_GOLD_CHANCE_PERCENT, EType.ADDITIVE, 10);
         yield return new Modifier(ECategory.BUILDING_PRODUCTION, nameof(BuildingType.Smelter), EType.ADDITIVE, 1);
+        yield return new Modifier(ECategory.ADVENTURER_HP_BONUS, EType.ADDITIVE, 10);
     }
 }

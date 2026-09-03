@@ -383,7 +383,15 @@ public class MonsterFeatureController
                 var spawnHexes = city.Position.GetHexes();
                 var spawnHex = spawnHexes.FirstOrDefault(h => map != null && map.HasTile(h) && !map.GetTile(h)!.TerrainType.IsVoid(), spawnHexes[0]);
 
-                _state.AddFeature(new Adventurer(spawnHex, waypost.Level) { SpawnCityPosition = city.Position });
+                var adventurer = new Adventurer(spawnHex, waypost.Level)
+                {
+                    SpawnCityPosition = city.Position,
+                    HpBonus = civ.ModifierAggregator.ApplyModifiers(ECategory.ADVENTURER_HP_BONUS, "", 0),
+                    AttackRangeBonus = civ.ModifierAggregator.ApplyModifiers(ECategory.ADVENTURER_ATTACK_RANGE_BONUS, "", 0),
+                    AttackDamageBonus = civ.ModifierAggregator.ApplyModifiers(ECategory.ADVENTURER_ATTACK_DAMAGE_BONUS, "", 0),
+                };
+                adventurer.Hp = adventurer.MaxHp;
+                _state.AddFeature(adventurer);
             }
         }
     }

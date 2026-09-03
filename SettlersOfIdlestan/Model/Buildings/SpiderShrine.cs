@@ -11,10 +11,10 @@ namespace SettlersOfIdlestan.Model.Buildings;
 /// réduisant de 1 les dégâts de toute attaque de monstre visant les villes de la civilisation
 /// (MONSTER_DAMAGE_REDUCTION_ON_CITIES, voir MonsterController.ApplyMonsterAttack), en réduisant de
 /// 1 niveau le malus effectif de la Corruption sur la récolte (CORRUPTION_LEVEL_REDUCTION, comme la
-/// recherche Résistance à la Corruption) et en accélérant de 25% la production de Nourriture des
-/// Fermes fongiques sur les Cavernes aux Champignons. Souterrain uniquement, comme la Guilde des
-/// Aventuriers. Niveau max par défaut 0 : constructible uniquement quand la race Elfes noirs fournit
-/// son BUILDING_MAX_LEVEL +1.
+/// recherche Résistance à la Corruption), en accélérant de 25% la production de Nourriture des
+/// Fermes fongiques sur les Cavernes aux Champignons et en augmentant de 1 les dégâts d'attaque de
+/// l'Aventurier. Souterrain uniquement, comme la Guilde des Aventuriers. Niveau max par défaut 0 :
+/// constructible uniquement quand la race Elfes noirs fournit son BUILDING_MAX_LEVEL +1.
 /// </summary>
 public class SpiderShrine : Building, IUniqueBuilding
 {
@@ -46,5 +46,6 @@ public class SpiderShrine : Building, IUniqueBuilding
         yield return new Modifier(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, EType.ADDITIVE, 1);
         yield return new Modifier(ECategory.CORRUPTION_LEVEL_REDUCTION, EType.ADDITIVE, 1);
         yield return new Modifier(ECategory.HARVEST_SPEED, nameof(BuildingType.MushroomFarm), EType.ADDITIVE, 0.25);
+        yield return new Modifier(ECategory.ADVENTURER_ATTACK_DAMAGE_BONUS, EType.ADDITIVE, 1);
     }
 }

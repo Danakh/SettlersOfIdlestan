@@ -275,6 +275,14 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             MONSTER_DAMAGE_REDUCTION_ON_CITIES,
             /// <summary>Fraction bonus appliquée aux deux sens du commerce au Marché : réduit le coût en or à l'achat et augmente l'or reçu à la vente. Base = 0.0 ; 0.15 = -15% au coût d'achat, +15% au produit de la vente (voir TradeController.GetBuyCost / GetSellGoldYield). SubCategory unused. Accordé par le Trône des Vents (Garudas).</summary>
             TRADE_RATIO_BONUS,
+            /// <summary>Bonus additif de points de vie maximum de l'Aventurier, appliqué à sa génération (voir Adventurer.MaxHp et MonsterController.UpdateAdventurerSpawns). Base = 0. SubCategory unused. Accordé par la Forge Runique (Nains).</summary>
+            ADVENTURER_HP_BONUS,
+            /// <summary>Bonus additif de portée d'attaque (en hexs) de l'Aventurier, appliqué à sa génération (voir Adventurer.AttackRangeInHexes). Base = 0. SubCategory unused. Accordé par le Trône des Vents (Garudas).</summary>
+            ADVENTURER_ATTACK_RANGE_BONUS,
+            /// <summary>Bonus additif de dégâts d'attaque de l'Aventurier, appliqué à sa génération (voir Adventurer.AttackDamage). Base = 0. SubCategory unused. Accordé par le Sanctuaire de l'Araignée (Elfes noirs).</summary>
+            ADVENTURER_ATTACK_DAMAGE_BONUS,
+            /// <summary>Flags que les Balises Maritimes peuvent être posées sur un vertex dont les 3 hexs sont de l'Eau et/ou de l'Eau profonde (au lieu d'exiger les 3 en Eau non profonde stricte, voir MaritimeBeaconController.GetBuildableVertices), et que les arêtes de route touchant l'Eau profonde restent constructibles si elles rejoignent une Balise Maritime de la civilisation (voir RoadController.EdgeTouchesDeepWater). SubCategory unused. Accordé par la Grotte aux Perles (Sirènes).</summary>
+            MARITIME_BEACON_DEEP_WATER_PLACEMENT,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]
