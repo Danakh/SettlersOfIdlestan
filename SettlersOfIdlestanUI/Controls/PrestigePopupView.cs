@@ -333,6 +333,10 @@ public sealed class PrestigePopupView : UserControl
             Content = content,
             [!ToolTip.TipProperty] = new Binding(nameof(PrestigeActionViewModel.Tooltip)),
             [!IsEnabledProperty] = new Binding(nameof(PrestigeActionViewModel.IsEnabled)),
+            // Le prestige corrompu grise ce bouton tant qu'il manque une etape (Spire, points...) :
+            // l'infobulle qui explique pourquoi doit donc rester visible desactive, ce qu'Avalonia
+            // ne fait pas par defaut.
+            [ToolTip.ShowOnDisabledProperty] = true,
         };
 
         // Le prestige corrompu se distingue du normal, et l'indisponibilite des deux.
