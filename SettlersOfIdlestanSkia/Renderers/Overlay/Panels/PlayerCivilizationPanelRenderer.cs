@@ -103,11 +103,12 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private bool RelocationVisible => IsRelocationVisible();
     private bool RelocationEnabled => RelocationVisible && CanAffordRelocation();
 
-    // Marche de Dieu agit en surface et en Inframonde (voir AscensionController.ApplyWalkOfGod),
-    // contrairement à Présence de Dieu ci-dessous restée réservée à la surface.
+    // Marche de Dieu agit sur toutes les couches (voir AscensionController.WalkOfGodLayers /
+    // ApplyWalkOfGod), contrairement à Présence de Dieu ci-dessous restée réservée à la surface.
     private bool WalkOfGodVisible => Ascension.IsPowerUnlocked(AscensionPowerId.WalkOfGod);
     private bool WalkOfGodEnabled => WalkOfGodVisible
-                                  && (CurrentLayer == IslandMap.SurfaceLayer || CurrentLayer == LayerState.UnderworldZ)
+                                  && (CurrentLayer == IslandMap.SurfaceLayer || CurrentLayer == LayerState.UnderworldZ
+                                      || CurrentLayer == LayerState.AbyssZ || CurrentLayer == LayerState.PandemoniumZ)
                                   && Ascension.GetWalkOfGodTargetHexes().Count > 0
                                   && Ascension.CanUseWalkOfGod();
 

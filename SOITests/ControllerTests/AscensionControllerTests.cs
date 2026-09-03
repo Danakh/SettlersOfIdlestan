@@ -885,25 +885,46 @@ public class AscensionControllerTests
         Assert.False(ascension.ApplyWalkOfGod(hex));
     }
 
-    [Fact]
-    public void ApplyWalkOfGod_OnAbyssOrPandemoniumHex_IsRejectedEvenWithSufficientDominion()
+    [Theory]
+    [InlineData(LayerState.AbyssZ)]
+    [InlineData(LayerState.PandemoniumZ)]
+    public void ApplyWalkOfGod_OnAbyssOrPandemoniumHex_WithSufficientDominion_Succeeds(int z)
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockWalkOfGod(ascension);
 
-        foreach (int z in new[] { LayerState.AbyssZ, LayerState.PandemoniumZ })
-        {
-            var layer = LayerState.EstablishOupostInNewAutoExpandLayer(state.PlayerCivilization, z, surroundWithVoid: true);
-            state.AddLayer(z, layer);
+        var layer = LayerState.EstablishOupostInNewAutoExpandLayer(state.PlayerCivilization, z, surroundWithVoid: true);
+        state.AddLayer(z, layer);
 
-            var hex = new HexCoord(0, 0, z);
-            state.AddFeature(new Dominion(hex, level: 5));
+        var hex = new HexCoord(0, 0, z);
+        state.AddFeature(new Dominion(hex, level: 5));
 
-            Assert.False(ascension.ApplyWalkOfGod(hex));
-            Assert.Equal(TerrainType.Mountain, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
-            Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
-            Assert.Equal(0, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
-        }
+        Assert.Contains(hex, ascension.GetWalkOfGodTargetHexes());
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+        Assert.NotEqual(TerrainType.Mountain, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints); // Première marche : gratuite.
+    }
+
+    /// <summary>Le Void, quel que soit le calque, reste hors de portée même avec un Dominion suffisant — voir aussi ApplyWalkOfGod_OnVoidHexWithDominion_IsRejected pour le Void de surface.</summary>
+    [Theory]
+    [InlineData(LayerState.AbyssZ)]
+    [InlineData(LayerState.PandemoniumZ)]
+    public void ApplyWalkOfGod_OnAbyssOrPandemoniumVoidHexWithDominion_IsRejected(int z)
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockWalkOfGod(ascension);
+
+        var layer = LayerState.EstablishOupostInNewAutoExpandLayer(state.PlayerCivilization, z, surroundWithVoid: true);
+        state.AddLayer(z, layer);
+
+        // (1, -1, z) fait partie de l'anneau de Void entourant le triangle (0,0)/(1,0)/(0,1).
+        var voidHex = new HexCoord(1, -1, z);
+        Assert.Equal(TerrainType.Void, state.GetMapFor(voidHex)!.GetTile(voidHex)!.TerrainType);
+        state.AddFeature(new Dominion(voidHex, level: 5));
+
+        Assert.DoesNotContain(voidHex, ascension.GetWalkOfGodTargetHexes());
+        Assert.False(ascension.ApplyWalkOfGod(voidHex));
+        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
     }
 
     /// <summary>Crée une couche Inframonde (triangle Montagne par défaut) et l'attache à l'état de test.</summary>

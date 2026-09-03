@@ -105,8 +105,24 @@ public class AscensionController : IModifierProvider
         TerrainType.MithrilVein, TerrainType.CrystalCave
     };
 
-    /// <summary>Couches ciblables par Marche de Dieu (voir <see cref="GetWalkOfGodTargetHexes"/>) : surface et Inframonde, jamais l'Abysse ni le Pandémonium.</summary>
-    private static readonly int[] WalkOfGodLayers = { IslandMap.SurfaceLayer, LayerState.UnderworldZ };
+    /// <summary>
+    /// Terrains pouvant pousser dans l'Abysse et le Pandémonium (voir <see cref="ApplyWalkOfGod"/>) :
+    /// les mêmes types que ceux générés naturellement par une île de l'Abysse (voir
+    /// AbyssIslandGenerator.TerrainPool) ou par la poche de terre du Pandémonium (voir
+    /// PandemoniumGenerator.LandTerrainPool) — les deux couches partagent le même ensemble de 4
+    /// types, d'où un pool unique. Eau exclue — comme pour les deux autres pools, le tirage aléatoire
+    /// ne fait jamais pousser d'eau ; c'est le terrain de prédilection qui s'en charge pour les
+    /// Sirènes (voir <see cref="ApplyWalkOfGod"/>). Pas de Désert : ni l'Abysse ni le Pandémonium n'en
+    /// génèrent.
+    /// </summary>
+    private static readonly TerrainType[] AbyssRandomTerrainPool =
+    {
+        TerrainType.Forest, TerrainType.Hill, TerrainType.Mountain, TerrainType.Plain
+    };
+
+    /// <summary>Couches ciblables par Marche de Dieu (voir <see cref="GetWalkOfGodTargetHexes"/>) : surface, Inframonde, Abysse et Pandémonium.</summary>
+    private static readonly int[] WalkOfGodLayers =
+        { IslandMap.SurfaceLayer, LayerState.UnderworldZ, LayerState.AbyssZ, LayerState.PandemoniumZ };
 
     private WorldState? _state;
     private GameClock? _clock;
@@ -820,16 +836,17 @@ public class AscensionController : IModifierProvider
     public const int WalkOfGodMinDominionLevel = 2;
 
     /// <summary>
-    /// Hexs ciblables par Marche de Dieu : les hexs de la surface et de l'Inframonde (Eau incluse,
-    /// voir <see cref="WalkOfGodLayers"/>) portant un Dominion de niveau
-    /// <see cref="WalkOfGodMinDominionLevel"/> ou plus — Dieu ne marche que là où son emprise est
-    /// déjà établie — et actuellement découverts par le joueur (voir <see cref="IsVisibleToPlayer"/>) :
+    /// Hexs ciblables par Marche de Dieu : les hexs de toutes les couches (surface, Inframonde,
+    /// Abysse, Pandémonium — Eau incluse, voir <see cref="WalkOfGodLayers"/>) portant un Dominion de
+    /// niveau <see cref="WalkOfGodMinDominionLevel"/> ou plus — Dieu ne marche que là où son emprise
+    /// est déjà établie — et actuellement découverts par le joueur (voir <see cref="IsVisibleToPlayer"/>) :
     /// comme Poing de Dieu, la marche reste bornée au brouillard de guerre. L'Eau Profonde et le Void
     /// sont exclus quel que soit le Dominion qui s'y trouve : la première ne mène nulle part de
     /// constructible une fois terraformée, le second n'est qu'un remplissage de bordure de carte sans
-    /// terrain réel dessous. L'Abysse et le Pandémonium restent hors de portée (voir
-    /// <see cref="ApplyWalkOfGod"/>). Le Dominion pouvant s'étendre sur l'eau (peu profonde), c'est
-    /// ainsi qu'on terraforme la mer : y faire croître le Dominion, puis y marcher.
+    /// terrain réel dessous — filtre décisif dans l'Abysse et le Pandémonium, où le Void borde toute
+    /// île générée (voir AbyssIslandGenerator, PandemoniumGenerator). Le Dominion pouvant s'étendre
+    /// sur l'eau (peu profonde), c'est ainsi qu'on terraforme la mer : y faire croître le Dominion,
+    /// puis y marcher.
     /// </summary>
     public IReadOnlyList<HexCoord> GetWalkOfGodTargetHexes()
     {
@@ -924,7 +941,11 @@ public class AscensionController : IModifierProvider
     /// terrain de prédilection est traduit via <see cref="TerrainTypeExtensions.UnderworldEquivalent"/>
     /// — Forêt devient Caverne aux champignons pour un Elfe ; une race dont le terrain de
     /// prédilection n'a pas d'équivalent souterrain (Eau des Sirènes) retombe sur un tirage aléatoire,
-    /// comme une race sans contrainte.</para>
+    /// comme une race sans contrainte. Dans l'Abysse et le Pandémonium, le pool change aussi
+    /// (<see cref="AbyssRandomTerrainPool"/>, partagé par les deux couches) mais le terrain de
+    /// prédilection n'a besoin d'aucune traduction : les deux génèrent les mêmes types de terrain que
+    /// la surface (Forêt, Montagne, Eau comprises — voir AbyssIslandGenerator.TerrainPool,
+    /// PandemoniumGenerator.LandTerrainPool), il est donc utilisé tel quel.</para>
     ///
     /// <para>Si l'hex ciblé était de l'eau, les hexs voisins qui n'existaient pas encore sont créés en
     /// tant qu'eau.</para>
@@ -933,11 +954,13 @@ public class AscensionController : IModifierProvider
     {
         if (_state == null || _prng == null || !CanUseWalkOfGod()) return false;
 
-        // Marche de Dieu ne cible que la surface et l'Inframonde (voir GetWalkOfGodTargetHexes) : ce
+        // Marche de Dieu cible toutes les couches (voir WalkOfGodLayers/GetWalkOfGodTargetHexes) : ce
         // garde-fou ne dépend pas seulement du filtrage de l'UI, il rend l'invariant vrai même pour un
-        // appelant direct (test, futur code) qui passerait un hex d'Abysse/Pandémonium.
+        // appelant direct (test, futur code) qui passerait un hex hors de WalkOfGodLayers.
+        if (!WalkOfGodLayers.Contains(hex.Z)) return false;
+
         bool isUnderworld = hex.Z == LayerState.UnderworldZ;
-        if (hex.Z != IslandMap.SurfaceLayer && !isUnderworld) return false;
+        bool isAbyssOrPandemonium = hex.Z == LayerState.AbyssZ || hex.Z == LayerState.PandemoniumZ;
 
         var map = _state.GetMapFor(hex);
         var tile = map?.GetTile(hex);
@@ -958,7 +981,7 @@ public class AscensionController : IModifierProvider
 
         bool wasWater = tile.TerrainType == TerrainType.Water;
 
-        var pool = isUnderworld ? UnderworldRandomTerrainPool : RandomTerrainPool;
+        var pool = isUnderworld ? UnderworldRandomTerrainPool : isAbyssOrPandemonium ? AbyssRandomTerrainPool : RandomTerrainPool;
         var favouredTerrain = isUnderworld ? FavouredTerrain?.UnderworldEquivalent() : FavouredTerrain;
 
         TerrainType newType;
