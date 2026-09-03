@@ -1045,7 +1045,7 @@
   "tech_terre_consacree_name": "Consecrated Ground",
   "tech_terre_consacree_desc": "The blessed soil resists the miasma: 50% chance that Dominion on the hexes of a city with a Temple does not lose a level to Corruption.",
   "tech_bastion_consacre_name": "Consecrated Bastion",
-  "tech_bastion_consacre_desc": "Blessed walls hold fast: each Temple adds a fixed defense bonus to its city based on its level (+1/+3/+6/+10).",
+  "tech_bastion_consacre_desc": "Blessed walls hold fast: each Temple adds a fixed defense bonus to its city based on its level (+1/+3/+6/+10), and the city's defense regeneration is boosted by 1% per point of Dominion on its surrounding hexes.",
   "tech_outils_en_mithril_name": "Mithril Tools",
   "tech_outils_en_mithril_desc": "Legendary tools: +25% global harvest speed.",
   "tech_prospection_avancee_name": "Natural Fortification",

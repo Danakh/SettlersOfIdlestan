@@ -829,14 +829,21 @@ public static class TechnologyDefinitions
             requiresDominionUnlock: true),
 
         // Chaque Temple ajoute un bonus fixe de défense à sa ville selon son niveau (+1/3/6/10,
-        // voir Temple.GetDefenseBonusForLevel et MilitaryController.GetDefenseScore).
+        // voir Temple.GetDefenseBonusForLevel et MilitaryController.GetDefenseScore). Accélère aussi
+        // la régénération de défense de 1% par point de Dominion sur les 3 hexs de la ville — même
+        // catégorie que le vertex de prestige Foi Protectrice (DOMINION_DEFENSE_REGEN_PER_LEVEL),
+        // les deux sources s'additionnent.
         // Baissée de 2 tiers (coût / 16), puis d'un tier supplémentaire (coût / 4) avec le reste de la
         // branche WarHerald.
         new(TechnologyId.BastionConsacre,
             "tech_bastion_consacre_name", "tech_bastion_consacre_desc",
             cost: 421875000,
             prerequisites: new[] { TechnologyId.LegionEternelle },
-            modifiers: new Modifier[] { new(ECategory.TEMPLE_DEFENSE_BONUS, EType.ADDITIVE, 1) },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.TEMPLE_DEFENSE_BONUS, EType.ADDITIVE, 1),
+                new(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, EType.ADDITIVE, 0.01),
+            },
             tier: 11, line: 8,
             requiresDominionUnlock: true),
 
