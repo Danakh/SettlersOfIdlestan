@@ -118,6 +118,7 @@ public class AscensionController : IModifierProvider
     private MaritimeBeaconController? _maritimeBeaconController;
     private WarFleetController? _warFleetController;
     private MobileCampController? _mobileCampController;
+    private RoadController? _roadController;
 
     public event Action? OnModifiersChanged;
 
@@ -149,9 +150,17 @@ public class AscensionController : IModifierProvider
     /// 3 hexs d'eau par le terrain transformé (voir <see cref="ApplyWalkOfGod"/>). Omis, la marche
     /// transforme le terrain sans jamais détruire de camp.
     /// </param>
+    /// <param name="roadController">
+    /// Optionnel : requis pour que Marche de Dieu invalide le cache des routes constructibles du layer
+    /// transformé (voir <see cref="ApplyWalkOfGod"/>) — le terrain change quelles arêtes sont sur
+    /// terre/mer/Vide sans que le nombre de villes ou de balises de la civilisation ne bouge, seule clé
+    /// dont dépend le cache de <see cref="RoadController"/> pour décider d'un HIT. Omis, la marche
+    /// transforme le terrain sans jamais rafraîchir les routes constructibles affichées.
+    /// </param>
     public void Initialize(WorldState? state, GameClock? clock, GamePRNG prng, HarvestController harvestController, GodState godState,
         CityBuilderController? cityBuilderController = null, MaritimeBeaconController? maritimeBeaconController = null,
-        WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null)
+        WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null,
+        RoadController? roadController = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -171,6 +180,7 @@ public class AscensionController : IModifierProvider
         _maritimeBeaconController = maritimeBeaconController;
         _warFleetController = warFleetController;
         _mobileCampController = mobileCampController;
+        _roadController = roadController;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -964,6 +974,12 @@ public class AscensionController : IModifierProvider
 
         tile.TerrainType = newType;
         _state.NotifyTerrainChanged();
+
+        // Le nombre de villes/balises de la civilisation ne bouge pas, or c'est la seule clé du cache
+        // de routes constructibles (voir RoadController) : sans cette invalidation explicite, une
+        // arête devenue constructible/inconstructible par le changement de terrain (terre <-> mer,
+        // Vide inclus) resterait figée dans son état d'avant la marche.
+        _roadController?.InvalidateBuildableRoadsCacheForLayer(hex.Z);
 
         if (wasWater)
         {

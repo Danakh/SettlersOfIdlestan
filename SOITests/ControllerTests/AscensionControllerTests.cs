@@ -668,6 +668,56 @@ public class AscensionControllerTests
     }
 
     /// <summary>
+    /// Marcher sur l'un des deux hexs d'eau d'un vertex de ville rend constructible l'arête maritime
+    /// restante (bloquée jusque-là faute d'UNLOCK_MARITIME_ROUTES, une fois l'un des deux hexs d'eau
+    /// devenu terrestre) sans que le nombre de villes/balises de la civilisation — seule clé du cache
+    /// de <see cref="RoadController"/> — ne bouge : sans le câblage de RoadController dans
+    /// AscensionController.Initialize, le cache resterait figé sur l'état d'avant la marche.
+    /// </summary>
+    [Fact]
+    public void ApplyWalkOfGod_InvalidatesBuildableRoadsCacheForAffectedLayer()
+    {
+        var h1 = new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var h2 = new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var h3 = new HexCoord(0, 1, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+
+        var map = new SettlersOfIdlestan.Model.IslandMap.IslandMap(new[]
+        {
+            new SettlersOfIdlestan.Model.IslandMap.HexTile(h1, TerrainType.Plain),
+            new SettlersOfIdlestan.Model.IslandMap.HexTile(h2, TerrainType.Water),
+            new SettlersOfIdlestan.Model.IslandMap.HexTile(h3, TerrainType.Water),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new System.Collections.Generic.List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        var vertex = Vertex.Create(h1, h2, h3);
+        new SettlersOfIdlestan.Controller.Generator.IslandMapGenerator(new GamePRNG(1)).PopulatePlayerCivilization(map, civ, vertex);
+        // Marche de Dieu ne cible que le brouillard de guerre levé : une route touchant le vertex
+        // suffit à révéler ses 3 hexs (voir VisibleIslandMap).
+        civ.AddRoad(new Road(Edge.Create(h1, h2)) { CivilizationIndex = 0 });
+        state.Visibility.Recalculate();
+
+        var roadController = new RoadController(state);
+        var waterEdge = Edge.Create(h2, h3);
+        Assert.DoesNotContain(roadController.GetBuildableRoads(0), r => r.Position.Equals(waterEdge));
+
+        var godState = new GodState { GodPoints = 100 };
+        godState.PrestigeState = new PrestigeState(state) { PrestigePoints = 10 };
+        godState.AscensionState.SelectedRace = RaceId.Human;
+
+        var ascension = new AscensionController();
+        ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), godState, roadController: roadController);
+        UnlockWalkOfGod(ascension);
+        SeedDominion(state, level: 5, q: h2.Q, r: h2.R);
+
+        Assert.True(ascension.ApplyWalkOfGod(h2));
+        Assert.NotEqual(TerrainType.Water, state.GetMapFor(h2)!.GetTile(h2)!.TerrainType);
+
+        Assert.Contains(roadController.GetBuildableRoads(0), r => r.Position.Equals(waterEdge));
+    }
+
+    /// <summary>
     /// Île à 3 hexs de terre (vertex unique) avec MobileCampController câblé sur AscensionController :
     /// c'est lui qui détruit le camp englouti sous 3 hexs d'eau par le terrain transformé (voir
     /// AscensionController.ApplyWalkOfGod / MobileCampController.DestroyCampsInvalidatedByTerrain).
