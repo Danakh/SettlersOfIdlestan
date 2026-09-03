@@ -217,7 +217,7 @@ public sealed class AutomationRenderer : IDisposable
         };
     }
 
-    private (List<SectionModel> Left, List<SectionModel> Right) BuildColumns(Civilization civ, WorldState worldState)
+    private (List<SectionModel> Left, List<SectionModel> Right) BuildColumns(Civilization civ, WorldState worldState, bool divineMagicActive)
     {
         var settings = worldState.AutomationSettings;
         var unlocks = ComputeStructuralUnlocks(civ);
@@ -261,8 +261,15 @@ public sealed class AutomationRenderer : IDisposable
             Row(PinKeyMilVendetta, "automation_military_vendetta",
                 unlocks[PinKeyMilVendetta], settings.MilitaryVendettaAutomationEnabled),
             Row(PinKeyMonumentInvestment, "automation_monument_investment", unlocks[PinKeyMonumentInvestment], settings.MonumentInvestmentAutomationEnabled),
-            Row(PinKeyAbundanceAutoCast, "automation_abundance_autocast", unlocks[PinKeyAbundanceAutoCast], settings.AbundanceAutoCastEnabled),
         };
+
+        // Sans le pouvoir divin Magie Divine, les sorts ne peuvent accumuler aucune charge
+        // (AscensionState.IsDivineMagicActive / MagicController.GetSpellMaxCharges retombe à 0) :
+        // l'auto-cast n'a alors aucune chance de se déclencher, donc la ligne reste entièrement
+        // masquée plutôt que verrouillée pour ne pas laisser croire qu'un réglage sans effet fait
+        // quelque chose.
+        if (divineMagicActive)
+            behaviors.Add(Row(PinKeyAbundanceAutoCast, "automation_abundance_autocast", unlocks[PinKeyAbundanceAutoCast], settings.AbundanceAutoCastEnabled));
 
         var right = new List<SectionModel> { new("automation_header_behaviors", behaviors) };
 
@@ -357,7 +364,7 @@ public sealed class AutomationRenderer : IDisposable
         if (civ == null || worldState == null || gameState == null) return AutomationSnapshot.Hidden;
 
         var pinned = gameState.Settings.PinnedCivPanelKeys;
-        var (left, right) = BuildColumns(civ, worldState);
+        var (left, right) = BuildColumns(civ, worldState, gameState.GodState.AscensionState.IsDivineMagicActive);
         bool presetsUnlocked = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AutomationPreset);
 
         IReadOnlyList<AutomationSectionSnapshot> Project(List<SectionModel> sections) =>
