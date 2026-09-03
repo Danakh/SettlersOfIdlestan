@@ -59,6 +59,10 @@ public sealed class TabBarRenderer : IDisposable
 
     public int ActiveTab => _activeTab;
 
+    /// True once the Underworld layer has tiles (Mine Profonde creusée / Percée de Surface) — voir
+    /// OverlayRenderer.UpdateUnderworldUnlockCameraReset, qui s'en sert pour détecter le déblocage.
+    public bool HasUnderworldTab => _hasUnderworldTab;
+
     public TabBarRenderer(
         LocalizationService localization,
         GameControllerService gameControllerService,

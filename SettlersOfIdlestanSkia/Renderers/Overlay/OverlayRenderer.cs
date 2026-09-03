@@ -51,6 +51,14 @@ public sealed class OverlayRenderer : IGameRenderer
     /// </summary>
     private readonly Dictionary<int, (SKPoint Center, float Zoom)> _layerCameraMemory = new();
 
+    /// <summary>
+    /// Dernier état connu de l'accessibilité de l'Inframonde (voir TabBarRenderer.HasUnderworldTab),
+    /// pour détecter la bascule inaccessible → accessible dans <see cref="UpdateUnderworldUnlockCameraReset"/>.
+    /// Nullable : la toute première frame ne doit jamais être prise pour un déblocage, y compris au
+    /// chargement d'une partie où l'Inframonde est déjà accessible.
+    /// </summary>
+    private bool? _wasUnderworldAccessible;
+
     public OverlayRenderer(
         InputHandlingService inputService,
         GameControllerService gameControllerService,
@@ -142,6 +150,7 @@ public sealed class OverlayRenderer : IGameRenderer
             _uiLayout.SetMenuPosition(mgs.Settings.ForceMenuPosition);
 
         _tabBar.Update(context);
+        UpdateUnderworldUnlockCameraReset();
 
         int activeTab = _tabBar.ActiveTab;
         _researchRenderer.IsActive = activeTab == TabBarRenderer.TabResearch;
@@ -511,6 +520,25 @@ public sealed class OverlayRenderer : IGameRenderer
         {
             CenterCameraOnLayerDefault(targetLayer.Value);
         }
+    }
+
+    /// <summary>
+    /// Détecte la bascule Inframonde inaccessible → accessible (creusement de la Mine Profonde, ou
+    /// re-creusement après une perte totale — voir DeepestMineController.TryInitializeUnderworld /
+    /// ResetUnderworldAfterLastCityDestroyed) et invalide la position caméra mémorisée pour ce
+    /// calque (voir _layerCameraMemory). Sans quoi, après une perte totale suivie d'un
+    /// re-creusement, la prochaine visite de l'onglet retrouverait l'ancienne position mémorisée
+    /// (ville disparue, nouvel avant-poste ailleurs) plutôt que de se recentrer sur le nouvel
+    /// avant-poste (voir CenterCameraOnLayerDefault). Ne doit se déclencher qu'une fois, au moment
+    /// précis du déblocage — jamais au chargement d'une partie où l'Inframonde est déjà accessible,
+    /// d'où le nullable <see cref="_wasUnderworldAccessible"/>.
+    /// </summary>
+    private void UpdateUnderworldUnlockCameraReset()
+    {
+        bool isAccessible = _tabBar.HasUnderworldTab;
+        if (_wasUnderworldAccessible == false && isAccessible)
+            _layerCameraMemory.Remove(LayerState.UnderworldZ);
+        _wasUnderworldAccessible = isAccessible;
     }
 
     /// <summary>
