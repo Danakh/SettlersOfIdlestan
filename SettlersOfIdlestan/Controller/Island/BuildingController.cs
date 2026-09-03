@@ -481,10 +481,11 @@ namespace SettlersOfIdlestan.Controller.Island
                     result.Add(entry);
             }
 
-            // sort the result by available level
-            result.Sort((a, b) => a.AvailableAtLevel.CompareTo(b.AvailableAtLevel));
-
-            return result;
+            // Tri par niveau requis, stable : à niveau égal, l'ordre de _allBuildingTypes (déclaration
+            // de l'enum) est conservé. List<T>.Sort ne l'est pas (introsort) et mélangeait les
+            // bâtiments à niveau égal d'un appel à l'autre, faisant bouger le panneau de ville sans
+            // raison apparente.
+            return result.OrderBy(b => b.AvailableAtLevel).ToList();
         }
 
         /// <summary>
