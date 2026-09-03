@@ -105,6 +105,14 @@ public sealed class TabBarRenderer : IDisposable
         if (!_hasAbyssTab      && _activeTab == TabAbyss)      _activeTab = TabIsland;
         if (!_hasPandemoniumTab && _activeTab == TabPandemonium) _activeTab = TabIsland;
 
+        // Ascension en attente de choix de race (voir AscensionController.IsAscensionPending) : ce
+        // choix vit désormais dans l'onglet Ascension (onglet interne Races, voir
+        // AscensionRenderer.DrawRacesTab) — l'onglet Île n'a donc plus rien à montrer tant qu'aucune
+        // île n'existe (voir RequestAscension, qui la détruit avant même le choix de race). Rejoint
+        // les repli ci-dessus plutôt que d'exclure TabIsland de _activeTabs : celui-ci reste le repli
+        // par défaut de tous les autres onglets, y compris pendant cette attente.
+        if (ascensionPending && _activeTab == TabIsland) _activeTab = TabAscension;
+
         _activeTabs.Clear();
         _activeTabs.Add((TabIsland, default));
         if (_hasUnderworldTab) _activeTabs.Add((TabUnderworld, default));

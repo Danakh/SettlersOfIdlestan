@@ -156,14 +156,9 @@ public sealed class OverlayRenderer : IGameRenderer
 
         // Les onglets encore dessinés en Skia sont ceux dont le contenu est une vue canvas :
         // graphe de recherche, carte de prestige, ascension, historique. Tous les autres sont
-        // des contrôles Avalonia posés au-dessus du canevas. L'onglet Île y ajoute un cas
-        // conditionnel : tant qu'une Ascension demandée attend son choix de race (voir
-        // AscensionController.IsAscensionPending), la page de choix remplace la carte.
+        // des contrôles Avalonia posés au-dessus du canevas.
         switch (activeTab)
         {
-            case TabBarRenderer.TabIsland when IsAscensionPending:
-                _ascensionRenderer.RenderPendingRaceChoicePage(canvas, context);
-                break;
             case TabBarRenderer.TabResearch:
                 _researchRenderer.Render(canvas, context);
                 break;
@@ -180,9 +175,11 @@ public sealed class OverlayRenderer : IGameRenderer
     }
 
     /// <summary>Vrai entre une demande d'Ascension et le choix de race qui la conclut (voir
-    /// AscensionController.IsAscensionPending) : l'onglet Île affiche alors le choix de race plutôt
-    /// que la carte (voir RenderPendingRaceChoicePage), qui ne compte donc plus comme un onglet
-    /// carte (IsMapViewTab).</summary>
+    /// AscensionController.IsAscensionPending) : le choix se fait sur l'onglet Races de l'onglet
+    /// Ascension (voir AscensionRenderer.DrawRacesTab) — TabBarRenderer bascule d'ailleurs
+    /// automatiquement sur cet onglet tant que l'attente dure, l'île n'existant plus pour cette
+    /// même raison (voir RequestAscension). L'onglet Île ne compte donc plus comme un onglet carte
+    /// (IsMapViewTab) le temps de cette attente, en filet de sécurité si jamais il redevenait actif.</summary>
     private bool IsAscensionPending => _gameControllerService.MainGameController.AscensionController.IsAscensionPending;
 
     /// <summary>
@@ -474,7 +471,8 @@ public sealed class OverlayRenderer : IGameRenderer
 
     /// True for the tabs that show the hex map (Island / Underworld / Abyss / Pandemonium) rather than a full-screen panel.
     /// L'onglet Île n'y compte plus tant qu'une Ascension demandée attend son choix de race (voir
-    /// IsAscensionPending) : la carte cède alors la place à RenderPendingRaceChoicePage.
+    /// IsAscensionPending) : il n'y a alors plus d'île à afficher (voir RequestAscension), même si
+    /// TabBarRenderer ne le laisse normalement jamais actif le temps de cette attente.
     private bool IsMapViewTab(int tabId) =>
         tabId is TabBarRenderer.TabUnderworld or TabBarRenderer.TabAbyss or TabBarRenderer.TabPandemonium
         || (tabId == TabBarRenderer.TabIsland && !IsAscensionPending);
@@ -579,7 +577,6 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerMoved(e.Position);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerMoved(e.Position);
-        if (activeTab == TabBarRenderer.TabIsland && IsAscensionPending) _ascensionRenderer.HandlePendingRaceChoicePointerMoved(e.Position);
     }
 
     private void HandlePointerPressed(object? sender, PointerEventArgs e)
@@ -591,7 +588,6 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerPressed(e.Position);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerPressed(e.Position);
-        if (activeTab == TabBarRenderer.TabIsland && IsAscensionPending) _ascensionRenderer.HandlePendingRaceChoicePointerPressed(e.Position);
     }
 
     private void DeselectCityAndMonument()
@@ -668,7 +664,6 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandlePointerReleased(e.Position, isClick);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandlePointerReleased(e.Position, isClick);
-        if (activeTab == TabBarRenderer.TabIsland && IsAscensionPending) _ascensionRenderer.HandlePendingRaceChoicePointerReleased();
     }
 
     private void HandleZoomChanged(object? sender, ZoomEventArgs e)
@@ -678,7 +673,6 @@ public sealed class OverlayRenderer : IGameRenderer
         int activeTab = _tabBar.ActiveTab;
         if (activeTab == TabBarRenderer.TabPrestige)  _prestigeMapRenderer.HandleZoom(e);
         if (activeTab == TabBarRenderer.TabAscension) _ascensionRenderer.HandleZoom(e);
-        if (activeTab == TabBarRenderer.TabIsland && IsAscensionPending) _ascensionRenderer.HandlePendingRaceChoiceZoom(e);
     }
 
     /// Les deux onglets concernés sont des cartes hexagonales : chacune décide elle-même si le

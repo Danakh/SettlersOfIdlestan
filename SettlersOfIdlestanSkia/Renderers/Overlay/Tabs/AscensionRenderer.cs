@@ -18,7 +18,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 /// <summary>
 /// Écran Ascension : un bouton d'Ascension (voir <see cref="AscensionController.RequestAscension"/>)
 /// convertit tout de suite l'essence divine accumulée en points divins, puis laisse le choix de la
-/// race du prochain cycle en attente — voir RenderPendingRaceChoicePage, affichée sur l'onglet Île,
+/// race du prochain cycle en attente — voir DrawRacesTab, premier onglet interne de cette même page,
 /// et <see cref="AscensionController.ConfirmAscensionRace"/>, qui efface la progression de la partie
 /// en cours une fois la race choisie. Tant qu'aucune Ascension n'a jamais été effectuée
 /// (GodState.TotalGodPointsEarned == 0), les pouvoirs restent invisibles. Une fois débloqués, ils
@@ -39,19 +39,19 @@ public sealed class AscensionRenderer : IDisposable
     private const float AscendButtonWidth  = 220f;
     private const float AscendButtonHeight = 34f;
     private const float InnerTabHeight     = 28f;
-    private const float InnerTabWidth      = 160f;
+    private const float InnerTabWidth      = 150f;
     private const int   BuildingCardColumns = 4;
     private const float BuildingCardHeight  = 64f;
     // Cartes de jalon (voir DrawMilestonesTab) : une par ligne (contrairement aux grilles ci-dessus),
     // assez hautes pour une description sur 2 lignes — seulement 3 jalons aujourd'hui, jamais besoin
     // de défilement dédié.
     private const float MilestoneCardHeight = 80f;
-    // Cartes de race (voir RenderPendingRaceChoicePage) : nom + un court texte d'ambiance de 2-3
-    // lignes (RaceDefinition.DescKey) ou, verrouillée, nom + jusqu'à 3 prérequis (voir
+    // Cartes de race (voir DrawRacesTab) : nom + un court texte d'ambiance de 2-3 lignes
+    // (RaceDefinition.DescKey) ou, verrouillée, nom + jusqu'à 3 prérequis (voir
     // DrawRaceLockRequirement) — les infos de gameplay (bonus/malus, bâtiment racial) passent en
     // tooltip au survol plutôt que sur la carte (RaceDefinition.InfoKey). Doublée d'un défilement et
-    // d'un clip par carte (voir DrawPendingRaceCard) en filet de sécurité si un texte futur dépasse
-    // quand même cette hauteur.
+    // d'un clip par carte (voir DrawRaceCard) en filet de sécurité si un texte futur dépasse quand
+    // même cette hauteur.
     private const int   RaceCardColumns     = 4;
     private const float RaceCardHeight      = 96f;
 
@@ -91,9 +91,9 @@ public sealed class AscensionRenderer : IDisposable
 
     // Confirmation d'Ascension : simple avertissement + Confirmer/Annuler, porté par une modale de
     // l'hôte Avalonia comme les autres popups du jeu (voir AscensionConfirmPopupRenderer). Le choix
-    // de race, lui, se fait après coup sur l'onglet Île tant qu'il est débloqué (voir
-    // AscensionController.IsAscensionPending, RenderPendingRaceChoicePage) : la demande d'Ascension
-    // convertit l'essence tout de suite, mais l'île n'est régénérée qu'une fois la race choisie.
+    // de race, lui, se fait après coup sur l'onglet Races de cette même page (voir
+    // AscensionController.IsAscensionPending, DrawRacesTab) : la demande d'Ascension convertit
+    // l'essence tout de suite, mais l'île n'est régénérée qu'une fois la race choisie.
     private readonly AscensionConfirmPopupRenderer _confirmPopup;
     private SKRect _ascendButtonRect  = SKRect.Empty;
 
@@ -120,27 +120,28 @@ public sealed class AscensionRenderer : IDisposable
     /// tous ses hexagones, puisqu'ils sont alignés.</summary>
     private readonly List<SKPoint> _branchEnds = new();
 
-    // Choix de race différé (voir AscensionController.IsAscensionPending) : page plein écran
-    // affichée sur l'onglet Île tant que la race n'a pas été choisie — voir
-    // RenderPendingRaceChoicePage. Réinitialisée à chaque nouvelle demande d'Ascension
-    // (_pendingRaceInitialized remis à faux après confirmation).
-    private bool _pendingRaceInitialized;
-    // Aucune race pré-sélectionnée à l'arrivée sur l'écran : le joueur doit cliquer une carte pour
-    // que Confirmer s'active, plutôt que de valider Humains par défaut sans y avoir pensé.
+    // Onglet Races (voir DrawRacesTab, DrawInnerTabBar) : présélectionne la race courante
+    // (AscensionController.SelectedRace) à chaque nouvelle demande d'Ascension plutôt que de forcer
+    // un choix explicite — voir _wasAscensionPending dans RenderAscensionPage, qui pilote à la fois
+    // cette présélection et le basculement automatique sur cet onglet.
     private RaceId? _pendingSelectedRace;
-    private readonly List<(RaceId id, SKRect rect, bool selectable)> _pendingRaceCardRects = new();
+    private readonly List<(RaceId id, SKRect rect, bool clickable)> _pendingRaceCardRects = new();
     private SKRect _pendingConfirmRect = SKRect.Empty;
+    /// <summary>Vrai dès qu'une Ascension a déjà été en attente au rendu précédent — sert à ne
+    /// déclencher le basculement/présélection ci-dessus qu'à l'ouverture d'une nouvelle attente,
+    /// pas à chaque image tant qu'elle dure (voir RenderAscensionPage).</summary>
+    private bool _wasAscensionPending;
 
     // Infos de gameplay d'une race sélectionnable, en tooltip au survol de sa carte (voir
-    // DrawPendingRaceCard et RaceDefinition.InfoKey) — la description sur la carte elle-même reste un
-    // court texte d'ambiance. Même patron que _hoveredLockedRect/_hoveredLockedTooltip côté bâtiments,
-    // mais un champ dédié : cette page (RenderPendingRaceChoicePage) est distincte de RenderAscensionPage.
+    // DrawRaceCard et RaceDefinition.InfoKey) — la description sur la carte elle-même reste un
+    // court texte d'ambiance. Même patron que _hoveredLockedRect/_hoveredLockedTooltip côté
+    // bâtiments, mais un champ dédié : cet onglet (DrawRacesTab) gère son propre survol.
     private SKRect _hoveredRaceCardRect = SKRect.Empty;
     private string? _hoveredRaceCardTooltip;
 
-    // Défilement de la grille de choix de race (voir RenderPendingRaceChoicePage) : avec 9 races
-    // et des descriptions parfois longues, la grille peut dépasser la hauteur visible — même
-    // principe que DrawPermanentBuildingTab, viewport dédié pour ne pas interférer avec son état.
+    // Défilement de la grille de races (voir DrawRacesTab) : avec 9 races et des descriptions
+    // parfois longues, la grille peut dépasser la hauteur visible — même principe que
+    // DrawPermanentBuildingTab, viewport dédié pour ne pas interférer avec son état.
     private float _pendingRaceScrollOffsetPx;
     private float _pendingRaceTotalContentH;
     private SKRect _pendingRaceViewportRect = SKRect.Empty;
@@ -150,10 +151,13 @@ public sealed class AscensionRenderer : IDisposable
     private SKRect _pendingRaceScrollTrackRect = SKRect.Empty;
     private SKRect _pendingRaceScrollThumbRect = SKRect.Empty;
 
-    /// <summary>Onglet interne actif (voir DrawInnerTabBar) : Pouvoirs (la carte hexagonale),
-    /// Bâtiment permanent (voir DrawPermanentBuildingTab) ou Jalons (voir DrawMilestonesTab).</summary>
-    private enum InnerTab { Powers, PermanentBuilding, Milestones }
+    /// <summary>Onglet interne actif (voir DrawInnerTabBar) : Races (voir DrawRacesTab — celui mis en
+    /// avant tant qu'une Ascension attend son choix de race, voir RenderAscensionPage), Pouvoirs (la
+    /// carte hexagonale), Bâtiment permanent (voir DrawPermanentBuildingTab) ou Jalons (voir
+    /// DrawMilestonesTab).</summary>
+    private enum InnerTab { Races, Powers, PermanentBuilding, Milestones }
     private InnerTab _activeInnerTab = InnerTab.Powers;
+    private SKRect _tabRacesRect             = SKRect.Empty;
     private SKRect _tabPowersRect            = SKRect.Empty;
     private SKRect _tabPermanentBuildingRect = SKRect.Empty;
     private SKRect _tabMilestonesRect        = SKRect.Empty;
@@ -179,7 +183,7 @@ public sealed class AscensionRenderer : IDisposable
     // Race déjà ascensionnée par le joueur (AscensionController.AscendedRaces) : cadre vert plutôt
     // qu'un libellé texte, pour rester lisible dans la hauteur de carte réduite (voir RaceCardHeight).
     private readonly SKPaint _ascendedBorderPaint = new() { Color = new SKColor(90, 200, 110), StrokeWidth = 1.4f, Style = SKPaintStyle.Stroke, IsAntialias = true };
-    // Race disponible mais pas encore sélectionnée (voir DrawPendingRaceCard) : fond et cadre plus
+    // Race disponible mais pas encore sélectionnée (voir DrawRaceCard) : fond et cadre plus
     // clairs que les races verrouillées, pour qu'elles se distinguent au premier coup d'œil sans
     // survol — auparavant identiques à _cardLockedPaint/_cardBorderPaint hors survol.
     private readonly SKPaint _cardAvailablePaint       = new() { Color = new SKColor(38, 42, 52, 225), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -217,11 +221,10 @@ public sealed class AscensionRenderer : IDisposable
         _localization = localization;
         _tooltipRenderer = tooltipRenderer;
         _uiLayout = uiLayout;
-        // Toujours différé jusqu'au choix de race sur l'onglet Île — même quand ce choix n'est
+        // Toujours différé jusqu'au choix de race sur l'onglet Races — même quand ce choix n'est
         // encore qu'Humains, pour que le joueur le valide explicitement (voir
-        // AscensionController.RequestAscension). Le joueur reste sur cet onglet Ascension après
-        // confirmation : rien ne bascule automatiquement sur l'onglet Île, pour qu'il puisse
-        // continuer à dépenser ses points divins avant d'aller choisir sa race.
+        // AscensionController.RequestAscension). Le joueur peut basculer vers l'onglet Pouvoirs
+        // entretemps pour continuer à dépenser ses points divins avant d'aller choisir sa race.
         _confirmPopup = new AscensionConfirmPopupRenderer(localization, onConfirm: () => _gameControllerService.RequestAscension());
         _permanentBuildingConfirmPopup = new PermanentBuildingConfirmPopupRenderer(localization,
             onConfirm: type => _gameControllerService.MainGameController.AscensionController.SelectPermanentUniqueBuilding(type));
@@ -269,12 +272,33 @@ public sealed class AscensionRenderer : IDisposable
         _buildingTabViewportRect = SKRect.Empty;
         _buildingScrollTrackRect = SKRect.Empty;
         _buildingScrollThumbRect = SKRect.Empty;
+        _pendingRaceCardRects.Clear();
+        _pendingConfirmRect = SKRect.Empty;
+        _hoveredRaceCardRect = SKRect.Empty;
+        _hoveredRaceCardTooltip = null;
+        _pendingRaceViewportRect = SKRect.Empty;
+        _pendingRaceScrollTrackRect = SKRect.Empty;
+        _pendingRaceScrollThumbRect = SKRect.Empty;
 
         float topBar = _uiLayout.SecondRowBottom;
         canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         var ascension = _gameControllerService.MainGameController.AscensionController;
         var godState = mgs.GodState;
+
+        // Nouvelle demande d'Ascension (voir AscensionController.IsAscensionPending) : bascule sur
+        // l'onglet Races et présélectionne la race courante, que le joueur soit ou non déjà sur cet
+        // onglet — une seule fois par attente, pas à chaque image (voir _wasAscensionPending). Couvre
+        // aussi le chargement à froid d'une sauvegarde faite pendant cette attente : _wasAscensionPending
+        // démarre à faux sur un renderer tout neuf, donc la toute première image la détecte pareil.
+        bool ascensionPendingNow = ascension.IsAscensionPending;
+        if (ascensionPendingNow && !_wasAscensionPending)
+        {
+            _activeInnerTab = InnerTab.Races;
+            _pendingSelectedRace = ascension.SelectedRace;
+            _pendingRaceScrollOffsetPx = 0f;
+        }
+        _wasAscensionPending = ascensionPendingNow;
 
         float contentWidth = Math.Min(720f, _canvasSize.Width - Padding * 2);
         float x = (_canvasSize.Width - contentWidth) / 2;
@@ -323,16 +347,6 @@ public sealed class AscensionRenderer : IDisposable
                 corruptionLevel, unlockedPowers, essenceCap);
         }
 
-        // Race jouée pendant ce cycle — visible dès que le choix de race existe (ou si une race
-        // non-humaine est active, p.ex. après rechargement d'une sauvegarde).
-        if (ascension.IsRaceSelectionUnlocked || ascension.SelectedRace != RaceId.Human)
-        {
-            string raceName = _localization.Get(RaceDefinitions.Get(ascension.SelectedRace).NameKey);
-            string raceText = _localization.GetFormated("ascension_race_current_label", raceName);
-            SkiaTextUtils.DrawText(canvas, raceText, x + contentWidth, nextLineY, SKTextAlign.Right, _nameFont, _accentPaint);
-            nextLineY += 20f;
-        }
-
         float ascendSectionY = Math.Max(y + 40, nextLineY);
         DrawAscendSection(canvas, x, ascendSectionY, contentWidth, godState, ascension);
 
@@ -349,13 +363,23 @@ public sealed class AscensionRenderer : IDisposable
             return;
         }
 
-        // Les trois onglets internes sont tous pertinents dès que cette page l'est : le jalon
+        // Les quatre onglets internes sont tous pertinents dès que cette page l'est : le jalon
         // Héritage Ancestral (voir AscensionMilestoneId.PermanentUniqueBuildings) ouvre déjà les
         // emplacements de bâtiment permanent dès la première Ascension, sans achat — voir
-        // AscensionController.PermanentUniqueBuildingSlotsPerAscension.
+        // AscensionController.PermanentUniqueBuildingSlotsPerAscension. L'onglet Races (voir
+        // DrawRacesTab), lui, reste disponible même sans jamais rien à y choisir : il sert aussi de
+        // simple consultation des races une fois l'Ascension refermée.
         float tabY = ascendSectionY + AscendButtonHeight + 16f;
         DrawInnerTabBar(canvas, x, tabY, contentWidth);
         float mapTop = tabY + InnerTabHeight + Padding;
+
+        if (_activeInnerTab == InnerTab.Races)
+        {
+            DrawRacesTab(canvas, x, mapTop, contentWidth, ascension);
+            if (_hoveredLockedTooltip != null)
+                _tooltipRenderer.SetTooltip(_hoveredLockedTooltip, new SKPoint(_hoveredLockedRect.Right, _hoveredLockedRect.Top));
+            return;
+        }
 
         if (_activeInnerTab == InnerTab.Milestones)
         {
@@ -426,71 +450,44 @@ public sealed class AscensionRenderer : IDisposable
     }
 
     /// <summary>
-    /// Page plein écran de choix de race, affichée sur l'onglet Île à la place de la carte tant
-    /// qu'une Ascension est en attente de race (voir AscensionController.IsAscensionPending) —
-    /// invoquée par OverlayRenderer, pas RenderAscensionPage : l'onglet Ascension continue lui
-    /// d'afficher normalement les pouvoirs (achetables avec les points déjà crédités par la demande
-    /// d'Ascension), ce qui peut faire apparaître de nouvelles races ici entretemps — la liste est
-    /// donc réévaluée à chaque image plutôt que figée à l'ouverture.
+    /// Onglet Races (voir DrawInnerTabBar) : premier onglet interne d'Ascension, disponible dès la
+    /// première Ascension. Deux modes selon AscensionController.IsAscensionPending :
+    ///  - en attente de choix (entre RequestAscension et ConfirmAscensionRace) : grille interactive,
+    ///    bouton Confirmer, race courante déjà présélectionnée (voir _pendingSelectedRace, posé par
+    ///    RenderAscensionPage à l'ouverture de l'attente) — le joueur peut valider tout de suite ou
+    ///    choisir une autre race avant de confirmer. L'onglet Pouvoirs reste accessible entretemps
+    ///    (achetable avec les points déjà crédités par la demande d'Ascension), ce qui peut débloquer
+    ///    de nouvelles races ici — la liste est donc réévaluée à chaque image plutôt que figée ;
+    ///  - hors attente : simple consultation, race courante mise en évidence, aucune carte cliquable
+    ///    (un changement de race ne peut se faire qu'au moment d'une Ascension) — accessible à tout
+    ///    moment une fois l'onglet Ascension débloqué, y compris longtemps après.
     /// </summary>
-    public void RenderPendingRaceChoicePage(SKCanvas canvas, GameRenderContext context)
+    private void DrawRacesTab(SKCanvas canvas, float x, float y, float contentWidth, AscensionController ascension)
     {
-        if (_disposed) return;
-        if (context.GameState is not MainGameState) return;
-
-        var ascension = _gameControllerService.MainGameController.AscensionController;
-        _pendingRaceCardRects.Clear();
-        _pendingConfirmRect = SKRect.Empty;
-        _hoveredRaceCardRect = SKRect.Empty;
-        _hoveredRaceCardTooltip = null;
-        _pendingRaceScrollTrackRect = SKRect.Empty;
-        _pendingRaceScrollThumbRect = SKRect.Empty;
-
-        var selectable = ascension.GetSelectableRaces();
-        if (!_pendingRaceInitialized)
-        {
-            // Pas de présélection : le joueur doit choisir explicitement, même s'il ne peut choisir
-            // qu'Humains — voir RequestAscension, qui affiche cet écran justement pour forcer une
-            // validation explicite plutôt que de laisser Humains s'imposer sans confirmation consciente.
-            _pendingSelectedRace = null;
-            _pendingRaceInitialized = true;
-        }
-
-        float topBar = _uiLayout.SecondRowBottom;
-        canvas.DrawRect(new SKRect(0, topBar, _canvasSize.Width, _canvasSize.Height), _bgPaint);
-
-        float panelWidth = Math.Min(720f, _canvasSize.Width - Padding * 2);
-        float x = (_canvasSize.Width - panelWidth) / 2f;
-        float titleY = topBar + Padding;
-
-        // Titre fixe, hors du viewport défilant : seuls l'avertissement, la grille et le bouton
-        // Confirmer défilent ensemble en dessous (voir _pendingRaceScrollOffsetPx).
-        SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_race_choice_title"),
-            x + panelWidth / 2f, titleY + 4f, SKTextAlign.Center, _headerFont, _accentPaint);
-
-        float scrollTop = titleY + 26f;
+        bool pending = ascension.IsAscensionPending;
+        var unlockedRaces = ascension.GetSelectableRaces();
 
         var races = RaceDefinitions.All;
         float cardGap = 12f;
-        float cardWidth = (panelWidth - cardGap * (RaceCardColumns - 1)) / RaceCardColumns;
+        float cardWidth = (contentWidth - cardGap * (RaceCardColumns - 1)) / RaceCardColumns;
         int rows = (races.Count + RaceCardColumns - 1) / RaceCardColumns;
 
-        var hintLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get("ascension_race_pending_hint"), panelWidth, _descFont);
+        string hintKey = pending ? "ascension_race_pending_hint" : "ascension_race_view_hint";
+        var hintLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(hintKey), contentWidth, _descFont);
         float hintH = hintLayout.Lines.Count * _descFont.Spacing;
 
         // Le texte se dessine par sa ligne de base : la première ligne d'un bloc défilant ne peut
         // pas partir exactement au bord haut du viewport, sans quoi le clip tranche son ascendante
-        // (glyphes coupés en haut, visibles uniquement sous la ligne de base) — d'où cette marge,
-        // absente à tort de la première version.
-        float scrollContentTopInset = _descFont.Size;
-        float hintTop = scrollTop + scrollContentTopInset;
+        // (glyphes coupés en haut, visibles uniquement sous la ligne de base) — même correctif que
+        // DrawPermanentBuildingTab.
+        float hintTop = y + _descFont.Size;
         float gridTop = hintTop + hintH + 12f;
         float gridBottom = gridTop + rows * (RaceCardHeight + cardGap);
         float confirmY = gridBottom + Padding;
-        float contentBottom = confirmY + AscendButtonHeight;
+        float contentBottom = pending ? confirmY + AscendButtonHeight : gridBottom;
 
-        _pendingRaceViewportRect = new SKRect(0, scrollTop, _canvasSize.Width, _canvasSize.Height);
-        _pendingRaceTotalContentH = contentBottom - scrollTop;
+        _pendingRaceViewportRect = new SKRect(0, y, _canvasSize.Width, _canvasSize.Height);
+        _pendingRaceTotalContentH = contentBottom - y;
         float maxScroll = Math.Max(0f, _pendingRaceTotalContentH - _pendingRaceViewportRect.Height);
         _pendingRaceScrollOffsetPx = Math.Clamp(_pendingRaceScrollOffsetPx, 0f, maxScroll);
         bool needsScroll = _pendingRaceTotalContentH > _pendingRaceViewportRect.Height + 1f;
@@ -499,7 +496,7 @@ public sealed class AscensionRenderer : IDisposable
         canvas.ClipRect(_pendingRaceViewportRect);
         canvas.Translate(0, -_pendingRaceScrollOffsetPx);
 
-        DrawCenteredTextLayout(canvas, hintLayout, x + panelWidth / 2f, hintTop, _descFont, _mutedPaint);
+        DrawCenteredTextLayout(canvas, hintLayout, x + contentWidth / 2f, hintTop, _descFont, _mutedPaint);
 
         // Comparaisons de survol en espace contenu (avant défilement) : voir DrawPermanentBuildingTab.
         var savedHover = _hoverPosition;
@@ -512,27 +509,32 @@ public sealed class AscensionRenderer : IDisposable
             int row = i / RaceCardColumns;
             float cardX = x + col * (cardWidth + cardGap);
             float cardY = gridTop + row * (RaceCardHeight + cardGap);
-            DrawPendingRaceCard(canvas, cardX, cardY, cardWidth, race, ascension, selectable.Contains(race.Id));
+            bool unlocked = unlockedRaces.Contains(race.Id);
+            bool highlighted = pending ? race.Id == _pendingSelectedRace : race.Id == ascension.SelectedRace;
+            DrawRaceCard(canvas, cardX, cardY, cardWidth, race, ascension, unlocked, highlighted, clickable: pending && unlocked);
         }
 
-        _pendingConfirmRect = new SKRect(
-            x + panelWidth / 2f - AscendButtonWidth / 2f, confirmY,
-            x + panelWidth / 2f + AscendButtonWidth / 2f, confirmY + AscendButtonHeight);
+        if (pending)
+        {
+            _pendingConfirmRect = new SKRect(
+                x + contentWidth / 2f - AscendButtonWidth / 2f, confirmY,
+                x + contentWidth / 2f + AscendButtonWidth / 2f, confirmY + AscendButtonHeight);
 
-        bool canConfirm = _pendingSelectedRace is { } chosen && selectable.Contains(chosen);
-        bool confirmHovered = _pendingConfirmRect.Contains(_hoverPosition.X, _hoverPosition.Y);
-        canvas.DrawRoundRect(_pendingConfirmRect, 6, 6, !canConfirm ? _disabledPaint : (confirmHovered ? _confirmHoverPaint : _confirmPaint));
-        canvas.DrawRoundRect(_pendingConfirmRect, 6, 6, _buttonBorderPaint);
-        SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_confirm_button"),
-            _pendingConfirmRect.MidX, _pendingConfirmRect.MidY + 5f, SKTextAlign.Center, _buttonFont,
-            canConfirm ? _buttonTextPaint : _mutedPaint);
+            bool canConfirm = _pendingSelectedRace is { } chosen && unlockedRaces.Contains(chosen);
+            bool confirmHovered = _pendingConfirmRect.Contains(_hoverPosition.X, _hoverPosition.Y);
+            canvas.DrawRoundRect(_pendingConfirmRect, 6, 6, !canConfirm ? _disabledPaint : (confirmHovered ? _confirmHoverPaint : _confirmPaint));
+            canvas.DrawRoundRect(_pendingConfirmRect, 6, 6, _buttonBorderPaint);
+            SkiaTextUtils.DrawText(canvas, _localization.Get("ascension_confirm_button"),
+                _pendingConfirmRect.MidX, _pendingConfirmRect.MidY + 5f, SKTextAlign.Center, _buttonFont,
+                canConfirm ? _buttonTextPaint : _mutedPaint);
+        }
 
         _hoverPosition = savedHover;
 
         canvas.Restore();
 
         if (needsScroll)
-            DrawPendingRaceScrollbar(canvas, scrollTop, _pendingRaceViewportRect.Height);
+            DrawPendingRaceScrollbar(canvas, y, _pendingRaceViewportRect.Height);
 
         if (_hoveredRaceCardTooltip != null)
             _tooltipRenderer.SetTooltip(_hoveredRaceCardTooltip,
@@ -556,27 +558,28 @@ public sealed class AscensionRenderer : IDisposable
         canvas.DrawRoundRect(_pendingRaceScrollThumbRect, 3, 3, _scrollThumbPaint);
     }
 
-    /// <summary>Une carte de race est repliée sur elle-même (voir RenderPendingRaceChoicePage) :
-    /// nom + jusqu'à 3 lignes de contenu (texte d'ambiance ou prérequis, voir DrawRaceLockRequirement)
-    /// tiennent dans <see cref="RaceCardHeight"/> ; le clip reste un filet de sécurité si un texte
-    /// futur déborde quand même, pour ne pas empiéter sur la rangée suivante. Les infos de gameplay
-    /// (bonus/malus, bâtiment racial — RaceDefinition.InfoKey) ne s'affichent qu'en tooltip au survol
-    /// d'une carte sélectionnable (_hoveredRaceCardTooltip, consommé par RenderPendingRaceChoicePage).
+    /// <summary>Une carte de race est repliée sur elle-même (voir DrawRacesTab) : nom + jusqu'à 3
+    /// lignes de contenu (texte d'ambiance ou prérequis, voir DrawRaceLockRequirement) tiennent dans
+    /// <see cref="RaceCardHeight"/> ; le clip reste un filet de sécurité si un texte futur déborde
+    /// quand même, pour ne pas empiéter sur la rangée suivante. Les infos de gameplay (bonus/malus,
+    /// bâtiment racial — RaceDefinition.InfoKey) ne s'affichent qu'en tooltip au survol d'une carte
+    /// débloquée (_hoveredRaceCardTooltip, consommé par DrawRacesTab), cliquable ou non.
     /// Le cadre passe en vert (_ascendedBorderPaint) pour une race déjà ascensionnée par le joueur
-    /// (AscensionController.AscendedRaces), sauf si elle est la sélection courante (le cadre doré prime).</summary>
-    private void DrawPendingRaceCard(SKCanvas canvas, float x, float y, float width, RaceDefinition race, AscensionController ascension, bool selectable)
+    /// (AscensionController.AscendedRaces), sauf si elle est mise en évidence (<paramref
+    /// name="highlighted"/> — sélection en attente de confirmation, ou race courante en consultation ;
+    /// le cadre doré prime dans les deux cas).</summary>
+    private void DrawRaceCard(SKCanvas canvas, float x, float y, float width, RaceDefinition race, AscensionController ascension, bool unlocked, bool highlighted, bool clickable)
     {
         var rect = new SKRect(x, y, x + width, y + RaceCardHeight);
         bool hovered  = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
-        bool selected = selectable && race.Id == _pendingSelectedRace;
         bool ascended = ascension.AscendedRaces.Contains(race.Id);
 
-        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActivePaint
-            : selectable ? (hovered ? _cardAvailableHoverPaint : _cardAvailablePaint)
+        canvas.DrawRoundRect(rect, 8, 8, highlighted ? _cardActivePaint
+            : unlocked ? (hovered ? _cardAvailableHoverPaint : _cardAvailablePaint)
             : _cardLockedPaint);
-        canvas.DrawRoundRect(rect, 8, 8, selected ? _cardActiveBorder
+        canvas.DrawRoundRect(rect, 8, 8, highlighted ? _cardActiveBorder
             : ascended ? _ascendedBorderPaint
-            : selectable ? _availableBorderPaint
+            : unlocked ? _availableBorderPaint
             : _cardBorderPaint);
 
         canvas.Save();
@@ -584,9 +587,9 @@ public sealed class AscensionRenderer : IDisposable
 
         float centerX = x + width / 2f;
         SkiaTextUtils.DrawText(canvas, _localization.Get(race.NameKey), centerX, y + 18f, SKTextAlign.Center, _nameFont,
-            selectable ? _namePaint : _mutedPaint);
+            unlocked ? _namePaint : _mutedPaint);
 
-        if (!selectable)
+        if (!unlocked)
         {
             // Verrouillée : n'affiche que les éléments de déblocage (les infos de jeu de la race
             // n'ont de sens qu'une fois celle-ci jouable — voir DrawRaceLockRequirement).
@@ -606,95 +609,22 @@ public sealed class AscensionRenderer : IDisposable
 
         canvas.Restore();
 
-        _pendingRaceCardRects.Add((race.Id, rect, selectable));
-    }
-
-    /// <summary>Clic sur la page de choix de race différé (voir RenderPendingRaceChoicePage) : la
-    /// page capte tous les clics tant qu'elle est affichée, aucune race choisie n'étant réversible
-    /// autrement qu'en en sélectionnant une autre avant de confirmer. Les rects stockés sont en
-    /// espace contenu (avant défilement, voir _pendingRaceScrollOffsetPx) : la position reçue en
-    /// espace écran doit donc être translatée d'autant avant comparaison.</summary>
-    public bool HandlePendingRaceChoicePointerPressed(SKPoint position)
-    {
-        if (!_pendingRaceScrollThumbRect.IsEmpty && _pendingRaceScrollThumbRect.Contains(position.X, position.Y))
-        {
-            _isDraggingPendingRaceScrollbar = true;
-            _pendingRaceScrollDragStartY = position.Y;
-            _pendingRaceScrollDragStartOffset = _pendingRaceScrollOffsetPx;
-            return true;
-        }
-        if (!_pendingRaceScrollTrackRect.IsEmpty && _pendingRaceScrollTrackRect.Contains(position.X, position.Y))
-        {
-            float relY = position.Y - _pendingRaceScrollTrackRect.Top;
-            float maxScroll = Math.Max(0f, _pendingRaceTotalContentH - _pendingRaceViewportRect.Height);
-            _pendingRaceScrollOffsetPx = Math.Clamp(relY / _pendingRaceScrollTrackRect.Height * maxScroll, 0f, maxScroll);
-            return true;
-        }
-
-        var contentPosition = new SKPoint(position.X, position.Y + _pendingRaceScrollOffsetPx);
-
-        if (!_pendingConfirmRect.IsEmpty && _pendingConfirmRect.Contains(contentPosition.X, contentPosition.Y))
-        {
-            var ascension = _gameControllerService.MainGameController.AscensionController;
-            if (_pendingSelectedRace is { } chosen && ascension.GetSelectableRaces().Contains(chosen))
-            {
-                _gameControllerService.ConfirmAscensionRace(chosen);
-                _pendingRaceInitialized = false;
-                _pendingRaceScrollOffsetPx = 0f;
-            }
-            return true;
-        }
-
-        foreach (var (id, rect, selectable) in _pendingRaceCardRects)
-        {
-            if (selectable && rect.Contains(contentPosition.X, contentPosition.Y))
-            {
-                _pendingSelectedRace = id;
-                return true;
-            }
-        }
-        return true;
-    }
-
-    public void HandlePendingRaceChoicePointerMoved(SKPoint position)
-    {
-        _hoverPosition = position;
-
-        if (!_isDraggingPendingRaceScrollbar) return;
-
-        float dragDy = position.Y - _pendingRaceScrollDragStartY;
-        float thumbRange = _pendingRaceScrollTrackRect.Height - _pendingRaceScrollThumbRect.Height;
-        float maxScroll = Math.Max(0f, _pendingRaceTotalContentH - _pendingRaceViewportRect.Height);
-        float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
-        _pendingRaceScrollOffsetPx = Math.Clamp(_pendingRaceScrollDragStartOffset + dragDy * scrollPerPx, 0f, maxScroll);
-    }
-
-    /// <summary>Relâchement sur la page de choix de race différé : ne fait que solder un éventuel
-    /// glissement de l'ascenseur, la sélection/confirmation se faisant déjà au clic (voir
-    /// HandlePendingRaceChoicePointerPressed).</summary>
-    public void HandlePendingRaceChoicePointerReleased() => _isDraggingPendingRaceScrollbar = false;
-
-    /// <summary>Molette sur la page de choix de race différé : fait défiler la grille, comme
-    /// DrawPermanentBuildingTab.</summary>
-    public void HandlePendingRaceChoiceZoom(ZoomEventArgs e)
-    {
-        if (_pendingRaceViewportRect.IsEmpty || !_pendingRaceViewportRect.Contains(e.Center.X, e.Center.Y)) return;
-
-        float maxScroll = Math.Max(0f, _pendingRaceTotalContentH - _pendingRaceViewportRect.Height);
-        _pendingRaceScrollOffsetPx = Math.Clamp(_pendingRaceScrollOffsetPx + (e.ZoomDelta > 0 ? -60f : 60f), 0f, maxScroll);
+        _pendingRaceCardRects.Add((race.Id, rect, clickable));
     }
 
     private void DrawInnerTabBar(SKCanvas canvas, float x, float y, float contentWidth)
     {
         float centerX = x + contentWidth / 2f;
         float gap = 8f;
-        float totalWidth = InnerTabWidth * 3 + gap * 2;
+        float totalWidth = InnerTabWidth * 4 + gap * 3;
         float startX = centerX - totalWidth / 2f;
 
-        _tabPowersRect            = new SKRect(startX, y, startX + InnerTabWidth, y + InnerTabHeight);
+        _tabRacesRect             = new SKRect(startX, y, startX + InnerTabWidth, y + InnerTabHeight);
+        _tabPowersRect            = new SKRect(_tabRacesRect.Right + gap, y, _tabRacesRect.Right + gap + InnerTabWidth, y + InnerTabHeight);
         _tabMilestonesRect        = new SKRect(_tabPowersRect.Right + gap, y, _tabPowersRect.Right + gap + InnerTabWidth, y + InnerTabHeight);
         _tabPermanentBuildingRect = new SKRect(_tabMilestonesRect.Right + gap, y, _tabMilestonesRect.Right + gap + InnerTabWidth, y + InnerTabHeight);
 
+        DrawInnerTabButton(canvas, _tabRacesRect, "ascension_tab_races", _activeInnerTab == InnerTab.Races);
         DrawInnerTabButton(canvas, _tabPowersRect, "ascension_tab_powers", _activeInnerTab == InnerTab.Powers);
         DrawInnerTabButton(canvas, _tabMilestonesRect, "ascension_tab_milestones", _activeInnerTab == InnerTab.Milestones);
         DrawInnerTabButton(canvas, _tabPermanentBuildingRect, "ascension_tab_permanent_building", _activeInnerTab == InnerTab.PermanentBuilding);
@@ -719,8 +649,8 @@ public sealed class AscensionRenderer : IDisposable
 
         // Le texte se dessine par sa ligne de base : la première ligne d'un bloc défilant ne peut
         // pas partir exactement au bord haut du viewport, sans quoi le clip tranche son ascendante
-        // (glyphes coupés en haut) — même correctif que RenderPendingRaceChoicePage/
-        // _pendingRaceScrollOffsetPx, absent à tort ici jusqu'ici.
+        // (glyphes coupés en haut) — même correctif que DrawRacesTab/_pendingRaceScrollOffsetPx,
+        // absent à tort ici jusqu'ici.
         float noteTop = y + _descFont.Size;
 
         var chosen = ascension.PermanentUniqueBuildings;
@@ -910,8 +840,9 @@ public sealed class AscensionRenderer : IDisposable
         float btnX = x + width / 2f - AscendButtonWidth / 2f;
 
         // Ascension déjà demandée, race pas encore choisie (voir AscensionController.
-        // IsAscensionPending) : le choix se fait sur l'onglet Île (RenderPendingRaceChoicePage), pas
-        // ici — cette section se contente de renvoyer le joueur là-bas.
+        // IsAscensionPending) : le choix se fait sur l'onglet Races de cette même page (voir
+        // DrawRacesTab, déjà actif à ce stade — voir _wasAscensionPending), pas ici — cette section
+        // se contente de rappeler que le choix reste à faire.
         if (ascension.IsAscensionPending)
         {
             _ascendButtonRect = SKRect.Empty;
@@ -1024,7 +955,7 @@ public sealed class AscensionRenderer : IDisposable
     }
 
     /// <summary>
-    /// Dessine les éléments de déblocage sur une carte de race verrouillée (voir DrawPendingRaceCard) :
+    /// Dessine les éléments de déblocage sur une carte de race verrouillée (voir DrawRaceCard) :
     /// la combinaison de pouvoirs divins requise (RaceDefinition.RequiredPowers, Base comme Advanced),
     /// un prérequis par ligne (sans libellé d'en-tête, pour tenir dans <see cref="RaceCardHeight"/> —
     /// le cadre grisé de la carte suffit à signaler qu'il s'agit de prérequis), chacun en vert
@@ -1077,6 +1008,16 @@ public sealed class AscensionRenderer : IDisposable
             return;
         }
 
+        if (_isDraggingPendingRaceScrollbar)
+        {
+            float dragDy     = position.Y - _pendingRaceScrollDragStartY;
+            float thumbRange = _pendingRaceScrollTrackRect.Height - _pendingRaceScrollThumbRect.Height;
+            float maxScroll  = Math.Max(0f, _pendingRaceTotalContentH - _pendingRaceViewportRect.Height);
+            float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
+            _pendingRaceScrollOffsetPx = Math.Clamp(_pendingRaceScrollDragStartOffset + dragDy * scrollPerPx, 0f, maxScroll);
+            return;
+        }
+
         if (!_pointerDown) return;
 
         float dx = position.X - _pressPosition.X;
@@ -1100,6 +1041,7 @@ public sealed class AscensionRenderer : IDisposable
     public void HandlePointerReleased(SKPoint position, bool isClick = true)
     {
         _isDraggingBuildingScrollbar = false;
+        _isDraggingPendingRaceScrollbar = false;
 
         bool wasPanning = _isPanning;
         bool pressedOnMap = _pointerDown;
@@ -1123,6 +1065,15 @@ public sealed class AscensionRenderer : IDisposable
 
     public void HandleZoom(ZoomEventArgs e)
     {
+        // Sur l'onglet Races, la molette fait défiler la grille plutôt que zoomer — même raison que
+        // Bâtiments permanents ci-dessous : pas de carte à zoomer tant que cet onglet est affiché.
+        if (_activeInnerTab == InnerTab.Races)
+        {
+            if (!_pendingRaceViewportRect.IsEmpty && _pendingRaceViewportRect.Contains(e.Center.X, e.Center.Y))
+                ScrollRacesTab(e.ZoomDelta > 0 ? -60f : 60f);
+            return;
+        }
+
         // Sur l'onglet Bâtiments permanents, la molette fait défiler la grille plutôt que zoomer :
         // il n'y a pas de carte à zoomer tant que cet onglet est affiché.
         if (_activeInnerTab == InnerTab.PermanentBuilding)
@@ -1143,6 +1094,12 @@ public sealed class AscensionRenderer : IDisposable
     {
         float maxScroll = Math.Max(0f, _buildingTabTotalContentH - _buildingTabViewportRect.Height);
         _buildingTabScrollOffsetPx = Math.Clamp(_buildingTabScrollOffsetPx + deltaPx, 0f, maxScroll);
+    }
+
+    private void ScrollRacesTab(float deltaPx)
+    {
+        float maxScroll = Math.Max(0f, _pendingRaceTotalContentH - _pendingRaceViewportRect.Height);
+        _pendingRaceScrollOffsetPx = Math.Clamp(_pendingRaceScrollOffsetPx + deltaPx, 0f, maxScroll);
     }
 
     /// <summary>Pincement à deux doigts : même zoom que la molette, au rapport continu du geste,
@@ -1269,6 +1226,11 @@ public sealed class AscensionRenderer : IDisposable
             return true;
         }
 
+        if (!_tabRacesRect.IsEmpty && _tabRacesRect.Contains(position.X, position.Y))
+        {
+            _activeInnerTab = InnerTab.Races;
+            return true;
+        }
         if (!_tabPowersRect.IsEmpty && _tabPowersRect.Contains(position.X, position.Y))
         {
             _activeInnerTab = InnerTab.Powers;
@@ -1283,6 +1245,45 @@ public sealed class AscensionRenderer : IDisposable
         {
             _activeInnerTab = InnerTab.Milestones;
             return true;
+        }
+
+        if (!_pendingRaceScrollThumbRect.IsEmpty && _pendingRaceScrollThumbRect.Contains(position.X, position.Y))
+        {
+            _isDraggingPendingRaceScrollbar   = true;
+            _pendingRaceScrollDragStartY      = position.Y;
+            _pendingRaceScrollDragStartOffset = _pendingRaceScrollOffsetPx;
+            return true;
+        }
+        if (!_pendingRaceScrollTrackRect.IsEmpty && _pendingRaceScrollTrackRect.Contains(position.X, position.Y))
+        {
+            float relY      = position.Y - _pendingRaceScrollTrackRect.Top;
+            float maxScroll = Math.Max(0f, _pendingRaceTotalContentH - _pendingRaceViewportRect.Height);
+            _pendingRaceScrollOffsetPx = Math.Clamp(relY / _pendingRaceScrollTrackRect.Height * maxScroll, 0f, maxScroll);
+            return true;
+        }
+
+        // Bouton Confirmer et cartes de race (voir DrawRacesTab) : rects stockés en espace contenu
+        // (avant défilement, voir _pendingRaceScrollOffsetPx), donc la position reçue en espace écran
+        // doit être translatée d'autant avant comparaison. N'existent que pendant l'attente de choix
+        // (_pendingConfirmRect vide et aucune carte cliquable hors attente, voir DrawRacesTab).
+        var racesContentPosition = new SKPoint(position.X, position.Y + _pendingRaceScrollOffsetPx);
+        if (!_pendingConfirmRect.IsEmpty && _pendingConfirmRect.Contains(racesContentPosition.X, racesContentPosition.Y))
+        {
+            var ascensionForRaceConfirm = _gameControllerService.MainGameController.AscensionController;
+            if (_pendingSelectedRace is { } chosenRace && ascensionForRaceConfirm.GetSelectableRaces().Contains(chosenRace))
+            {
+                _gameControllerService.ConfirmAscensionRace(chosenRace);
+                _pendingRaceScrollOffsetPx = 0f;
+            }
+            return true;
+        }
+        foreach (var (raceId, raceRect, clickable) in _pendingRaceCardRects)
+        {
+            if (clickable && raceRect.Contains(racesContentPosition.X, racesContentPosition.Y))
+            {
+                _pendingSelectedRace = raceId;
+                return true;
+            }
         }
 
         if (!_buildingScrollThumbRect.IsEmpty && _buildingScrollThumbRect.Contains(position.X, position.Y))

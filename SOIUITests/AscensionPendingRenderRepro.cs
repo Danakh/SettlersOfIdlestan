@@ -12,11 +12,13 @@ namespace SOIUITests;
 /// <summary>
 /// Régression pour l'écran de choix de race différé (voir AscensionController.IsAscensionPending) :
 /// pousse une vraie GameScreen dans cet état (essence suffisante, RequestAscension appelé) puis
-/// force un Render() réel sur les deux onglets concernés — Ascension, où le joueur reste après
-/// confirmation, et Île, où RenderPendingRaceChoicePage prend le relais de la carte. Couvre le bug
-/// trouvé lors de la mise en place de cet écran : 9 races sur une grille à hauteur de carte fixe
-/// débordaient les unes sur les autres (descriptions trop longues), rendant l'écran illisible sans
-/// qu'aucune exception ne soit levée — d'où la vérification pixel en plus du simple Record.Exception.
+/// force un Render() réel. Le choix de race vit dans l'onglet Races de la page Ascension (voir
+/// AscensionRenderer.DrawRacesTab) — TabBarRenderer bascule automatiquement sur l'onglet Ascension
+/// tant que l'attente dure (l'île n'existe plus le temps de ce choix, voir RequestAscension), sans
+/// qu'aucune action du joueur ne soit nécessaire. Couvre le bug trouvé lors de la mise en place de
+/// cet écran : 9 races sur une grille à hauteur de carte fixe débordaient les unes sur les autres
+/// (descriptions trop longues), rendant l'écran illisible sans qu'aucune exception ne soit levée —
+/// d'où la vérification pixel en plus du simple Record.Exception.
 /// </summary>
 public class AscensionPendingRenderRepro
 {
@@ -69,22 +71,18 @@ public class AscensionPendingRenderRepro
         Assert.True(ascension.IsAscensionPending);
         Assert.Null(godState.PrestigeState);
 
-        // Reste sur l'onglet Ascension (comportement voulu) : rendu repete plusieurs frames.
+        // Bascule automatique sur l'onglet Ascension dès le premier Render() qui suit (voir
+        // TabBarRenderer.Update) — aucune action du joueur n'est nécessaire, contrairement à
+        // l'ancien onglet Île dédié : rendu répété plusieurs frames.
         Exception? exAscension = null;
         for (int i = 0; i < 5 && exAscension == null; i++)
             exAscension = Record.Exception(() => screen.Render(surface.Canvas));
         Assert.Null(exAscension);
 
-        // Bascule sur l'onglet Ile (Surface) pour choisir la race.
-        var exSetTab = Record.Exception(() => screen.SetActiveTabFromHost(SettlersOfIdlestanSkia.Renderers.Overlay.TabBarRenderer.TabIsland));
-        Assert.Null(exSetTab);
+        var tabs = screen.GetTabBarSnapshot();
+        Assert.Contains(tabs.Tabs, t => t.TabId == SettlersOfIdlestanSkia.Renderers.Overlay.TabBarRenderer.TabAscension && t.IsActive);
 
-        Exception? exIsland = null;
-        for (int i = 0; i < 5 && exIsland == null; i++)
-            exIsland = Record.Exception(() => screen.Render(surface.Canvas));
-        Assert.Null(exIsland);
-
-        AssertNotAllOneColor(surface, "onglet Ile (choix de race)");
+        AssertNotAllOneColor(surface, "onglet Ascension (choix de race, onglet Races)");
 
         // Confirme la race pour s'assurer que la reprise fonctionne aussi.
         gcs.ConfirmAscensionRace(RaceId.Human);
