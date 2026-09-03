@@ -503,6 +503,7 @@ public sealed record RitualRowSnapshot(
     int Power,
     bool CanIncreasePower,
     bool IsAutomated,
+    bool CanAutomate,
     string AutoLabel,
     string AutoTooltip);
 

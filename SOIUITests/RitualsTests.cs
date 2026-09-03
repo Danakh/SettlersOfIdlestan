@@ -15,10 +15,10 @@ namespace SOIUITests;
 
 public class RitualRowViewModelTests
 {
-    private static SkiaLayer.RitualRowSnapshot Row(bool isActive = false, int power = 0, bool canIncrease = false, bool isAutomated = false) =>
+    private static SkiaLayer.RitualRowSnapshot Row(bool isActive = false, int power = 0, bool canIncrease = false, bool isAutomated = false, bool canAutomate = false) =>
         new("Fertility", "Fertilite", "Accelere les recoltes", "Entretien : 3 cristaux/s",
             isActive ? "Bonus : +30%" : null, isActive,
-            isActive ? "Arreter" : "Lancer", true, power, canIncrease, isAutomated, "Auto", "Ajuste automatiquement la puissance");
+            isActive ? "Arreter" : "Lancer", true, power, canIncrease, isAutomated, canAutomate, "Auto", "Ajuste automatiquement la puissance");
 
     [Fact]
     public void Un_rituel_inactif_n_annonce_pas_de_bonus()
@@ -116,13 +116,13 @@ public class RitualsViewTests
     {
         var (_, _, inactive) = BuildProbeWindow(visible: true, rituals:
         [
-            new("A", "Rituel A", "desc", "cout", null, false, "Lancer", true, 0, false, false, "Auto", "tooltip"),
+            new("A", "Rituel A", "desc", "cout", null, false, "Lancer", true, 0, false, false, false, "Auto", "tooltip"),
         ]);
         Assert.DoesNotContain(VisibleButtonLabels(inactive), l => l is "+" or "-");
 
         var (_, _, active) = BuildProbeWindow(visible: true, rituals:
         [
-            new("B", "Rituel B", "desc", "cout", "bonus", true, "Arreter", true, 2, true, false, "Auto", "tooltip"),
+            new("B", "Rituel B", "desc", "cout", "bonus", true, "Arreter", true, 2, true, false, false, "Auto", "tooltip"),
         ]);
         var labels = VisibleButtonLabels(active);
         Assert.Contains("+", labels);

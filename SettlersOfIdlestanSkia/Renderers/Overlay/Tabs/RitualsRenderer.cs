@@ -146,6 +146,7 @@ public sealed class RitualsRenderer : IDisposable
                 Power: active?.Power ?? 0,
                 CanIncreasePower: isActive && magic.CanIncreaseRitualPower(def.Id),
                 IsAutomated: active?.IsAutomated ?? false,
+                CanAutomate: magic.IsDivineRitualsActive,
                 AutoLabel: _localization.Get("ritual_auto_label"),
                 AutoTooltip: _localization.Get("ritual_auto_tooltip")));
         }

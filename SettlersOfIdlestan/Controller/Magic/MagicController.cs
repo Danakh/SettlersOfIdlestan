@@ -345,13 +345,29 @@ namespace SettlersOfIdlestan.Controller.Magic
         }
 
         /// <summary>
-        /// Active ou désactive l'ajustement automatique de puissance d'un rituel actif (case à cocher
-        /// "auto" sous les boutons -/+, voir <see cref="ProcessRitualPowerAutomation"/>).
+        /// Débloque la case à cocher "auto" (voir <see cref="SetRitualAutomated"/> et
+        /// <see cref="ProcessRitualPowerAutomation"/>) : pouvoir divin Rituels Divins.
+        /// </summary>
+        public bool IsDivineRitualsActive => _godState?.AscensionState.IsDivineRitualsActive == true;
+
+        /// <summary>
+        /// Active ou désactive l'ajustement automatique de puissance d'un rituel (case à cocher "auto"
+        /// sous les boutons -/+, voir <see cref="ProcessRitualPowerAutomation"/>) — débloquée par le
+        /// pouvoir divin Rituels Divins (<see cref="IsDivineRitualsActive"/>), visible dès lors même sur
+        /// un rituel pas encore lancé : l'activer le lance alors au passage, aux mêmes conditions que
+        /// <see cref="LaunchRitual"/> (cristaux, budget, nombre de rituels actifs simultanés).
         /// </summary>
         public bool SetRitualAutomated(RitualId id, bool automated)
         {
+            if (!IsDivineRitualsActive) return false;
+
             var active = GetActiveRitual(id);
-            if (active == null) return false;
+            if (active == null)
+            {
+                if (!automated || !LaunchRitual(id)) return false;
+                active = GetActiveRitual(id)!;
+            }
+
             if (active.IsAutomated == automated) return true;
             active.IsAutomated = automated;
             NotifyRitualsChanged();
@@ -770,6 +786,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             long cycles = TickCooldown.ConsumeElapsedCycles(_clock.CurrentTick, ref lastTick, RitualAutomationIntervalTicks);
             _lastRitualAutomationTick = lastTick;
             if (cycles <= 0) return;
+            if (!IsDivineRitualsActive) return;
             if (!_state.Magic.ActiveRituals.Any(r => r.IsAutomated)) return;
 
             bool changed = false;

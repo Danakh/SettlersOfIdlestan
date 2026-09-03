@@ -1567,7 +1567,7 @@
   "ritual_bonus_current": "Current bonus: {0}",
   "ritual_tooltip_double_chance": "chance to double automatic harvests",
   "ritual_auto_label": "Auto",
-  "ritual_auto_tooltip": "Automatically adjusts power once per second: increases while net crystal gain/s stays positive and the power cap allows it, decreases otherwise.",
+  "ritual_auto_tooltip": "Launches the ritual if needed, then automatically adjusts its power once per second: increases while net crystal gain/s stays positive and the power cap allows it, decreases otherwise.",
   "rituals_spells_header": "Spells",
   "spell_cast_cost": "Cost: {0} crystals ➔ +{1} gold",
   "spell_cast_cost_troops": "Cost: {0} crystals ➔ +{1} troops",

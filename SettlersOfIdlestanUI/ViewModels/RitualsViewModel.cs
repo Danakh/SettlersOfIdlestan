@@ -24,6 +24,7 @@ public sealed class RitualRowViewModel : ViewModelBase
     public string PowerText => _snapshot.Power.ToString();
     public bool CanIncreasePower => _snapshot.CanIncreasePower;
     public bool IsAutomated => _snapshot.IsAutomated;
+    public bool CanAutomate => _snapshot.CanAutomate;
     public string AutoLabel => _snapshot.AutoLabel;
     public string AutoTooltip => _snapshot.AutoTooltip;
 
@@ -45,6 +46,7 @@ public sealed class RitualRowViewModel : ViewModelBase
         if (previous.Power != snapshot.Power) RaisePropertyChanged(nameof(PowerText));
         if (previous.CanIncreasePower != snapshot.CanIncreasePower) RaisePropertyChanged(nameof(CanIncreasePower));
         if (previous.IsAutomated != snapshot.IsAutomated) RaisePropertyChanged(nameof(IsAutomated));
+        if (previous.CanAutomate != snapshot.CanAutomate) RaisePropertyChanged(nameof(CanAutomate));
     }
 }
 

@@ -283,7 +283,9 @@ public sealed class RitualsView : UserControl
                 Padding = new Thickness(4, 0, 0, 0),
                 [!ContentProperty] = new Binding(nameof(RitualRowViewModel.AutoLabel)),
                 [!ToolTip.TipProperty] = new Binding(nameof(RitualRowViewModel.AutoTooltip)),
-                [!IsVisibleProperty] = new Binding(nameof(RitualRowViewModel.IsActive)),
+                // Visible des que le pouvoir divin Rituels Divins est debloque, meme sur un rituel pas
+                // encore lance : le cocher le lance alors au passage (voir MagicController.SetRitualAutomated).
+                [!IsVisibleProperty] = new Binding(nameof(RitualRowViewModel.CanAutomate)),
                 [!ToggleButton.IsCheckedProperty] = new Binding(nameof(RitualRowViewModel.IsAutomated)),
             };
             auto.Click += (_, _) =>

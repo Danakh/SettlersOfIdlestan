@@ -71,6 +71,14 @@ namespace SOITests.ControllerTests
             return godState;
         }
 
+        /// <summary>GodState de test avec Rituels Divins débloqué (condition de la case "auto").</summary>
+        private static GodState CreateDivineRitualsGodState()
+        {
+            var godState = new GodState();
+            godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.DivineRituals);
+            return godState;
+        }
+
         /// <summary>Ajoute une route lointaine offrant un vertex constructible, hors de portée de la ville existante.</summary>
         private static Vertex AddFarBuildableVertex(Civilization civ)
         {
@@ -212,7 +220,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void SetRitualAutomated_BlocksManualPowerButtons()
         {
-            var (state, _, controller) = CreateSetup();
+            var (state, _, controller) = CreateSetup(CreateDivineRitualsGodState());
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             AddMageTower(state);
@@ -229,12 +237,60 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void SetRitualAutomated_FailsWithoutDivineRitualsPower()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state);
+            civ.AddResource(Resource.Crystal, 50);
+
+            controller.LaunchRitual(RitualId.Growth);
+
+            Assert.False(controller.IsDivineRitualsActive);
+            Assert.False(controller.SetRitualAutomated(RitualId.Growth, true));
+            Assert.False(controller.GetActiveRitual(RitualId.Growth)!.IsAutomated);
+        }
+
+        [Fact]
+        public void SetRitualAutomated_LaunchesRitualWhenNotYetActive()
+        {
+            // La case "auto" est visible et utilisable dès le pouvoir divin débloqué, même sur un
+            // rituel jamais lancé : l'activer doit le lancer au passage.
+            var (state, _, controller) = CreateSetup(CreateDivineRitualsGodState());
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state);
+            civ.AddResource(Resource.Crystal, 50);
+
+            Assert.Null(controller.GetActiveRitual(RitualId.Growth));
+            Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
+
+            var active = controller.GetActiveRitual(RitualId.Growth);
+            Assert.NotNull(active);
+            Assert.True(active!.IsAutomated);
+            Assert.Equal(40, civ.GetResourceQuantity(Resource.Crystal)); // coût de lancement payé (10)
+        }
+
+        [Fact]
+        public void SetRitualAutomated_FailsToLaunchWithoutCrystals()
+        {
+            var (state, _, controller) = CreateSetup(CreateDivineRitualsGodState());
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state);
+
+            Assert.False(controller.SetRitualAutomated(RitualId.Growth, true));
+            Assert.Null(controller.GetActiveRitual(RitualId.Growth));
+        }
+
+        [Fact]
         public void CanIncreaseRitualPower_IgnoresPowerAlreadyUsedByAutomatedRituals()
         {
             // Budget de 3 : un rituel automatisé occupe déjà toute la puissance restante (2), mais le
             // bouton + d'un second rituel non automatisé reste actif car seule la somme des rituels non
             // automatisés (1) compte face au budget — l'automatisé cédera la place si besoin.
-            var (state, _, controller) = CreateSetup();
+            var (state, _, controller) = CreateSetup(CreateDivineRitualsGodState());
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth, RitualId.Clairvoyance);
             civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
@@ -259,7 +315,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void IncreaseRitualPower_ManualIncreaseImmediatelyReducesAutomatedRitualWhenOverBudget()
         {
-            var (state, _, controller) = CreateSetup();
+            var (state, _, controller) = CreateSetup(CreateDivineRitualsGodState());
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth, RitualId.Clairvoyance);
             civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
@@ -287,7 +343,7 @@ namespace SOITests.ControllerTests
         {
             // Sans production de cristaux, l'entretien du rituel rend le gain net négatif : la puissance
             // automatisée doit diminuer d'1 point par seconde jusqu'à l'arrêt complet du rituel.
-            var (state, clock, controller) = CreateSetup();
+            var (state, clock, controller) = CreateSetup(CreateDivineRitualsGodState());
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             AddMageTower(state, level: 10); // budget de puissance = floor(1 + 10×10%) = 2
@@ -331,7 +387,8 @@ namespace SOITests.ControllerTests
             var harvestController = new HarvestController(state, clock);
             var controller = new MagicController();
             controller.Initialize(state, clock, new GamePRNG(42),
-                new CityBuilderController(state), new BuildingController(state), harvestController: harvestController);
+                new CityBuilderController(state), new BuildingController(state), harvestController: harvestController,
+                godState: CreateDivineRitualsGodState());
 
             clock.SimulateAdvance(1, chunkTicks: 1); // amorce le suivi (coldStartOnZero)
 
