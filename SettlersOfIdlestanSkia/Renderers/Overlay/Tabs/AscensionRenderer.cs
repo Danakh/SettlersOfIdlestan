@@ -337,14 +337,19 @@ public sealed class AscensionRenderer : IDisposable
         }
 
         // Zone de survol couvrant l'essence divine et la réserve du Reliquaire : un seul tooltip
-        // explique le calcul du plafond (corruption + pouvoirs divins débloqués) et précise que le
-        // Reliquaire n'y compte pas — remplace l'ancienne mention texte "(max lié à la corruption)".
+        // explique le calcul du plafond (corruption + pouvoirs divins débloqués, ce second terme
+        // plafonné à la corruption — voir DivineBones.GetPowersBonus) et précise que le Reliquaire
+        // n'y compte pas — remplace l'ancienne mention texte "(max lié à la corruption)".
+        int powersBonus = SettlersOfIdlestan.Model.IslandFeatures.DivineBones.GetPowersBonus(corruptionLevel, unlockedPowers);
         var essenceZoneRect = new SKRect(essenceZoneRight - essenceZoneWidth - 6f, essenceZoneTop, essenceZoneRight + 4f, nextLineY - 2f);
         if (essenceZoneRect.Contains(_hoverPosition.X, _hoverPosition.Y))
         {
             _hoveredLockedRect = essenceZoneRect;
-            _hoveredLockedTooltip = _localization.GetFormated("ascension_divine_essence_cap_tooltip",
-                corruptionLevel, unlockedPowers, essenceCap);
+            _hoveredLockedTooltip = powersBonus < unlockedPowers
+                ? _localization.GetFormated("ascension_divine_essence_cap_tooltip_capped",
+                    corruptionLevel, unlockedPowers, powersBonus, essenceCap, corruptionLevel)
+                : _localization.GetFormated("ascension_divine_essence_cap_tooltip",
+                    corruptionLevel, unlockedPowers, essenceCap);
         }
 
         float ascendSectionY = Math.Max(y + 40, nextLineY);

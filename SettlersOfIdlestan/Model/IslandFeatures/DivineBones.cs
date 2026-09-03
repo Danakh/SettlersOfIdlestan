@@ -82,11 +82,23 @@ public class DivineBones : Monument
     /// Nombre maximum d'essences divines que le joueur peut détenir (GodState.DivineEssence) au
     /// niveau de corruption de cette feature : le niveau de corruption lui-même, plus 1 par pouvoir
     /// divin déjà débloqué (voir <see cref="UnlockedPowersBonus"/>, et
-    /// AscensionController.GetDivineEssenceCap pour l'équivalent cross-feature). Pour en obtenir
-    /// davantage, il faut donc soit prestige pour relever la corruption, soit débloquer un nouveau
-    /// pouvoir divin.
+    /// AscensionController.GetDivineEssenceCap pour l'équivalent cross-feature) — ce second terme est
+    /// cependant plafonné au niveau de corruption (voir <see cref="GetPowersBonus"/>) : les pouvoirs
+    /// divins ne peuvent donc jamais, à eux seuls, faire plus que doubler le plafond de corruption.
+    /// Pour en obtenir davantage, il faut donc soit prestige pour relever la corruption, soit
+    /// débloquer un nouveau pouvoir divin, tant que ce second levier n'est pas déjà saturé.
     /// </summary>
-    public int GetEssenceCap() => Math.Max(0, CorruptionLevel) + UnlockedPowersBonus;
+    public int GetEssenceCap() => Math.Max(0, CorruptionLevel) + GetPowersBonus(CorruptionLevel, UnlockedPowersBonus);
+
+    /// <summary>
+    /// Part du plafond d'essence divine (<see cref="GetEssenceCap"/>, AscensionController.GetDivineEssenceCap)
+    /// apportée par les pouvoirs divins débloqués : 1 par pouvoir, mais plafonnée au niveau de
+    /// corruption lui-même — un pouvoir divin ne peut donc jamais, à lui seul, dépasser ce que la
+    /// corruption autorise. Source unique de cette règle, partagée par la feature et par
+    /// AscensionController.GetDivineEssenceCap.
+    /// </summary>
+    public static int GetPowersBonus(int corruptionLevel, int unlockedPowersCount) =>
+        Math.Min(Math.Max(0, unlockedPowersCount), Math.Max(0, corruptionLevel));
 
     /// <summary>Multiplicateur appliqué au niveau de corruption de l'île pour obtenir le plafond de génération.</summary>
     public const int CorruptionCapMultiplier = 2;

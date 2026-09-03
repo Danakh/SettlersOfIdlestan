@@ -1427,6 +1427,7 @@
   "ascension_divine_essence_label": "Essence divine : {0} / {1}",
   "ascension_divine_essence_reliquary_label": "Réserve du Reliquaire : {0}",
   "ascension_divine_essence_cap_tooltip": "Plafond d'essence divine gagnable ce cycle : {0} (niveau de corruption actuel) + {1} (pouvoirs divins débloqués) = {2}. La réserve du Reliquaire ne compte pas dans ce plafond : elle vient s'ajouter par-dessus pour l'Ascension.",
+  "ascension_divine_essence_cap_tooltip_capped": "Plafond d'essence divine gagnable ce cycle : {0} (niveau de corruption actuel) + {2} (pouvoirs divins débloqués : {1}, mais plafonné au niveau de corruption) = {3}. La contribution des pouvoirs divins ne peut jamais dépasser {4} (le niveau de corruption). La réserve du Reliquaire ne compte pas dans ce plafond : elle vient s'ajouter par-dessus pour l'Ascension.",
   "ascension_divine_points_label": "Points divins : {0}",
   "ascension_action_button_with_total": "Ascension ({0})",
   "ascension_action_button_progress": "Ascension {0}/{1}",

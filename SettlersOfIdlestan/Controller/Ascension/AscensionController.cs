@@ -501,12 +501,17 @@ public class AscensionController : IModifierProvider
     /// — chaque Os Divins fige ce niveau à sa génération, ce plafond est donc celui d'un Os Divins
     /// fraîchement apparu), plus 1 par pouvoir divin déjà débloqué (GodState.AscensionState.UnlockedPowers,
     /// cross-prestige — voir DivineBonesController.ProcessInvestment, qui applique le même bonus au
-    /// plafond propre à chaque Os Divins). Pour l'augmenter, il faut donc soit prestige pour relever
-    /// la corruption, soit débloquer de nouveaux pouvoirs divins.
+    /// plafond propre à chaque Os Divins), ce second terme étant lui-même plafonné au niveau de
+    /// corruption (voir DivineBones.GetPowersBonus, source unique de cette règle). Pour l'augmenter,
+    /// il faut donc soit prestige pour relever la corruption, soit débloquer de nouveaux pouvoirs
+    /// divins tant que leur contribution n'est pas déjà saturée par la corruption.
     /// </summary>
-    public int GetDivineEssenceCap() =>
-        Math.Max(0, _godState?.PrestigeState?.CurrentCorruptionLevel ?? 0)
-        + (_godState?.AscensionState.UnlockedPowers.Count ?? 0);
+    public int GetDivineEssenceCap()
+    {
+        int corruptionLevel = Math.Max(0, _godState?.PrestigeState?.CurrentCorruptionLevel ?? 0);
+        int unlockedPowers = _godState?.AscensionState.UnlockedPowers.Count ?? 0;
+        return corruptionLevel + DivineBones.GetPowersBonus(corruptionLevel, unlockedPowers);
+    }
 
     /// <summary>
     /// Vrai si le Reliquaire (Reliquaire Sacré/Renforcé) est débloqué, c'est-à-dire si la

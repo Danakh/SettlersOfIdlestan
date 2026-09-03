@@ -1427,6 +1427,7 @@
   "ascension_divine_essence_label": "Divine Essence: {0} / {1}",
   "ascension_divine_essence_reliquary_label": "Reliquary reserve: {0}",
   "ascension_divine_essence_cap_tooltip": "Divine Essence cap gainable this cycle: {0} (current corruption level) + {1} (unlocked divine powers) = {2}. The Reliquary reserve does not count toward this cap: it is added on top of it for Ascension.",
+  "ascension_divine_essence_cap_tooltip_capped": "Divine Essence cap gainable this cycle: {0} (current corruption level) + {2} (unlocked divine powers: {1}, but capped at the corruption level) = {3}. The divine powers' contribution can never exceed {4} (the corruption level). The Reliquary reserve does not count toward this cap: it is added on top of it for Ascension.",
   "ascension_divine_points_label": "Divine Points: {0}",
   "ascension_action_button_with_total": "Ascend ({0})",
   "ascension_action_button_progress": "Ascend {0}/{1}",
