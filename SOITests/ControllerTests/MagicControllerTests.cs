@@ -207,6 +207,147 @@ namespace SOITests.ControllerTests
             Assert.False(controller.CanIncreaseRitualPower(RitualId.Growth));
         }
 
+        // ── Automatisation de la puissance ────────────────────────────────────
+
+        [Fact]
+        public void SetRitualAutomated_BlocksManualPowerButtons()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state);
+            civ.AddResource(Resource.Crystal, 50);
+
+            controller.LaunchRitual(RitualId.Growth);
+            Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
+            Assert.True(controller.GetActiveRitual(RitualId.Growth)!.IsAutomated);
+
+            Assert.False(controller.CanIncreaseRitualPower(RitualId.Growth));
+            Assert.False(controller.IncreaseRitualPower(RitualId.Growth));
+            Assert.False(controller.DecreaseRitualPower(RitualId.Growth));
+            Assert.Equal(1, controller.GetActiveRitual(RitualId.Growth)!.Power);
+        }
+
+        [Fact]
+        public void CanIncreaseRitualPower_IgnoresPowerAlreadyUsedByAutomatedRituals()
+        {
+            // Budget de 3 : un rituel automatisé occupe déjà toute la puissance restante (2), mais le
+            // bouton + d'un second rituel non automatisé reste actif car seule la somme des rituels non
+            // automatisés (1) compte face au budget — l'automatisé cédera la place si besoin.
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth, RitualId.Clairvoyance);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, 1),
+                new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 2),
+            }));
+            civ.AddResource(Resource.Crystal, 1000);
+
+            controller.LaunchRitual(RitualId.Growth);
+            controller.IncreaseRitualPower(RitualId.Growth);
+            controller.SetRitualAutomated(RitualId.Growth, true);
+            Assert.Equal(2, controller.GetActiveRitual(RitualId.Growth)!.Power);
+            Assert.Equal(3, controller.TotalPowerBudget);
+            Assert.Equal(2, controller.UsedPower);
+
+            controller.LaunchRitual(RitualId.Clairvoyance);
+            Assert.Equal(3, controller.UsedPower);
+            Assert.True(controller.CanIncreaseRitualPower(RitualId.Clairvoyance));
+        }
+
+        [Fact]
+        public void IncreaseRitualPower_ManualIncreaseImmediatelyReducesAutomatedRitualWhenOverBudget()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth, RitualId.Clairvoyance);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, 1),
+                new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 2), // budget = 3
+            }));
+            civ.AddResource(Resource.Crystal, 1000);
+
+            controller.LaunchRitual(RitualId.Growth);
+            controller.IncreaseRitualPower(RitualId.Growth); // puissance 2
+            controller.SetRitualAutomated(RitualId.Growth, true);
+
+            controller.LaunchRitual(RitualId.Clairvoyance); // puissance 1, total = 3 = budget
+            Assert.True(controller.IncreaseRitualPower(RitualId.Clairvoyance)); // puissance 2, total serait 4 > 3
+
+            // Le rituel automatisé cède immédiatement 1 point de puissance pour rester dans le budget.
+            Assert.Equal(1, controller.GetActiveRitual(RitualId.Growth)!.Power);
+            Assert.Equal(2, controller.GetActiveRitual(RitualId.Clairvoyance)!.Power);
+            Assert.Equal(3, controller.UsedPower);
+        }
+
+        [Fact]
+        public void ProcessRitualPowerAutomation_DecreasesPowerThenStopsWhenNetGainIsNegative()
+        {
+            // Sans production de cristaux, l'entretien du rituel rend le gain net négatif : la puissance
+            // automatisée doit diminuer d'1 point par seconde jusqu'à l'arrêt complet du rituel.
+            var (state, clock, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state, level: 10); // budget de puissance = floor(1 + 10×10%) = 2
+            civ.AddResource(Resource.Crystal, 1000);
+
+            controller.LaunchRitual(RitualId.Growth);
+            controller.IncreaseRitualPower(RitualId.Growth);
+            controller.SetRitualAutomated(RitualId.Growth, true);
+            Assert.Equal(2, controller.GetActiveRitual(RitualId.Growth)!.Power);
+
+            clock.SimulateAdvance(1, chunkTicks: 1); // amorce le suivi (coldStartOnZero)
+
+            clock.SimulateAdvance(MagicController.RitualAutomationIntervalTicks, chunkTicks: MagicController.RitualAutomationIntervalTicks);
+            Assert.Equal(1, controller.GetActiveRitual(RitualId.Growth)!.Power);
+
+            clock.SimulateAdvance(MagicController.RitualAutomationIntervalTicks, chunkTicks: MagicController.RitualAutomationIntervalTicks);
+            Assert.Null(controller.GetActiveRitual(RitualId.Growth));
+        }
+
+        [Fact]
+        public void ProcessRitualPowerAutomation_IncreasesPowerWhileNetGainStaysPositive()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.PlayerCivilization;
+            civ.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
+            civ.Cities[0].AddBuilding(new AlchimistHut { Level = 1 });
+            state.AddFeature(new FairyCircle(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Found = true });
+            UnlockMagic(civ, RitualId.Growth);
+            GrantCrystalStorage(civ, 100000);
+            civ.AddResource(Resource.Crystal, 100000);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                // ×100 vitesse de récolte de la Hutte d'Alchimie : largement de quoi couvrir l'entretien
+                // du rituel sur plusieurs paliers de puissance (coût quadratique).
+                new(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(BuildingType.AlchimistHut), EType.MULTIPLICATIVE, 99.0),
+                new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 9), // budget = 10
+            }));
+
+            var clock = new GameClock();
+            clock.Start();
+            var harvestController = new HarvestController(state, clock);
+            var controller = new MagicController();
+            controller.Initialize(state, clock, new GamePRNG(42),
+                new CityBuilderController(state), new BuildingController(state), harvestController: harvestController);
+
+            clock.SimulateAdvance(1, chunkTicks: 1); // amorce le suivi (coldStartOnZero)
+
+            Assert.True(controller.LaunchRitual(RitualId.Growth));
+            Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
+
+            // Sanité : la production dépasse largement l'entretien de départ.
+            var (gains, losses) = controller.GetCrystalGainsAndLosses();
+            Assert.True(gains.Sum(g => g.Rate) - losses.Sum(l => l.Rate) > 0);
+
+            clock.SimulateAdvance(MagicController.RitualAutomationIntervalTicks * 5,
+                chunkTicks: MagicController.RitualAutomationIntervalTicks);
+
+            Assert.True(controller.GetActiveRitual(RitualId.Growth)!.Power > 1);
+        }
+
         // ── Entretien & effondrement ─────────────────────────────────────────
 
         [Fact]

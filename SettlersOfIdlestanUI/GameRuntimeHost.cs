@@ -181,6 +181,7 @@ public sealed class GameRuntimeHost : IDisposable
 
     public void ToggleRitual(string key) => Invoke(r => r.ToggleRitual(key));
     public void ChangeRitualPower(string key, bool increase) => Invoke(r => r.ChangeRitualPower(key, increase));
+    public void SetRitualAutomated(string key, bool automated) => Invoke(r => r.SetRitualAutomated(key, automated));
     public void CastSpell(string key) => Invoke(r => r.CastSpell(key));
 
     public SkiaLayer.AutomationSnapshot GetAutomationSnapshot() =>

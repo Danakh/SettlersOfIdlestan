@@ -274,9 +274,27 @@ public sealed class RitualsView : UserControl
             powerRow.Children.Add(powerText);
             powerRow.Children.Add(plus);
 
+            var auto = new CheckBox
+            {
+                FontSize = 10,
+                Foreground = Summary,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 4, 0, 0),
+                Padding = new Thickness(4, 0, 0, 0),
+                [!ContentProperty] = new Binding(nameof(RitualRowViewModel.AutoLabel)),
+                [!ToolTip.TipProperty] = new Binding(nameof(RitualRowViewModel.AutoTooltip)),
+                [!IsVisibleProperty] = new Binding(nameof(RitualRowViewModel.IsActive)),
+                [!ToggleButton.IsCheckedProperty] = new Binding(nameof(RitualRowViewModel.IsAutomated)),
+            };
+            auto.Click += (_, _) =>
+            {
+                if (_row != null) _owner.SetAutomated(_row, auto.IsChecked == true);
+            };
+
             var right = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Top };
             right.Children.Add(toggle);
             right.Children.Add(powerRow);
+            right.Children.Add(auto);
 
             var layout = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(right, Dock.Right);

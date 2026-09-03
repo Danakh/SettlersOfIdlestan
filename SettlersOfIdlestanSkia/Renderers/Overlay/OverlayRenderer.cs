@@ -351,6 +351,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
     public void ToggleRitualFromHost(string key) => _ritualsRenderer.ToggleRitualFromHost(key);
     public void ChangeRitualPowerFromHost(string key, bool increase) => _ritualsRenderer.ChangeRitualPowerFromHost(key, increase);
+    public void SetRitualAutomatedFromHost(string key, bool automated) => _ritualsRenderer.SetRitualAutomatedFromHost(key, automated);
     public void CastSpellFromHost(string key) => _ritualsRenderer.CastSpellFromHost(key);
 
     /// <summary>Instantané de l'onglet Automatisation pour une vue portée par l'hôte.</summary>

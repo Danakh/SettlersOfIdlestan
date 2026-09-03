@@ -495,6 +495,7 @@ public sealed class GameScreen : IDisposable
 
     public void ToggleRitualFromHost(string key) => _overlayRenderer?.ToggleRitualFromHost(key);
     public void ChangeRitualPowerFromHost(string key, bool increase) => _overlayRenderer?.ChangeRitualPowerFromHost(key, increase);
+    public void SetRitualAutomatedFromHost(string key, bool automated) => _overlayRenderer?.SetRitualAutomatedFromHost(key, automated);
     public void CastSpellFromHost(string key) => _overlayRenderer?.CastSpellFromHost(key);
 
     /// <summary>Instantané de l'onglet Automatisation pour une vue portée par l'hôte.</summary>

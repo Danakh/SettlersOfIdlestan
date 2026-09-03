@@ -144,7 +144,10 @@ public sealed class RitualsRenderer : IDisposable
                 ButtonLabel: _localization.Get(isActive ? "ritual_button_stop" : "ritual_button_launch"),
                 IsButtonEnabled: isActive || magic.CanLaunchRitual(def.Id),
                 Power: active?.Power ?? 0,
-                CanIncreasePower: isActive && magic.CanIncreaseRitualPower(def.Id)));
+                CanIncreasePower: isActive && magic.CanIncreaseRitualPower(def.Id),
+                IsAutomated: active?.IsAutomated ?? false,
+                AutoLabel: _localization.Get("ritual_auto_label"),
+                AutoTooltip: _localization.Get("ritual_auto_tooltip")));
         }
 
         var spells = new List<SpellRowSnapshot>();
@@ -215,6 +218,13 @@ public sealed class RitualsRenderer : IDisposable
         var magic = _gameControllerService.MainGameController.MagicController;
         if (increase) magic.IncreaseRitualPower(id);
         else magic.DecreaseRitualPower(id);
+    }
+
+    /// <summary>Active ou désactive l'ajustement automatique de puissance d'un rituel depuis une vue portée par l'hôte.</summary>
+    public void SetRitualAutomatedFromHost(string key, bool automated)
+    {
+        if (!Enum.TryParse<RitualId>(key, out var id)) return;
+        _gameControllerService.MainGameController.MagicController.SetRitualAutomated(id, automated);
     }
 
     /// <summary>Lance un sort, ou entre en sélection de cible, depuis une vue portée par l'hôte.</summary>

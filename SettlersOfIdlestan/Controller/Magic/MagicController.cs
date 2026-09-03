@@ -29,6 +29,9 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// <summary>Durée d'un cycle d'entretien des rituels (1000 ticks = 10 s).</summary>
         public const long UpkeepIntervalTicks = 1000L;
 
+        /// <summary>Intervalle entre deux ajustements de puissance des rituels automatisés (100 ticks = 1 s).</summary>
+        public const long RitualAutomationIntervalTicks = 100L;
+
         /// <summary>Intervalle entre deux applications des dégâts du rituel Lumière des Profondeurs (100 ticks = 1 s).</summary>
         public const long TempleMonsterDamageIntervalTicks = 100L;
 
@@ -47,6 +50,7 @@ namespace SettlersOfIdlestan.Controller.Magic
         private MagicModifierProvider? _provider;
         private long _lastPassiveTick;
         private long _lastTempleDamageTick;
+        private long _lastRitualAutomationTick;
         private CityBuilderController? _cityBuilder;
         private BuildingController? _buildingController;
         private HarvestController? _harvestController;
@@ -81,6 +85,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             // ProcessTempleMonsterDamage, qui rejoue un cycle par cycle — potentiellement des
             // millions d'itérations au lieu du léger différé attendu en début de partie).
             _lastTempleDamageTick = clock?.CurrentTick ?? 0;
+            _lastRitualAutomationTick = clock?.CurrentTick ?? 0;
 
             if (_state != null && _state.Civilizations.Count > 0)
             {
@@ -105,6 +110,8 @@ namespace SettlersOfIdlestan.Controller.Magic
             catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessSpellExhaustion), ex); }
             try { ProcessAbundanceAutoCast(); }
             catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessAbundanceAutoCast), ex); }
+            try { ProcessRitualPowerAutomation(); }
+            catch (Exception ex) { GameLog.Error(nameof(MagicController), nameof(ProcessRitualPowerAutomation), ex); }
         }
 
         // ── État général ──────────────────────────────────────────────────────
@@ -166,6 +173,17 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         /// <summary>Puissance actuellement consommée par les rituels actifs.</summary>
         public int UsedPower => _state?.Magic.ActiveRituals.Sum(r => r.Power) ?? 0;
+
+        /// <summary>
+        /// Puissance consommée par les seuls rituels non automatisés. Sert de référence au lancement et
+        /// au réglage manuel de puissance (<see cref="CanLaunchRitual"/>, <see cref="CanIncreaseRitualPower"/>)
+        /// à la place de <see cref="UsedPower"/> : un rituel automatisé cède immédiatement 1 point de
+        /// puissance (voir <see cref="ReduceAutomatedPowerIfOverBudget"/>) dès qu'une augmentation manuelle
+        /// ferait dépasser le budget total, donc le bouton + ne doit pas être bloqué par la puissance déjà
+        /// occupée par l'automatisation.
+        /// </summary>
+        public int UsedPowerByNonAutomatedRituals
+            => _state?.Magic.ActiveRituals.Where(r => !r.IsAutomated).Sum(r => r.Power) ?? 0;
 
         /// <summary>Clé de source pour l'entretien en cristaux des rituels actifs.</summary>
         public const string RitualUpkeepSourceKey = "tooltip_source_ritual_upkeep";
@@ -255,7 +273,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (!IsMagicUnlocked() || !IsRitualKnown(id)) return false;
             if (GetActiveRitual(id) != null) return false;
             if (_state!.Magic.ActiveRituals.Count >= MaxActiveRituals) return false;
-            if (UsedPower + 1 > TotalPowerBudget) return false;
+            if (UsedPowerByNonAutomatedRituals + 1 > TotalPowerBudget) return false;
             return civ.GetResourceQuantity(Resource.Crystal) >= GetLaunchCost(def, 1);
         }
 
@@ -267,6 +285,7 @@ namespace SettlersOfIdlestan.Controller.Magic
 
             civ.RemoveResource(Resource.Crystal, GetLaunchCost(def, 1));
             _state!.Magic.ActiveRituals.Add(new ActiveRitual(id, 1, _clock?.CurrentTick ?? 0));
+            ReduceAutomatedPowerIfOverBudget();
             NotifyRitualsChanged();
             return true;
         }
@@ -289,12 +308,16 @@ namespace SettlersOfIdlestan.Controller.Magic
             return GetLaunchCost(def, active.Power + 1) - GetLaunchCost(def, active.Power);
         }
 
+        /// <summary>
+        /// Faux pour un rituel automatisé : sa puissance n'est ajustée que par
+        /// <see cref="ProcessRitualPowerAutomation"/>, jamais par les boutons -/+.
+        /// </summary>
         public bool CanIncreaseRitualPower(RitualId id)
         {
             var civ = GetPlayerCiv();
             var active = GetActiveRitual(id);
-            if (civ == null || active == null) return false;
-            if (UsedPower + 1 > TotalPowerBudget) return false;
+            if (civ == null || active == null || active.IsAutomated) return false;
+            if (UsedPowerByNonAutomatedRituals + 1 > TotalPowerBudget) return false;
             return civ.GetResourceQuantity(Resource.Crystal) >= GetPowerIncreaseCost(id);
         }
 
@@ -304,19 +327,59 @@ namespace SettlersOfIdlestan.Controller.Magic
             var civ = GetPlayerCiv()!;
             civ.RemoveResource(Resource.Crystal, GetPowerIncreaseCost(id));
             GetActiveRitual(id)!.Power++;
+            ReduceAutomatedPowerIfOverBudget();
             NotifyRitualsChanged();
             return true;
         }
 
-        /// <summary>Diminue la puissance d'un rituel (gratuit). À puissance 1, arrête le rituel.</summary>
+        /// <summary>Diminue la puissance d'un rituel (gratuit). À puissance 1, arrête le rituel. Sans effet
+        /// sur un rituel automatisé, dont la puissance n'est ajustée que par <see cref="ProcessRitualPowerAutomation"/>.</summary>
         public bool DecreaseRitualPower(RitualId id)
         {
             var active = GetActiveRitual(id);
-            if (active == null) return false;
+            if (active == null || active.IsAutomated) return false;
             if (active.Power <= 1) return StopRitual(id);
             active.Power--;
             NotifyRitualsChanged();
             return true;
+        }
+
+        /// <summary>
+        /// Active ou désactive l'ajustement automatique de puissance d'un rituel actif (case à cocher
+        /// "auto" sous les boutons -/+, voir <see cref="ProcessRitualPowerAutomation"/>).
+        /// </summary>
+        public bool SetRitualAutomated(RitualId id, bool automated)
+        {
+            var active = GetActiveRitual(id);
+            if (active == null) return false;
+            if (active.IsAutomated == automated) return true;
+            active.IsAutomated = automated;
+            NotifyRitualsChanged();
+            return true;
+        }
+
+        /// <summary>
+        /// Après une augmentation manuelle de puissance (ou un nouveau lancement) qui peut avoir porté
+        /// <see cref="UsedPower"/> au-delà de <see cref="TotalPowerBudget"/> — le contrôle d'admission de
+        /// ces actions ne compare que <see cref="UsedPowerByNonAutomatedRituals"/> au budget — réduit
+        /// immédiatement d'1 point de puissance le rituel automatisé le plus puissant pour rendre la place
+        /// prise par l'action manuelle. Répété tant que nécessaire (plusieurs rituels automatisés, ou
+        /// budget qui aurait changé entre-temps).
+        /// </summary>
+        private void ReduceAutomatedPowerIfOverBudget()
+        {
+            if (_state == null) return;
+            while (UsedPower > TotalPowerBudget)
+            {
+                var automated = _state.Magic.ActiveRituals
+                    .Where(r => r.IsAutomated)
+                    .OrderByDescending(r => r.Power)
+                    .FirstOrDefault();
+                if (automated == null) break;
+
+                if (automated.Power > 1) automated.Power--;
+                else _state.Magic.ActiveRituals.Remove(automated);
+            }
         }
 
         // ── Sorts instantanés ────────────────────────────────────────────────
@@ -679,6 +742,79 @@ namespace SettlersOfIdlestan.Controller.Magic
         {
             _state!.Magic.ActiveRituals.Remove(active);
             _state.EventLog.Add(GameEventType.RitualCollapsed);
+        }
+
+        // ── Automatisation de la puissance ───────────────────────────────────
+
+        /// <summary>Somme des gains et pertes de cristaux/seconde actuels (mêmes sources que <see cref="GetCrystalGainsAndLosses"/>).</summary>
+        private double GetNetCrystalPerSecond()
+        {
+            var (gains, losses) = GetCrystalGainsAndLosses();
+            return gains.Sum(g => g.Rate) - losses.Sum(l => l.Rate);
+        }
+
+        /// <summary>
+        /// Une fois par seconde, ajuste la puissance des rituels automatisés (case "auto" sous les
+        /// boutons -/+, voir <see cref="SetRitualAutomated"/>) : si le gain net de cristaux/seconde est
+        /// négatif, réduit d'1 point le rituel automatisé le plus puissant (l'arrêtant s'il n'a plus que
+        /// la puissance 1) ; sinon augmente d'1 point le rituel automatisé le moins puissant, mais
+        /// seulement si la puissance totale reste dans le budget ET si le supplément d'entretien qui en
+        /// résulte laisse le gain net strictement positif. Au plus un ajustement par seconde : on laisse
+        /// le tick suivant réévaluer la situation plutôt que de converger d'un coup, comme demandé.
+        /// </summary>
+        private void ProcessRitualPowerAutomation()
+        {
+            if (_state == null || _clock == null || _state.Civilizations.Count == 0) return;
+
+            long lastTick = _lastRitualAutomationTick;
+            long cycles = TickCooldown.ConsumeElapsedCycles(_clock.CurrentTick, ref lastTick, RitualAutomationIntervalTicks);
+            _lastRitualAutomationTick = lastTick;
+            if (cycles <= 0) return;
+            if (!_state.Magic.ActiveRituals.Any(r => r.IsAutomated)) return;
+
+            bool changed = false;
+            for (long i = 0; i < cycles; i++)
+                if (AdjustAutomatedRitualPowerOnce()) changed = true;
+
+            if (changed) NotifyRitualsChanged();
+        }
+
+        private bool AdjustAutomatedRitualPowerOnce()
+        {
+            var automatedRituals = _state!.Magic.ActiveRituals.Where(r => r.IsAutomated).ToList();
+            if (automatedRituals.Count == 0) return false;
+
+            double net = GetNetCrystalPerSecond();
+            if (net < 0)
+            {
+                var toReduce = automatedRituals.OrderByDescending(r => r.Power).First();
+                if (toReduce.Power > 1) toReduce.Power--;
+                else _state.Magic.ActiveRituals.Remove(toReduce);
+                return true;
+            }
+
+            if (UsedPower >= TotalPowerBudget) return false;
+
+            var civ = GetPlayerCiv();
+            if (civ == null) return false;
+
+            foreach (var active in automatedRituals.OrderBy(r => r.Power))
+            {
+                var def = RitualDefinitions.Get(active.Id);
+                if (def == null) continue;
+
+                double upkeepIncreasePerSecond = (GetUpkeepCost(def, active.Power + 1) - GetUpkeepCost(def, active.Power))
+                    / (UpkeepIntervalTicks / 100.0);
+                if (net - upkeepIncreasePerSecond <= 0) continue;
+
+                int cost = GetPowerIncreaseCost(active.Id);
+                if (civ.GetResourceQuantity(Resource.Crystal) < cost) continue;
+
+                civ.RemoveResource(Resource.Crystal, cost);
+                active.Power++;
+                return true;
+            }
+            return false;
         }
 
         // ── Cercles de Fées ───────────────────────────────────────────────────

@@ -304,6 +304,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void ToggleRitual(string key) => _gameScreen?.ToggleRitualFromHost(key);
     public void ChangeRitualPower(string key, bool increase) => _gameScreen?.ChangeRitualPowerFromHost(key, increase);
+    public void SetRitualAutomated(string key, bool automated) => _gameScreen?.SetRitualAutomatedFromHost(key, automated);
     public void CastSpell(string key) => _gameScreen?.CastSpellFromHost(key);
 
     /// <summary>Instantané de l'onglet Automatisation pour une vue portée par l'hôte.</summary>

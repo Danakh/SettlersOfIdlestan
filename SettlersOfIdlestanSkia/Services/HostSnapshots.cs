@@ -501,7 +501,10 @@ public sealed record RitualRowSnapshot(
     string ButtonLabel,
     bool IsButtonEnabled,
     int Power,
-    bool CanIncreasePower);
+    bool CanIncreasePower,
+    bool IsAutomated,
+    string AutoLabel,
+    string AutoTooltip);
 
 /// <param name="WarningText">Raison du blocage, deja localisee ; null si le sort est lancable.</param>
 /// <param name="ExhaustionStacks">Crans d'epuisement accumules (double le cout par cran).</param>

@@ -23,6 +23,9 @@ public sealed class RitualRowViewModel : ViewModelBase
     public bool IsButtonEnabled => _snapshot.IsButtonEnabled;
     public string PowerText => _snapshot.Power.ToString();
     public bool CanIncreasePower => _snapshot.CanIncreasePower;
+    public bool IsAutomated => _snapshot.IsAutomated;
+    public string AutoLabel => _snapshot.AutoLabel;
+    public string AutoTooltip => _snapshot.AutoTooltip;
 
     internal void Apply(SkiaLayer.RitualRowSnapshot snapshot)
     {
@@ -41,6 +44,7 @@ public sealed class RitualRowViewModel : ViewModelBase
         if (previous.IsButtonEnabled != snapshot.IsButtonEnabled) RaisePropertyChanged(nameof(IsButtonEnabled));
         if (previous.Power != snapshot.Power) RaisePropertyChanged(nameof(PowerText));
         if (previous.CanIncreasePower != snapshot.CanIncreasePower) RaisePropertyChanged(nameof(CanIncreasePower));
+        if (previous.IsAutomated != snapshot.IsAutomated) RaisePropertyChanged(nameof(IsAutomated));
     }
 }
 
@@ -215,6 +219,12 @@ public sealed class RitualsViewModel : ViewModelBase
     public void ChangePower(RitualRowViewModel ritual, bool increase)
     {
         _host.ChangeRitualPower(ritual.Key, increase);
+        Refresh();
+    }
+
+    public void SetAutomated(RitualRowViewModel ritual, bool automated)
+    {
+        _host.SetRitualAutomated(ritual.Key, automated);
         Refresh();
     }
 

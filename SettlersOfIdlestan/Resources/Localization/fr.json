@@ -1566,6 +1566,8 @@
   "ritual_button_stop": "Arrêter",
   "ritual_bonus_current": "Bonus actuel : {0}",
   "ritual_tooltip_double_chance": "chance de doubler les récoltes automatiques",
+  "ritual_auto_label": "Auto",
+  "ritual_auto_tooltip": "Ajuste automatiquement la puissance une fois par seconde : augmente tant que le gain net de cristaux/s reste positif et que la puissance maximale le permet, diminue sinon.",
   "rituals_spells_header": "Sorts",
   "spell_cast_cost": "Coût : {0} cristaux ➔ +{1} or",
   "spell_cast_cost_troops": "Coût : {0} cristaux ➔ +{1} troupes",

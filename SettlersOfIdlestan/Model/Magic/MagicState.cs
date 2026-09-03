@@ -13,6 +13,12 @@ public class ActiveRitual
     public int Power { get; set; } = 1;
     public long LastUpkeepTick { get; set; }
 
+    /// <summary>
+    /// Vrai si la puissance de ce rituel est ajustée automatiquement (voir
+    /// <c>MagicController.ProcessRitualPowerAutomation</c>) plutôt que par les boutons -/+.
+    /// </summary>
+    public bool IsAutomated { get; set; }
+
     public ActiveRitual() { }
 
     public ActiveRitual(RitualId id, int power, long launchTick)
