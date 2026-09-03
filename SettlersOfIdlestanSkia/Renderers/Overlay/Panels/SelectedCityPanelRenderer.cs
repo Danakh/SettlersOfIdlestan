@@ -587,6 +587,10 @@ public class SelectedCityPanelRenderer : PanelRendererBase
         if (_cityBuildingService.SelectedCity == null) return CityPanelSnapshot.Hidden;
 
         bool hasUnique = _cityBuildingService.HasUniqueBuildingsUnlocked();
+        // Une ville sans accès aux uniques (Hôtel de Ville < niv 3) retombe vraiment sur l'onglet
+        // classique : sans ce reset, l'onglet uniques resterait "armé" en mémoire et reviendrait
+        // tout seul dès que le niveau requis serait atteint, sans action du joueur.
+        if (!hasUnique) _showUniqueBuildings = false;
         bool showUnique = _showUniqueBuildings && hasUnique;
 
         var buildings = (showUnique
@@ -702,7 +706,9 @@ public class SelectedCityPanelRenderer : PanelRendererBase
 
         // La vue de l'hôte affiche toutes les lignes (défilement natif) : le survol peut donc
         // porter sur n'importe quel bâtiment, pas seulement sur une fenêtre défilée.
-        bool showUnique = _showUniqueBuildings && _cityBuildingService.HasUniqueBuildingsUnlocked();
+        bool hasUnique = _cityBuildingService.HasUniqueBuildingsUnlocked();
+        if (!hasUnique) _showUniqueBuildings = false;
+        bool showUnique = _showUniqueBuildings && hasUnique;
         var buildings = (showUnique
             ? _cityBuildingService.SelectedCityUniqueBuildingsAndBuildables()
             : _cityBuildingService.SelectedCityBuildingsAndBuildables()).ToList();
