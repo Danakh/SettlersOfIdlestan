@@ -352,6 +352,37 @@ public class MobileCampControllerTests
     }
 
     [Fact]
+    public void DestroyCampsInvalidatedByTerrain_RemovesCamp_WhenAllThreeHexesBecomeWater()
+    {
+        var (state, civ, v1, _, _) = RibbonIsland();
+        civ.AddMobileCamp(new MobileCamp(v1) { CivilizationIndex = 0 });
+        foreach (var hex in v1.GetHexes())
+            state.GetMapFor(v1)!.GetTile(hex)!.TerrainType = TerrainType.Water;
+        var (_, campController) = Controllers(state);
+
+        var destroyed = campController.DestroyCampsInvalidatedByTerrain();
+
+        Assert.Single(destroyed);
+        Assert.Empty(civ.MobileCamps);
+    }
+
+    [Fact]
+    public void DestroyCampsInvalidatedByTerrain_KeepsCamp_WhenAtLeastOneHexStaysLand()
+    {
+        var (state, civ, v1, _, _) = RibbonIsland();
+        civ.AddMobileCamp(new MobileCamp(v1) { CivilizationIndex = 0 });
+        var hexes = v1.GetHexes();
+        state.GetMapFor(v1)!.GetTile(hexes[0])!.TerrainType = TerrainType.Water;
+        state.GetMapFor(v1)!.GetTile(hexes[1])!.TerrainType = TerrainType.Water;
+        var (_, campController) = Controllers(state);
+
+        var destroyed = campController.DestroyCampsInvalidatedByTerrain();
+
+        Assert.Empty(destroyed);
+        Assert.Single(civ.MobileCamps);
+    }
+
+    [Fact]
     public void GetBuildCost_ReturnsFixedValues()
     {
         var cost = MobileCampController.GetBuildCost();

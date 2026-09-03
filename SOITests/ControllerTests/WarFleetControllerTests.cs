@@ -172,6 +172,34 @@ public class WarFleetControllerTests
     }
 
     [Fact]
+    public void DestroyFleetsInvalidatedByTerrain_RemovesFleet_WhenAHexIsNoLongerWater()
+    {
+        var (state, civ, beaconVertex) = IslandWithOwnBeacon();
+        civ.AddFleet(new WarFleet(beaconVertex) { CivilizationIndex = 0 });
+
+        state.GetMapFor(beaconVertex)!.GetTile(beaconVertex.GetHexes()[0])!.TerrainType = TerrainType.Plain;
+        var controller = Controller(state);
+
+        var destroyed = controller.DestroyFleetsInvalidatedByTerrain();
+
+        Assert.Single(destroyed);
+        Assert.Empty(civ.Fleets);
+    }
+
+    [Fact]
+    public void DestroyFleetsInvalidatedByTerrain_KeepsFleet_WhenStillFullyWater()
+    {
+        var (state, civ, beaconVertex) = IslandWithOwnBeacon();
+        civ.AddFleet(new WarFleet(beaconVertex) { CivilizationIndex = 0 });
+        var controller = Controller(state);
+
+        var destroyed = controller.DestroyFleetsInvalidatedByTerrain();
+
+        Assert.Empty(destroyed);
+        Assert.Single(civ.Fleets);
+    }
+
+    [Fact]
     public void GetBuildCost_ReturnsFixedValues()
     {
         var cost = WarFleetController.GetBuildCost();

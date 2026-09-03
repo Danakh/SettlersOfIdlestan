@@ -136,5 +136,54 @@ namespace SettlersOfIdlestan.Controller.Island
             civ.AddMaritimeBeacon(beacon);
             return beacon;
         }
+
+        /// <summary>
+        /// Retire une balise, que ce soit parce que le terrain sous elle ne lui laisse plus ses 3 hexs
+        /// d'eau (voir <see cref="DestroyBeaconsInvalidatedByTerrain"/>) ou pour toute autre raison
+        /// future. Point d'entrée unique de suppression, à l'image de
+        /// <see cref="CityBuilderController.DestroyCity"/> / <see cref="WarFleetController.DestroyFleet"/>.
+        /// </summary>
+        public void DestroyMaritimeBeacon(MaritimeBeacon beacon)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+            if (beacon == null) throw new ArgumentNullException(nameof(beacon));
+
+            var civ = _state.GetCivilization(beacon.CivilizationIndex)
+                      ?? throw new ArgumentException("Beacon's civilization not found", nameof(beacon));
+
+            civ.RemoveMaritimeBeacon(beacon);
+            _buildableVerticesCache.Clear();
+            _state.Visibility.Recalculate();
+        }
+
+        /// <summary>
+        /// Détruit toutes les Balises Maritimes dont le vertex n'est plus entouré de 3 hexs d'eau non
+        /// profonde stricte — même condition que <see cref="GetBuildableVertices"/> — et retourne
+        /// celles qui sont tombées. À appeler après toute transformation de terrain, aujourd'hui
+        /// uniquement Marche de Dieu (AscensionController.ApplyWalkOfGod), qui peut aussi bien assécher
+        /// un hex d'eau sous une balise existante (favoured terrain = Eau, Sirènes) que la laisser
+        /// intacte. Une balise détruite ainsi n'est pas assez pour retirer une Flotte de Guerre posée
+        /// dessus (entité indépendante) — voir <see cref="WarFleetController.DestroyFleetsInvalidatedByTerrain"/>.
+        /// </summary>
+        public IReadOnlyList<MaritimeBeacon> DestroyBeaconsInvalidatedByTerrain()
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            List<MaritimeBeacon>? destroyed = null;
+            foreach (var beacon in _state.GetAllMaritimeBeacons().ToList())
+            {
+                var map = _state.GetMapFor(beacon.Position);
+                if (map != null && IsFullyWater(map, beacon.Position)) continue;
+
+                (destroyed ??= new List<MaritimeBeacon>()).Add(beacon);
+                DestroyMaritimeBeacon(beacon);
+            }
+
+            return (IReadOnlyList<MaritimeBeacon>?)destroyed ?? Array.Empty<MaritimeBeacon>();
+        }
+
+        /// <summary>Vrai si les 3 hexs du vertex existent tous et sont de l'eau non profonde stricte (TerrainType.Water).</summary>
+        private static bool IsFullyWater(IslandMap map, Vertex vertex)
+            => vertex.GetHexes().All(h => map.Tiles.TryGetValue(h, out var tile) && tile.TerrainType == TerrainType.Water);
     }
 }

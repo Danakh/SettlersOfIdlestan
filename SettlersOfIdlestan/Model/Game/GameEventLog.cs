@@ -100,6 +100,15 @@ public enum GameEventType
     /// panneau du Monument concerné (Monument.PanelTitleKey) — voir MonumentInvestment.OnCityDestroyed.
     /// </summary>
     MonumentInvestmentBlockedByCityLoss,
+
+    /// <summary>
+    /// Une Balise Maritime, une Flotte de Guerre ou un Camp Mobile a été détruit parce que le terrain
+    /// sous lui a changé — voir MaritimeBeaconController.DestroyBeaconsInvalidatedByTerrain,
+    /// WarFleetController.DestroyFleetsInvalidatedByTerrain,
+    /// MobileCampController.DestroyCampsInvalidatedByTerrain. En pratique : sa propre Marche de Dieu.
+    /// Message = clé de localisation nommant la structure perdue (voir AscensionController.ApplyWalkOfGod).
+    /// </summary>
+    MilitaryVertexLostToTerrain,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

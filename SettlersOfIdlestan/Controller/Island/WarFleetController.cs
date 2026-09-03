@@ -120,5 +120,36 @@ namespace SettlersOfIdlestan.Controller.Island
             civ.RemoveFleet(fleet);
             _state.Visibility.Recalculate();
         }
+
+        /// <summary>
+        /// Détruit toutes les Flottes de Guerre dont le vertex n'est plus entouré de 3 hexs d'eau non
+        /// profonde stricte — même condition de placement qu'une Balise Maritime (voir
+        /// MaritimeBeaconController.GetBuildableVertices, sur laquelle une flotte se construit toujours)
+        /// — et retourne celles qui sont tombées. À appeler après toute transformation de terrain,
+        /// aujourd'hui uniquement Marche de Dieu (AscensionController.ApplyWalkOfGod), en parallèle de
+        /// MaritimeBeaconController.DestroyBeaconsInvalidatedByTerrain : la balise sous-jacente peut
+        /// tomber sans que ce contrôleur en soit informé (entités indépendantes), donc la flotte revérifie
+        /// la même condition par elle-même plutôt que de dépendre du sort de sa balise.
+        /// </summary>
+        public IReadOnlyList<WarFleet> DestroyFleetsInvalidatedByTerrain()
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            List<WarFleet>? destroyed = null;
+            foreach (var fleet in _state.GetAllFleets().ToList())
+            {
+                var map = _state.GetMapFor(fleet.Position);
+                if (map != null && IsFullyWater(map, fleet.Position)) continue;
+
+                (destroyed ??= new List<WarFleet>()).Add(fleet);
+                DestroyFleet(fleet);
+            }
+
+            return (IReadOnlyList<WarFleet>?)destroyed ?? Array.Empty<WarFleet>();
+        }
+
+        /// <summary>Vrai si les 3 hexs du vertex existent tous et sont de l'eau non profonde stricte (TerrainType.Water).</summary>
+        private static bool IsFullyWater(IslandMap map, Vertex vertex)
+            => vertex.GetHexes().All(h => map.Tiles.TryGetValue(h, out var tile) && tile.TerrainType == TerrainType.Water);
     }
 }

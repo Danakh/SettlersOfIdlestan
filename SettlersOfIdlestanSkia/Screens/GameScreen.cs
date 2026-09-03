@@ -1319,6 +1319,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_city_lost_to_terrain_title"),
                 _localizationService.Get("event_city_lost_to_terrain_body"),
                 NotificationIcon.StoreFail),
+            GameEventType.MilitaryVertexLostToTerrain => (
+                _localizationService.Get("event_military_vertex_lost_to_terrain_title"),
+                _localizationService.Get(entry.Message ?? "event_military_vertex_lost_to_terrain_beacon_body"),
+                NotificationIcon.StoreFail),
             _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
         };
         _notificationToastRenderer.ShowNotification(title, message, icon);

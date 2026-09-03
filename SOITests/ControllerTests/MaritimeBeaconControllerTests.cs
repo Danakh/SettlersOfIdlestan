@@ -48,6 +48,34 @@ public class MaritimeBeaconControllerTests
     }
 
     [Fact]
+    public void DestroyBeaconsInvalidatedByTerrain_RemovesBeacon_WhenAHexIsNoLongerWater()
+    {
+        var (state, civ, waterVertex) = WaterTriangleIsland(greatLighthouseLevel: 2);
+        civ.AddMaritimeBeacon(new MaritimeBeacon(waterVertex) { CivilizationIndex = 0 });
+
+        state.GetMapFor(waterVertex)!.GetTile(waterVertex.GetHexes()[0])!.TerrainType = TerrainType.Plain;
+        var controller = Controller(state);
+
+        var destroyed = controller.DestroyBeaconsInvalidatedByTerrain();
+
+        Assert.Single(destroyed);
+        Assert.Empty(civ.MaritimeBeacons);
+    }
+
+    [Fact]
+    public void DestroyBeaconsInvalidatedByTerrain_KeepsBeacon_WhenStillFullyWater()
+    {
+        var (state, civ, waterVertex) = WaterTriangleIsland(greatLighthouseLevel: 2);
+        civ.AddMaritimeBeacon(new MaritimeBeacon(waterVertex) { CivilizationIndex = 0 });
+        var controller = Controller(state);
+
+        var destroyed = controller.DestroyBeaconsInvalidatedByTerrain();
+
+        Assert.Empty(destroyed);
+        Assert.Single(civ.MaritimeBeacons);
+    }
+
+    [Fact]
     public void AreMaritimeBeaconsUnlocked_FalseWithoutGreatLighthouse()
     {
         var (state, _, _) = WaterTriangleIsland(greatLighthouseLevel: 0);

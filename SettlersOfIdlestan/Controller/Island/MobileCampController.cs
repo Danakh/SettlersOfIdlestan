@@ -252,6 +252,37 @@ namespace SettlersOfIdlestan.Controller.Island
             DestroyMobileCamp(camp);
         }
 
+        /// <summary>
+        /// Détruit tout Camp Mobile dont le vertex se retrouve entouré de 3 hexs d'eau non profonde
+        /// stricte — engloutissement symétrique à celui d'une ville (voir
+        /// CityBuilderController.DestroyCitiesInvalidatedByTerrain) mais inversé par rapport à une
+        /// Balise Maritime/Flotte de Guerre, qui exigent au contraire ces 3 hexs d'eau (voir
+        /// MaritimeBeaconController.DestroyBeaconsInvalidatedByTerrain,
+        /// WarFleetController.DestroyFleetsInvalidatedByTerrain). À appeler après toute transformation
+        /// de terrain, aujourd'hui uniquement Marche de Dieu (AscensionController.ApplyWalkOfGod).
+        /// Retourne les camps tombés.
+        /// </summary>
+        public IReadOnlyList<MobileCamp> DestroyCampsInvalidatedByTerrain()
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            List<MobileCamp>? destroyed = null;
+            foreach (var camp in _state.GetAllMobileCamps().ToList())
+            {
+                var map = _state.GetMapFor(camp.Position);
+                if (map == null || !IsFullyWater(map, camp.Position)) continue;
+
+                (destroyed ??= new List<MobileCamp>()).Add(camp);
+                DestroyMobileCamp(camp);
+            }
+
+            return (IReadOnlyList<MobileCamp>?)destroyed ?? Array.Empty<MobileCamp>();
+        }
+
+        /// <summary>Vrai si les 3 hexs du vertex existent tous et sont de l'eau non profonde stricte (TerrainType.Water).</summary>
+        private static bool IsFullyWater(IslandMap map, Vertex vertex)
+            => vertex.GetHexes().All(h => map.Tiles.TryGetValue(h, out var tile) && tile.TerrainType == TerrainType.Water);
+
         private static void GrantFreeBarracks(City city)
         {
             if (city.Buildings.Any(b => b.Type == BuildingType.Barracks)) return;

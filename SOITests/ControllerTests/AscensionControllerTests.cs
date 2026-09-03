@@ -602,6 +602,142 @@ public class AscensionControllerTests
         Assert.Contains(city, civ.Cities);
     }
 
+    /// <summary>
+    /// Île à 3 hexs d'eau (vertex unique) avec MaritimeBeaconController/WarFleetController câblés sur
+    /// AscensionController : c'est eux qui détruisent la balise/la flotte que le terrain transformé
+    /// prive de leurs 3 hexs d'eau (voir AscensionController.ApplyWalkOfGod /
+    /// MaritimeBeaconController.DestroyBeaconsInvalidatedByTerrain).
+    /// </summary>
+    private static (WorldState state, Civilization civ, HexCoord hex, Vertex vertex, AscensionController ascension) CreateWalkOfGodSetupWithBeaconAndFleetDestruction()
+    {
+        var h1 = new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var h2 = new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var h3 = new HexCoord(0, 1, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+
+        var map = new SettlersOfIdlestan.Model.IslandMap.IslandMap(new[]
+        {
+            new SettlersOfIdlestan.Model.IslandMap.HexTile(h1, TerrainType.Water),
+            new SettlersOfIdlestan.Model.IslandMap.HexTile(h2, TerrainType.Water),
+            new SettlersOfIdlestan.Model.IslandMap.HexTile(h3, TerrainType.Water),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new System.Collections.Generic.List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        var vertex = Vertex.Create(h1, h2, h3);
+        civ.AddMaritimeBeacon(new MaritimeBeacon(vertex) { CivilizationIndex = 0 });
+        civ.AddFleet(new WarFleet(vertex) { CivilizationIndex = 0 });
+        // Marche de Dieu ne cible que le brouillard de guerre levé (IsVisibleToPlayer) : une route
+        // touchant le vertex suffit à révéler ses 3 hexs (voir VisibleIslandMap).
+        civ.AddRoad(new Road(Edge.Create(h1, h2)) { CivilizationIndex = 0 });
+        state.Visibility.Recalculate();
+
+        var godState = new GodState { GodPoints = 100 };
+        godState.PrestigeState = new PrestigeState(state) { PrestigePoints = 10 };
+        godState.AscensionState.SelectedRace = RaceId.Human;
+
+        var maritimeBeaconController = new MaritimeBeaconController();
+        maritimeBeaconController.Initialize(state);
+        var warFleetController = new WarFleetController();
+        warFleetController.Initialize(state);
+
+        var ascension = new AscensionController();
+        ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), godState,
+            cityBuilderController: null, maritimeBeaconController, warFleetController);
+        UnlockWalkOfGod(ascension);
+
+        return (state, civ, h1, vertex, ascension);
+    }
+
+    /// <summary>
+    /// Marcher sur un hex d'eau (Humain, sans terrain de prédilection) le transforme toujours en
+    /// terrain terrestre au hasard (Water absent de RandomTerrainPool) : la balise posée sur ce vertex
+    /// perd un de ses 3 hexs d'eau, et la flotte posée dessus tombe avec elle.
+    /// </summary>
+    [Fact]
+    public void ApplyWalkOfGod_DestroysBeaconAndFleetLosingWaterSurround()
+    {
+        var (state, civ, hex, vertex, ascension) = CreateWalkOfGodSetupWithBeaconAndFleetDestruction();
+        SeedDominion(state, level: 5, q: hex.Q, r: hex.R);
+
+        Assert.True(ascension.ApplyWalkOfGod(hex));
+
+        Assert.NotEqual(TerrainType.Water, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
+        Assert.Empty(civ.MaritimeBeacons);
+        Assert.Empty(civ.Fleets);
+    }
+
+    /// <summary>
+    /// Île à 3 hexs de terre (vertex unique) avec MobileCampController câblé sur AscensionController :
+    /// c'est lui qui détruit le camp englouti sous 3 hexs d'eau par le terrain transformé (voir
+    /// AscensionController.ApplyWalkOfGod / MobileCampController.DestroyCampsInvalidatedByTerrain).
+    /// </summary>
+    private static (WorldState state, Civilization civ, HexCoord[] hexes, Vertex vertex, AscensionController ascension) CreateWalkOfGodSetupWithMobileCampDestruction()
+    {
+        var h1 = new HexCoord(0, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var h2 = new HexCoord(1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var h3 = new HexCoord(0, 1, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+
+        var map = new SettlersOfIdlestan.Model.IslandMap.IslandMap(new[]
+        {
+            new SettlersOfIdlestan.Model.IslandMap.HexTile(h1, TerrainType.Plain),
+            new SettlersOfIdlestan.Model.IslandMap.HexTile(h2, TerrainType.Plain),
+            new SettlersOfIdlestan.Model.IslandMap.HexTile(h3, TerrainType.Plain),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new System.Collections.Generic.List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        var vertex = Vertex.Create(h1, h2, h3);
+        civ.AddMobileCamp(new MobileCamp(vertex) { CivilizationIndex = 0 });
+        // Marche de Dieu ne cible que le brouillard de guerre levé (IsVisibleToPlayer) : une route
+        // touchant le vertex suffit à révéler ses 3 hexs (voir VisibleIslandMap).
+        civ.AddRoad(new Road(Edge.Create(h1, h2)) { CivilizationIndex = 0 });
+        state.Visibility.Recalculate();
+
+        var godState = new GodState { GodPoints = 100 };
+        godState.PrestigeState = new PrestigeState(state) { PrestigePoints = 10 };
+        // Sirène : l'Eau est son terrain de prédilection, donc marcher sur un hex de terre y fait
+        // toujours pousser de l'Eau de façon déterministe (voir ApplyWalkOfGod).
+        godState.AscensionState.SelectedRace = RaceId.Mermaid;
+
+        var cityBuilderController = new CityBuilderController();
+        cityBuilderController.Initialize(state);
+        var mobileCampController = new MobileCampController();
+        mobileCampController.Initialize(state, cityBuilderController);
+
+        var ascension = new AscensionController();
+        ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), godState,
+            cityBuilderController, mobileCampController: mobileCampController);
+        UnlockWalkOfGod(ascension);
+
+        return (state, civ, new[] { h1, h2, h3 }, vertex, ascension);
+    }
+
+    /// <summary>
+    /// Les 3 hexs du camp tournent à l'Eau un par un ; le camp ne tombe qu'une fois les 3 engloutis,
+    /// jamais avant (garde-fou symétrique à ApplyWalkOfGod_LeavesStillValidCityStanding).
+    /// </summary>
+    [Fact]
+    public void ApplyWalkOfGod_DestroysMobileCampOnceAllThreeHexesBecomeWater()
+    {
+        var (state, civ, hexes, vertex, ascension) = CreateWalkOfGodSetupWithMobileCampDestruction();
+
+        SeedDominion(state, level: 2, q: hexes[0].Q, r: hexes[0].R);
+        Assert.True(ascension.ApplyWalkOfGod(hexes[0]));
+        Assert.Single(civ.MobileCamps);
+
+        SeedDominion(state, level: 2, q: hexes[1].Q, r: hexes[1].R);
+        Assert.True(ascension.ApplyWalkOfGod(hexes[1]));
+        Assert.Single(civ.MobileCamps);
+
+        SeedDominion(state, level: 2, q: hexes[2].Q, r: hexes[2].R);
+        Assert.True(ascension.ApplyWalkOfGod(hexes[2]));
+
+        Assert.All(vertex.GetHexes(), h => Assert.Equal(TerrainType.Water, state.GetMapFor(h)!.GetTile(h)!.TerrainType));
+        Assert.Empty(civ.MobileCamps);
+    }
+
     /// <summary>Race sans contrainte de placement : aucun terrain privilégié, tirage aléatoire comme avant.</summary>
     [Fact]
     public void ApplyWalkOfGod_RaceWithoutFavouredTerrain_JustChangesTheTerrain()

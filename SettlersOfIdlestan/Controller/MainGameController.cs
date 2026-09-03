@@ -494,7 +494,7 @@ namespace SettlersOfIdlestan.Controller
             // pendant cette attente laisserait AscensionController non initialisé et
             // IsAscensionPending retomberait à faux, perdant la trace du choix de race en cours.
             AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState,
-                CityBuilderController);
+                CityBuilderController, MaritimeBeaconController, WarFleetController, MobileCampController);
 
             if (WorldState != null)
             {

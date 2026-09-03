@@ -115,6 +115,9 @@ public class AscensionController : IModifierProvider
     private GodState? _godState;
     private AscensionState? _ascensionState;
     private CityBuilderController? _cityBuilderController;
+    private MaritimeBeaconController? _maritimeBeaconController;
+    private WarFleetController? _warFleetController;
+    private MobileCampController? _mobileCampController;
 
     public event Action? OnModifiersChanged;
 
@@ -132,8 +135,23 @@ public class AscensionController : IModifierProvider
     /// transformé ne permet plus d'occuper (voir <see cref="ApplyWalkOfGod"/>). Omis, la marche
     /// transforme le terrain sans jamais rien détruire.
     /// </param>
+    /// <param name="maritimeBeaconController">
+    /// Optionnel : requis uniquement pour que Marche de Dieu détruise les Balises Maritimes que le
+    /// terrain transformé prive de leurs 3 hexs d'eau (voir <see cref="ApplyWalkOfGod"/>). Omis, la
+    /// marche transforme le terrain sans jamais détruire de balise.
+    /// </param>
+    /// <param name="warFleetController">
+    /// Optionnel : même rôle que <paramref name="maritimeBeaconController"/> pour les Flottes de
+    /// Guerre, posées sur le même vertex qu'une balise.
+    /// </param>
+    /// <param name="mobileCampController">
+    /// Optionnel : requis uniquement pour que Marche de Dieu détruise les Camps Mobiles engloutis sous
+    /// 3 hexs d'eau par le terrain transformé (voir <see cref="ApplyWalkOfGod"/>). Omis, la marche
+    /// transforme le terrain sans jamais détruire de camp.
+    /// </param>
     public void Initialize(WorldState? state, GameClock? clock, GamePRNG prng, HarvestController harvestController, GodState godState,
-        CityBuilderController? cityBuilderController = null)
+        CityBuilderController? cityBuilderController = null, MaritimeBeaconController? maritimeBeaconController = null,
+        WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -150,6 +168,9 @@ public class AscensionController : IModifierProvider
         _godState = godState;
         _ascensionState = godState.AscensionState;
         _cityBuilderController = cityBuilderController;
+        _maritimeBeaconController = maritimeBeaconController;
+        _warFleetController = warFleetController;
+        _mobileCampController = mobileCampController;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -970,7 +991,33 @@ public class AscensionController : IModifierProvider
         // terrain qu'exige sa race. Dieu ne fait pas d'exception pour ses fidèles : elle tombe.
         _cityBuilderController?.DestroyCitiesInvalidatedByTerrain();
 
+        // Même logique pour les emplacements militaires sans bâtiment : une Balise Maritime (et toute
+        // Flotte de Guerre posée dessus) qui perd l'un de ses 3 hexs d'eau ne tient plus, et un Camp
+        // Mobile submergé sous 3 hexs d'eau ne tient pas davantage — voir DestroyBeaconsInvalidatedByTerrain,
+        // DestroyFleetsInvalidatedByTerrain, DestroyCampsInvalidatedByTerrain.
+        if (_maritimeBeaconController != null)
+            LogMilitaryVertexTerrainLosses(_maritimeBeaconController.DestroyBeaconsInvalidatedByTerrain(),
+                b => b.CivilizationIndex, "event_military_vertex_lost_to_terrain_beacon_body");
+        if (_warFleetController != null)
+            LogMilitaryVertexTerrainLosses(_warFleetController.DestroyFleetsInvalidatedByTerrain(),
+                f => f.CivilizationIndex, "event_military_vertex_lost_to_terrain_fleet_body");
+        if (_mobileCampController != null)
+            LogMilitaryVertexTerrainLosses(_mobileCampController.DestroyCampsInvalidatedByTerrain(),
+                c => c.CivilizationIndex, "event_military_vertex_lost_to_terrain_camp_body");
+
         return true;
+    }
+
+    /// <summary>Journalise (avec toast) une entrée par item détruit appartenant au joueur, à l'image de CityBuilderController.DestroyCitiesInvalidatedByTerrain.</summary>
+    private void LogMilitaryVertexTerrainLosses<T>(IReadOnlyList<T> destroyed, Func<T, int> civilizationIndexOf, string messageKey)
+    {
+        if (_state == null) return;
+
+        foreach (var item in destroyed)
+        {
+            if (civilizationIndexOf(item) == _state.PlayerCivilization.Index)
+                _state.EventLog.Add(GameEventType.MilitaryVertexLostToTerrain, message: messageKey, toast: true);
+        }
     }
 
     /// <summary>Points divins appliqués par Présence de Dieu sur l'hex visé.</summary>
