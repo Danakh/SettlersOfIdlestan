@@ -1294,6 +1294,8 @@
   "task_reach_five_divine_essence_desc": "Reach 5 effective divine essences (essences held + Reliquary).",
   "task_charge_divine_reliquary_name": "Charge the Reliquary (option 1)",
   "task_charge_divine_reliquary_desc": "Perform a normal (non-corrupted) Prestige after unlocking the Sacred Reliquary, to keep part of your essence beyond the corruption cap. One of two ways to reach 5 divine essences.",
+  "task_build_necropolis_name": "Build a Necropolis",
+  "task_build_necropolis_desc": "Build a Necropolis on a hex bearing unpurified Divine Bones, to increase the divine points earned on your next Ascension.",
   "task_reach_corruption_level5_name": "Corruption Level 5 (option 2)",
   "task_reach_corruption_level5_desc": "Chain one more Corrupted Prestige to raise world corruption to 5, which directly raises the divine essence cap. The other way to reach 5 divine essences.",
   "task_perform_ascension_name": "Ascension",

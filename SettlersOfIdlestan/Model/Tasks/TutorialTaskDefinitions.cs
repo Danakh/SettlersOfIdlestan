@@ -364,6 +364,11 @@ public static class TutorialTaskDefinitions
             "task_charge_divine_reliquary_name", "task_charge_divine_reliquary_desc",
             (g, _, _) => g.HasChargedDivineReliquary),
 
+        new TutorialTask(TutorialTaskId.BuildNecropolis,
+            "task_build_necropolis_name", "task_build_necropolis_desc",
+            (g, _, island) => g.HasBuiltNecropolis
+                || island?.Features.OfType<Necropolis>().Any() == true),
+
         new TutorialTask(TutorialTaskId.ReachCorruptionLevel5,
             "task_reach_corruption_level5_name", "task_reach_corruption_level5_desc",
             (g, _, _) => g.MaxCorruptionLevelReached >= 5,

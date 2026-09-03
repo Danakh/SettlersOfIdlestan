@@ -42,6 +42,7 @@ public class TaskRecordController
     private WonderController? _wonderController;
     private CorruptionSpireController? _corruptionSpireController;
     private DivineBonesController? _divineBonesController;
+    private NecropolisController? _necropolisController;
 
     public event EventHandler<TutorialTaskId>? OnTaskCompleted;
     public event EventHandler<GameRecord>? PrestigeRecorded;
@@ -69,6 +70,7 @@ public class TaskRecordController
         WonderController wonderController,
         CorruptionSpireController corruptionSpireController,
         DivineBonesController divineBonesController,
+        NecropolisController necropolisController,
         GodState godState,
         PlayerLifetimeStats lifetimeStats)
     {
@@ -89,6 +91,7 @@ public class TaskRecordController
         _wonderController = wonderController;
         _corruptionSpireController = corruptionSpireController;
         _divineBonesController = divineBonesController;
+        _necropolisController = necropolisController;
         _godState = godState;
         _lifetimeStats = lifetimeStats;
         _lastSyncedGodPointsEarned = godState.TotalGodPointsEarned;
@@ -107,6 +110,7 @@ public class TaskRecordController
         _wonderController.OnWonderLevelUp += HandleWonderLevelUp;
         _corruptionSpireController.OnCorruptionSpireBuilt += HandleCorruptionSpireBuilt;
         _divineBonesController.OnDivineBonesPurified += HandleDivineBonesPurified;
+        _necropolisController.OnNecropolisPlaced += HandleNecropolisPlaced;
 
         RebuildPendingTaskIndices();
     }
@@ -127,6 +131,7 @@ public class TaskRecordController
         if (_wonderController != null) _wonderController.OnWonderLevelUp -= HandleWonderLevelUp;
         if (_corruptionSpireController != null) _corruptionSpireController.OnCorruptionSpireBuilt -= HandleCorruptionSpireBuilt;
         if (_divineBonesController != null) _divineBonesController.OnDivineBonesPurified -= HandleDivineBonesPurified;
+        if (_necropolisController != null) _necropolisController.OnNecropolisPlaced -= HandleNecropolisPlaced;
     }
 
     /// <summary>
@@ -400,6 +405,13 @@ public class TaskRecordController
             _gameRecord.HasBuiltWonder = true;
         if (level > _gameRecord.MaxWonderLevelReached)
             _gameRecord.MaxWonderLevelReached = level;
+        CheckTaskCompletions();
+    }
+
+    private void HandleNecropolisPlaced(object? sender, EventArgs e)
+    {
+        if (_gameRecord == null) return;
+        _gameRecord.HasBuiltNecropolis = true;
         CheckTaskCompletions();
     }
 

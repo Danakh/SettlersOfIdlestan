@@ -59,6 +59,7 @@ public enum TutorialTaskId
     PurifyDivineBones,
     ReachFiveDivineEssence,
     ChargeDivineReliquary,
+    BuildNecropolis,
     ReachCorruptionLevel5,
     PerformAscension,
 }

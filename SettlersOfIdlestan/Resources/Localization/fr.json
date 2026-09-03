@@ -1294,6 +1294,8 @@
   "task_reach_five_divine_essence_desc": "Atteignez 5 essences divines effectives (essences détenues + Reliquaire).",
   "task_charge_divine_reliquary_name": "Charger le Reliquaire (option 1)",
   "task_charge_divine_reliquary_desc": "Effectuez un Prestige normal (non corrompu) en ayant débloqué le Reliquaire Sacré, pour en conserver une partie au-delà du plafond de corruption. Une des deux façons d'atteindre 5 essences divines.",
+  "task_build_necropolis_name": "Construire une Nécropole",
+  "task_build_necropolis_desc": "Bâtissez une Nécropole sur un hex portant des Os Divins non purifiés, pour augmenter les points divins gagnés lors de votre prochaine Ascension.",
   "task_reach_corruption_level5_name": "Corruption niveau 5 (option 2)",
   "task_reach_corruption_level5_desc": "Enchaînez un nouveau Prestige Corrompu pour porter la corruption mondiale à 5, ce qui relève directement le plafond d'essence divine gagnable. L'autre façon d'atteindre 5 essences divines.",
   "task_perform_ascension_name": "Ascension",

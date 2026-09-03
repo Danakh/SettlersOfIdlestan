@@ -128,6 +128,9 @@ public class GameRecord
     /// <summary>True si le Reliquaire (GodState.DivineEssenceReliquaryFloor) a déjà été chargé d'au moins une essence divine.</summary>
     public bool HasChargedDivineReliquary { get; set; }
 
+    /// <summary>True si le joueur a déjà placé une Nécropole au moins une fois.</summary>
+    public bool HasBuiltNecropolis { get; set; }
+
     /// <summary>True si le joueur a déjà effectué une Ascension.</summary>
     public bool HasPerformedAscension { get; set; }
 

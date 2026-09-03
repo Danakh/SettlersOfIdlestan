@@ -615,7 +615,7 @@ namespace SettlersOfIdlestan.Controller
                     BuildingController, RoadController, CityBuilderController,
                     PrestigeMapController, ResearchController, MilitaryController, HarvestController,
                     TradeController, WonderController, CorruptionSpireController, DivineBonesController,
-                    CurrentMainState!.GodState, LifetimeStats);
+                    NecropolisController, CurrentMainState!.GodState, LifetimeStats);
 
                 CivilizationHistoryController.Initialize(
                     WorldState, Clock,

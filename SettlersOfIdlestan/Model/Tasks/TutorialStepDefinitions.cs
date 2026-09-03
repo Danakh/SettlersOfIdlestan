@@ -302,6 +302,7 @@ public static class TutorialStepDefinitions
             secondaryTasks: new[]
             {
                 Task(TutorialTaskId.ChargeDivineReliquary),
+                Task(TutorialTaskId.BuildNecropolis),
                 Task(TutorialTaskId.ReachCorruptionLevel5),
             }
         ),
