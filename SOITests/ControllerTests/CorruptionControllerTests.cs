@@ -53,6 +53,29 @@ public class CorruptionControllerTests
         return (state, city, a);
     }
 
+    /// <summary>
+    /// Même chose, mais la ville est dans l'Inframonde (un seul hex existant sur cette couche, la
+    /// surface se réduisant à un hex vide) — isole le malus de profondeur du Dominion.
+    /// </summary>
+    private static (WorldState state, City city, HexCoord underworldHex) CreateSingleHexUnderworldCitySetup()
+    {
+        var surface = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var map = new IslandMap(new[] { new HexTile(surface, TerrainType.Plain) });
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        var a = new HexCoord(0, 0, LayerState.UnderworldZ);
+        var b = new HexCoord(1, 0, LayerState.UnderworldZ);
+        var c = new HexCoord(0, 1, LayerState.UnderworldZ);
+        var underworldTiles = new[] { new HexTile(a, TerrainType.Mountain) };
+        state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(underworldTiles, LayerState.UnderworldZ)));
+
+        var city = new City(Vertex.Create(a, b, c)) { CivilizationIndex = civ.Index };
+        civ.AddCity(city);
+
+        return (state, city, a);
+    }
+
     /// <summary>Deux hexes de terre adjacents, aucun autre hex sur la carte — un seul voisin candidat de chaque côté pour le débordement.</summary>
     private static (WorldState state, HexCoord a, HexCoord b) CreateTwoLandHexesSetup()
     {
@@ -395,22 +418,63 @@ public class CorruptionControllerTests
     // ── Recherches de la Théocratie (Dogme de l'Emprise, Évangélisation, Terre Consacrée) ──
 
     [Fact]
-    public void TempleLevel2_WithDogmeDeLEmprise_CapRaisedToSix()
+    public void DominionLayerDivisor_WithoutDogmeDeLEmprise_DoublesPerLayer()
     {
-        var (state, city, landHex) = CreateSingleLandHexCitySetup();
-        city.AddBuilding(new Temple { Level = 2 });
-        state.AddFeature(new Dominion(landHex, level: 4)); // cap de base = 2*2 = 4, Dogme → 3*2 = 6
+        var civ = new Civilization { Index = 0 };
+
+        Assert.Equal(1000, CorruptionController.GetDominionLayerDivisorMilli(civ, IslandMap.SurfaceLayer));
+        Assert.Equal(2000, CorruptionController.GetDominionLayerDivisorMilli(civ, LayerState.UnderworldZ));
+        Assert.Equal(4000, CorruptionController.GetDominionLayerDivisorMilli(civ, LayerState.AbyssZ));
+        Assert.Equal(8000, CorruptionController.GetDominionLayerDivisorMilli(civ, LayerState.PandemoniumZ));
+    }
+
+    [Fact]
+    public void DominionLayerDivisor_WithDogmeDeLEmprise_UsesOnePointFivePerLayer()
+    {
+        var (state, _, _) = CreateSingleHexUnderworldCitySetup();
         CompleteResearch(state, TechnologyId.DogmeDeLEmprise);
+        var civ = state.PlayerCivilization;
+
+        Assert.Equal(1000, CorruptionController.GetDominionLayerDivisorMilli(civ, IslandMap.SurfaceLayer));
+        Assert.Equal(1500, CorruptionController.GetDominionLayerDivisorMilli(civ, LayerState.UnderworldZ));
+        Assert.Equal(2250, CorruptionController.GetDominionLayerDivisorMilli(civ, LayerState.AbyssZ));
+        Assert.Equal(3375, CorruptionController.GetDominionLayerDivisorMilli(civ, LayerState.PandemoniumZ));
+    }
+
+    [Fact]
+    public void TempleInUnderworld_WithDogmeDeLEmprise_ClearsMoreCorruption()
+    {
+        int withoutDogme = RunUnderworldTempleCorruptionClearing(withDogme: false);
+        int withDogme = RunUnderworldTempleCorruptionClearing(withDogme: true);
+
+        Assert.True(withDogme > withoutDogme, $"Dogme : {withDogme} points dissipés, sans : {withoutDogme}");
+    }
+
+    /// <summary>
+    /// Points de Corruption dissipés par un Temple de l'Inframonde en 300 cycles, à graine identique :
+    /// un tir sur deux aboutit sans le Dogme de l'Emprise (÷2), deux sur trois avec (÷1,5). Le niveau
+    /// de départ est assez haut pour que la zone ne soit jamais entièrement nettoyée dans l'intervalle.
+    /// </summary>
+    private static int RunUnderworldTempleCorruptionClearing(bool withDogme)
+    {
+        const int cycles = 300;
+        const int startLevel = 300;
+
+        var (state, city, underworldHex) = CreateSingleHexUnderworldCitySetup();
+        city.AddBuilding(new Temple { Level = 2 });
+        var corruption = new Corruption(underworldHex, level: startLevel);
+        state.AddFeature(corruption);
+        if (withDogme)
+            CompleteResearch(state, TechnologyId.DogmeDeLEmprise);
 
         var clock = new GameClock();
         clock.Start();
-        CreateController(state, clock);
+        CreateController(state, clock, seed: 25555);
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks * cycles);
 
-        var dominion = state.GetFeaturesAt(landHex).OfType<Dominion>().Single();
-        Assert.Equal(5, dominion.Level);
+        return startLevel - corruption.Level;
     }
 
     [Fact]

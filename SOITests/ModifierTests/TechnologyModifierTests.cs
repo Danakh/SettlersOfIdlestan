@@ -325,9 +325,9 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void DogmeDeLEmprise_TempleDominionCap_Plus1()
+    public void DogmeDeLEmprise_DominionLayerPenaltyReduction_Half()
     {
-        Assert.Equal(1, BuildAggregator(TechnologyId.DogmeDeLEmprise).ApplyModifiers(ECategory.TEMPLE_DOMINION_CAP, "", 0));
+        Assert.Equal(0.5, BuildAggregator(TechnologyId.DogmeDeLEmprise).ApplyModifiers(ECategory.DOMINION_LAYER_PENALTY_REDUCTION, "", 0.0));
     }
 
     [Fact]

@@ -76,6 +76,16 @@ public class CorruptionController
     private const int SpreadChancePercentPerLevel = 10;
     private const int SpreadSameStatusLevelGap = 2;
 
+    /// <summary>Malus de base appliqué aux chances d'action du Dominion par couche franchie sous la surface (÷2 Inframonde, ÷4 Abysses, ÷8 Pandémonium), avant réduction par DOMINION_LAYER_PENALTY_REDUCTION.</summary>
+    private const double DominionLayerPenaltyBase = 2.0;
+
+    /// <summary>
+    /// Échelle (millièmes) dans laquelle sont exprimés les diviseurs de profondeur du Dominion :
+    /// le Dogme de l'Emprise ramène le malus par couche à 1,5, les diviseurs (1,5 / 2,25 / 3,375)
+    /// ne sont donc plus entiers. 1000 = pas de malus.
+    /// </summary>
+    private const int LayerDivisorMilliScale = 1000;
+
     private WorldState? _state;
     private GameClock? _clock;
     private GamePRNG? _prng;
@@ -157,14 +167,15 @@ public class CorruptionController
                 temple.LastDominionProductionTick = lastTick;
                 if (cycles <= 0) continue;
 
-                // Même pénalité de profondeur que la propagation du Dominion (÷2/÷4/÷8) : le
-                // cooldown reste identique, mais chaque tir a une chance sur GetDominionLayerDivisor
-                // d'aboutir. Rejoué cycle par cycle (pas de multiplication) : chaque cycle est un
-                // tirage indépendant, sur un hex tiré au hasard indépendamment lui aussi.
-                int divisor = GetDominionLayerDivisor(city.Position.Z);
+                // Même pénalité de profondeur que la propagation du Dominion (÷2/÷4/÷8, allégée par
+                // le Dogme de l'Emprise) : le cooldown reste identique, mais chaque tir n'a qu'une
+                // chance sur GetDominionLayerDivisorMilli d'aboutir. Rejoué cycle par cycle (pas de
+                // multiplication) : chaque cycle est un tirage indépendant, sur un hex tiré au
+                // hasard indépendamment lui aussi.
+                int divisorMilli = GetDominionLayerDivisorMilli(_state.PlayerCivilization, city.Position.Z);
                 for (long i = 0; i < cycles; i++)
                 {
-                    if (divisor > 1 && _prng.Next(divisor) != 0) continue;
+                    if (divisorMilli > LayerDivisorMilliScale && !RollLayerChance(1, 1, divisorMilli)) continue;
 
                     // Même tampon réutilisé que la propagation : le Where/ToList allouait une
                     // fermeture, un itérateur et une liste par cycle et par ville avec Temple.
@@ -205,7 +216,7 @@ public class CorruptionController
             dominion.Level++;
     }
 
-    /// <summary>Plafond de Dominion par hex qu'un Temple de ce niveau peut atteindre pour cette civilisation (Dogme de l'Emprise / TEMPLE_DOMINION_CAP relève le plafond par niveau de Temple). Utilisé par <see cref="ApplyTempleActionOnHex"/> et par le tooltip du panneau ville.</summary>
+    /// <summary>Plafond de Dominion par hex qu'un Temple de ce niveau peut atteindre pour cette civilisation (TEMPLE_DOMINION_CAP relève le plafond par niveau de Temple ; aucune source ne l'accorde actuellement). Utilisé par <see cref="ApplyTempleActionOnHex"/> et par le tooltip du panneau ville.</summary>
     public static int GetTempleDominionCap(Civilization civ, int templeLevel)
     {
         int capPerLevel = TempleDominionCapPerLevel
@@ -266,10 +277,13 @@ public class CorruptionController
                 int level = GetLevel(source);
 
                 // En profondeur, l'Évangélisation du Dominion est plus difficile : ÷2 Inframonde, ÷4
-                // Abysses, ÷8 Pandémonium. La résolution du tirage est multipliée d'autant pour ne pas
-                // perdre de précision par troncature entière sur de petits pourcentages.
-                int divisor = sourceIsDominion ? GetDominionLayerDivisor(source.Position.Z) : 1;
-                if (_prng.Next(100 * divisor) >= level * chancePerLevel) continue;
+                // Abysses, ÷8 Pandémonium (malus par couche allégé par le Dogme de l'Emprise). La
+                // résolution du tirage est multipliée d'autant pour ne pas perdre de précision par
+                // troncature entière sur de petits pourcentages.
+                int divisorMilli = sourceIsDominion
+                    ? GetDominionLayerDivisorMilli(_state.PlayerCivilization, source.Position.Z)
+                    : LayerDivisorMilliScale;
+                if (!RollLayerChance(level * chancePerLevel, 100, divisorMilli)) continue;
 
                 // Tampon réutilisé et boucle indexée : le Where/ToList allouait une fermeture, un
                 // itérateur et une liste par source et par cycle.
@@ -328,15 +342,40 @@ public class CorruptionController
     /// <summary>
     /// Diviseur commun aux chances d'action du Dominion selon la couche (débordement dans
     /// <see cref="ProcessSpread"/>, production de Temple dans <see cref="ProcessTempleProduction"/>) :
-    /// l'Évangélisation peine à s'exporter en profondeur.
+    /// l'Évangélisation peine à s'exporter en profondeur. Exprimé en millièmes
+    /// (<see cref="LayerDivisorMilliScale"/>) car le malus par couche est fractionnaire dès que le
+    /// Dogme de l'Emprise (DOMINION_LAYER_PENALTY_REDUCTION) l'allège : 2/4/8 devient 1,5/2,25/3,375.
+    /// Le malus du joueur s'applique à toutes les civilisations, comme le bonus d'Évangélisation
+    /// (voir <see cref="GetDominionSpreadChanceBonus"/>) — seul le joueur bâtit en profondeur.
     /// </summary>
-    private static int GetDominionLayerDivisor(int z) => z switch
+    public static int GetDominionLayerDivisorMilli(Civilization civ, int z)
     {
-        LayerState.UnderworldZ => 2,
-        LayerState.AbyssZ => 4,
-        LayerState.PandemoniumZ => 8,
-        _ => 1,
-    };
+        int depth = z switch
+        {
+            LayerState.UnderworldZ => 1,
+            LayerState.AbyssZ => 2,
+            LayerState.PandemoniumZ => 3,
+            _ => 0,
+        };
+        if (depth == 0) return LayerDivisorMilliScale;
+
+        double reduction = civ.ModifierAggregator
+            .ApplyModifiers(Modifier.ECategory.DOMINION_LAYER_PENALTY_REDUCTION, "", 0.0);
+        double penalty = Math.Max(1.0, DominionLayerPenaltyBase - reduction);
+        return (int)Math.Round(Math.Pow(penalty, depth) * LayerDivisorMilliScale);
+    }
+
+    /// <summary>
+    /// Tirage « <paramref name="successes"/> chances sur <paramref name="outOf"/>, divisées par le
+    /// malus de profondeur <paramref name="divisorMilli"/> » (voir
+    /// <see cref="GetDominionLayerDivisorMilli"/>). Sans malus, le tirage entier d'origine est
+    /// conservé tel quel : la séquence du PRNG ne doit pas changer en surface, où rien du jeu ne
+    /// change (voir CLAUDE.md, sauvegardes de SOITests/saves/current).
+    /// </summary>
+    private bool RollLayerChance(int successes, int outOf, int divisorMilli)
+        => divisorMilli <= LayerDivisorMilliScale
+            ? _prng!.Next(outOf) < successes
+            : _prng!.Next(outOf * divisorMilli) < successes * LayerDivisorMilliScale;
 
     /// <summary>
     /// Vrai si le Dominion de cet hex échappe (tirage aléatoire) à la perte de niveau d'une annulation
