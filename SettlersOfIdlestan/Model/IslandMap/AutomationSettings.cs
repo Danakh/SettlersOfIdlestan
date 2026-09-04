@@ -42,7 +42,7 @@ public class AutomationSettings
     /// Sans lien avec le preset n'ayant pas été câblé ou le joueur n'ayant pas personnalisé ce type,
     /// qui retombent déjà sur DefaultCap via <see cref="AutomationPresetSettings.GetCap"/>.</summary>
     public int GetActivePresetCap(BuildingType type, Model.Civilization.Civilization civ) =>
-        civ.TechnologyTree.CompletedTechnologies.Contains(Model.Civilization.TechnologyId.AutomationPreset)
+        civ.TechnologyTree.IsCompleted(Model.Civilization.TechnologyId.AutomationPreset)
             ? _presetSource?.AutomationPresets.GetActiveCap(type) ?? AutomationPresetSettings.DefaultCap
             : AutomationPresetSettings.DefaultCap;
 

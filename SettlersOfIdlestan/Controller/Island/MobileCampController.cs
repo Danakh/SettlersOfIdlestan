@@ -107,7 +107,7 @@ namespace SettlersOfIdlestan.Controller.Island
         };
 
         public bool IsMobileCampUnlocked(Civilization civ)
-            => civ.TechnologyTree.CompletedTechnologies.Contains(TechnologyId.MobileCampConstruction);
+            => civ.TechnologyTree.IsCompleted(TechnologyId.MobileCampConstruction);
 
         /// <summary>
         /// Retourne les vertex où la civilisation pourrait construire un Camp Mobile, indépendamment de

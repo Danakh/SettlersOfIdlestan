@@ -17,7 +17,9 @@ fin de partie. Il fait deux choses :
 4. **`SaveJumpBenchmark`** (`--load-save`) — rejoue un **saut de temps** (celui de `TimeJumpService`)
    sur une **vraie sauvegarde** et attribue le temps à chaque contrôleur, plus le détail des neuf
    étapes de `HarvestController` (`HarvestStepProfiler`). C'est le seul mode qui mesure ce que le
-   joueur attend réellement, barre de progression à l'écran.
+   joueur attend réellement, barre de progression à l'écran. Il affiche aussi ce que le saut a
+   **produit** (routes, bâtiments, villes, récoltes) : sans ce dénominateur, un contrôleur en tête
+   de la répartition ne dit pas s'il est lent ou simplement très sollicité.
 5. **`RenderQueryBenchmark`** (`--render-queries`) — mesure le travail **modèle** d'une image du
    plateau : les agrégats par hexagone que `GameBoardRenderer.Render` reconstruit, puis les requêtes
    que `DrawHarvestIndicator` pose pour chaque tuile. Aucune de ces requêtes ne touche au canvas,
@@ -165,6 +167,28 @@ Méthode qui a effectivement fonctionné, et à refaire dans cet ordre :
    les balayages « toutes civs × toutes villes » de `HarvestController` et `MilitaryController` qui
    font le budget. Une optimisation jugée sur le seul rattrapage peut ne rien donner sur la frame,
    et réciproquement.
+
+## Descendre sous le niveau du contrôleur sans profileur
+
+`dotnet-trace` n'est pas toujours installé, et la répartition intégrée s'arrête au contrôleur. La
+méthode qui a marché : **poser des chronomètres temporaires** (un dictionnaire statique `name →
+(ticks, appels)` dans le contrôleur suspect, vidé et affiché par le banc), mesurer, puis les
+retirer. Deux passages en valent la peine :
+
+- **Le nombre d'appels compte autant que le temps.** `ComputeBuildableRoadsForLayer` sortait à
+  722 ms pour **26 appels** : 28 ms l'unité, donc un problème d'algorithme dans la méthode, pas de
+  fréquence. À l'inverse `RecalculateForLayer` faisait 162 appels pour 63 ms — beaucoup d'appels,
+  chacun bon marché : rien à y gagner.
+- **Vérifier une hypothèse en la neutralisant avant de l'optimiser.** La visibilité recalculée à
+  chaque route de l'Inframonde *paraissait* être le coupable évident. La remplacer par un `if (false)`
+  le temps d'une mesure a montré qu'elle ne pesait que des allocations, pas du temps — et a évité
+  une réécriture délicate (cette visibilité est lue comme instantané « avant » par le spawn de PNJ)
+  pour rien.
+
+Un corollaire vérifié deux fois : **les allocations et le temps ne bougent pas ensemble.** Une passe
+a fait tomber les allocations de 618 à 383 Mo sans changer le temps de plus de 8 %. Sur desktop, le
+GC absorbe très bien ce genre de volume ; les allocations restent un objectif en soi (WebAssembly,
+mobile), mais ne pas s'attendre à ce qu'elles paient en millisecondes ici.
 
 ## Descendre sous le niveau du contrôleur : dotnet-trace
 

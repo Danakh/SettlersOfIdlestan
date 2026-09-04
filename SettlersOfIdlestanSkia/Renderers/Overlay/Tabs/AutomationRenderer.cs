@@ -210,8 +210,8 @@ public sealed class AutomationRenderer : IDisposable
             [PinKeyGrandTemple] = grandTemple is { Level: >= 1 },
             [PinKeyMithrilMine] = volcanicForge is { Level: >= 1 },
             [PinKeyArcaneTower] = arcaneTower is { Level: >= 1 },
-            [PinKeyMilReinforce] = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AdvancedTactics),
-            [PinKeyMilVendetta] = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.Vendetta),
+            [PinKeyMilReinforce] = civ.TechnologyTree.IsCompleted(TechId.AdvancedTactics),
+            [PinKeyMilVendetta] = civ.TechnologyTree.IsCompleted(TechId.Vendetta),
             [PinKeyMonumentInvestment] = true,
             [PinKeyAbundanceAutoCast] = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_SPELL, nameof(SettlersOfIdlestan.Model.Magic.SpellId.Abundance)),
         };
@@ -365,7 +365,7 @@ public sealed class AutomationRenderer : IDisposable
 
         var pinned = gameState.Settings.PinnedCivPanelKeys;
         var (left, right) = BuildColumns(civ, worldState, gameState.GodState.AscensionState.IsDivineMagicActive);
-        bool presetsUnlocked = civ.TechnologyTree.CompletedTechnologies.Contains(TechId.AutomationPreset);
+        bool presetsUnlocked = civ.TechnologyTree.IsCompleted(TechId.AutomationPreset);
 
         IReadOnlyList<AutomationSectionSnapshot> Project(List<SectionModel> sections) =>
             sections.Select(section => new AutomationSectionSnapshot(

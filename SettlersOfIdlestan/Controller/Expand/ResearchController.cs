@@ -308,7 +308,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             // IsFreeUniqueBuildingGrant) : rien à (re)chercher.
             if (IsFreeUniqueBuildingGrant(id)) return false;
 
-            bool alreadyCompleted = tree.CompletedTechnologies.Contains(id);
+            bool alreadyCompleted = tree.IsCompleted(id);
             if (alreadyCompleted && !tech.Repeatable) return false;
             if (tree.ActiveResearch == id) return false;
 
@@ -422,7 +422,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null) return false;
             if (IsFreeUniqueBuildingGrant(id)) return false;
-            if (tree.CompletedTechnologies.Contains(id) && !tech.Repeatable) return false;
+            if (tree.IsCompleted(id) && !tech.Repeatable) return false;
             if (tree.ActiveResearch == id) return false;
             if (!IsPrestigeRequirementMet(id)) return false;
             if (!IsDominionRequirementMet(id)) return false;
@@ -451,7 +451,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             // Vérifie ActiveResearch en premier : une recherche répétable en cours de relance est à la fois
             // "déjà complétée" (CompletedTechnologies) et "en cours" — c'est ce second état qui doit primer.
             if (tree.ActiveResearch == id) return TechnologyStatus.InProgress;
-            if (tree.CompletedTechnologies.Contains(id)) return TechnologyStatus.Completed;
+            if (tree.IsCompleted(id)) return TechnologyStatus.Completed;
             if (IsFreeUniqueBuildingGrant(id)) return TechnologyStatus.Completed;
 
             var tech = TechnologyDefinitions.Get(id);
@@ -471,7 +471,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             long cost = GetEffectiveCost(tech);
             if (tree.ActiveResearch == id)
                 return (tree.ActiveResearchConsumed, cost);
-            if (tree.CompletedTechnologies.Contains(id) || IsFreeUniqueBuildingGrant(id))
+            if (tree.IsCompleted(id) || IsFreeUniqueBuildingGrant(id))
                 return (cost, cost);
             return (0, cost);
         }
@@ -544,7 +544,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (Tree == null) return false;
             var tree = Tree;
 
-            if (tree.CompletedTechnologies.Contains(id)) return true;
+            if (tree.IsCompleted(id)) return true;
             if (tree.ActiveResearch == id) return true;
             if (IsFreeUniqueBuildingGrant(id)) return true;
 
@@ -631,7 +631,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// </summary>
         private bool IsPrerequisiteSatisfied(TechnologyTree tree, TechnologyId id)
         {
-            bool completed = tree.CompletedTechnologies.Contains(id);
+            bool completed = tree.IsCompleted(id);
             bool freeUnique = !completed && IsFreeUniqueBuildingGrant(id);
             if (!completed && !freeUnique) return false;
 

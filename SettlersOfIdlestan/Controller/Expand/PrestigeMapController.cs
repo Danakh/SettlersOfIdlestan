@@ -120,7 +120,7 @@ public class PrestigeMapController
         foreach (var name in civ.ModifierAggregator.GetActiveSubCategories(ECategory.STARTING_RESEARCH))
         {
             if (!Enum.TryParse<TechnologyId>(name, out var techId)) continue;
-            if (tree.CompletedTechnologies.Contains(techId)) continue;
+            if (tree.IsCompleted(techId)) continue;
             tree.CompleteResearch(techId);
             granted = true;
         }

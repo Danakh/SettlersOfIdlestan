@@ -445,31 +445,86 @@ namespace SettlersOfIdlestan.Controller.Island
         /// couvert). Un plafond de preset à 0 empêche toute construction du type ; un plafond atteint
         /// arrête son amélioration (voir AutomationPresetSettings / TechnologyId.AutomationPreset).
         /// </summary>
+        /// <summary>
+        /// Tampons de <see cref="TryPerformOneGuildAction"/>, réutilisés d'une action à l'autre. La
+        /// plus longue liste de cibles fait six types (Guilde des récolteurs) ; la liste des
+        /// améliorables monte, elle, à plusieurs milliers d'entrées en fin de partie.
+        /// </summary>
+        private int[] _guildPresetCapScratch = new int[8];
+        private readonly List<(City City, BuildingType Type, int Level)> _guildUpgradeScratch = new();
+
         private bool TryPerformOneGuildAction(Model.Civilization.Civilization civ, AutomationSettings presets, BuildingType[] targets, out bool blockedByResources)
         {
             blockedByResources = false;
 
-            foreach (var city in civ.Cities)
-                foreach (var type in targets)
+            // Plafonds relus une fois par action au lieu d'une fois par (ville, type) puis par
+            // bâtiment : ils ne dépendent que de la civilisation et du type, et l'automatisation de
+            // guilde interroge des milliers de bâtiments à chaque action.
+            if (_guildPresetCapScratch.Length < targets.Length)
+                _guildPresetCapScratch = new int[targets.Length];
+            var caps = _guildPresetCapScratch;
+            for (int t = 0; t < targets.Length; t++)
+                caps[t] = presets.GetActivePresetCap(targets[t], civ);
+
+            var cities = civ.Cities;
+            for (int c = 0; c < cities.Count; c++)
+            {
+                var city = cities[c];
+                for (int t = 0; t < targets.Length; t++)
                 {
-                    if (presets.GetActivePresetCap(type, civ) <= 0 || city.Buildings.Any(b => b.Type == type))
+                    // FindBuilding (index par type de la ville) plutôt qu'un Any(b => b.Type == type),
+                    // qui allouait une fermeture et boxait l'énumérateur à chaque couple.
+                    if (caps[t] <= 0 || city.FindBuilding(targets[t]) != null)
                         continue;
-                    if (BuildBuilding(city, type, out bool resourceBlocked))
+                    if (BuildBuilding(city, targets[t], out bool resourceBlocked))
                         return true;
                     blockedByResources |= resourceBlocked;
                 }
+            }
 
-            var lowestLevelFirst = civ.Cities
-                .SelectMany(city => city.Buildings
-                    .Where(b => targets.Contains(b.Type) && b.Level < presets.GetActivePresetCap(b.Type, civ))
-                    .Select(b => (city, b.Type, b.Level)))
-                .OrderBy(x => x.Level);
-
-            foreach (var (city, type, _) in lowestLevelFirst)
+            // Candidats à l'amélioration, du niveau le plus bas au plus haut. Tampon réutilisé et tri
+            // en place plutôt qu'une chaîne SelectMany/Where/Select/OrderBy refaite à chaque action :
+            // elle parcourait tous les bâtiments de toutes les villes en matérialisant un tuple par
+            // bâtiment retenu, ce qui en faisait à elle seule le premier poste d'allocation d'un saut
+            // de temps une fois l'automatisation active.
+            //
+            // L'ordre est celui du tri stable d'OrderBy qu'il remplace — niveau croissant, ordre de
+            // découverte à niveau égal : c'est lui qui décide quel bâtiment est amélioré, et le
+            // changer changerait le déroulement de la partie. Il est obtenu par un tri par
+            // dénombrement sur le niveau (stable et linéaire par construction) plutôt qu'un
+            // List.Sort comparatif, qui n'est pas stable et coûtait à lui seul le tiers du temps du
+            // contrôleur : plusieurs centaines de candidats triés à chaque action.
+            var upgradable = _guildUpgradeScratch;
+            upgradable.Clear();
+            int minLevel = int.MaxValue;
+            int maxLevel = int.MinValue;
+            for (int c = 0; c < cities.Count; c++)
             {
-                if (BuildBuilding(city, type, out bool resourceBlocked))
-                    return true;
-                blockedByResources |= resourceBlocked;
+                var city = cities[c];
+                var buildings = city.Buildings;
+                for (int b = 0; b < buildings.Count; b++)
+                {
+                    var building = buildings[b];
+                    int t = Array.IndexOf(targets, building.Type);
+                    if (t < 0 || building.Level >= caps[t]) continue;
+                    upgradable.Add((city, building.Type, building.Level));
+                    if (building.Level < minLevel) minLevel = building.Level;
+                    if (building.Level > maxLevel) maxLevel = building.Level;
+                }
+            }
+
+            // Un seul passage par niveau présent, du plus bas au plus haut, la liste étant parcourue
+            // dans son ordre de découverte : même séquence que le tri, sans le trier. En pratique
+            // l'amélioration réussit dès le niveau le plus bas et la boucle s'arrête là.
+            for (int level = minLevel; level <= maxLevel; level++)
+            {
+                for (int i = 0; i < upgradable.Count; i++)
+                {
+                    if (upgradable[i].Level != level) continue;
+                    if (BuildBuilding(upgradable[i].City, upgradable[i].Type, out bool resourceBlocked))
+                        return true;
+                    blockedByResources |= resourceBlocked;
+                }
             }
 
             return false;
@@ -621,13 +676,21 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.GetCivilization(city.CivilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(city.CivilizationIndex));
 
-            var existing = city.Buildings.FirstOrDefault(b => b.Type == type);
+            // Index par type de la ville (voir City.FindBuilding) plutôt qu'un FirstOrDefault, qui
+            // allouait une fermeture et boxait l'énumérateur : l'automatisation de guilde appelle
+            // cette méthode une fois par candidat, et la plupart des candidats échouent.
+            var existing = city.FindBuilding(type);
 
             ResourceSet cost;
             Building resultBuilding;
             if (existing == null)
             {
-                var prototype = BuildingFactory.Create(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
+                // Instance de sondage partagée pour les tests qui ne dépendent que du type : ils
+                // rejettent la grande majorité des candidats, et allouer un bâtiment complet pour le
+                // jeter aussitôt était le premier poste d'allocation de l'automatisation. L'instance
+                // réellement posée n'est créée qu'une fois tous les tests passés — la sonde est
+                // partagée et doit rester immuable (voir GetProbe).
+                var prototype = GetProbe(type) ?? throw new ArgumentException("Unknown building type", nameof(type));
 
                 // Bâtiments verrouillés par défaut (GetDefaultMaxLevel() == 0, ex. Smelter/MushroomFarm)
                 // tant qu'un vertex de prestige ne relève pas leur plafond : la liste UI
@@ -660,13 +723,17 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (prototype.IsUnique && city.Buildings.Any(b => b.IsUnique))
                     return false;
 
+                // Tous les tests sont passés : c'est seulement maintenant qu'une instance neuve est
+                // créée, celle qui rejoindra la ville.
+                var fresh = BuildingFactory.Create(type)!;
+
                 // Coût progressif : renseigné juste avant l'appel à GetBuildCost() (voir
                 // AdventurersWaypost.GetBuildCost), sur le même modèle que GetBuildingOrBuildableEntry.
-                if (prototype is AdventurersWaypost waypost)
+                if (fresh is AdventurersWaypost waypost)
                     waypost.PriorWaypostCount = CountAdventurersWayposts(civ);
 
-                cost = prototype.GetBuildCost();
-                resultBuilding = prototype;
+                cost = fresh.GetBuildCost();
+                resultBuilding = fresh;
             }
             else
             {
@@ -702,10 +769,23 @@ namespace SettlersOfIdlestan.Controller.Island
                 // plutôt que de démarrer actifs par défaut (voir ActivationStatus, ToggleAll/AreAllActiveNullable).
                 if (resultBuilding.ActivationStatus != ActivationStatus.NON_ACTIVABLE)
                 {
-                    var sameTypeExisting = civ.Cities.SelectMany(c => c.Buildings)
-                        .Where(b => b.Type == type && b.Level >= 1)
-                        .ToList();
-                    if (sameTypeExisting.Count > 0 && sameTypeExisting.All(b => b.ActivationStatus == ActivationStatus.INACTIVE))
+                    // Boucles indexées avec sortie anticipée : la chaîne LINQ qu'elles remplacent
+                    // matérialisait tous les bâtiments de même type de la civilisation avant de
+                    // conclure, alors qu'un seul bâtiment actif suffit à trancher.
+                    bool anySameType = false;
+                    bool allInactive = true;
+                    var civCities = civ.Cities;
+                    for (int i = 0; i < civCities.Count && allInactive; i++)
+                    {
+                        var buildings = civCities[i].Buildings;
+                        for (int b = 0; b < buildings.Count; b++)
+                        {
+                            if (buildings[b].Type != type || buildings[b].Level < 1) continue;
+                            anySameType = true;
+                            if (buildings[b].ActivationStatus != ActivationStatus.INACTIVE) { allInactive = false; break; }
+                        }
+                    }
+                    if (anySameType && allInactive)
                         resultBuilding.ActivationStatus = ActivationStatus.INACTIVE;
                 }
 

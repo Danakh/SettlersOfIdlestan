@@ -337,7 +337,7 @@ public class AscensionController : IModifierProvider
             if (current >= best) continue;
 
             tree.RepeatCounts[techId] = best;
-            if (!tree.CompletedTechnologies.Contains(techId))
+            if (!tree.IsCompleted(techId))
                 tree.CompletedTechnologies.Add(techId);
             changed = true;
         }

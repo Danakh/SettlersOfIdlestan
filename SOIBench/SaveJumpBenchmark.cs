@@ -22,6 +22,9 @@ public sealed class SaveJumpResult
     public required IReadOnlyList<ControllerCost> HarvestStepCosts { get; init; }
     public required IReadOnlyList<AllocationSample> AllocationSamples { get; init; }
 
+    /// <summary>Ce que le saut a réellement produit — le dénominateur qui dit si un coût est légitime.</summary>
+    public required string Produced { get; init; }
+
     public long Events => TotalTicks / ChunkTicks;
 }
 
@@ -97,6 +100,15 @@ public static class SaveJumpBenchmark
         using var stepProfiler = new HarvestStepProfiler(controller.HarvestController);
         using var profiler = new ClockProfiler(clock);
 
+        // Volume produit par le saut. Sans lui, un contrôleur en tête de la répartition ne dit pas
+        // s'il est lent ou simplement très sollicité : l'automatisation des routes de l'Inframonde
+        // pose des centaines de routes par heure de jeu, et chacune coûte ce qu'elle coûte.
+        int roadsBuilt = 0, buildingsBuilt = 0, citiesBuilt = 0, harvests = 0;
+        controller.RoadController.OnAutoRoadBuilt += (_, _) => roadsBuilt++;
+        controller.BuildingController.OnBuildingBuilt += (_, _) => buildingsBuilt++;
+        controller.CityBuilderController.OnAutoOutpostBuilt += (_, _) => citiesBuilt++;
+        controller.HarvestController.OnHarvestCompleted += (_, _) => harvests++;
+
         AllocationSampler? sampler = null;
         if (sampleAllocationTypes)
         {
@@ -135,6 +147,7 @@ public static class SaveJumpBenchmark
             HasControllerBreakdown = profiler.IsAttached,
             ControllerCosts = profiler.Costs.OrderByDescending(c => c.ElapsedTicks).ToList(),
             HarvestStepCosts = stepProfiler.Costs,
+            Produced = $"{roadsBuilt} routes / {buildingsBuilt} bâtiments / {citiesBuilt} villes / {harvests} récoltes",
             AllocationSamples = samples,
         };
     }

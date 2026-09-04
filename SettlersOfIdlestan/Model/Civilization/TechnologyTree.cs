@@ -9,7 +9,50 @@ namespace SettlersOfIdlestan.Model.Civilization;
 [Serializable]
 public class TechnologyTree : IModifierProvider
 {
-    public List<TechnologyId> CompletedTechnologies { get; set; } = new();
+    private List<TechnologyId> _completedTechnologies = new();
+
+    public List<TechnologyId> CompletedTechnologies
+    {
+        get => _completedTechnologies;
+        set
+        {
+            _completedTechnologies = value ?? new();
+            _completedLookup = null;
+            _completedLookupCount = -1;
+        }
+    }
+
+    /// <summary>
+    /// Ensemble miroir de <see cref="CompletedTechnologies"/>, reconstruit dès que le compte de la
+    /// liste change. La liste n'est jamais qu'augmentée (voir <see cref="CompleteResearch"/> et
+    /// AscensionController.RestoreRepeatableResearchToBest, seuls écrivains) : son compte suffit donc
+    /// à détecter toute modification, y compris celles faites directement sur la liste publique. Le
+    /// remplacement en bloc par la désérialisation passe par le setter, qui invalide aussi.
+    /// </summary>
+    [JsonIgnore]
+    private HashSet<TechnologyId>? _completedLookup;
+
+    /// <summary>Compte de la liste au moment où <see cref="_completedLookup"/> a été bâti — et non le compte de l'ensemble, qui diffère si un doublon a été inséré et ferait alors reconstruire à chaque appel.</summary>
+    [JsonIgnore]
+    private int _completedLookupCount = -1;
+
+    /// <summary>
+    /// Vrai si cette recherche est complétée — à préférer systématiquement à
+    /// <c>CompletedTechnologies.Contains</c>, dont le balayage linéaire porte sur la centaine de
+    /// recherches d'une fin de partie. La question est posée sur des chemins très chauds
+    /// (AutomationSettings.GetActivePresetCap, interrogée une fois par bâtiment de chaque ville à
+    /// chaque action d'automatisation de guilde), où elle pesait plus que le travail qu'elle garde.
+    /// </summary>
+    public bool IsCompleted(TechnologyId id)
+    {
+        if (_completedLookup == null || _completedLookupCount != _completedTechnologies.Count)
+        {
+            _completedLookup = new HashSet<TechnologyId>(_completedTechnologies);
+            _completedLookupCount = _completedTechnologies.Count;
+        }
+        return _completedLookup.Contains(id);
+    }
+
     public TechnologyId? ActiveResearch { get; set; }
     public TechnologyId? QueuedResearch { get; set; }
     // long : les coûts des recherches de tier 13+ dépassent int.MaxValue (voir Technology.Cost) ;
@@ -65,11 +108,11 @@ public class TechnologyTree : IModifierProvider
         {
             RepeatCounts.TryGetValue(id, out int count);
             RepeatCounts[id] = count + 1;
-            if (!CompletedTechnologies.Contains(id))
+            if (!IsCompleted(id))
                 CompletedTechnologies.Add(id);
             Modifiers.AddRange(tech.Modifiers);
         }
-        else if (!CompletedTechnologies.Contains(id))
+        else if (!IsCompleted(id))
         {
             CompletedTechnologies.Add(id);
             if (tech != null)

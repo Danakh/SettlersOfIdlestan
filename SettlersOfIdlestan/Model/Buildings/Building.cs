@@ -431,8 +431,8 @@ public class Building
     {
         Type = type;
         Level = level;
-        NameKey = $"building_{type.ToString().ToLower()}_name";
-        DescriptionKey = $"building_{type.ToString().ToLower()}_desc";
+        NameKey = BuildingTypeNames.NameKeyOf(type);
+        DescriptionKey = BuildingTypeNames.DescriptionKeyOf(type);
     }
 
     /// <summary>

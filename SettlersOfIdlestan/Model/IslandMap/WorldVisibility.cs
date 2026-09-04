@@ -65,21 +65,46 @@ public class WorldVisibility
 
         bool watchtowerVisionBonus = WatchtowerVisionBonus;
         foreach (var (z, map) in _world.GetMapsByZ())
+            RecalculateLayer(z, map, civilization, watchtowerVisionBonus);
+    }
+
+    /// <summary>
+    /// Comme <see cref="RecalculateFor"/>, mais pour la seule couche <paramref name="z"/> — à
+    /// utiliser dès que l'appelant sait sur quelle couche le changement a eu lieu.
+    ///
+    /// <para>Recalculer une couche coûte un parcours de toutes les villes et de toutes les routes de
+    /// la civilisation (le filtre par couche est appliqué à l'intérieur, pas avant), plus la
+    /// reconstruction complète de la carte visible. L'automatisation des routes de l'Inframonde
+    /// rafraîchit la visibilité <b>à chaque route posée</b> — c'est une contrainte de jeu, pas de
+    /// confort : voir RoadController.BuildRoadsForGuildBurst. Y refaire la surface au passage, alors
+    /// que rien ne l'a touchée, doublait ce coût pour rien.</para>
+    /// </summary>
+    public void RecalculateForLayer(int civilizationIndex, int z)
+    {
+        var civilization = _world.GetCivilization(civilizationIndex)
+            ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+        var map = _world.GetMapForZ(z);
+        if (map == null) return;
+
+        RecalculateLayer(z, map, civilization, WatchtowerVisionBonus);
+    }
+
+    private void RecalculateLayer(int z, IslandMap map, Civilization.Civilization civilization, bool watchtowerVisionBonus)
+    {
+        if (!_byZ.TryGetValue(z, out var visibleMaps))
         {
-            if (!_byZ.TryGetValue(z, out var visibleMaps))
-            {
-                visibleMaps = new Dictionary<int, VisibleIslandMap>();
-                _byZ[z] = visibleMaps;
-            }
-
-            var previousTiles = visibleMaps.TryGetValue(civilizationIndex, out var previousMap)
-                ? previousMap.Tiles.Keys
-                : Enumerable.Empty<HexCoord>();
-
-            var newVisibleMap = new VisibleIslandMap(map, civilization, watchtowerVisionBonus);
-            visibleMaps[civilizationIndex] = newVisibleMap;
-            RaiseHexesRevealed(z, civilizationIndex, previousTiles, newVisibleMap.Tiles.Keys);
+            visibleMaps = new Dictionary<int, VisibleIslandMap>();
+            _byZ[z] = visibleMaps;
         }
+
+        var previousTiles = visibleMaps.TryGetValue(civilization.Index, out var previousMap)
+            ? previousMap.Tiles.Keys
+            : Enumerable.Empty<HexCoord>();
+
+        var newVisibleMap = new VisibleIslandMap(map, civilization, watchtowerVisionBonus);
+        visibleMaps[civilization.Index] = newVisibleMap;
+        RaiseHexesRevealed(z, civilization.Index, previousTiles, newVisibleMap.Tiles.Keys);
     }
 
     private void RaiseHexesRevealed(int z, int civIndex, IEnumerable<HexCoord> previousTiles, IEnumerable<HexCoord> newTiles)

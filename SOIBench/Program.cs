@@ -96,6 +96,7 @@ public static class Program
         Console.WriteLine($"  total                     : {result.TotalMs / 1000.0,10:F2} s");
         Console.WriteLine($"  ms / événement            : {result.TotalMs / result.Events,10:F1}");
         Console.WriteLine($"  allocations totales       : {FormatBytes(result.AllocatedBytes),10}");
+        Console.WriteLine($"  produit par le saut       : {result.Produced}");
 
         if (!result.HasControllerBreakdown)
         {

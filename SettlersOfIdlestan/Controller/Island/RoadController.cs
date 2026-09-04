@@ -244,15 +244,17 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 PatchCandidatesAfterBuild(civ, guild, chosenCtx!, road);
 
+                // Seule la couche de la route posée a changé : les autres n'ont aucune raison d'être
+                // reconstruites, et le sont à chaque route quand l'Inframonde est automatisé.
                 if (!onSurface)
-                    _state!.Visibility.RecalculateFor(civ.Index);
+                    _state!.Visibility.RecalculateForLayer(civ.Index, chosen.Position.Z);
             }
 
             if (surfaceTouched)
             {
                 ComputeRoadDistancesForCivilization(civ, IslandMap.SurfaceLayer);
                 InvalidateBuildableRoadsCacheForLayer(IslandMap.SurfaceLayer);
-                _state!.Visibility.RecalculateFor(civ.Index);
+                _state!.Visibility.RecalculateForLayer(civ.Index, IslandMap.SurfaceLayer);
             }
             if (underworldTouched)
             {
@@ -470,11 +472,16 @@ namespace SettlersOfIdlestan.Controller.Island
                 foreach (var edge in GetEdgesAtVertex(city.Position))
                     candidates.Add(edge);
             }
+            // Positions des villes ennemies relevées une fois pour toutes : HasEnemyCityAt les
+            // rebalayait, toutes civilisations confondues, pour chacun des deux vertex de chacune des
+            // milliers de routes du layer.
+            var enemyCityVertices = BuildEnemyCityVertexSet(civ, layer);
+
             foreach (var road in roadsInLayer)
             {
                 foreach (var vertex in road.Position.GetVertices())
                 {
-                    if (HasEnemyCityAt(vertex, civ)) continue;
+                    if (enemyCityVertices.Contains(vertex)) continue;
                     var thirdHex = vertex.GetHexes().First(h => !h.Equals(road.Position.Hex1) && !h.Equals(road.Position.Hex2));
                     candidates.Add(Edge.Create(road.Position.Hex1, thirdHex));
                     candidates.Add(Edge.Create(road.Position.Hex2, thirdHex));
@@ -482,6 +489,14 @@ namespace SettlersOfIdlestan.Controller.Island
             }
 
             var enemyProtectedEdges = ComputeEnemyProtectedEdgesSet(civ, layer);
+
+            // Index vertex → routes et positions des villes, bâtis une fois pour toute la passe : sans
+            // eux, GetDistanceForEdge rebalaye toutes les routes et toutes les villes de la
+            // civilisation pour chacun des deux vertex de chaque candidat (voir sa variante indexée).
+            var cityVertices = new HashSet<Vertex>();
+            for (int i = 0; i < citiesInLayer.Count; i++)
+                cityVertices.Add(citiesInLayer[i].Position);
+            var vertexToRoads = BuildVertexIndex(roadsInLayer);
 
             var result = new List<Road>();
             foreach (var edge in candidates)
@@ -519,7 +534,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 var road = new Road(edge) { CivilizationIndex = civilizationIndex };
                 // assign a distance so callers can know the build cost
-                road.DistanceToNearestCity = GetDistanceForEdge(edge, civ);
+                road.DistanceToNearestCity = GetDistanceForEdge(edge, cityVertices, vertexToRoads);
                 result.Add(road);
             }
 
@@ -868,6 +883,27 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
+        /// Positions des villes des <b>autres</b> civilisations sur ce layer — même réponse que
+        /// <see cref="HasEnemyCityAt"/>, relevée une fois au lieu d'être rebalayée par vertex.
+        /// </summary>
+        private HashSet<Vertex> BuildEnemyCityVertexSet(Civilization civ, int layer)
+        {
+            var set = new HashSet<Vertex>();
+            if (_state == null) return set;
+
+            var civilizations = _state.Civilizations;
+            for (int i = 0; i < civilizations.Count; i++)
+            {
+                if (civilizations[i].Index == civ.Index) continue;
+                var cities = civilizations[i].Cities;
+                for (int c = 0; c < cities.Count; c++)
+                    if (cities[c].Position.Z == layer)
+                        set.Add(cities[c].Position);
+            }
+            return set;
+        }
+
+        /// <summary>
         /// Recalcule les distances à la ville la plus proche pour les routes d'un seul layer de la
         /// civilisation. Un layer forme un graphe de vertex/edge totalement indépendant des autres
         /// (voir Vertex.Z / Edge.Z) : poser une route dans un layer ne peut jamais affecter les distances
@@ -927,28 +963,63 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         private int GetDistanceForEdge(Edge edge, Civilization civ)
+            => GetDistanceForEdge(edge, BuildCityVertexSet(civ, edge.Z), BuildVertexIndex(RoadsInLayer(civ, edge.Z)));
+
+        /// <summary>
+        /// Variante indexée de <see cref="GetDistanceForEdge(Edge, Civilization)"/>, à utiliser dès
+        /// qu'on interroge plus d'une arête d'un même layer.
+        ///
+        /// <para>La version non indexée répond à « quelles routes touchent ce vertex ? » par un
+        /// balayage des routes de la civilisation — toutes couches confondues — et à « une ville
+        /// est-elle ici ? » par un balayage de ses villes. Posée pour les deux vertex de chaque arête
+        /// candidate, elle rendait <see cref="ComputeBuildableRoadsForLayer"/> quadratique :
+        /// candidats × routes. Sur une sauvegarde de fin de partie avec l'automatisation des routes
+        /// active, ce seul calcul prenait 28 ms par appel et faisait à lui seul tout le coût du
+        /// contrôleur pendant un saut de temps.</para>
+        /// </summary>
+        private static int GetDistanceForEdge(Edge edge, HashSet<Vertex> cityVertices, Dictionary<Vertex, List<Road>> vertexToRoads)
         {
             var vertices = edge.GetVertices();
 
             int min = int.MaxValue;
-            foreach (var v in vertices)
+            for (int i = 0; i < vertices.Length; i++)
             {
-                if (civ.Cities.Any(c => c.Position.Equals(v)))
-                {
+                var v = vertices[i];
+                if (cityVertices.Contains(v))
                     min = Math.Min(min, 1);
-                }
 
-                var touchingRoads = civ.Roads.Where(r => RoadTouchesVertex(r, v));
-                foreach (var tr in touchingRoads)
+                if (!vertexToRoads.TryGetValue(v, out var touchingRoads)) continue;
+                for (int r = 0; r < touchingRoads.Count; r++)
                 {
-                    if (tr.DistanceToNearestCity != int.MaxValue)
-                    {
-                        min = Math.Min(min, tr.DistanceToNearestCity + 1);
-                    }
+                    int distance = touchingRoads[r].DistanceToNearestCity;
+                    if (distance != int.MaxValue)
+                        min = Math.Min(min, distance + 1);
                 }
             }
 
             return min;
+        }
+
+        /// <summary>Positions des villes de la civilisation sur ce layer, en ensemble — voir <see cref="GetDistanceForEdge(Edge, HashSet{Vertex}, Dictionary{Vertex, List{Road}})"/>.</summary>
+        private static HashSet<Vertex> BuildCityVertexSet(Civilization civ, int layer)
+        {
+            var set = new HashSet<Vertex>();
+            var cities = civ.Cities;
+            for (int i = 0; i < cities.Count; i++)
+                if (cities[i].Position.Z == layer)
+                    set.Add(cities[i].Position);
+            return set;
+        }
+
+        /// <summary>Routes de la civilisation sur ce layer, sans allocation LINQ.</summary>
+        private static List<Road> RoadsInLayer(Civilization civ, int layer)
+        {
+            var result = new List<Road>();
+            var roads = civ.Roads;
+            for (int i = 0; i < roads.Count; i++)
+                if (roads[i].Position.Z == layer)
+                    result.Add(roads[i]);
+            return result;
         }
 
         private static bool RoadTouchesVertex(Road road, Vertex vertex)

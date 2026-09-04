@@ -294,7 +294,7 @@ public static class TutorialTaskDefinitions
 
         new TutorialTask(TutorialTaskId.CompleteMilitaryBuildingsResearch,
             "task_complete_military_buildings_research_name", "task_complete_military_buildings_research_desc",
-            (g, _, island) => island?.PlayerCivilization.TechnologyTree.CompletedTechnologies.Contains(TechnologyId.MilitaryBuildings) == true),
+            (g, _, island) => island?.PlayerCivilization.TechnologyTree.IsCompleted(TechnologyId.MilitaryBuildings) == true),
 
         new TutorialTask(TutorialTaskId.Build2Barracks,
             "task_build_2_barracks_name", "task_build_2_barracks_desc",
