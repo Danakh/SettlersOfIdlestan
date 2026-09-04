@@ -197,7 +197,7 @@ public class NpcGameController
 
         var warEnemies = npcCiv.WarEnemyCivIndices;
         if (warEnemies.Count > 0)
-            return _state.Civilizations.FirstOrDefault(c => warEnemies.Contains(c.Index) && c.Cities.Count > 0);
+            return _state.Civilizations.FirstOrDefault(c => warEnemies.Contains(c.Index) && c.MilitaryVertices.Count > 0);
 
         return HasEncounteredEnemy(npcCiv) ? FindNearestVisibleEnemy(npcCiv) : null;
     }
@@ -214,18 +214,21 @@ public class NpcGameController
         var npcCitiesOnZ = npcCiv.Cities.Where(nc => nc.Position.Z == z).ToList();
         if (npcCitiesOnZ.Count == 0) return null;
 
+        // Emplacements militaires adverses (villes, Flottes de Guerre, Camps Mobiles) : un Camp Mobile
+        // repéré doit pouvoir déclencher le ciblage tout comme une ville, sans quoi un ennemi qui n'a
+        // encore qu'un Camp Mobile visible ne serait jamais pris pour cible.
         return _state.Civilizations
             .Where(c => c.Index != npcCiv.Index)
-            .Select(c => (Civ: c, VisibleCities: c.Cities.Where(city => city.Position.Z == z && visibleMap.IsVertexVisible(city.Position)).ToList()))
-            .Where(x => x.VisibleCities.Count > 0)
-            .OrderBy(x => npcCitiesOnZ.Min(nc => x.VisibleCities.Min(ec => nc.Position.EdgeDistanceTo(ec.Position))))
+            .Select(c => (Civ: c, VisibleVertices: c.MilitaryVertices.Where(v => v.Position.Z == z && visibleMap.IsVertexVisible(v.Position)).ToList()))
+            .Where(x => x.VisibleVertices.Count > 0)
+            .OrderBy(x => npcCitiesOnZ.Min(nc => x.VisibleVertices.Min(ev => nc.Position.EdgeDistanceTo(ev.Position))))
             .Select(x => x.Civ)
             .FirstOrDefault();
     }
 
     /// <summary>
-    /// Returns true if the NPC civ's visible map already contains any hex
-    /// belonging to a city from a different civilization.
+    /// Returns true if the NPC civ's visible map already contains any hex belonging to a military
+    /// vertex (city, War Fleet or Mobile Camp) from a different civilization.
     /// </summary>
     private bool HasEncounteredEnemy(Civilization npcCiv)
     {
@@ -234,17 +237,17 @@ public class NpcGameController
         if (!_state.Visibility.GetForZ(z).TryGetValue(npcCiv.Index, out var visibleMap)) return false;
 
         // Boucles indexées plutôt que Where/SelectMany/Any : appelé jusqu'à deux fois par tour d'IA
-        // et par civilisation PNJ, sur toutes les villes de la carte — en fin de partie plusieurs
-        // centaines. La chaîne LINQ allouait trois itérateurs et deux fermetures à chaque appel.
+        // et par civilisation PNJ, sur tous les emplacements militaires de la carte — en fin de partie
+        // plusieurs centaines. La chaîne LINQ allouait trois itérateurs et deux fermetures à chaque appel.
         var civilizations = _state.Civilizations;
         for (int i = 0; i < civilizations.Count; i++)
         {
             var other = civilizations[i];
             if (other.Index == npcCiv.Index) continue;
 
-            var cities = other.Cities;
-            for (int j = 0; j < cities.Count; j++)
-                if (visibleMap.IsVertexVisible(cities[j].Position))
+            var vertices = other.MilitaryVertices;
+            for (int j = 0; j < vertices.Count; j++)
+                if (visibleMap.IsVertexVisible(vertices[j].Position))
                     return true;
         }
 
@@ -252,17 +255,19 @@ public class NpcGameController
     }
 
     /// <summary>
-    /// When a city is attacked: escalates a non-Pacifist NPC's aggressivity to Warlike, and records
-    /// the attacker in the target's <see cref="Civilization.WarEnemyCivIndices"/> — including for the
-    /// player, so their autoplayer can see who to retaliate against. Pacifist NPCs never retaliate,
-    /// so they don't record war enemies either.
+    /// When a military vertex (city, War Fleet or Mobile Camp — <see cref="e"/>'s "City"-named
+    /// positions are generic, see <see cref="CityAttackEventArgs"/>) is attacked: escalates a
+    /// non-Pacifist NPC's aggressivity to Warlike, and records the attacker in the target's
+    /// <see cref="Civilization.WarEnemyCivIndices"/> — including for the player, so their autoplayer
+    /// can see who to retaliate against. Pacifist NPCs never retaliate, so they don't record war
+    /// enemies either.
     /// </summary>
     private void OnCityAttacked(object? sender, CityAttackEventArgs e)
     {
         if (_state == null) return;
 
         var targetCiv = _state.Civilizations.FirstOrDefault(c =>
-            c.Cities.Any(city => city.Position.Equals(e.TargetCity)));
+            c.MilitaryVertices.Any(v => v.Position.Equals(e.TargetCity)));
         if (targetCiv == null) return;
 
         if (targetCiv.IsNpc)
@@ -273,7 +278,7 @@ public class NpcGameController
         }
 
         var attackerCiv = _state.Civilizations.FirstOrDefault(c =>
-            c.Cities.Any(city => city.Position.Equals(e.SourceCity)));
+            c.MilitaryVertices.Any(v => v.Position.Equals(e.SourceCity)));
         if (attackerCiv != null && !targetCiv.WarEnemyCivIndices.Contains(attackerCiv.Index))
             targetCiv.WarEnemyCivIndices.Add(attackerCiv.Index);
     }

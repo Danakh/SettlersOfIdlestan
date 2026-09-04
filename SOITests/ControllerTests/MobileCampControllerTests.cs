@@ -463,6 +463,59 @@ public class MobileCampControllerTests
     }
 
     [Fact]
+    public void SelfDestruct_DestroysCampImmediately_WhenNotVisibleToOwner()
+    {
+        // Same relative offsets as RibbonIsland's own vertex (translated far away, so no road or city
+        // covers it) — a camp with no road left connecting it to the civilization's territory (e.g.
+        // pruned by RoadController.RemoveDisconnectedRoads after a distant city was destroyed) must be
+        // treated as lost immediately, well before SelfDestructIntervalTicks would fire on its own.
+        var hCamp1 = H(10, 10);
+        var hCamp2 = H(11, 10);
+        var hCamp3 = H(10, 11);
+        var map = new IslandMap(new HexTile[]
+        {
+            new(hCamp1, TerrainType.Plain),
+            new(hCamp2, TerrainType.Plain),
+            new(hCamp3, TerrainType.Plain),
+        });
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        var vCamp = Vertex.Create(hCamp1, hCamp2, hCamp3);
+        civ.AddMobileCamp(new MobileCamp(vCamp) { CivilizationIndex = 0 });
+
+        var clock = new GameClock();
+        clock.Start();
+        Controllers(state, clock);
+
+        clock.SimulateAdvance(100);
+
+        Assert.Empty(civ.MobileCamps);
+    }
+
+    [Fact]
+    public void SelfDestruct_KeepsCamp_WhileStillVisibleToOwner()
+    {
+        // Control case for SelfDestruct_DestroysCampImmediately_WhenNotVisibleToOwner: a camp built
+        // normally (touching a road, per BuildMobileCamp) stays put well before the self-destruct
+        // timer, exactly as SelfDestruct_DoesNotDestroyCampBeforeIntervalElapsed already checks — this
+        // confirms the new visibility check does not fire a false positive on it.
+        var (state, civ, v1, _, v2) = RibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+        GrantTech(civ);
+        FundMobileCampCost(civ);
+
+        var clock = new GameClock();
+        clock.Start();
+        var (_, campController) = Controllers(state, clock);
+        var camp = campController.BuildMobileCamp(0, v2);
+        Assert.NotNull(camp);
+
+        clock.SimulateAdvance(100);
+
+        Assert.Contains(civ.MobileCamps, c => c == camp);
+    }
+
+    [Fact]
     public void GetRemainingSelfDestructTicks_CountsDownFromCreation()
     {
         var (state, civ, v1, _, v2) = RibbonIsland();

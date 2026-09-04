@@ -22,7 +22,10 @@ namespace SettlersOfIdlestan.Controller.Island
     /// distance &lt;= <see cref="CityProximityDestroyDistance"/> (voir DestroyCampsNear, appelé depuis
     /// MainGameController sur CityBuilderController.OnCityBuilt). Les villes ennemies n'affectent pas
     /// les camps mobiles. N'est pas destructible manuellement par le joueur : s'autodétruit après
-    /// <see cref="SelfDestructIntervalTicks"/> (voir ResolveSelfDestruct).
+    /// <see cref="SelfDestructIntervalTicks"/>, ou immédiatement dès qu'il sort de la visibilité de sa
+    /// propre civilisation — typiquement la route qui le reliait au territoire ayant été élaguée après
+    /// la destruction d'une ville (voir RoadController.RemoveDisconnectedRoads) — (voir
+    /// ResolveSelfDestruct).
     /// </summary>
     public class MobileCampController
     {
@@ -60,17 +63,33 @@ namespace SettlersOfIdlestan.Controller.Island
             catch (Exception ex) { GameLog.Error(nameof(MobileCampController), nameof(ResolveSelfDestruct), ex); }
         }
 
-        /// <summary>Détruit tout Camp Mobile (toute civilisation) dont la durée de vie dépasse <see cref="SelfDestructIntervalTicks"/>.</summary>
+        /// <summary>
+        /// Détruit tout Camp Mobile (toute civilisation) dont la durée de vie dépasse
+        /// <see cref="SelfDestructIntervalTicks"/>, ou qui n'est plus visible pour sa propre
+        /// civilisation (voir <see cref="IsVisibleToOwner"/>) — un camp orphelin (route de raccordement
+        /// élaguée, terrain transformé hors du cas géologique de <see cref="DestroyCampsInvalidatedByTerrain"/>,
+        /// etc.) est considéré perdu plutôt que laissé à traîner jusqu'à expiration du minuteur.
+        /// </summary>
         private void ResolveSelfDestruct(long currentTick)
         {
             if (_state == null) return;
 
             var expiredCamps = _state.GetAllMobileCamps()
-                .Where(c => currentTick - c.CreatedTick >= SelfDestructIntervalTicks)
+                .Where(c => currentTick - c.CreatedTick >= SelfDestructIntervalTicks || !IsVisibleToOwner(c))
                 .ToList();
 
             foreach (var camp in expiredCamps)
                 DestroyMobileCamp(camp);
+        }
+
+        /// <summary>Vrai si le camp est visible sur la carte de visibilité de sa propre civilisation. Vrai
+        /// par défaut si cette carte n'a pas encore été calculée pour la couche/civilisation (voir
+        /// CityAttackEngine.IsCityVisibleTo, même précaution) plutôt que de détruire un camp tout juste créé.</summary>
+        private bool IsVisibleToOwner(MobileCamp camp)
+        {
+            var visibleMaps = _state!.Visibility.GetForZ(camp.Position.Z);
+            if (!visibleMaps.TryGetValue(camp.CivilizationIndex, out var visibleMap)) return true;
+            return visibleMap.IsVertexVisible(camp.Position);
         }
 
         /// <summary>Temps restant (en ticks) avant l'autodestruction du camp, jamais négatif — sert à l'infobulle.</summary>

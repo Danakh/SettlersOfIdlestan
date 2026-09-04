@@ -141,8 +141,9 @@ namespace SettlersOfIdlestan.Controller
         ///   territoire jusqu'à la frontline, au lieu de limiter le renfort aux seules villes à portée
         ///   directe d'une frontline (les autres restant alors bloquées avec leurs soldats stockés sans
         ///   jamais les envoyer).
-        /// No-op si PriorityTargetCivilization est null, si la cible n'a plus de villes, ou si
-        /// aucun MilitaryController n'a été fourni au constructeur.
+        /// No-op si PriorityTargetCivilization est null, si la cible n'a plus aucun emplacement
+        /// militaire (ville, Flotte de Guerre ou Camp Mobile), ou si aucun MilitaryController n'a été
+        /// fourni au constructeur.
         /// Passer <paramref name="apply"/> à false calcule et renvoie s'il y aurait du travail à faire
         /// sans toucher aux FlowTargets — utilisé par <see cref="AttackNeighborsObjective"/> pour savoir
         /// si elle est déjà à jour sans jamais muter l'état militaire depuis IsComplete().
@@ -150,7 +151,7 @@ namespace SettlersOfIdlestan.Controller
         public bool TryUpdatePriorityTargetFlowsOnce(bool apply = true)
         {
             if (_militaryController == null || PriorityTargetCivilization == null || _worldState == null) return false;
-            if (PriorityTargetCivilization.Cities.Count == 0) return false;
+            if (PriorityTargetCivilization.MilitaryVertices.Count == 0) return false;
 
             int attackRange = _militaryController.CityAttackRange(_civ);
             int z = _civ.Cities.FirstOrDefault()?.Position.Z ?? 0;
@@ -164,26 +165,30 @@ namespace SettlersOfIdlestan.Controller
             // would make HasAttackableTargetInRange() report a target as attackable when it never can
             // be, silently defeating the war-footing/expansion-fallback modulation that depends on it.
             _worldState.Visibility.GetForZ(z).TryGetValue(_civ.Index, out var visibleMap);
-            bool IsTargetCityVisible(City c) => visibleMap != null && visibleMap.IsVertexVisible(c.Position);
+            bool IsTargetVisible(IMilitaryVertex v) => visibleMap != null && visibleMap.IsVertexVisible(v.Position);
 
             bool didSomething = false;
 
-            // Premier passage : villes à portée d'attaque de la cible → flux d'attaque
+            // Premier passage : villes à portée d'attaque de la cible → flux d'attaque. La cible peut
+            // être n'importe quel IMilitaryVertex adverse (ville, Flotte de Guerre ou Camp Mobile) —
+            // pas seulement une ville : CityAttackEngine.FindEnemyCityAt cherche déjà dans
+            // MilitaryVertices, donc restreindre le ciblage aux villes ici laissait les Camps Mobiles
+            // adverses hors de portée de toute attaque PNJ.
             var frontlineCities = new List<City>();
             foreach (var city in _civ.Cities)
             {
                 if (city.Position.Z != z) continue;
 
-                City? nearest = null;
+                IMilitaryVertex? nearest = null;
                 int nearestDist = int.MaxValue;
-                foreach (var targetCity in PriorityTargetCivilization.Cities)
+                foreach (var targetVertex in PriorityTargetCivilization.MilitaryVertices)
                 {
-                    if (targetCity.Position.Z != z) continue;
-                    if (!IsTargetCityVisible(targetCity)) continue;
-                    int d = city.Position.EdgeDistanceTo(targetCity.Position);
+                    if (targetVertex.Position.Z != z) continue;
+                    if (!IsTargetVisible(targetVertex)) continue;
+                    int d = city.Position.EdgeDistanceTo(targetVertex.Position);
                     if (d <= attackRange && d < nearestDist)
                     {
-                        nearest = targetCity;
+                        nearest = targetVertex;
                         nearestDist = d;
                     }
                 }
@@ -192,7 +197,7 @@ namespace SettlersOfIdlestan.Controller
                 frontlineCities.Add(city);
 
                 bool alreadyAttackingTarget = city.FlowTarget != null
-                    && PriorityTargetCivilization.Cities.Any(ec => ec.Position.Equals(city.FlowTarget));
+                    && PriorityTargetCivilization.MilitaryVertices.Any(ev => ev.Position.Equals(city.FlowTarget));
                 if (alreadyAttackingTarget) continue;
 
                 if (apply) _militaryController.SetCityFlow(city, nearest.Position);
@@ -253,9 +258,10 @@ namespace SettlersOfIdlestan.Controller
         /// Picks which visible enemy civilization to focus attacks on, in priority order: (1) a
         /// civilization already in <see cref="Model.Civilization.Civilization.WarEnemyCivIndices"/> (one
         /// that has already attacked us — finishing an existing war before opening a new front), (2)
-        /// among the rest, the one with the fewest visible cities (fastest to eliminate), (3) among ties,
-        /// the one whose visible cities have the lowest total <see cref="City.CurrentDefense"/> (weakest
-        /// to break through). Returns null if no enemy civilization has a visible city.
+        /// among the rest, the one with the fewest visible military vertices — villes, Flottes de
+        /// Guerre et Camps Mobiles confondus (fastest to eliminate), (3) among ties, the one whose
+        /// visible vertices have the lowest total <see cref="IMilitaryVertex.CurrentDefense"/> (weakest
+        /// to break through). Returns null if no enemy civilization has a visible military vertex.
         /// </summary>
         public Civilization? FindPriorityAttackTarget()
         {
@@ -264,12 +270,12 @@ namespace SettlersOfIdlestan.Controller
             if (!_worldState.Visibility.GetForZ(z).TryGetValue(_civ.Index, out var visibleMap)) return null;
 
             return _worldState.Civilizations
-                .Where(c => c.Index != _civ.Index && c.Cities.Count > 0)
-                .Select(c => (Civ: c, VisibleCities: c.Cities.Where(city => visibleMap.IsVertexVisible(city.Position)).ToList()))
-                .Where(x => x.VisibleCities.Count > 0)
+                .Where(c => c.Index != _civ.Index && c.MilitaryVertices.Count > 0)
+                .Select(c => (Civ: c, VisibleVertices: c.MilitaryVertices.Where(v => visibleMap.IsVertexVisible(v.Position)).ToList()))
+                .Where(x => x.VisibleVertices.Count > 0)
                 .OrderByDescending(x => _civ.WarEnemyCivIndices.Contains(x.Civ.Index))
-                .ThenBy(x => x.VisibleCities.Count)
-                .ThenBy(x => x.VisibleCities.Sum(c => c.CurrentDefense))
+                .ThenBy(x => x.VisibleVertices.Count)
+                .ThenBy(x => x.VisibleVertices.Sum(v => v.CurrentDefense))
                 .Select(x => x.Civ)
                 .FirstOrDefault();
         }
@@ -287,25 +293,25 @@ namespace SettlersOfIdlestan.Controller
         public bool HasAttackableTargetInRange()
         {
             if (_militaryController == null || PriorityTargetCivilization == null || _worldState == null) return false;
-            if (PriorityTargetCivilization.Cities.Count == 0) return false;
+            if (PriorityTargetCivilization.MilitaryVertices.Count == 0) return false;
 
             int attackRange = _militaryController.CityAttackRange(_civ);
             int z = _civ.Cities.FirstOrDefault()?.Position.Z ?? 0;
 
-            // A target city must also be visible: CityAttackEngine refuses to fire on one that isn't
+            // A target vertex must also be visible: CityAttackEngine refuses to fire on one that isn't
             // (see the matching check in TryUpdatePriorityTargetFlowsOnce) — an invisible-but-in-range
-            // city can never actually be attacked, so it must not count as "attackable" here either.
+            // vertex can never actually be attacked, so it must not count as "attackable" here either.
             _worldState.Visibility.GetForZ(z).TryGetValue(_civ.Index, out var visibleMap);
             if (visibleMap == null) return false;
 
             foreach (var city in _civ.Cities)
             {
                 if (city.Position.Z != z) continue;
-                foreach (var targetCity in PriorityTargetCivilization.Cities)
+                foreach (var targetVertex in PriorityTargetCivilization.MilitaryVertices)
                 {
-                    if (targetCity.Position.Z != z) continue;
-                    if (!visibleMap.IsVertexVisible(targetCity.Position)) continue;
-                    if (city.Position.EdgeDistanceTo(targetCity.Position) <= attackRange) return true;
+                    if (targetVertex.Position.Z != z) continue;
+                    if (!visibleMap.IsVertexVisible(targetVertex.Position)) continue;
+                    if (city.Position.EdgeDistanceTo(targetVertex.Position) <= attackRange) return true;
                 }
             }
             return false;
