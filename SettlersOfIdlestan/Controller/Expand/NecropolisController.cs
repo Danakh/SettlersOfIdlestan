@@ -132,14 +132,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private void HarvestBonesUnderNecropolis(DivineBones bones)
         {
             bones.Purified = true;
-            bones.EssenceGranted = _godState!.DivineEssence < bones.GetEssenceCap();
-            if (bones.EssenceGranted)
-            {
-                _godState.DivineEssence++;
-                _godState.TotalDivineEssenceEarned++;
-            }
-
-            _state!.EventLog.Add(bones.EssenceGranted ? GameEventType.DivineBonesPurified : GameEventType.DivineBonesPurifiedNoEssence, toast: true);
+            DivineBonesController.GrantPurificationEssence(bones, _godState!, _state!);
         }
     }
 }

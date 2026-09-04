@@ -72,6 +72,23 @@ public enum GameEventType
     /// <summary>Spire de Corruption démolie volontairement par le joueur pour en replacer une ailleurs.</summary>
     CorruptionSpireDestroyed,
 
+    /// <summary>
+    /// Le plafond d'essences divines vient d'être atteint (DivineBones.GetEssenceCap,
+    /// AscensionController.GetDivineEssenceCap) : les Purifications suivantes n'accorderont plus
+    /// rien tant qu'il n'aura pas été relevé — prestige pour monter la Corruption, ou nouveau
+    /// pouvoir divin. Message = plafond atteint. Voir DivineBonesController.GrantPurificationEssence.
+    /// </summary>
+    DivineEssenceCapReached,
+
+    /// <summary>
+    /// Le plafond d'essences divines atteint est inférieur aux points divins requis pour
+    /// ascensionner (AscensionController.MinDivineEssenceForAscension) : rappel des trois leviers
+    /// qui permettent malgré tout d'atteindre le seuil (Reliquaire, Nécropole, ou monter la
+    /// Corruption). Journal seul, sans toast : il accompagne <see cref="DivineEssenceCapReached"/>,
+    /// qui, lui, en produit un. Message = plafond atteint.
+    /// </summary>
+    DivineEssenceCapBelowAscension,
+
     TentacleDiscovered,
     TentacleDefeated,
     DemonGodDiscovered,
