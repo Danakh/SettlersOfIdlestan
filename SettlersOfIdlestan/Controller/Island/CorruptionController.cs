@@ -32,8 +32,8 @@ namespace SettlersOfIdlestan.Controller.Island;
 ///    ne protègent leur hex des deux mécaniques ci-dessus (Temple et débordement peuvent y agir
 ///    normalement) ; ce process leur ajoute simplement une réduction garantie (contrairement au ciblage
 ///    aléatoire du Temple) d'un point de Corruption par intervalle sur leur propre hex (Faille), ou sur
-///    tous les hexes dans un rayon de <see cref="IslandFeatures.CorruptionSpire.Radius"/> autour d'elle
-///    (Spire, rayon améliorable indéfiniment par investissement — voir CorruptionSpireController). La
+///    tous les hexes dans un rayon fixe de <see cref="IslandFeatures.CorruptionSpire.DecayRadius"/>
+///    autour d'elle (Spire — son niveau n'est pas améliorable, voir CorruptionSpireController). La
 ///    Spire n'agit qu'une fois <see cref="IslandFeatures.CorruptionSpire.Built"/> : pendant sa
 ///    construction, aucune décroissance n'est appliquée sur son hex.
 /// 4. <see cref="ProcessDivineBonesCorruptionGrowth"/> — miroir du process précédent : chaque Os Divin
@@ -466,18 +466,16 @@ public class CorruptionController
         {
             // Zone de Corruption entièrement nettoyée — par Temple, débordement (y compris annulation
             // mutuelle avec le Dominion, voir ProcessSpread) ou décroissance de monument : enregistre
-            // son pic dans les deux records, peu importe quel hex ni quel mécanisme l'a nettoyée.
-            // - PrestigeState.MaxCorruptionLevelCleared : record global de la partie, jamais remis à
-            //   zéro, qui pilote le bonus de prestige (PrestigeController.GetCorruptionClearBonusMultiplier).
-            // - RunRecord.MaxCorruptionLevelCleared : record de l'île courante, reparti de zéro à
-            //   chaque prestige, qui seul conditionne l'ouverture de la Faille des Abysses (voir
-            //   AbyssGateController.IsAbyssGateEligible). Si ce nettoyage vient de faire franchir au
-            //   record du run le seuil requis, prévient le joueur qu'une Spire déjà bâtie peut évoluer.
+            // son pic dans RunRecord.MaxCorruptionLevelCleared, record de l'île courante reparti de
+            // zéro à chaque prestige, peu importe quel hex ni quel mécanisme l'a nettoyée. Il ne sert
+            // qu'à conditionner l'ouverture de la Faille des Abysses (voir
+            // AbyssGateController.IsAbyssGateEligible) : le bonus de prestige de nettoyage, lui, ne
+            // dépend plus d'une zone dissipée mais de la destruction d'une Source de Corruption par une
+            // Spire (voir CorruptionSpireController.RecordCorruptionSourceDestroyed, seul écrivain de
+            // PrestigeState.MaxCorruptionLevelCleared). Si ce nettoyage vient de faire franchir au
+            // record du run le seuil requis, prévient le joueur qu'une Spire déjà bâtie peut évoluer.
             if (feature is Corruption cleared)
             {
-                if (_prestigeState != null && cleared.PeakLevel > _prestigeState.MaxCorruptionLevelCleared)
-                    _prestigeState.MaxCorruptionLevelCleared = cleared.PeakLevel;
-
                 var runRecord = _state!.RunRecord;
                 bool wasEligibleBefore = runRecord.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel;
                 if (cleared.PeakLevel > runRecord.MaxCorruptionLevelCleared)
@@ -502,15 +500,14 @@ public class CorruptionController
     /// <summary>
     /// Réduit la Corruption d'un point à chaque intervalle, de façon garantie (contrairement à la
     /// production de Temple, qui cible un hex aléatoire parmi 3) : sur l'hex d'une Faille des Abysses,
-    /// et sur tous les hexes dans un rayon de <see cref="CorruptionSpire.Radius"/> autour de chaque
-    /// Spire de Corruption déjà construite (<see cref="CorruptionSpire.Built"/> ; rayon 1 de base,
+    /// et sur tous les hexes dans le rayon fixe <see cref="CorruptionSpire.DecayRadius"/> autour de
+    /// chaque Spire de Corruption déjà construite (<see cref="CorruptionSpire.Built"/> ; rayon 1,
     /// incluant donc l'hex de la Spire elle-même et ses voisins immédiats). Une Spire en cours de
     /// construction ne réduit pas encore la corruption, y compris sur son propre hex. Aucun de ces
     /// hexes n'est protégé du reste : Temple et débordement peuvent toujours y agir normalement (voir
     /// <see cref="ApplyTempleActionOnHex"/>, <see cref="ProcessSpread"/>). Utilise
     /// <see cref="ReduceLevel"/> comme les autres mécaniques : la suppression à 0 enregistre le pic
-    /// atteint dans <see cref="PrestigeState.MaxCorruptionLevelCleared"/> et dans
-    /// <see cref="Model.Tasks.RunRecord.MaxCorruptionLevelCleared"/>.
+    /// atteint dans <see cref="Model.Tasks.RunRecord.MaxCorruptionLevelCleared"/>.
     /// </summary>
     private void ProcessMonumentCorruptionDecay(long currentTick)
     {
@@ -527,7 +524,7 @@ public class CorruptionController
         foreach (var gate in _state.Features.OfType<AbyssGate>())
             decayHexes.Add(gate.Position);
         foreach (var spire in _state.Features.OfType<CorruptionSpire>().Where(s => s.Built))
-            foreach (var hex in GetHexesInRadius(spire.Position, spire.Radius))
+            foreach (var hex in GetHexesInRadius(spire.Position, CorruptionSpire.DecayRadius))
                 decayHexes.Add(hex);
 
         for (long i = 0; i < cycles; i++)

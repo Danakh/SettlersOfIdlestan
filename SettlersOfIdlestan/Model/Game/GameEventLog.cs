@@ -47,6 +47,7 @@ public enum GameEventType
     RitualCollapsed,
     CorruptionSpirePlaced,
     CorruptionSpireBuilt,
+    /// <summary>Obsolète — le rayon de la Spire n'est plus améliorable. Conservé pour la désérialisation des anciennes sauvegardes.</summary>
     CorruptionSpireRadiusUpgraded,
     AbyssGateEligible,
     AbyssGatePlaced,

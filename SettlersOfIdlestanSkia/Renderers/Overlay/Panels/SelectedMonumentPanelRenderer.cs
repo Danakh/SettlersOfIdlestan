@@ -118,7 +118,10 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                         : (_localization.Get("monument_bonus_deepest_mine_next"), false));
                 break;
             case CorruptionSpire spire:
-                lines.Add((_localization.GetFormated("monument_bonus_corruption_spire_decay_radius", spire.Radius), true));
+                lines.Add((_localization.Get(spire.Built
+                    ? "monument_bonus_corruption_spire_source_destroyed"
+                    : "monument_bonus_corruption_spire_source_next"), spire.Built));
+                lines.Add((_localization.GetFormated("monument_bonus_corruption_spire_decay_radius", CorruptionSpire.DecayRadius), spire.Built));
                 AddCorruptionClearPotentialLine(lines, spire.Position);
                 break;
             case AbyssGate gate:
@@ -157,18 +160,18 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         => Math.Round(fraction * 100).ToString("0");
 
     /// <summary>
-    /// Ligne de bonus commune à la Spire de Corruption et à la Faille des Abysses : le bonus de
-    /// prestige n'est pas lié à la construction elle-même, il dépend du pic de corruption que le
-    /// nettoyage garanti (ProcessMonumentCorruptionDecay) finira par atteindre sur cet hex (voir
-    /// PrestigeController.GetCorruptionClearBonusMultiplier).
+    /// Multiplicateur de prestige que rapportera la destruction de la Source de Corruption sous le
+    /// monument : 2 × son niveau (voir PrestigeController.GetCorruptionClearBonusMultiplier). La ligne
+    /// disparaît une fois la Spire bâtie, puisque la Source a alors été consommée — et n'apparaît donc
+    /// jamais sous une Faille des Abysses, qui succède à une Spire déjà bâtie.
     /// </summary>
     private void AddCorruptionClearPotentialLine(List<(string Text, bool Active)> lines, HexCoord position)
     {
-        var corruption = _gameControllerService.MainGameController.CurrentMainState?.CurrentWorldState?.Features
-            .OfType<Corruption>()
+        var source = _gameControllerService.MainGameController.CurrentMainState?.CurrentWorldState?.Features
+            .OfType<CorruptionSource>()
             .FirstOrDefault(c => c.Position.Equals(position));
-        if (corruption != null)
-            lines.Add((_localization.GetFormated("monument_bonus_corruption_spire_potential", 2 * corruption.PeakLevel), true));
+        if (source != null)
+            lines.Add((_localization.GetFormated("monument_bonus_corruption_spire_potential", 2 * source.CorruptionLevel), false));
     }
 
     /// <summary>

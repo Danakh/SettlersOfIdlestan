@@ -98,10 +98,13 @@ public class PrestigeState
     public int CurrentCorruptionLevel { get; set; } = 1;
 
     /// <summary>
-    /// Niveau de pointe le plus élevé jamais atteint par une zone de Corruption entièrement nettoyée
-    /// (Level ramené à 0), que ce soit par la Spire de Corruption/la Faille des Abysses ou par le
-    /// Dominion (Temple, débordement). Alimente PrestigeController.GetCorruptionClearBonusMultiplier —
-    /// voir CorruptionController.ReduceLevel pour la mise à jour. Démarre à 0 (aucun bonus).
+    /// Niveau le plus élevé jamais atteint par une Source de Corruption détruite (voir
+    /// IslandFeatures.CorruptionSource.CorruptionLevel) : construire une Spire de Corruption sur une
+    /// Source la supprime et enregistre son niveau ici. Seul CorruptionSpireController.
+    /// RecordCorruptionSourceDestroyed y écrit ; nettoyer une zone de Corruption au Temple ou au
+    /// Dominion n'y change plus rien (cela n'alimente plus que RunRecord.MaxCorruptionLevelCleared,
+    /// dédié à l'éligibilité de la Faille des Abysses). Alimente
+    /// PrestigeController.GetCorruptionClearBonusMultiplier. Démarre à 0 (aucun bonus).
     /// </summary>
     public int MaxCorruptionLevelCleared { get; set; } = 0;
 

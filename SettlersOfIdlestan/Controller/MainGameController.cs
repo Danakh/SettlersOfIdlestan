@@ -580,7 +580,7 @@ namespace SettlersOfIdlestan.Controller
                 NecropolisController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
                 DeepestMineController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
                 SurfaceBreachController.Initialize(WorldState, Clock, HarvestController);
-                CorruptionSpireController.Initialize(WorldState, Clock, HarvestController);
+                CorruptionSpireController.Initialize(WorldState, Clock, HarvestController, CurrentMainState?.PrestigeState);
                 CorruptionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);
                 AbyssGateController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
                 PandemoniumGateController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState, CurrentMainState!.GodState);

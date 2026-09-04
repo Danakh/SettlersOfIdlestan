@@ -454,7 +454,7 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void CorruptionClearBonusMultiplier_TwiceMaxLevelCleared()
+        public void CorruptionClearBonusMultiplier_TwiceDestroyedSourceLevel()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { MaxCorruptionLevelCleared = 3 };
@@ -467,9 +467,9 @@ namespace SOITests.ControllerTests
         [Fact]
         public void CorruptionClearBonusMultiplier_DoesNotRequireCorruptionSpireBuilt()
         {
-            // Le bonus vient désormais du record de nettoyage (Spire ou Dominion), pas de la
-            // construction de la Spire elle-même — voir HasCorruptionSpireBuilt (mécanique séparée
-            // gérant le Prestige Corrompu) qui reste false ici.
+            // Le bonus vient du record de Sources de Corruption détruites, conservé d'une île à
+            // l'autre : il subsiste donc même sans Spire bâtie sur l'île courante — voir
+            // HasCorruptionSpireBuilt (mécanique séparée gérant le Prestige Corrompu), false ici.
             var state = IslandTestFactory.CreateSevenHexIslandState();
             var prestigeState = new SettlersOfIdlestan.Model.Prestige.PrestigeState { MaxCorruptionLevelCleared = 3 };
             var controller = new PrestigeController();
