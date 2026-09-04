@@ -1164,6 +1164,55 @@ public class AscensionControllerTests
         Assert.Equal(0, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
     }
 
+    /// <summary>Crée une couche Inframonde et la rend courante, sans y poser de Dominion.</summary>
+    private static HexCoord AddViewedUnderworldLayer(WorldState state)
+    {
+        var layer = LayerState.EstablishOupostInNewAutoExpandLayer(state.PlayerCivilization, LayerState.UnderworldZ);
+        state.AddLayer(LayerState.UnderworldZ, layer);
+        state.CurrentViewedLayer = LayerState.UnderworldZ;
+        return new HexCoord(0, 0, LayerState.UnderworldZ);
+    }
+
+    /// <summary>
+    /// Présence de Dieu suit le calque affiché et n'est pas réservée à la surface : la liste de cibles
+    /// ne contient que des hexs de l'Inframonde quand c'est lui qu'on regarde, et aucun de la surface.
+    /// </summary>
+    [Fact]
+    public void GetPresenceOfGodTargetHexes_CoversTheViewedLayerNotOnlyTheSurface()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockPresenceOfGod(ascension);
+        var underworld = AddViewedUnderworldLayer(state);
+
+        var targets = ascension.GetPresenceOfGodTargetHexes();
+
+        Assert.Contains(underworld, targets);
+        Assert.All(targets, hex => Assert.Equal(LayerState.UnderworldZ, hex.Z));
+    }
+
+    /// <summary>
+    /// L'enchaînement qui donne son intérêt à la levée de la restriction de calque : Poing de Dieu ne
+    /// frappe que sous Dominion, et en profondeur la Présence est la seule source de Dominion que le
+    /// joueur puisse viser. Sans elle, le poing n'a aucune cible hors de la surface.
+    /// </summary>
+    [Fact]
+    public void ApplyPresenceOfGod_OnUnderworldHex_SeedsTheDominionFistOfGodNeeds()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockPresenceOfGod(ascension);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.ArmOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
+
+        var underworld = AddViewedUnderworldLayer(state);
+        Assert.Empty(ascension.GetFistOfGodTargetHexes());
+
+        Assert.True(ascension.ApplyPresenceOfGod(underworld));
+
+        Assert.Equal(AscensionController.PresenceOfGodCenterPoints,
+            state.GetFeaturesAt(underworld).OfType<Dominion>().Single().Level);
+        Assert.Contains(underworld, ascension.GetFistOfGodTargetHexes());
+    }
+
     [Fact]
     public void GetModifiers_ArmOfGod_GrantsSoldierAttackDamageBonus()
     {

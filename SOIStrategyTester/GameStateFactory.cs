@@ -91,11 +91,12 @@ public static class GameStateFactory
     /// </summary>
     /// <param name="ascensions">Nombre d'Ascensions accomplies au départ — l'Ascension finale comprise.</param>
     /// <param name="godPoints">Points divins laissés en caisse une fois tous les pouvoirs achetés.</param>
-    /// <param name="divineEssenceEarned">Essence divine gagnée depuis le début de la partie. Ascension
-    /// Prestigieuse la convertit en autant de points de prestige au début du cycle : c'est ce qui
-    /// finance Poing de Dieu, dont chaque usage coûte un point de plus que le précédent.</param>
+    /// <param name="prestigePoints">Points de prestige <b>versés artificiellement</b> en caisse après
+    /// l'Ascension : c'est ce qui finance les pouvoirs divins ciblés (Poing de Dieu, Présence de
+    /// Dieu), dont le coût double à chaque usage. Voir le corps de la méthode pour pourquoi ils sont
+    /// posés à la main plutôt que gagnés par le jalon Ascension Prestigieuse.</param>
     public static MainGameController NewGameForAscendedRace(RaceId race, int? prngSeed,
-        int ascensions, int godPoints, int divineEssenceEarned)
+        int ascensions, int godPoints, int prestigePoints)
     {
         if (ascensions < 1)
             throw new ArgumentOutOfRangeException(nameof(ascensions), "Au moins une Ascension est nécessaire.");
@@ -112,12 +113,27 @@ public static class GameStateFactory
         foreach (var definition in RaceDefinitions.All.Where(r => r.IsImplemented))
             ascensionState.AscendedRaces.Add(definition.Id);
 
-        godState.TotalDivineEssenceEarned = Math.Max(godState.TotalDivineEssenceEarned, divineEssenceEarned);
-
         PurchaseEveryAscensionPower(controller, godState);
 
         godState.DivineEssence = AscensionController.MinDivineEssenceForAscension;
         controller.PerformAscension(race);
+
+        // Caisse de prestige posée à la main, et c'est un écart assumé de plus (au même titre que les
+        // niveaux de bâtiments, voir EndGameStateFactory). Le chemin réel serait le jalon Ascension
+        // Prestigieuse, mais il verse 1 point par point divin *gagné* (GodState.TotalGodPointsEarned —
+        // voir AscensionController.GrantPrestigiousAscensionPoints), et cette fabrique n'en gagne
+        // aucun : elle gonfle GodPoints directement pour acheter les pouvoirs. Une partie réelle de
+        // vingt Ascensions en aurait des milliers ; sans ce versement la manche ascensionnée démarrait
+        // avec 90 points, de quoi frapper sept fois, ce qui ne mesurait plus le contenu mais la
+        // fabrique. Ajouté, jamais écrasé : la dotation du jalon reste acquise.
+        //
+        // Volontairement absent de TotalPrestigePointsEarned : c'est lui qui fixe PrestigeState.Tier,
+        // donc le niveau du dieu démon (voir EndGameStateFactory.PurchaseEveryPrestigeVertex). Le
+        // gonfler ici durcirait le boss d'autant, et les manches ne seraient plus comparables entre
+        // deux valeurs de --prestige-points.
+        var prestigeState = godState.PrestigeState;
+        if (prestigeState != null)
+            prestigeState.PrestigePoints += prestigePoints;
 
         // Après l'Ascension : les emplacements d'Héritage se comptent sur AscensionsPerformed, qu'elle
         // vient d'incrémenter, et ApplyPermanentUniqueBuildingToCivilization doit être rappelé — celui

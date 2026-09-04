@@ -67,15 +67,17 @@ public class EndGameStateOptions
     public int GodPoints { get; set; }
 
     /// <summary>
-    /// Essence divine gagnée depuis le début de la partie. Ascension Prestigieuse la convertit en
-    /// autant de points de prestige au début du cycle, et ce sont eux qui financent Poing de Dieu :
-    /// son premier usage depuis le dernier prestige est gratuit, le suivant coûte 1, puis 2, et le coût
-    /// double ensuite à chaque usage (4, 8, 16…). Le total de n coups vaut donc 2^(n-1) - 1 : la caisse
-    /// n'achète pas un nombre de coups proportionnel à sa taille, mais son logarithme — 20 085 points
-    /// n'en financent que 15, là où huit Tentacules et le dieu démon en demandent 51.
+    /// Points de prestige versés artificiellement en caisse (voir
+    /// <see cref="GameStateFactory.NewGameForAscendedRace"/>, qui explique pourquoi ils ne sont pas
+    /// gagnés). Ce sont eux qui financent les pouvoirs divins ciblés : le premier usage depuis le
+    /// dernier prestige est gratuit, le suivant coûte 1, puis 2, et le coût double ensuite (4, 8,
+    /// 16…), chaque pouvoir ayant son propre compteur. Le total de n coups vaut donc 2^(n-1) - 1 : la
+    /// caisse n'achète pas un nombre de coups proportionnel à sa taille, mais son logarithme — 20 000
+    /// points n'en financent que 15, là où huit Tentacules et le dieu démon en demandent 51, et
+    /// Présence de Dieu doit se payer sur la même caisse pour que le Poing ait un Dominion à frapper.
     /// Ignoré si <see cref="Ascensions"/> vaut 0.
     /// </summary>
-    public int DivineEssenceEarned { get; set; } = 20_000;
+    public int PrestigePointsGranted { get; set; } = 20_000;
 }
 
 /// <summary>Ce que la fabrique a réellement produit — à afficher avant de lancer l'assaut.</summary>
@@ -197,7 +199,7 @@ public static class EndGameStateFactory
     {
         var controller = options.Ascensions > 0
             ? GameStateFactory.NewGameForAscendedRace(options.Race, options.Seed,
-                options.Ascensions, options.GodPoints, options.DivineEssenceEarned)
+                options.Ascensions, options.GodPoints, options.PrestigePointsGranted)
             : GameStateFactory.NewGameForRace(options.Race, options.Seed);
         var mainState = controller.CurrentMainState
             ?? throw new InvalidOperationException("Le contrôleur n'a pas d'état de partie.");

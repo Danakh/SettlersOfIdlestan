@@ -74,7 +74,7 @@ public static class Program
                     WorldId = options.WorldId ?? DefaultPandemoniumWorldId,
                     Ascensions = options.Ascensions,
                     GodPoints = options.GodPoints,
-                    DivineEssenceEarned = options.DivineEssenceEarned,
+                    PrestigePointsGranted = options.PrestigePointsGranted,
                 },
                 MaxHours = options.MaxIslandHours ?? DefaultPandemoniumHours,
                 CheckpointHours = options.CheckpointHours,
@@ -265,9 +265,10 @@ public static class Program
               --ascensions <n>          Ascensions de l'état fabriqué (0 = manche de base).
               --god-points <n>          Points divins en caisse une fois tous les pouvoirs achetés
                                          (défaut : 200).
-              --divine-essence <n>      Essence divine gagnée : Ascension Prestigieuse la convertit en
-                                         autant de points de prestige, qui financent Poing de Dieu
-                                         (défaut : 20000 ; ~1300 suffisent à tuer le boss).
+              --prestige-points <n>     Points de prestige versés en caisse à la fabrication : ils
+                                         financent Présence de Dieu puis Poing de Dieu, dont le coût
+                                         double à chaque usage (défaut : 20000, soit 15 coups — la
+                                         caisse n'achète que le logarithme de sa taille).
               --races <race>            Race jouée (une seule ; défaut : Human).
               --seed <n>                Seed de génération. Omis = aléatoire.
               --underworld-cities <n>   Villes fabriquées dans l'Inframonde (défaut : 100).
@@ -328,7 +329,7 @@ internal class CliOptions
     /// <summary>Nombre d'Ascensions de l'état fabriqué. 0 = manche de base (échec attendu) ; > 0 = manche ascensionnée (victoire attendue).</summary>
     public int Ascensions { get; set; }
     public int GodPoints { get; set; } = 200;
-    public int DivineEssenceEarned { get; set; } = 20_000;
+    public int PrestigePointsGranted { get; set; } = 20_000;
     public int UnderworldCities { get; set; } = 100;
     public int AbyssCities { get; set; } = 50;
     public int CorruptionLevel { get; set; } = 6;
@@ -437,8 +438,8 @@ internal class CliOptions
                 case "--god-points":
                     options.GodPoints = int.Parse(RequireValue(args, ref i));
                     break;
-                case "--divine-essence":
-                    options.DivineEssenceEarned = int.Parse(RequireValue(args, ref i));
+                case "--prestige-points":
+                    options.PrestigePointsGranted = int.Parse(RequireValue(args, ref i));
                     break;
                 case "--underworld-cities":
                     options.UnderworldCities = int.Parse(RequireValue(args, ref i));
