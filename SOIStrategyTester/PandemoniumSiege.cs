@@ -219,6 +219,11 @@ internal sealed class PandemoniumSiege
     /// <para>Volontairement sans cadence artificielle : le jeu n'en impose aucune au joueur, seul le
     /// coût croissant le fait. La manche mesure si l'état <i>peut</i> gagner, pas à quelle vitesse un
     /// humain clique.</para>
+    ///
+    /// <para>⚠ Le poing ne frappe désormais que les hexes portant un Dominion, dont il consomme 1
+    /// niveau (voir AscensionController.ApplyFistOfGod) : sur une cible du Pandémonium sans Dominion,
+    /// cette règle est un no-op complet et le siège retombe entièrement sur le militaire. Non
+    /// remesuré depuis ce changement — voir SOIStrategyTester/CLAUDE.md, « Manche ascensionnée ».</para>
     /// </summary>
     private bool TryFistOfGod()
     {

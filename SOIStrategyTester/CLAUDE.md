@@ -610,6 +610,12 @@ donc la caisse n'achète plus qu'un logarithme de sa taille : **20 085 points ne
 au lieu de 51 — 3 Tentacules sur 8, la 4ᵉ entamée puis régénérée. Le reste doit se prendre militairement,
 ce qui est exactement l'intention. La manche sort donc en `⚠ INATTENDU`.
 
+⚠️ **Depuis, Poing de Dieu ne frappe plus que les hexes portant un Dominion**, dont il consomme
+1 niveau (comme Marche de Dieu — voir `AscensionController.ApplyFistOfGod`). Le Pandémonium n'en porte
+aucun par défaut, donc `TryFistOfGod` y est probablement un no-op complet : les 15 coups que la caisse
+finançait encore tombent à 0 tant que le Dominion n'a pas été semé sur l'arène. **Non remesuré** — les
+trois lignes ci-dessous datent d'avant ce changement.
+
 **Trois états mesurés, seed 1, île 5** (108 villes de surface + 100 Inframonde + 50 Abysse, 4 496
 bâtiments, 20 371 niveaux cumulés, 386 975 / 163 645 de stockage) :
 

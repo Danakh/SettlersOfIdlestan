@@ -307,6 +307,9 @@ namespace SOITests.ControllerTests
             prestigeState.WalkOfGodUsesSinceLastPrestige = 3;
             prestigeState.PresenceOfGodUsesSinceLastPrestige = 2;
             prestigeState.FistOfGodUsesSinceLastPrestige = 4;
+            prestigeState.WalkOfGodNextCostDecayTick = 1000;
+            prestigeState.PresenceOfGodNextCostDecayTick = 1000;
+            prestigeState.FistOfGodNextCostDecayTick = 1000;
             prestigeState.PrestigePoints = 10;
             controller.CurrentMainState.GodState.DivineEssence = 5;
 
@@ -316,6 +319,10 @@ namespace SOITests.ControllerTests
             Assert.Equal(0, newPrestigeState.WalkOfGodUsesSinceLastPrestige);
             Assert.Equal(0, newPrestigeState.PresenceOfGodUsesSinceLastPrestige);
             Assert.Equal(0, newPrestigeState.FistOfGodUsesSinceLastPrestige);
+            // Les temps de recharge suivent leurs compteurs : rien ne doit rester armé sur l'île neuve.
+            Assert.Equal(0, newPrestigeState.WalkOfGodNextCostDecayTick);
+            Assert.Equal(0, newPrestigeState.PresenceOfGodNextCostDecayTick);
+            Assert.Equal(0, newPrestigeState.FistOfGodNextCostDecayTick);
             Assert.Equal(10, newPrestigeState.PrestigePoints);
             Assert.Equal(5, controller.CurrentMainState.GodState.DivineEssence);
         }

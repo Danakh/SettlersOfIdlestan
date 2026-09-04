@@ -253,16 +253,7 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
     private const string Check = "✓";
 
-    private static string FormatTicks(long ticks)
-    {
-        long totalSeconds = ticks / 100;
-        long hours = totalSeconds / 3600;
-        long minutes = (totalSeconds % 3600) / 60;
-        long seconds = totalSeconds % 60;
-        return hours > 0
-            ? $"{hours}h{minutes:D2}m{seconds:D2}s"
-            : $"{minutes}m{seconds:D2}s";
-    }
+    private static string FormatTicks(long ticks) => SkiaTextUtils.FormatTickDuration(ticks);
 
     public void Dispose()
     {

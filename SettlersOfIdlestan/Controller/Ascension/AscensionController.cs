@@ -895,9 +895,137 @@ public class AscensionController : IModifierProvider
     ///
     /// <para>Le décalage est plafonné pour ne pas déborder l'int : passé une trentaine d'usages dans
     /// un même prestige, le coût est de toute façon hors d'atteinte de la cagnotte.</para>
+    ///
+    /// <para>Le compteur ne fait pas que monter : il redescend d'un cran — donc le coût de moitié —
+    /// à chaque temps de recharge écoulé, jusqu'à un coût plancher de 1 (voir
+    /// <see cref="TargetedPowerCostDecayTicks"/>).</para>
     /// </summary>
     public static int TargetedPowerCost(int usesSinceLastPrestige)
         => usesSinceLastPrestige <= 0 ? 0 : 1 << Math.Min(usesSinceLastPrestige - 1, 30);
+
+    /// <summary>
+    /// Temps de recharge des pouvoirs divins ciblés : 12 h de temps de jeu (1 tick = 0.01 s), au
+    /// terme desquelles le coût de la prochaine utilisation est divisé par 2 — voir
+    /// <see cref="DecayTargetedPowerUses"/>. Du temps de jeu, donc accéléré par la vitesse ×3/×5/×10
+    /// et par la banque hors-ligne, comme tout le reste de la simulation.
+    /// </summary>
+    public const long TargetedPowerCostDecayTicks = 12L * 60 * 60 * 100;
+
+    /// <summary>
+    /// Fait décroître le compteur d'usages d'un pouvoir divin ciblé — donc son coût de moitié (voir
+    /// <see cref="TargetedPowerCost"/>) — chaque fois qu'un temps de recharge complet
+    /// (<see cref="TargetedPowerCostDecayTicks"/>) s'est écoulé depuis la dernière utilisation ou la
+    /// dernière décroissance. Renvoie vrai si l'état a changé.
+    ///
+    /// <para>Le coût redescend jusqu'à 1 (1 usage compté) et pas plus bas : la gratuité du premier
+    /// usage ne se regagne jamais en attendant, elle ne revient qu'au prestige (voir
+    /// PrestigeState.ResetTargetedDivinePowerUses). Un pouvoir jamais utilisé (0 usage) reste, lui,
+    /// gratuit — la boucle ne s'y déclenche pas.</para>
+    ///
+    /// <para>La boucle rattrape plusieurs paliers d'un coup : un saut de temps (banque hors-ligne,
+    /// vitesse ×10) peut couvrir plusieurs recharges en un seul tick de simulation. Un
+    /// <paramref name="nextDecayTick"/> nul est une sauvegarde antérieure au temps de recharge : on
+    /// l'arme sans rien réduire plutôt que de rendre d'un coup tous les paliers accumulés.</para>
+    /// </summary>
+    private static bool DecayTargetedPowerUses(long currentTick, ref int uses, ref long nextDecayTick)
+    {
+        if (uses <= 1) return false;
+
+        if (nextDecayTick <= 0)
+        {
+            nextDecayTick = currentTick + TargetedPowerCostDecayTicks;
+            return true;
+        }
+
+        bool changed = false;
+        while (uses > 1 && currentTick >= nextDecayTick)
+        {
+            uses--;
+            nextDecayTick += TargetedPowerCostDecayTicks;
+            changed = true;
+        }
+
+        // Plancher atteint : plus rien à réduire tant que le pouvoir n'est pas réutilisé, le temps de
+        // recharge est désarmé (il sera réarmé par la prochaine utilisation).
+        if (uses <= 1) nextDecayTick = 0;
+
+        return changed;
+    }
+
+    /// <summary>
+    /// Applique le temps de recharge des trois pouvoirs divins ciblés à chaque tick (voir
+    /// <see cref="DecayTargetedPowerUses"/>).
+    /// </summary>
+    private void ProcessTargetedPowerCostDecay(long currentTick)
+    {
+        var prestigeState = _godState?.PrestigeState;
+        if (prestigeState == null) return;
+
+        int uses = prestigeState.WalkOfGodUsesSinceLastPrestige;
+        long next = prestigeState.WalkOfGodNextCostDecayTick;
+        if (DecayTargetedPowerUses(currentTick, ref uses, ref next))
+        {
+            prestigeState.WalkOfGodUsesSinceLastPrestige = uses;
+            prestigeState.WalkOfGodNextCostDecayTick = next;
+        }
+
+        uses = prestigeState.PresenceOfGodUsesSinceLastPrestige;
+        next = prestigeState.PresenceOfGodNextCostDecayTick;
+        if (DecayTargetedPowerUses(currentTick, ref uses, ref next))
+        {
+            prestigeState.PresenceOfGodUsesSinceLastPrestige = uses;
+            prestigeState.PresenceOfGodNextCostDecayTick = next;
+        }
+
+        uses = prestigeState.FistOfGodUsesSinceLastPrestige;
+        next = prestigeState.FistOfGodNextCostDecayTick;
+        if (DecayTargetedPowerUses(currentTick, ref uses, ref next))
+        {
+            prestigeState.FistOfGodUsesSinceLastPrestige = uses;
+            prestigeState.FistOfGodNextCostDecayTick = next;
+        }
+    }
+
+    /// <summary>
+    /// Enregistre une utilisation d'un pouvoir divin ciblé : incrémente son compteur d'usages (donc
+    /// double son coût) et réarme son temps de recharge à partir de maintenant.
+    /// </summary>
+    private void RegisterTargetedPowerUse(ref int uses, ref long nextDecayTick)
+    {
+        uses++;
+        nextDecayTick = uses > 1 ? (_clock?.CurrentTick ?? 0) + TargetedPowerCostDecayTicks : 0;
+    }
+
+    /// <summary>
+    /// Ticks restants avant la prochaine division par 2 du coût, ou <c>null</c> si aucun temps de
+    /// recharge n'est en cours (pouvoir jamais utilisé depuis le dernier prestige, ou coût déjà au
+    /// plancher de 1). Affiché uniquement dans l'infobulle du pouvoir — ces recharges n'ont
+    /// volontairement pas de barre de progression.
+    /// </summary>
+    private long? GetTargetedPowerCostDecayRemainingTicks(int uses, long nextDecayTick)
+    {
+        if (uses <= 1) return null;
+        if (nextDecayTick <= 0) return TargetedPowerCostDecayTicks;
+        return Math.Max(0, nextDecayTick - (_clock?.CurrentTick ?? 0));
+    }
+
+    /// <summary>Ticks restants avant la prochaine division par 2 du coût de Marche de Dieu (voir <see cref="GetTargetedPowerCostDecayRemainingTicks"/>).</summary>
+    public long? GetWalkOfGodCostDecayRemainingTicks()
+        => GetTargetedPowerCostDecayRemainingTicks(
+            _godState?.PrestigeState?.WalkOfGodUsesSinceLastPrestige ?? 0,
+            _godState?.PrestigeState?.WalkOfGodNextCostDecayTick ?? 0);
+
+    /// <summary>Ticks restants avant la prochaine division par 2 du coût de Présence de Dieu (voir <see cref="GetTargetedPowerCostDecayRemainingTicks"/>).</summary>
+    public long? GetPresenceOfGodCostDecayRemainingTicks()
+        => GetTargetedPowerCostDecayRemainingTicks(
+            _godState?.PrestigeState?.PresenceOfGodUsesSinceLastPrestige ?? 0,
+            _godState?.PrestigeState?.PresenceOfGodNextCostDecayTick ?? 0);
+
+    /// <summary>Ticks restants avant la prochaine division par 2 du coût de Poing de Dieu (voir <see cref="GetTargetedPowerCostDecayRemainingTicks"/>).</summary>
+    public long? GetFistOfGodCostDecayRemainingTicks()
+        => GetTargetedPowerCostDecayRemainingTicks(
+            _godState?.PrestigeState?.FistOfGodUsesSinceLastPrestige ?? 0,
+            _godState?.PrestigeState?.FistOfGodNextCostDecayTick ?? 0);
 
     /// <summary>
     /// Coût en points de prestige de la prochaine utilisation de Marche de Dieu : la première
@@ -1029,7 +1157,12 @@ public class AscensionController : IModifierProvider
 
         var prestigeState = _godState!.PrestigeState!;
         prestigeState.PrestigePoints -= GetWalkOfGodCost();
-        prestigeState.WalkOfGodUsesSinceLastPrestige++;
+
+        int uses = prestigeState.WalkOfGodUsesSinceLastPrestige;
+        long nextDecayTick = prestigeState.WalkOfGodNextCostDecayTick;
+        RegisterTargetedPowerUse(ref uses, ref nextDecayTick);
+        prestigeState.WalkOfGodUsesSinceLastPrestige = uses;
+        prestigeState.WalkOfGodNextCostDecayTick = nextDecayTick;
 
         // Le terrain façonné peut rendre une ville inoccupable — engloutie sous l'eau, ou privée du
         // terrain qu'exige sa race. Dieu ne fait pas d'exception pour ses fidèles : elle tombe.
@@ -1140,7 +1273,12 @@ public class AscensionController : IModifierProvider
 
         var prestigeState = _godState!.PrestigeState!;
         prestigeState.PrestigePoints -= GetPresenceOfGodCost();
-        prestigeState.PresenceOfGodUsesSinceLastPrestige++;
+
+        int uses = prestigeState.PresenceOfGodUsesSinceLastPrestige;
+        long nextDecayTick = prestigeState.PresenceOfGodNextCostDecayTick;
+        RegisterTargetedPowerUse(ref uses, ref nextDecayTick);
+        prestigeState.PresenceOfGodUsesSinceLastPrestige = uses;
+        prestigeState.PresenceOfGodNextCostDecayTick = nextDecayTick;
 
         return true;
     }
@@ -1174,9 +1312,13 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Hexs ciblables par Poing de Dieu : les hexs actuellement <b>visibles</b> par le joueur sur le
-    /// calque affiché. Contrairement à Marche de Dieu et Présence de Dieu, le pouvoir n'est pas limité
-    /// à la surface — les monstres des profondeurs sont précisément ceux contre lesquels il vaut le
-    /// plus — mais il reste borné au brouillard de guerre : Dieu ne frappe pas à l'aveugle.
+    /// calque affiché et portant un <see cref="Dominion"/> — Dieu ne frappe que là où son emprise est
+    /// établie, et le coup consomme précisément 1 niveau de ce Dominion (voir
+    /// <see cref="ApplyFistOfGod"/>). Contrairement à Marche de Dieu, aucun niveau minimum n'est
+    /// exigé : un Dominion de niveau 1 suffit, il disparaît simplement sous le coup. Contrairement à
+    /// Marche de Dieu et Présence de Dieu, le pouvoir n'est pas limité à la surface — les monstres des
+    /// profondeurs sont précisément ceux contre lesquels il vaut le plus — mais il reste borné au
+    /// brouillard de guerre : Dieu ne frappe pas à l'aveugle.
     /// </summary>
     public IReadOnlyList<HexCoord> GetFistOfGodTargetHexes()
     {
@@ -1187,6 +1329,7 @@ public class AscensionController : IModifierProvider
 
         return visibleMap.Tiles.Values
             .Select(t => t.Coord)
+            .Where(c => _state.GetFirstFeatureAt<Dominion>(c) != null)
             .ToList();
     }
 
@@ -1205,11 +1348,16 @@ public class AscensionController : IModifierProvider
     }
 
     /// <summary>
-    /// Abat le poing divin sur un hex : <see cref="FistOfGodDamage"/> dégâts au monstre qui s'y
-    /// trouve (réduits par son armure, comme toute autre source de dégâts) et autant à chaque ville
-    /// <b>ennemie</b> adjacente — les villes du joueur ne sont jamais touchées, le pouvoir est une
-    /// arme, pas un châtiment. Les monstres « amis » (MonsterFeature.AttacksOtherMonsters, ex.
+    /// Abat le poing divin sur un hex sous Dominion : <see cref="FistOfGodDamage"/> dégâts au monstre
+    /// qui s'y trouve (réduits par son armure, comme toute autre source de dégâts) et autant à chaque
+    /// ville <b>ennemie</b> adjacente — les villes du joueur ne sont jamais touchées, le pouvoir est
+    /// une arme, pas un châtiment. Les monstres « amis » (MonsterFeature.AttacksOtherMonsters, ex.
     /// l'Aventurier) sont épargnés, comme partout ailleurs.
+    ///
+    /// <para>Le coup coûte, en plus des points de prestige (voir <see cref="GetFistOfGodCost"/>), 1
+    /// niveau du Dominion de l'hex visé, comme Marche de Dieu. À la différence de celle-ci, aucun
+    /// niveau minimum n'est exigé : un Dominion de niveau 1 est consommé entièrement et disparaît de
+    /// l'hex.</para>
     ///
     /// <para>Les dégâts sur une ville cascadent comme une attaque de monstre (voir
     /// MonsterController.ApplyMonsterAttack) : soldats, puis défense, puis niveaux d'Hôtel de ville ;
@@ -1226,12 +1374,27 @@ public class AscensionController : IModifierProvider
         // qui passerait un hex non visible.
         if (!IsVisibleToPlayer(hex)) return false;
 
+        // Poing de Dieu ne frappe que sous Dominion, dont il consomme un niveau (voir
+        // GetFistOfGodTargetHexes) : même garde-fou, pour un appelant direct qui passerait un hex
+        // sans Dominion.
+        var dominion = _state.GetFirstFeatureAt<Dominion>(hex);
+        if (dominion == null) return false;
+
         StrikeMonsterAt(hex);
         StrikeCitiesAdjacentTo(hex);
 
+        dominion.Level--;
+        if (dominion.Level <= 0)
+            _state.RemoveFeature(dominion);
+
         var prestigeState = _godState!.PrestigeState!;
         prestigeState.PrestigePoints -= GetFistOfGodCost();
-        prestigeState.FistOfGodUsesSinceLastPrestige++;
+
+        int uses = prestigeState.FistOfGodUsesSinceLastPrestige;
+        long nextDecayTick = prestigeState.FistOfGodNextCostDecayTick;
+        RegisterTargetedPowerUse(ref uses, ref nextDecayTick);
+        prestigeState.FistOfGodUsesSinceLastPrestige = uses;
+        prestigeState.FistOfGodNextCostDecayTick = nextDecayTick;
 
         return true;
     }
@@ -1310,6 +1473,9 @@ public class AscensionController : IModifierProvider
     {
         try { PerformHandOfGodHarvests(); }
         catch (Exception ex) { GameLog.Error(nameof(AscensionController), nameof(PerformHandOfGodHarvests), ex); }
+
+        try { ProcessTargetedPowerCostDecay(e.CurrentTick); }
+        catch (Exception ex) { GameLog.Error(nameof(AscensionController), nameof(ProcessTargetedPowerCostDecay), ex); }
     }
 
     private void PerformHandOfGodHarvests()
