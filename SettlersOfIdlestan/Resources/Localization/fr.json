@@ -1037,7 +1037,7 @@
   "tech_cartographie_du_vide_name": "Cartographie du Vide",
   "tech_cartographie_du_vide_desc": "Les chemins du néant se laissent enfin tracer : les routes du Vide déjà construites ne comptent que pour deux tiers dans le coût de la suivante.",
   "tech_dogme_de_l_emprise_name": "Dogme de l'Emprise",
-  "tech_dogme_de_l_emprise_desc": "La doctrine de votre dieu s'enracine : les Temples peuvent porter le Dominion 1 niveau plus haut par niveau de Temple.",
+  "tech_dogme_de_l_emprise_desc": "La doctrine de votre dieu s'enracine jusque sous la roche : le malus de profondeur du Dominion passe de 2 à 1,5 par plan (÷1,5 dans l'Inframonde, ÷2,25 dans l'Abysse, ÷3,375 dans le Pandémonium, au lieu de ÷2/÷4/÷8). Les Temples et la propagation y repoussent donc bien plus souvent la Corruption.",
   "tech_communion_abyssale_name": "Communion Abyssale",
   "tech_communion_abyssale_desc": "Prier au bord du gouffre, c'est être entendu des deux côtés : +100% de points de prestige gagnés.",
   "tech_evangelisation_name": "Évangélisation",

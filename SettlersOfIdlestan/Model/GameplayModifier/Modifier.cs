@@ -202,7 +202,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             DIVINE_ESSENCE_KEPT_ON_PRESTIGE,
             /// <summary>Bonus de vitesse de régénération de défense par point de Dominion sur les 3 hexs de l'emplacement. Base = 0.0; agrégé via PerVertexModifiers (valeur × vertex de prestige adjacents achetés), puis multiplié par la somme des niveaux de Dominion autour de la ville.</summary>
             DOMINION_DEFENSE_REGEN_PER_LEVEL,
-            /// <summary>Bonus additif au plafond de Dominion que la production d'un Temple peut atteindre, par niveau de Temple (base : 2/niveau, voir CorruptionController.ProcessTempleProduction). Base = 0.</summary>
+            /// <summary>Bonus additif au plafond de Dominion que la production d'un Temple peut atteindre, par niveau de Temple (base : 2/niveau, voir CorruptionController.ProcessTempleProduction). Base = 0. Aucune source ne l'accorde actuellement (le Dogme de l'Emprise, qui le portait, allège désormais DOMINION_LAYER_PENALTY_REDUCTION).</summary>
             TEMPLE_DOMINION_CAP,
             /// <summary>Points de pourcentage de chance de débordement supplémentaires par niveau, pour le Dominion uniquement (base : 10%/niveau, voir CorruptionController.ProcessSpread). Base = 0.</summary>
             DOMINION_SPREAD_CHANCE,
@@ -288,6 +288,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             ADVENTURER_ATTACK_DAMAGE_BONUS,
             /// <summary>Flags que les Balises Maritimes peuvent être posées sur un vertex dont les 3 hexs sont de l'Eau et/ou de l'Eau profonde (au lieu d'exiger les 3 en Eau non profonde stricte, voir MaritimeBeaconController.GetBuildableVertices), et que les arêtes de route touchant l'Eau profonde restent constructibles si elles rejoignent une Balise Maritime de la civilisation (voir RoadController.EdgeTouchesDeepWater). SubCategory unused. Accordé par la Grotte aux Perles (Sirènes).</summary>
             MARITIME_BEACON_DEEP_WATER_PLACEMENT,
+            /// <summary>Réduction du malus de profondeur appliqué aux actions du Dominion (production de Temple et débordement, voir CorruptionController.GetDominionLayerDivisorMilli), par couche franchie. Base = 0.0, soit un malus de 2 par couche (÷2 Inframonde, ÷4 Abysses, ÷8 Pandémonium) ; 0.5 ramène le malus à 1,5 par couche (÷1,5 / ÷2,25 / ÷3,375). Jamais sous 1 (aucun malus). SubCategory unused. Accordé par le Dogme de l'Emprise.</summary>
+            DOMINION_LAYER_PENALTY_REDUCTION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

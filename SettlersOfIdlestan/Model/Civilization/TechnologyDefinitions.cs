@@ -794,7 +794,7 @@ public static class TechnologyDefinitions
             "tech_dogme_de_l_emprise_name", "tech_dogme_de_l_emprise_desc",
             cost: 1687500000,
             prerequisites: new[] { TechnologyId.TheologieDeLAscension },
-            modifiers: new Modifier[] { new(ECategory.TEMPLE_DOMINION_CAP, EType.ADDITIVE, 1) },
+            modifiers: new Modifier[] { new(ECategory.DOMINION_LAYER_PENALTY_REDUCTION, EType.ADDITIVE, 0.5) },
             tier: 12, line: 5,
             requiresDominionUnlock: true),
 
