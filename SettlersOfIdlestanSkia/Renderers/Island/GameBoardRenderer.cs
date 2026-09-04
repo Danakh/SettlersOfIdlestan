@@ -37,10 +37,41 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _selectedMonumentPaint;
     private SKPaint? _corruptionPaint;
     private SKPaint? _dominionPaint;
+    private SKPaint? _abyssSwirlPaint;
+    private SKShader? _abyssSwirlShader;
+    private SKPaint? _pandemoniumSwirlPaint;
+    private SKShader? _pandemoniumSwirlShader;
     private bool _disposed;
 
     private readonly Dictionary<HexCoord, SKPath> _hexPathCache = new();
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
+
+    /// <summary>
+    /// Fond de carte propre à chaque zone : la Surface, les Abysses et le Pandémonium partageaient le
+    /// même quasi-blanc, ce qui rendait deux étages consécutifs indiscernables au changement d'onglet.
+    /// Chaque zone a donc sa teinte, et plus on descend plus le fond est sombre. Les Abysses et le
+    /// Pandémonium ajoutent par-dessus le tourbillon de <see cref="DrawBackgroundSwirl"/>.
+    /// </summary>
+    private static readonly SKColor SurfaceBackgroundColor     = new(203, 211, 214);
+    private static readonly SKColor UnderworldBackgroundColor  = new(15, 8, 30);
+    private static readonly SKColor AbyssBackgroundColor       = new(10, 5, 22);
+    private static readonly SKColor PandemoniumBackgroundColor = new(26, 12, 14);
+
+    private static SKColor GetLayerBackgroundColor(int z) => z switch
+    {
+        LayerState.UnderworldZ  => UnderworldBackgroundColor,
+        LayerState.AbyssZ       => AbyssBackgroundColor,
+        LayerState.PandemoniumZ => PandemoniumBackgroundColor,
+        _                       => SurfaceBackgroundColor
+    };
+
+    /// <summary>
+    /// Vitesses de rotation des tourbillons de fond — voir <see cref="DrawBackgroundSwirl"/>. Le
+    /// Pandémonium tourne à contre-sens et un peu plus vite que les Abysses : les deux étages restent
+    /// ainsi distinguables au premier coup d'œil, même avec des fonds de luminosité voisine.
+    /// </summary>
+    private const float AbyssSwirlDegreesPerSecond = 5f;
+    private const float PandemoniumSwirlDegreesPerSecond = -7f;
 
     /// <summary>
     /// Agrégats par hexagone reconstruits à chaque image, dans des dictionnaires réutilisés.
@@ -168,6 +199,37 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             IsAntialias = true
         };
 
+        // Dégradés circulaires des fonds d'étage, construits une fois pour toutes : mêmes violets que
+        // le portail de la Faille pour les Abysses (voir DrawAbyssGatePortal), leur pendant braise
+        // pour le Pandémonium, mais très dilués pour rester des fonds. Ils sont centrés sur (0, 0) —
+        // c'est la matrice du canvas qui les amène au centre de l'écran et les fait tourner, de sorte
+        // qu'aucun shader n'est reconstruit d'une image à l'autre.
+        _abyssSwirlShader = SKShader.CreateSweepGradient(
+            new SKPoint(0f, 0f),
+            new[]
+            {
+                new SKColor(10, 5, 22, 0),
+                new SKColor(140, 50, 220, 46),
+                new SKColor(10, 5, 22, 0),
+                new SKColor(90, 25, 170, 38),
+                new SKColor(10, 5, 22, 0),
+            },
+            null);
+        _abyssSwirlPaint = new SKPaint { Shader = _abyssSwirlShader, IsAntialias = false };
+
+        _pandemoniumSwirlShader = SKShader.CreateSweepGradient(
+            new SKPoint(0f, 0f),
+            new[]
+            {
+                new SKColor(26, 12, 14, 0),
+                new SKColor(230, 80, 40, 46),
+                new SKColor(26, 12, 14, 0),
+                new SKColor(170, 30, 40, 38),
+                new SKColor(26, 12, 14, 0),
+            },
+            null);
+        _pandemoniumSwirlPaint = new SKPaint { Shader = _pandemoniumSwirlShader, IsAntialias = false };
+
         foreach (Resource resource in Enum.GetValues(typeof(Resource)))
         {
             string name = resource.ToString().ToLower();
@@ -185,8 +247,7 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             var worldState = mainGameState.CurrentWorldState;
             if (worldState != null && worldState.CurrentViewedLayer == LayerState.UnderworldZ && worldState.Layers.ContainsKey(LayerState.UnderworldZ))
             {
-                if (!DebugSettings.ExportTransparentBackground)
-                    canvas.DrawColor(new SKColor(15, 8, 30));
+                DrawLayerBackground(canvas, LayerState.UnderworldZ, context.TotalTime);
                 var playerIdx = worldState.PlayerCivilization.Index;
                 IslandMap? underworldMap = (DebugSettings.ShowFullMap || mainGameState.GodState.AscensionState.IsEyeOfGodActive)
                     ? worldState.GetMapForZ(LayerState.UnderworldZ)
@@ -208,8 +269,12 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             }
         }
 
-        if (!DebugSettings.ExportTransparentBackground)
-            canvas.DrawColor(new SKColor(238, 242, 245));
+        // Surface, Abysses et Pandémonium passent tous par ce chemin : le fond suit la zone regardée,
+        // et retombe sur celui de la Surface quand l'état de jeu n'en désigne aucune.
+        DrawLayerBackground(
+            canvas,
+            (context.GameState as MainGameState)?.CurrentWorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer,
+            context.TotalTime);
 
         if (context.GameState is MainGameState mgs)
         {
@@ -240,6 +305,59 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Peint le fond de la zone regardée, tourbillons des Abysses et du Pandémonium compris. Respecte
+    /// <see cref="DebugSettings.ExportTransparentBackground"/>, qui doit laisser le canvas vierge.
+    /// </summary>
+    private void DrawLayerBackground(SKCanvas canvas, int z, float totalTime)
+    {
+        if (DebugSettings.ExportTransparentBackground)
+            return;
+
+        canvas.DrawColor(GetLayerBackgroundColor(z));
+
+        switch (z)
+        {
+            case LayerState.AbyssZ:
+                DrawBackgroundSwirl(canvas, _abyssSwirlPaint, AbyssSwirlDegreesPerSecond, totalTime);
+                break;
+            case LayerState.PandemoniumZ:
+                DrawBackgroundSwirl(canvas, _pandemoniumSwirlPaint, PandemoniumSwirlDegreesPerSecond, totalTime);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Tourbillon de fond d'un étage : le même dégradé circulaire tournant que le portail de la
+    /// Faille (voir <see cref="DrawAbyssGatePortal"/>), étalé sur tout l'écran et rendu presque
+    /// transparent pour rester lisible sous les tuiles.
+    ///
+    /// <para>Le coût tient en un seul disque plein par image : le dégradé est construit une fois dans
+    /// <see cref="Initialize"/> et c'est la matrice du canvas qui le centre et le fait tourner — rien
+    /// n'est alloué ni recalculé ici. L'antialiasing est inutile sur un disque qui déborde du clip.</para>
+    /// </summary>
+    private static void DrawBackgroundSwirl(SKCanvas canvas, SKPaint? swirlPaint, float degreesPerSecond, float totalTime)
+    {
+        if (swirlPaint == null) return;
+
+        // Bornes du clip dans le repère courant : le fond doit couvrir l'écran quel que soit le zoom
+        // et la position de la caméra, alors que le dessin qui suit vit en coordonnées d'île.
+        var clip = canvas.LocalClipBounds;
+        if (clip.Width <= 0f || clip.Height <= 0f) return;
+
+        float cx = clip.MidX;
+        float cy = clip.MidY;
+        // Demi-diagonale : un disque de ce rayon couvre le clip entier, et le couvre encore une fois
+        // tourné, ce qui évite d'avoir à faire tourner un rectangle.
+        float radius = (float)Math.Sqrt(clip.Width * clip.Width + clip.Height * clip.Height) / 2f;
+
+        canvas.Save();
+        canvas.Translate(cx, cy);
+        canvas.RotateDegrees((totalTime * degreesPerSecond) % 360f);
+        canvas.DrawCircle(0f, 0f, radius, swirlPaint);
+        canvas.Restore();
     }
 
     /// <summary>
@@ -676,6 +794,12 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
         _textIconPaint?.Dispose();
         _textIconFont?.Dispose();
         _selectedMonumentPaint?.Dispose();
+        _corruptionPaint?.Dispose();
+        _dominionPaint?.Dispose();
+        _abyssSwirlPaint?.Dispose();
+        _abyssSwirlShader?.Dispose();
+        _pandemoniumSwirlPaint?.Dispose();
+        _pandemoniumSwirlShader?.Dispose();
 
         foreach (var path in _hexPathCache.Values)
             path.Dispose();
