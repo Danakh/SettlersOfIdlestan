@@ -449,6 +449,40 @@ public class CityBuilderControllerTests
     }
 
     [Fact]
+    public void BuildCity_DivineConstructionActive_GrantsMarketWhateverTheTerrain()
+    {
+        // Le Marché n'exige aucun terrain : contrairement aux bâtiments de production, il est accordé
+        // à toute nouvelle ville (voir CityBuilderController.GrantDivineConstructionMarket).
+        var (state, civ, _, vMiddle, _) = RibbonIsland();
+        civ.AddCustomAggregator(new FlatModifierProvider(
+            new Modifier(ECategory.NEW_CITY_DIVINE_CONSTRUCTION, EType.ADDITIVE, 1)));
+        GrantBasicResourcesForCityConstruction(civ);
+
+        var city = Controller(state).BuildCity(0, vMiddle);
+
+        Assert.NotNull(city);
+        Assert.Equal(1, city!.Buildings.Single(b => b.Type == BuildingType.Market).Level);
+    }
+
+    [Fact]
+    public void BuildCity_DivineConstructionActive_StacksMarketLevelWithFreeMarketGrant()
+    {
+        // Même cumul que la Palissade de Conquête Divine : un Marché déjà offert par ailleurs
+        // (NEW_CITY_BUILDING "Market") gagne un niveau au lieu d'être ignoré — c'est ce qui porte le
+        // premier Marché de la partie au niveau 2 avec le vertex de prestige Port & Marché.
+        var (state, civ, _, vMiddle, _) = RibbonIsland();
+        civ.AddCustomAggregator(new FlatModifierProvider(
+            new Modifier(ECategory.NEW_CITY_BUILDING, "Market", EType.ADDITIVE, 1),
+            new Modifier(ECategory.NEW_CITY_DIVINE_CONSTRUCTION, EType.ADDITIVE, 1)));
+        GrantBasicResourcesForCityConstruction(civ);
+
+        var city = Controller(state).BuildCity(0, vMiddle);
+
+        Assert.NotNull(city);
+        Assert.Equal(2, city!.Buildings.Single(b => b.Type == BuildingType.Market).Level);
+    }
+
+    [Fact]
     public void BuildCity_DivineConquestActive_GrantsPalisadeBarracksAndSoldiersCappedByCityCapacity()
     {
         var (state, civ, _, vMiddle, _) = RibbonIsland();

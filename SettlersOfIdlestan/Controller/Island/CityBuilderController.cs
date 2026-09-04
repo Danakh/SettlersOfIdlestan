@@ -757,7 +757,8 @@ namespace SettlersOfIdlestan.Controller.Island
         /// serait constructible (voir City.Level) — puis tente chacun des
         /// <see cref="DivineConstructionBuildingTypes"/> ; seuls ceux réellement constructibles à cet
         /// emplacement (terrain requis, niveau de ville — voir Building.IsBuildingAvailableForCity) sont
-        /// effectivement ajoutés.
+        /// effectivement ajoutés. Le Marché, lui, ne dépend d'aucun terrain : il est accordé
+        /// inconditionnellement par <see cref="GrantDivineConstructionMarket"/>.
         /// </summary>
         private static void GrantDivineConstructionBuildings(City city, IslandMap map, Civilization civ)
         {
@@ -781,6 +782,37 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 city.AddBuilding(building);
             }
+
+            GrantDivineConstructionMarket(city, map);
+        }
+
+        /// <summary>
+        /// Marché gratuit accordé par le pouvoir divin Construction Divine
+        /// (ECategory.NEW_CITY_DIVINE_CONSTRUCTION) : niveau 1, ou <b>+1 niveau</b> si la ville a déjà
+        /// reçu un Marché gratuitement par ailleurs — typiquement la ville de départ, à laquelle le
+        /// vertex de prestige Port &amp; Marché (STARTING_CITY_BUILDING) en accorde déjà un : les
+        /// niveaux gratuits s'empilent et le premier Marché de la partie démarre alors niveau 2. Même
+        /// principe que la Palissade de Conquête Divine (voir <see cref="GrantDivineConquestGarrison"/>),
+        /// niveau maximum compris : un don divin passe outre (le Marché n'a que le niveau 1 par défaut,
+        /// les niveaux suivants venant des recherches et de la Guilde des Marchands).
+        /// Appelé pour tout nouvel avant-poste par <see cref="GrantDivineConstructionBuildings"/>, et
+        /// pour la ville de départ par PrestigeMapController.ApplyPrestigeToNewGame — celle-ci ne passe
+        /// pas par <see cref="CreateCityAt"/>.
+        /// </summary>
+        public static void GrantDivineConstructionMarket(City city, IslandMap map)
+        {
+            var market = city.FindBuilding(BuildingType.Market);
+            if (market != null)
+            {
+                market.Level++;
+                return;
+            }
+
+            var granted = BuildingFactory.Create(BuildingType.Market)!;
+            if (!granted.IsAvailableInLayer(map.Z)) return;
+
+            granted.Level = 1;
+            city.AddBuilding(granted);
         }
 
         /// <summary>

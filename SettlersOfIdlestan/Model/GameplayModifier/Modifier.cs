@@ -40,7 +40,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             /// <summary>Pouvoir divin Construction Divine (AscensionPowerId.DivineConstruction) : chaque nouvel
             /// avant-poste du joueur reçoit un Hôtel de ville niveau 1, puis tout bâtiment de production basique
             /// (Scierie, Briqueterie, Moulin, Carrière, Mine) réellement constructible à cet emplacement — seul
-            /// le terrain (et, pour la Mine, le niveau de ville) en décide. Voir
+            /// le terrain (et, pour la Mine, le niveau de ville) en décide — plus un Marché gratuit, accordé lui
+            /// sans condition et jusque dans la ville de départ (PrestigeMapController.ApplyPrestigeToNewGame) :
+            /// s'y ajoutant au Marché du vertex de prestige Port &amp; Marché, il porte le premier Marché de la
+            /// partie au niveau 2. Voir
             /// CityBuilderController.GrantDivineConstructionBuildings. Fait aussi passer à deux le nombre de
             /// constructions/améliorations effectuées par cooldown écoulé pour toutes les automatisations de
             /// guilde (BuildingController.TickGuildAutomation). SubCategory unused.</summary>

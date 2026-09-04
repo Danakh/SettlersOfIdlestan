@@ -74,30 +74,44 @@ public class PrestigeMapController
         ApplyStartingResearch(civ);
 
         var purchased = prestigeState.PurchasedVertices;
-        if (purchased.Count == 0) return;
+        var startingCity = civ.Cities.FirstOrDefault();
 
-        // Starting resource bonuses scaled by adjacent purchased vertices
-        foreach (var hex in DefaultMap.Hexes)
+        if (purchased.Count > 0)
         {
-            if (hex.StartingResourceBonusPerVertex <= 0) continue;
-            int adjacentPurchased = hex.AdjacentVertices.Count(v => purchased.Contains(v));
-            if (adjacentPurchased == 0) continue;
-            int bonus = hex.StartingResourceBonusPerVertex * adjacentPurchased;
-            foreach (var resource in ResourceUtils.BasicResources)
-                civ.AddResource(resource, bonus);
+            // Starting resource bonuses scaled by adjacent purchased vertices
+            foreach (var hex in DefaultMap.Hexes)
+            {
+                if (hex.StartingResourceBonusPerVertex <= 0) continue;
+                int adjacentPurchased = hex.AdjacentVertices.Count(v => purchased.Contains(v));
+                if (adjacentPurchased == 0) continue;
+                int bonus = hex.StartingResourceBonusPerVertex * adjacentPurchased;
+                foreach (var resource in ResourceUtils.BasicResources)
+                    civ.AddResource(resource, bonus);
+            }
+
+            if (startingCity != null)
+            {
+                // STARTING_CITY_BUILDING: initial city only
+                foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.STARTING_CITY_BUILDING))
+                    GrantBuildingToCity(WorldState, startingCity, bt);
+
+                // NEW_CITY_BUILDING: every outpost — apply to initial city here, BuildCity handles the rest
+                foreach (var city in civ.Cities)
+                    foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))
+                        GrantBuildingToCity(WorldState, city, bt);
+            }
         }
 
-        var startingCity = civ.Cities.FirstOrDefault();
-        if (startingCity == null) return;
-
-        // STARTING_CITY_BUILDING: initial city only
-        foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.STARTING_CITY_BUILDING))
-            GrantBuildingToCity(WorldState, startingCity, bt);
-
-        // NEW_CITY_BUILDING: every outpost — apply to initial city here, BuildCity handles the rest
-        foreach (var city in civ.Cities)
-            foreach (var bt in civ.ModifierAggregator.GetGrantedBuildingTypes(ECategory.NEW_CITY_BUILDING))
-                GrantBuildingToCity(WorldState, city, bt);
+        // Construction Divine : la ville de départ ne passe pas par CityBuilderController (elle naît
+        // avec l'île, voir IslandMapGenerator.PopulatePlayerCivilization), son Marché gratuit est donc
+        // accordé ici — après les bâtiments de vertex, pour s'empiler sur celui de Port & Marché quand
+        // les deux sont actifs (Marché niveau 2). Voir CityBuilderController.GrantDivineConstructionMarket.
+        if (startingCity != null && civ.ModifierAggregator.HasModifier(ECategory.NEW_CITY_DIVINE_CONSTRUCTION))
+        {
+            var startingMap = WorldState.GetMapFor(startingCity.Position);
+            if (startingMap != null)
+                CityBuilderController.GrantDivineConstructionMarket(startingCity, startingMap);
+        }
 
         // InitializeControllersForCurrentIsland() computes the initial visibility cache before this
         // method grants buildings (e.g. a free Watchtower) to the starting city — refresh it here so

@@ -8,6 +8,7 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 using SettlersOfIdlestan.Controller.Expand;
 using System;
+using System.Collections.Generic;
 
 namespace SOITests.ControllerTests;
 
@@ -15,6 +16,16 @@ public class PrestigeMapControllerTests
 {
     private static PrestigeMapController Controller() => new();
     private static PrestigeState EmptyPrestige() => new();
+
+    private sealed class FlatModifierProvider : IModifierProvider
+    {
+        private readonly List<Modifier> _mods;
+        public FlatModifierProvider(params Modifier[] mods) => _mods = new(mods);
+        public IEnumerable<Modifier> GetModifiers() => _mods;
+#pragma warning disable CS0067
+        public event Action? OnModifiersChanged;
+#pragma warning restore CS0067
+    }
 
     private static void WireAggregator(WorldState island, PrestigeState prestige)
     {
@@ -201,6 +212,40 @@ public class PrestigeMapControllerTests
         var city = island.PlayerCivilization.Cities[0];
         Assert.DoesNotContain(city.Buildings, b => b.Type == BuildingType.Seaport);
         Assert.DoesNotContain(city.Buildings, b => b.Type == BuildingType.Market);
+    }
+
+    [Fact]
+    public void Apply_DivineConstruction_GrantsLevel1MarketToStartingCity()
+    {
+        // La ville de départ ne passe pas par CityBuilderController : son Marché de Construction
+        // Divine est accordé ici, même sans le moindre vertex acheté.
+        var island = IslandTestFactory.CreateSevenHexIslandState();
+        var prestige = new PrestigeState(island);
+        island.PlayerCivilization.AddCustomAggregator(new FlatModifierProvider(
+            new Modifier(ECategory.NEW_CITY_DIVINE_CONSTRUCTION, EType.ADDITIVE, 1)));
+        Controller().ApplyPrestigeToNewGame(island, prestige);
+
+        var city = island.PlayerCivilization.Cities[0];
+        Assert.Contains(city.Buildings, b => b.Type == BuildingType.Market && b.Level == 1);
+    }
+
+    [Fact]
+    public void Apply_DivineConstructionAndSeaportMarketPurchased_StartingMarketIsLevel2()
+    {
+        // Les niveaux gratuits s'empilent : celui du vertex Port & Marché plus celui de Construction
+        // Divine (voir CityBuilderController.GrantDivineConstructionMarket).
+        var island = IslandTestFactory.CreateSevenHexIslandState();
+        var prestige = new PrestigeState(island);
+        prestige.PurchasedVertices.Add(PrestigeMap.CentralVertex);
+        prestige.PurchasedVertices.Add(PrestigeMap.SeaportMarketVertex);
+        WireAggregator(island, prestige);
+        island.PlayerCivilization.AddCustomAggregator(new FlatModifierProvider(
+            new Modifier(ECategory.NEW_CITY_DIVINE_CONSTRUCTION, EType.ADDITIVE, 1)));
+        Controller().ApplyPrestigeToNewGame(island, prestige);
+
+        var city = island.PlayerCivilization.Cities[0];
+        Assert.Contains(city.Buildings, b => b.Type == BuildingType.Market && b.Level == 2);
+        Assert.Contains(city.Buildings, b => b.Type == BuildingType.Seaport && b.Level == 1);
     }
 
     // ─── ApplyPrestigeToNewGame – hex passive bonuses ────────────────────────
