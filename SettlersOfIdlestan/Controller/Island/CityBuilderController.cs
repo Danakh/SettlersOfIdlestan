@@ -68,7 +68,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private GameClock? _clock;
         private GamePRNG? _prng;
         private readonly Dictionary<int, (int RoadCount, int TotalCityCount, int BeaconCount, int LandingSiteCount, int TerrainVersion, List<Vertex> Vertices)> _buildableVerticesCache = new();
-        private readonly Dictionary<(TerrainType Terrain, int Range), (int TerrainVersion, HashSet<Vertex> Vertices)> _terrainRangeVerticesCache = new();
+        private readonly Dictionary<(int Z, TerrainType Terrain, int Range), (int TerrainVersion, HashSet<Vertex> Vertices)> _terrainRangeVerticesCache = new();
 
         // 10 s × 100 ticks/s
         public const long AutoOutpostBuildCooldownTicks = 1000L;
@@ -267,9 +267,10 @@ namespace SettlersOfIdlestan.Controller.Island
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
             // Restrictions raciales (voir RaceDefinitions) : distance minimale entre villes propres
-            // éventuellement remplacée (Gobelins 2, Géants 4), adjacence de terrain exigée en
-            // surface (Elfes → Forêt, Nains → Montagne), portée de terrain (Sirènes → jusqu'à 2
-            // arêtes de l'Eau) et portée de Vol (Garudas).
+            // éventuellement remplacée (Gobelins 2, Géants 4), adjacence de terrain exigée sur
+            // toute couche portant le terrain (Elfes → Forêt, Nains → Montagne ; voir
+            // SatisfiesCityTerrainRestriction pour la traduction en Inframonde), portée de terrain
+            // (Sirènes → jusqu'à 2 arêtes de l'Eau) et portée de Vol (Garudas).
             var requiredTerrains = GetRequiredCityPlacementTerrains(civ);
             var requiredTerrainRanges = GetRequiredCityPlacementTerrainRanges(civ);
             int minOwnCityDistance = GetMinDistanceBetweenCivilizationCities(civ);
@@ -466,12 +467,19 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Vrai si le vertex respecte la restriction raciale de terrain (adjacence stricte OU
         /// portée).
         ///
-        /// <para>En surface, exigence et portées sont vérifiées telles quelles. En Inframonde, seule
-        /// l'adjacence stricte est réévaluée via son équivalent souterrain (voir
-        /// <see cref="TerrainTypeExtensions.UnderworldEquivalent"/> — seule la Forêt des Elfes en a
-        /// un, la Caverne aux champignons ; les portées de terrain (Eau des Sirènes) restent sans
-        /// effet sous terre faute d'équivalent). L'Abysse et le Pandémonium restent toujours libres :
-        /// aucun de leurs terrains n'a d'équivalent racial connu.</para>
+        /// <para>Seul l'Inframonde traduit l'exigence : son pool de terrains ne contient ni Forêt ni
+        /// Eau ni Plaine, l'adjacence stricte y porte donc sur l'équivalent souterrain du terrain
+        /// exigé (voir <see cref="TerrainTypeExtensions.UnderworldEquivalent"/> — seule la Forêt des
+        /// Elfes en a un, la Caverne aux champignons), et une exigence sans équivalent (Montagne des
+        /// Nains, Eau des Sirènes) y reste sans effet, comme la traduction du terrain de prédilection
+        /// de Marche de Dieu (AscensionController.ApplyWalkOfGod).</para>
+        ///
+        /// <para>Toutes les autres couches — surface, Abysse, Pandémonium — vérifient le terrain
+        /// exigé tel quel : l'Abysse et le Pandémonium génèrent les mêmes types de terrain que la
+        /// surface, Forêt/Montagne/Eau comprises (voir AbyssIslandGenerator.TerrainPool et
+        /// PandemoniumGenerator.LandTerrainPool), et Marche de Dieu y fait pousser le terrain de
+        /// prédilection sans traduction. Les laisser libres rendait la contrainte raciale caduque
+        /// dès l'ouverture de l'Abysse.</para>
         /// </summary>
         /// <param name="terrainRangeSets">Ensembles pré-calculés par <see cref="BuildTerrainRangeSets"/>,
         /// ou <c>null</c> si aucune portée de terrain n'est exigée.</param>
@@ -480,55 +488,54 @@ namespace SettlersOfIdlestan.Controller.Island
         {
             if (requiredTerrains.Count == 0 && terrainRangeSets == null) return true;
 
-            if (vertex.Z == IslandMap.SurfaceLayer)
-            {
-                var map = _state!.GetMapFor(vertex);
-                if (map == null) return false;
+            var map = _state!.GetMapFor(vertex);
+            if (map == null) return false;
 
-                foreach (var terrain in requiredTerrains)
-                    if (map.VertexHasTerrainType(vertex, terrain))
-                        return true;
+            bool underworld = vertex.Z == LayerState.UnderworldZ;
 
-                if (terrainRangeSets != null)
-                    foreach (var set in terrainRangeSets)
-                        if (set.Contains(vertex))
-                            return true;
+            // Faux tant qu'aucune exigence ne s'applique à cette couche : une couche où toutes les
+            // exigences sont intraduisibles reste libre (Nains et Sirènes en Inframonde).
+            bool constrained = false;
 
-                return false;
-            }
-
-            if (vertex.Z != LayerState.UnderworldZ) return true;
-
-            var underworldMap = _state!.GetMapFor(vertex);
-            if (underworldMap == null) return true;
-
-            bool hasUnderworldRequirement = false;
             foreach (var terrain in requiredTerrains)
             {
-                if (terrain.UnderworldEquivalent() is not { } equivalent) continue;
-                hasUnderworldRequirement = true;
-                if (underworldMap.VertexHasTerrainType(vertex, equivalent))
+                if ((underworld ? terrain.UnderworldEquivalent() : terrain) is not { } required) continue;
+                constrained = true;
+                if (map.VertexHasTerrainType(vertex, required))
                     return true;
             }
 
-            return !hasUnderworldRequirement;
+            if (!underworld && terrainRangeSets != null)
+            {
+                constrained = true;
+                foreach (var set in terrainRangeSets)
+                    if (set.Contains(vertex))
+                        return true;
+            }
+
+            return !constrained;
         }
 
         /// <summary>
         /// Résout les ensembles de vertex de chaque portée de terrain exigée. Retourne <c>null</c>
-        /// si aucune portée n'est exigée. Les restrictions ne s'appliquant qu'en surface, la carte
-        /// utilisée est toujours celle de la surface.
+        /// si aucune portée n'est exigée. Un ensemble par couche et par portée : l'Abysse et le
+        /// Pandémonium portent les mêmes terrains que la surface (Eau comprise) et sont soumis aux
+        /// mêmes portées, l'Inframonde en est exempt (voir
+        /// <see cref="SatisfiesCityTerrainRestriction"/>). Les ensembles peuvent être fusionnés en une
+        /// liste plate sans confusion entre couches : un Vertex porte son Z, deux vertex de couches
+        /// différentes ne sont jamais égaux.
         /// </summary>
         private List<HashSet<Vertex>>? BuildTerrainRangeSets(List<(TerrainType Terrain, int Range)> requiredTerrainRanges)
         {
             if (requiredTerrainRanges.Count == 0) return null;
 
             var sets = new List<HashSet<Vertex>>(requiredTerrainRanges.Count);
-            var map = _state!.GetMapForZ(IslandMap.SurfaceLayer);
-            if (map == null) return sets;
-
-            foreach (var (terrain, range) in requiredTerrainRanges)
-                sets.Add(GetVerticesWithinRangeOfTerrain(map, terrain, range));
+            foreach (var layer in _state!.Layers)
+            {
+                if (layer.Key == LayerState.UnderworldZ) continue;
+                foreach (var (terrain, range) in requiredTerrainRanges)
+                    sets.Add(GetVerticesWithinRangeOfTerrain(layer.Value.Map, terrain, range));
+            }
             return sets;
         }
 
@@ -551,12 +558,12 @@ namespace SettlersOfIdlestan.Controller.Island
         /// BFS par arêtes (ordre stable, comme AddFlightCandidateVertices) : ensemble de tous les
         /// vertex de la carte à au plus <paramref name="range"/> arêtes d'un vertex touchant
         /// directement <paramref name="terrain"/> (portée 0 = adjacence stricte incluse). Mis en
-        /// cache par (terrain, range), invalidé sur TerrainVersion (la Marche de Dieu peut changer
-        /// le terrain sans toucher aux compteurs de routes/villes).
+        /// cache par (couche, terrain, range), invalidé sur TerrainVersion (la Marche de Dieu peut
+        /// changer le terrain sans toucher aux compteurs de routes/villes).
         /// </summary>
         private HashSet<Vertex> GetVerticesWithinRangeOfTerrain(IslandMap map, TerrainType terrain, int range)
         {
-            var key = (terrain, range);
+            var key = (map.Z, terrain, range);
             if (_terrainRangeVerticesCache.TryGetValue(key, out var cached) && cached.TerrainVersion == _state!.TerrainVersion)
                 return cached.Vertices;
 

@@ -620,6 +620,78 @@ public class RaceSystemTests
         Assert.True(filter(v1));
     }
 
+    // ── Restriction de terrain dans l'Abysse ───────────────────────────────────────────
+    //
+    // L'Abysse porte les mêmes terrains que la surface (voir AbyssIslandGenerator.TerrainPool) :
+    // l'exigence raciale s'y applique telle quelle, sans traduction, comme le terrain de
+    // prédilection de Marche de Dieu.
+
+    private static HexCoord HA(int q, int r) => new(q, r, LayerState.AbyssZ);
+
+    private static (WorldState state, Civilization civ, Vertex v1, Vertex v2) AbyssRibbonIsland(TerrainType lastTerrain)
+    {
+        var h1 = HA(0, 0);
+        var h2 = HA(1, 0);
+        var h3 = HA(0, 1);
+        var h4 = HA(1, 1);
+        var h5 = HA(0, 2);
+
+        var abyssMap = new IslandMap(new HexTile[]
+        {
+            new(h1, TerrainType.Plain),
+            new(h2, TerrainType.Plain),
+            new(h3, TerrainType.Plain),
+            new(h4, TerrainType.Plain),
+            new(h5, lastTerrain),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(new IslandMap(Array.Empty<HexTile>()), new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        state.AddLayer(LayerState.AbyssZ, new LayerState(abyssMap));
+
+        return (state, civ, Vertex.Create(h1, h2, h3), Vertex.Create(h3, h4, h5));
+    }
+
+    [Fact]
+    public void BuildCityPlacementTerrainFilter_ElfInAbyss_RequiresForestAdjacency()
+    {
+        var (state, civ, v1, v2) = AbyssRibbonIsland(TerrainType.Forest);
+        AddRaceModifiers(civ, new Modifier(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN, nameof(TerrainType.Forest), EType.ADDITIVE, 1));
+
+        var filter = Controller(state).BuildCityPlacementTerrainFilter(civ);
+
+        // v1 ne touche que des Plaines ; v2 touche h5 (Forêt).
+        Assert.False(filter(v1));
+        Assert.True(filter(v2));
+    }
+
+    [Fact]
+    public void BuildCityPlacementTerrainFilter_DwarfInAbyss_RequiresMountainAdjacency()
+    {
+        var (state, civ, v1, v2) = AbyssRibbonIsland(TerrainType.Mountain);
+        AddRaceModifiers(civ, new Modifier(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN, nameof(TerrainType.Mountain), EType.ADDITIVE, 1));
+
+        var filter = Controller(state).BuildCityPlacementTerrainFilter(civ);
+
+        Assert.False(filter(v1));
+        Assert.True(filter(v2));
+    }
+
+    [Fact]
+    public void BuildCityPlacementTerrainFilter_MermaidInAbyss_AppliesWaterRange()
+    {
+        // Les portées de terrain se calculent couche par couche : l'Eau de l'Abysse porte la portée
+        // des Sirènes, sans quoi une couche sans surface équivalente laisserait tout constructible.
+        var (state, civ, v1, v2) = AbyssRibbonIsland(TerrainType.Water);
+        AddRaceModifiers(civ, new Modifier(ECategory.CITY_PLACEMENT_TERRAIN_RANGE, nameof(TerrainType.Water), EType.ADDITIVE, 1));
+
+        var filter = Controller(state).BuildCityPlacementTerrainFilter(civ);
+
+        // v2 touche h5 (Eau) ; v1 en est à 2 arêtes, hors de la portée 1.
+        Assert.True(filter(v2));
+        Assert.False(filter(v1));
+    }
+
     [Fact]
     public void GetBuildableVertices_TerrainRestriction_CacheInvalidatedByNotifyTerrainChanged()
     {

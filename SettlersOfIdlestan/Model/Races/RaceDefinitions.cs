@@ -80,11 +80,12 @@ public static class RaceDefinitions
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Ziggurat), EType.ADDITIVE, 1),
             }),
 
-        // Elfes : nouvelles villes uniquement adjacentes à une Forêt ; en échange, scieries et
-        // recherche accélérées. En Inframonde, où la Forêt n'existe pas, l'exigence porte sur son
-        // équivalent souterrain, la Caverne aux champignons (voir
-        // TerrainTypeExtensions.UnderworldEquivalent et CityBuilderController.SatisfiesCityTerrainRestriction) ;
-        // Marche de Dieu y fait pousser ce même équivalent (AscensionController.ApplyWalkOfGod).
+        // Elfes : nouvelles villes uniquement adjacentes à une Forêt, sur toute couche portant de la
+        // Forêt (surface, Abysse, Pandémonium) ; en échange, scieries et recherche accélérées. En
+        // Inframonde, où la Forêt n'existe pas, l'exigence porte sur son équivalent souterrain, la
+        // Caverne aux champignons (voir TerrainTypeExtensions.UnderworldEquivalent et
+        // CityBuilderController.SatisfiesCityTerrainRestriction) ; Marche de Dieu y fait pousser ce
+        // même équivalent (AscensionController.ApplyWalkOfGod).
         new RaceDefinition(RaceId.Elf, RaceTier.Base,
             requiredAdjacentTerrain: TerrainType.Forest,
             racialBuilding: BuildingType.HeartTree,
