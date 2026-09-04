@@ -636,6 +636,58 @@ namespace SOITests.ControllerTests
             Assert.Equal(7, controller.CalculatePrestigePoints());
         }
 
+        // ── Divine bones prestige multiplier (Théologie de l'Ascension) ─────
+
+        [Fact]
+        public void GetDivineBonesPrestigeMultiplier_CompoundsPerPurifiedBone()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE, EType.ADDITIVE, 0.3),
+            }));
+            state.RunRecord.DivineBonesPurified = 2;
+            var controller = new PrestigeController();
+            controller.Initialize(civ, state);
+
+            // Multiplicatif, pas additif : 1.3² = 1.69 (et non 1 + 2 × 0.3).
+            Assert.Equal(1.69, controller.GetDivineBonesPrestigeMultiplier(), 5);
+        }
+
+        [Fact]
+        public void GetDivineBonesPrestigeMultiplier_WithoutResearch_IsNeutral()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.RunRecord.DivineBonesPurified = 3;
+            var controller = new PrestigeController();
+            controller.Initialize(state.Civilizations[0], state);
+
+            Assert.Equal(1.0, controller.GetDivineBonesPrestigeMultiplier(), 5);
+        }
+
+        [Fact]
+        public void CalculatePrestigePoints_AppliesDivineBonesMultiplier()
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE, EType.ADDITIVE, 0.3),
+            }));
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple());
+            civ.Cities[0].AddBuilding(new Temple()); // subtotal = 5
+            state.RunRecord.DivineBonesPurified = 2;
+            var controller = new PrestigeController();
+            controller.Initialize(civ, state);
+
+            // (5 × 1.2 monster bonus) × 1.3² = 10.14 → (int) 10
+            Assert.Equal(10, controller.CalculatePrestigePoints());
+        }
+
         private static (MainGameController controller, WorldState state, SettlersOfIdlestan.Model.Civilization.Civilization npcCiv)
             SetupGameWithSingleCityNpc()
         {

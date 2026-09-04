@@ -647,17 +647,19 @@ public static class TechnologyDefinitions
             "tech_pacte_abyssal_name", "tech_pacte_abyssal_desc",
             cost: 105000000,
             prerequisites: new[] { TechnologyId.Demonologie },
-            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.25) },
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.5) },
             tier: 10, line: 6),
 
         // Baissée de 2 tiers (coût / 16). Ne dépend plus que de PacteAbyssal, Secrets of the Rift
-        // (SecretsDeLaFaille) ayant été supprimée.
+        // (SecretsDeLaFaille) ayant été supprimée. Remontée d'un tier (coût ×4) en reprenant la place
+        // de Communion Abyssale (supprimée) : son bonus n'est plus additif mais composé, +30% de
+        // prestige par Os Divin purifié sur l'île (voir PrestigeController.GetDivineBonesPrestigeMultiplier).
         new(TechnologyId.TheologieDeLAscension,
             "tech_theologie_de_l_ascension_name", "tech_theologie_de_l_ascension_desc",
-            cost: 418750000,
+            cost: 1675000000,
             prerequisites: new[] { TechnologyId.PacteAbyssal },
-            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 0.5) },
-            tier: 11, line: 6),
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE, EType.ADDITIVE, 0.3) },
+            tier: 12, line: 6),
 
         // === Capstones des branches existantes (tiers 10-11 depuis la baisse de 2 tiers) ===
 
@@ -793,18 +795,10 @@ public static class TechnologyDefinitions
         new(TechnologyId.DogmeDeLEmprise,
             "tech_dogme_de_l_emprise_name", "tech_dogme_de_l_emprise_desc",
             cost: 1687500000,
-            prerequisites: new[] { TechnologyId.TheologieDeLAscension, TechnologyId.ResistanceALaCorruption },
+            prerequisites: new[] { TechnologyId.ResistanceALaCorruption },
             modifiers: new Modifier[] { new(ECategory.DOMINION_LAYER_PENALTY_REDUCTION, EType.ADDITIVE, 0.5) },
             tier: 12, line: 5,
             requiresDominionUnlock: true),
-
-        // Baissée de 2 tiers (coût / 16).
-        new(TechnologyId.CommunionAbyssale,
-            "tech_communion_abyssale_name", "tech_communion_abyssale_desc",
-            cost: 1687500000,
-            prerequisites: new[] { TechnologyId.TheologieDeLAscension },
-            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN, EType.ADDITIVE, 1.0) },
-            tier: 12, line: 6),
 
         // Le Dominion déborde plus vite que la Corruption : +5 points de % de chance par niveau
         // (10%/niveau → 15%/niveau, voir CorruptionController.ProcessSpread).

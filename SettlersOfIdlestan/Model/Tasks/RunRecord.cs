@@ -21,6 +21,14 @@ public class RunRecord
     public int CivilizationsDestroyed { get; set; }
 
     /// <summary>
+    /// Nombre d'Os Divins purifiés sur cette île, Purification ordinaire
+    /// (DivineBonesController.ProcessInvestment) comme Purification Supérieure de la Nécropole
+    /// (NecropolisController.HarvestBonesUnderNecropolis). Multiplie le prestige de fin de run pour
+    /// qui a la Théologie de l'Ascension — voir PrestigeController.GetDivineBonesPrestigeMultiplier.
+    /// </summary>
+    public int DivineBonesPurified { get; set; }
+
+    /// <summary>
     /// Niveau de pointe le plus élevé d'une zone de Corruption entièrement nettoyée <b>sur cette île</b>
     /// (Level ramené à 0), par la Spire de Corruption/la Faille des Abysses ou par le Dominion
     /// (Temple, débordement). Conditionne l'ouverture de la Faille des Abysses — voir

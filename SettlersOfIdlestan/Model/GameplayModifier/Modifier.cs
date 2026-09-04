@@ -148,6 +148,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             PRESTIGE_GAIN_PER_SEAPORT_LEVEL4,
             /// <summary>Bonus additif de prestige par Temple construit dans la civilisation (tous niveaux confondus). Base = 0.0 ; +0.005 = +0.5% par Temple. Accordé par le Grand Temple.</summary>
             PRESTIGE_GAIN_PER_TEMPLE,
+            /// <summary>Bonus <b>multiplicatif</b> de prestige par Os Divin purifié sur l'île courante (RunRecord.DivineBonesPurified) : contrairement aux autres bonus de prestige, il ne rejoint pas la somme additive mais compose, le total étant multiplié par (1 + valeur)^nombre d'Os purifiés (voir PrestigeController.GetDivineBonesPrestigeMultiplier). Base = 0.0 ; 0.3 = ×1,3 par Os Divin purifié. SubCategory unused.</summary>
+            PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE,
             /// <summary>Réduction du coût de route de base de l'Inframonde. Chaque point réduit la pierre de base de 1 et le minerai de base de 0,5 (arrondi inférieur), avant multiplication par arrivalDist.</summary>
             UNDERWORLD_ROAD_BASE_REDUCTION,
             /// <summary>Flags que l'action Raid est déverrouillée pour la civilisation du joueur.</summary>

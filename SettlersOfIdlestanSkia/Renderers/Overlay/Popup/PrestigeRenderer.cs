@@ -114,6 +114,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
                 $"×{controller.GetCorruptionClearBonusMultiplier()}", false,
                 [_localization.Get("prestige_tooltip_corruption_spire_bonus")]));
 
+        // Theologie de l'Ascension : multiplicateur compose, affiche comme la Spire et la Merveille.
+        double divineBonesMultiplier = controller.GetDivineBonesPrestigeMultiplier();
+        if (divineBonesMultiplier > 1.0)
+            rows.Add(new PrestigeRowSnapshot(
+                _localization.GetFormated("prestige_divine_bones_bonus", controller.GetPurifiedDivineBonesCount()),
+                $"×{divineBonesMultiplier:0.##}", false,
+                [_localization.Get("prestige_tooltip_divine_bones_bonus")]));
+
         double gainBonus = controller.GetPrestigeGainBonus();
         if (gainBonus > 0)
             rows.Add(new PrestigeRowSnapshot(

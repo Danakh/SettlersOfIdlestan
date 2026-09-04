@@ -93,6 +93,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 bones.Purified = true;
                 bones.InvestmentEnabled.Clear();
+                _state.RunRecord.DivineBonesPurified++;
 
                 // Chaque Purification octroie directement 1 essence divine, seulement si le plafond
                 // (une essence par niveau de corruption à partir du niveau 4, plus 1 par pouvoir divin

@@ -179,6 +179,9 @@ public enum TechnologyId
     // Branche de la Théocratie (tiers 14-15) — recherches du Dominion, visibles uniquement une fois
     // le pouvoir divin Foi débloqué (RequiresDominionUnlock, voir ResearchController).
     DogmeDeLEmprise,
+    // [Legacy] Recherche "Communion Abyssale" supprimée (son bonus de prestige a été repris par la
+    // Théologie de l'Ascension, remontée à sa place) — conservée uniquement pour la désérialisation
+    // des anciennes sauvegardes.
     CommunionAbyssale,
     Evangelisation,
     TerreConsacree,

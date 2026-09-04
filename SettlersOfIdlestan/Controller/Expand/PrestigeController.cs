@@ -184,6 +184,27 @@ namespace SettlersOfIdlestan.Controller.Expand
             return GetTempleCount() * perTemple;
         }
 
+        /// <summary>Nombre d'Os Divins purifiés sur l'île courante (voir RunRecord.DivineBonesPurified).</summary>
+        public int GetPurifiedDivineBonesCount() => _islandState?.RunRecord.DivineBonesPurified ?? 0;
+
+        /// <summary>Bonus de prestige par Os Divin purifié accordé par la Théologie de l'Ascension (0.3 = +30% par Os), 0 sans la recherche.</summary>
+        public double GetPrestigeGainPerPurifiedDivineBone()
+            => _playerCivilization?.ModifierAggregator.ApplyModifiers(ECategory.PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE, "", 0.0) ?? 0.0;
+
+        /// <summary>
+        /// Multiplicateur composé accordé par la Théologie de l'Ascension : (1 + bonus)^nombre d'Os
+        /// Divins purifiés ce run. Seul bonus de prestige à composer au lieu de rejoindre la somme
+        /// additive — purifier vaut donc d'autant plus que la course dure. Vaut 1.0 sans la recherche
+        /// ou sans Os purifié.
+        /// </summary>
+        public double GetDivineBonesPrestigeMultiplier()
+        {
+            double perBone = GetPrestigeGainPerPurifiedDivineBone();
+            int count = GetPurifiedDivineBonesCount();
+            if (perBone <= 0 || count <= 0) return 1.0;
+            return Math.Pow(1 + perBone, count);
+        }
+
         public const double PrestigeGainPerCivilizationDestroyed = 0.2;
 
         public int GetCivilizationsDestroyedCount() => _islandState?.RunRecord.CivilizationsDestroyed ?? 0;
@@ -308,6 +329,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             double greatLighthouseBonus = GetGreatLighthousePrestigeBonus();
             result *= (1 + gainBonus + raceBonus + seaportBonus + templeBonus + civDestroyedBonus + tierBonus + greatLighthouseBonus);
             result *= GetCorruptionClearBonusMultiplier();
+            result *= GetDivineBonesPrestigeMultiplier();
             return (int)result;
         }
 

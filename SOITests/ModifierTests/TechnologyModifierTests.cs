@@ -256,9 +256,9 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void TheologieDeLAscension_PrestigeGain_Plus0Point5()
+    public void TheologieDeLAscension_PrestigeGainPerPurifiedDivineBone_Plus0Point3()
     {
-        Assert.Equal(0.5, BuildAggregator(TechnologyId.TheologieDeLAscension).ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0), 5);
+        Assert.Equal(0.3, BuildAggregator(TechnologyId.TheologieDeLAscension).ApplyModifiers(ECategory.PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE, "", 0.0), 5);
     }
 
     [Fact]
@@ -328,12 +328,6 @@ public class TechnologyModifierTests
     public void DogmeDeLEmprise_DominionLayerPenaltyReduction_Half()
     {
         Assert.Equal(0.5, BuildAggregator(TechnologyId.DogmeDeLEmprise).ApplyModifiers(ECategory.DOMINION_LAYER_PENALTY_REDUCTION, "", 0.0));
-    }
-
-    [Fact]
-    public void CommunionAbyssale_PrestigeGain_Plus1()
-    {
-        Assert.Equal(1.0, BuildAggregator(TechnologyId.CommunionAbyssale).ApplyModifiers(ECategory.PRESTIGE_GAIN, "", 0.0), 5);
     }
 
     [Fact]
