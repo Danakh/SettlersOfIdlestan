@@ -38,6 +38,8 @@ public class PrestigeState
     /// Nombre d'utilisations de Marche de Dieu depuis le dernier prestige. Pilote le coût croissant
     /// en points de prestige (la première utilisation est gratuite, la deuxième coûte 1, etc. — voir
     /// AscensionController.GetWalkOfGodCost) ; remis à zéro par PrestigeController.PerformPrestige.
+    /// Redescend aussi d'un cran toutes les 12 h de jeu (voir
+    /// <see cref="WalkOfGodNextCostDecayTick"/>).
     /// </summary>
     public int WalkOfGodUsesSinceLastPrestige { get; set; }
 
@@ -54,6 +56,37 @@ public class PrestigeState
     /// AscensionController.GetFistOfGodCost) ; remis à zéro par PrestigeController.PerformPrestige.
     /// </summary>
     public int FistOfGodUsesSinceLastPrestige { get; set; }
+
+    /// <summary>
+    /// Tick de simulation auquel le coût de Marche de Dieu sera réduit de moitié par son temps de
+    /// recharge (voir AscensionController.TargetedPowerCostDecayTicks) : réarmé à chaque marche, et
+    /// sans objet tant que le compteur d'usages n'a pas dépassé 1 (le coût plancher est alors déjà
+    /// atteint). 0 = non armé.
+    /// </summary>
+    public long WalkOfGodNextCostDecayTick { get; set; }
+
+    /// <summary>Même rôle que <see cref="WalkOfGodNextCostDecayTick"/> pour Présence de Dieu.</summary>
+    public long PresenceOfGodNextCostDecayTick { get; set; }
+
+    /// <summary>Même rôle que <see cref="WalkOfGodNextCostDecayTick"/> pour Poing de Dieu.</summary>
+    public long FistOfGodNextCostDecayTick { get; set; }
+
+    /// <summary>
+    /// Remet à zéro les compteurs d'usage des trois pouvoirs divins ciblés (Marche, Présence, Poing
+    /// de Dieu) et leurs temps de recharge : leur coût repart donc du premier usage gratuit. Appelé
+    /// à chaque changement d'île — prestige (PrestigeController.PerformPrestige) comme redémarrage
+    /// (MainGameController.RestartIsland) — d'où cette méthode unique plutôt que six affectations
+    /// dupliquées de part et d'autre.
+    /// </summary>
+    public void ResetTargetedDivinePowerUses()
+    {
+        WalkOfGodUsesSinceLastPrestige = 0;
+        PresenceOfGodUsesSinceLastPrestige = 0;
+        FistOfGodUsesSinceLastPrestige = 0;
+        WalkOfGodNextCostDecayTick = 0;
+        PresenceOfGodNextCostDecayTick = 0;
+        FistOfGodNextCostDecayTick = 0;
+    }
 
     public List<Vertex> PurchasedVertices { get; set; } = new();
 

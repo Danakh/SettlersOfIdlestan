@@ -873,6 +873,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _localization.Get("tooltip_walkofgod"),
                 _localization.GetFormated("tooltip_walkofgod_cost", cost),
             };
+            AddCostDecayTooltipLine(tooltip, Ascension.GetWalkOfGodCostDecayRemainingTicks());
             if (!Ascension.CanUseWalkOfGod())
                 tooltip.Add(_localization.Get("tooltip_walkofgod_insufficient_prestige"));
             if (Ascension.GetWalkOfGodTargetHexes().Count == 0)
@@ -892,6 +893,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _localization.Get("tooltip_presenceofgod"),
                 _localization.GetFormated("tooltip_presenceofgod_cost", cost),
             };
+            AddCostDecayTooltipLine(tooltip, Ascension.GetPresenceOfGodCostDecayRemainingTicks());
             if (!Ascension.CanUsePresenceOfGod())
                 tooltip.Add(_localization.Get("tooltip_presenceofgod_insufficient_prestige"));
 
@@ -909,8 +911,11 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 _localization.GetFormated("tooltip_fistofgod", AscensionController.FistOfGodDamage),
                 _localization.GetFormated("tooltip_fistofgod_cost", cost),
             };
+            AddCostDecayTooltipLine(tooltip, Ascension.GetFistOfGodCostDecayRemainingTicks());
             if (!Ascension.CanUseFistOfGod())
                 tooltip.Add(_localization.Get("tooltip_fistofgod_insufficient_prestige"));
+            if (Ascension.GetFistOfGodTargetHexes().Count == 0)
+                tooltip.Add(_localization.Get("tooltip_fistofgod_no_dominion"));
 
             actions.Add(new CivActionSnapshot(
                 CivPanelSnapshot.KeyFistOfGod,
@@ -973,6 +978,19 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         string enabledTooltipKey, string disabledTooltipKey) =>
         new(key, _localization.Get(labelKey), enabled, false, null, null,
             [_localization.Get(enabled ? enabledTooltipKey : disabledTooltipKey)]);
+
+    /// <summary>
+    /// Ajoute à l'infobulle d'un pouvoir divin ciblé le temps restant avant que son temps de recharge
+    /// ne divise son coût par 2 (voir AscensionController.TargetedPowerCostDecayTicks). Rien à ajouter
+    /// quand aucune recharge n'est en cours (<c>null</c> : pouvoir jamais utilisé depuis le dernier
+    /// prestige, ou coût déjà au plancher). Ces recharges n'ont volontairement pas de barre de
+    /// progression : l'infobulle est leur seul affichage.
+    /// </summary>
+    private void AddCostDecayTooltipLine(List<string> tooltip, long? remainingTicks)
+    {
+        if (remainingTicks is not { } ticks) return;
+        tooltip.Add(_localization.GetFormated("tooltip_divine_power_cost_decay", SkiaTextUtils.FormatTickDuration(ticks)));
+    }
 
     /// <summary>Déclenche une action du panneau depuis une vue portée par l'hôte.</summary>
     public void ExecuteActionFromHost(string key)

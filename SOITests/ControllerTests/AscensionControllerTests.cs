@@ -30,7 +30,7 @@ namespace SOITests.ControllerTests;
 public class AscensionControllerTests
 {
     private static (WorldState state, City city, Civilization civ, AscensionController ascension, GodState godState) CreateTestSetup(
-        int godPoints = 100, int ascensionsPerformed = 1, int? prestigePoints = null)
+        int godPoints = 100, int ascensionsPerformed = 1, int? prestigePoints = null, GameClock? clock = null)
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var civ = state.Civilizations[0];
@@ -42,7 +42,7 @@ public class AscensionControllerTests
             godState.PrestigeState = new PrestigeState(state) { PrestigePoints = prestigePoints.Value };
 
         var ascension = new AscensionController();
-        ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), godState);
+        ascension.Initialize(state, clock, new GamePRNG(1), new HarvestController(), godState);
 
         return (state, city, civ, ascension, godState);
     }
@@ -1278,6 +1278,18 @@ public class AscensionControllerTests
 
     private static readonly HexCoord Center = new(0, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
 
+    /// <summary>
+    /// Pose un Dominion sur un hex : condition de ciblage de Poing de Dieu, dont chaque coup consomme
+    /// aussi 1 niveau (voir AscensionController.ApplyFistOfGod). Niveau large par défaut, pour que les
+    /// tests qui frappent plusieurs fois ne s'arrêtent pas sur cette condition.
+    /// </summary>
+    private static Dominion AddDominion(WorldState state, HexCoord hex, int level = 10)
+    {
+        var dominion = new Dominion(hex, level);
+        state.AddFeature(dominion);
+        return dominion;
+    }
+
     /// <summary>Ville ennemie posée sur un vertex adjacent au hex central, avec son Hôtel de ville.</summary>
     private static City AddEnemyCityAdjacentToCenter(WorldState state, int townHallLevel = 2, int soldiers = 0, int defense = 0)
     {
@@ -1308,8 +1320,9 @@ public class AscensionControllerTests
     [Fact]
     public void GetFistOfGodCost_FirstUseIsFreeThenDoubles()
     {
-        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
 
         Assert.Equal(0, ascension.GetFistOfGodCost());
         Assert.True(ascension.ApplyFistOfGod(Center));
@@ -1332,6 +1345,7 @@ public class AscensionControllerTests
     {
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
 
         // Rats niveau 30 : 5 + 5 × 29 = 150 PV, sans armure.
         var rats = new Rats(Center, level: 30);
@@ -1348,6 +1362,7 @@ public class AscensionControllerTests
     {
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
 
         var rats = new Rats(Center);
         state.AddFeature(rats);
@@ -1363,6 +1378,7 @@ public class AscensionControllerTests
     {
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
 
         // L'Aventurier (AttacksOtherMonsters) est un allié : jamais ciblé, ici comme ailleurs.
         var adventurer = new Adventurer(Center);
@@ -1380,6 +1396,7 @@ public class AscensionControllerTests
     {
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
 
         // 100 dégâts : 60 soldats, puis 38 de défense, puis les 2 restants sur l'Hôtel de ville.
         var enemyCity = AddEnemyCityAdjacentToCenter(state, townHallLevel: 4, soldiers: 60, defense: 38);
@@ -1396,6 +1413,7 @@ public class AscensionControllerTests
     {
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
 
         var enemyCity = AddEnemyCityAdjacentToCenter(state, townHallLevel: 3, soldiers: 200, defense: 50);
 
@@ -1414,6 +1432,7 @@ public class AscensionControllerTests
         cityBuilder.Initialize(state, clock: null, new GamePRNG(1));
         ascension.Initialize(state, clock: null, new GamePRNG(1), new HarvestController(), godState, cityBuilder);
         UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
 
         var enemyCity = AddEnemyCityAdjacentToCenter(state, townHallLevel: 2);
 
@@ -1427,6 +1446,7 @@ public class AscensionControllerTests
     {
         var (state, city, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
 
         city.AddBuilding(new TownHall { Level = 3 });
         city.Soldiers = 5;
@@ -1446,6 +1466,7 @@ public class AscensionControllerTests
     {
         var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 0);
         UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
         // Premier coup gratuit : il faut en avoir déjà porté un pour que le manque de points bloque.
         godState.PrestigeState!.FistOfGodUsesSinceLastPrestige = 1;
 
@@ -1459,19 +1480,70 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void GetFistOfGodTargetHexes_OnlyCoversVisibleHexesOfTheViewedLayer()
+    public void GetFistOfGodTargetHexes_OnlyCoversVisibleHexesUnderDominion()
     {
         var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
         UnlockFistOfGod(ascension);
 
-        var targets = ascension.GetFistOfGodTargetHexes();
+        // Sans le moindre Dominion, le poing n'a nulle part où s'abattre.
+        Assert.Empty(ascension.GetFistOfGodTargetHexes());
 
         // Carte de 7 hexs, ville sans Tour de Guet (rayon de vision 1) : seuls les 3 hexs du sommet
-        // de la ville (Center, NE, E) sont visibles, pas les 4 hexs restants de la carte.
-        var expectedVisible = state.Visibility.GetForZ(state.CurrentViewedLayer)[state.PlayerCivilization.Index].Tiles.Keys;
-        Assert.Equal(expectedVisible.Count(), targets.Count);
-        Assert.True(targets.Count < state.GetMapForZ(state.CurrentViewedLayer)!.Tiles.Count);
-        Assert.Contains(Center, targets);
+        // de la ville (Center, NE, E) sont visibles. Un Dominion sur un hex visible est ciblable, un
+        // Dominion sur un hex encore sous brouillard de guerre ne l'est pas.
+        var w = new HexCoord(-1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        Assert.DoesNotContain(w, state.Visibility.GetForZ(state.CurrentViewedLayer)[state.PlayerCivilization.Index].Tiles.Keys);
+        AddDominion(state, Center);
+        AddDominion(state, w);
+
+        var targets = ascension.GetFistOfGodTargetHexes();
+
+        Assert.Equal(new[] { Center }, targets);
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_ConsumesOneDominionLevelOnTheTargetedHex()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+        var dominion = AddDominion(state, Center, level: 3);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(2, dominion.Level);
+        Assert.Contains(dominion, state.Features);
+    }
+
+    /// <summary>
+    /// Contrairement à Marche de Dieu (niveau 2 minimum, le Dominion survit toujours à la marche), le
+    /// poing frappe dès le niveau 1 et emporte alors le Dominion avec lui.
+    /// </summary>
+    [Fact]
+    public void ApplyFistOfGod_RemovesDominionItBringsToZero()
+    {
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+        var dominion = AddDominion(state, Center, level: 1);
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        Assert.DoesNotContain(dominion, state.Features);
+        Assert.Empty(ascension.GetFistOfGodTargetHexes());
+    }
+
+    [Fact]
+    public void ApplyFistOfGod_HexWithoutDominion_FailsAndLeavesStateUntouched()
+    {
+        var (state, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 10);
+        UnlockFistOfGod(ascension);
+
+        var rats = new Rats(Center);
+        state.AddFeature(rats);
+
+        Assert.False(ascension.ApplyFistOfGod(Center));
+
+        Assert.Equal(rats.MaxHp, rats.Hp);
+        Assert.Equal(0, godState.PrestigeState!.FistOfGodUsesSinceLastPrestige);
     }
 
     [Fact]
@@ -1482,13 +1554,123 @@ public class AscensionControllerTests
 
         // W est hors de la vision de la ville (rayon 1, pas de Tour de Guet) sur cette carte de 7 hexs.
         var w = new HexCoord(-1, 0, SettlersOfIdlestan.Model.IslandMap.IslandMap.SurfaceLayer);
+        var dominion = AddDominion(state, w);
         var rats = new Rats(w);
         state.AddFeature(rats);
 
         Assert.False(ascension.ApplyFistOfGod(w));
 
         Assert.Equal(rats.MaxHp, rats.Hp);
+        Assert.Equal(10, dominion.Level);
         Assert.Equal(0, godState.PrestigeState!.FistOfGodUsesSinceLastPrestige);
+    }
+
+    // ── Temps de recharge des pouvoirs divins ciblés ─────────────────────────
+
+    /// <summary>Avance l'horloge d'un temps de recharge complet, en un seul événement de tick.</summary>
+    private static void AdvanceOneCooldown(GameClock clock) =>
+        clock.SimulateAdvance(AscensionController.TargetedPowerCostDecayTicks,
+            chunkTicks: AscensionController.TargetedPowerCostDecayTicks);
+
+    [Fact]
+    public void TargetedPowerCooldown_HalvesTheCostAndNeverGoesBackBelowOne()
+    {
+        var clock = new GameClock();
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 100, clock: clock);
+        UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
+
+        for (int i = 0; i < 4; i++)
+            Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.Equal(8, ascension.GetFistOfGodCost());
+
+        AdvanceOneCooldown(clock);
+        Assert.Equal(4, ascension.GetFistOfGodCost());
+
+        AdvanceOneCooldown(clock);
+        Assert.Equal(2, ascension.GetFistOfGodCost());
+
+        AdvanceOneCooldown(clock);
+        Assert.Equal(1, ascension.GetFistOfGodCost());
+
+        // Plancher : la gratuité du premier usage ne se regagne jamais en attendant.
+        AdvanceOneCooldown(clock);
+        AdvanceOneCooldown(clock);
+        Assert.Equal(1, ascension.GetFistOfGodCost());
+    }
+
+    [Fact]
+    public void TargetedPowerCooldown_NeverUsedPower_StaysFree()
+    {
+        var clock = new GameClock();
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 100, clock: clock);
+        UnlockFistOfGod(ascension);
+
+        AdvanceOneCooldown(clock);
+
+        Assert.Equal(0, ascension.GetFistOfGodCost());
+        Assert.Null(ascension.GetFistOfGodCostDecayRemainingTicks());
+    }
+
+    /// <summary>
+    /// Un saut de temps (banque hors-ligne, vitesse ×10) peut couvrir plusieurs recharges d'un coup :
+    /// chacune doit compter.
+    /// </summary>
+    [Fact]
+    public void TargetedPowerCooldown_LongTimeJump_CatchesUpEveryElapsedCooldown()
+    {
+        var clock = new GameClock();
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 100, clock: clock);
+        UnlockPresenceOfGod(ascension);
+
+        for (int i = 0; i < 5; i++)
+            Assert.True(ascension.ApplyPresenceOfGod(Center));
+        Assert.Equal(16, ascension.GetPresenceOfGodCost());
+
+        clock.SimulateAdvance(3 * AscensionController.TargetedPowerCostDecayTicks,
+            chunkTicks: 3 * AscensionController.TargetedPowerCostDecayTicks);
+
+        Assert.Equal(2, ascension.GetPresenceOfGodCost());
+    }
+
+    /// <summary>
+    /// Sauvegarde antérieure au temps de recharge (compteur d'usages non nul, aucune échéance
+    /// armée) : la première avance de temps arme la recharge sans rien réduire, plutôt que de rendre
+    /// d'un coup tous les paliers écoulés depuis la dernière utilisation.
+    /// </summary>
+    [Fact]
+    public void TargetedPowerCooldown_LegacySaveWithoutDecayTick_ArmsBeforeReducing()
+    {
+        var clock = new GameClock();
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100, prestigePoints: 100, clock: clock);
+        UnlockFistOfGod(ascension);
+        godState.PrestigeState!.FistOfGodUsesSinceLastPrestige = 4;
+        godState.PrestigeState!.FistOfGodNextCostDecayTick = 0;
+
+        AdvanceOneCooldown(clock);
+        Assert.Equal(8, ascension.GetFistOfGodCost());
+
+        AdvanceOneCooldown(clock);
+        Assert.Equal(4, ascension.GetFistOfGodCost());
+    }
+
+    [Fact]
+    public void GetFistOfGodCostDecayRemainingTicks_CountsDownFromAFullCooldown()
+    {
+        var clock = new GameClock();
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 100, clock: clock);
+        UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
+
+        // Un seul coup : le coût est déjà au plancher de 1, aucune recharge n'a lieu d'être.
+        Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.Null(ascension.GetFistOfGodCostDecayRemainingTicks());
+
+        Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.Equal(AscensionController.TargetedPowerCostDecayTicks, ascension.GetFistOfGodCostDecayRemainingTicks());
+
+        clock.SimulateAdvance(100, chunkTicks: 100);
+        Assert.Equal(AscensionController.TargetedPowerCostDecayTicks - 100, ascension.GetFistOfGodCostDecayRemainingTicks());
     }
 
     // ── Mémoire de Dieu ──────────────────────────────────────────────────────

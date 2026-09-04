@@ -217,9 +217,7 @@ namespace SettlersOfIdlestan.Controller
             // et consorts). Contrairement à un vrai Prestige, aucune monnaie n'est gagnée ni perdue ici
             // (PrestigePoints, essence divine, recherches, carte de prestige restent inchangés — voir
             // restart_island_line2/line3).
-            CurrentMainState.PrestigeState.WalkOfGodUsesSinceLastPrestige = 0;
-            CurrentMainState.PrestigeState.PresenceOfGodUsesSinceLastPrestige = 0;
-            CurrentMainState.PrestigeState.FistOfGodUsesSinceLastPrestige = 0;
+            CurrentMainState.PrestigeState.ResetTargetedDivinePowerUses();
 
             CurrentMainState.PrestigeState.WorldState = null;
             var generator = new Generator.IslandMapGenerator(CurrentMainState.WorldPRNG);

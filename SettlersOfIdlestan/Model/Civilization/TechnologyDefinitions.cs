@@ -672,7 +672,7 @@ public static class TechnologyDefinitions
                 new(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 25),
                 new(ECategory.BUILDING_PRODUCTION, "Smelter", EType.ADDITIVE, 1),
             },
-            tier: 10, line: 3),
+            tier: 10, line: 2),
 
         // Débloquée par le vertex de prestige Sanctuaire Perdu (porte de la Magie des Abysses).
         // Baissée de 2 tiers (coût / 16).
@@ -763,7 +763,7 @@ public static class TechnologyDefinitions
             cost: 418750000,
             prerequisites: new[] { TechnologyId.ReliquaireSacre, TechnologyId.AcierAbyssal },
             modifiers: new Modifier[] { new(ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE, EType.ADDITIVE, 1) },
-            tier: 11, line: 3),
+            tier: 11, line: 2),
 
         // Suite du Reliquaire Sacré : débloque la Nécropole, bâtie sur des Os Divins non purifiés
         // qu'elle consomme (l'essence divine qu'ils auraient donnée est sacrifiée). Chaque niveau
@@ -773,7 +773,7 @@ public static class TechnologyDefinitions
             cost: 418750000,
             prerequisites: new[] { TechnologyId.ReliquaireSacre },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_NECROPOLIS, EType.ADDITIVE, 1) },
-            tier: 11, line: 5),
+            tier: 11, line: 4),
 
         // Les routes du Vide déjà bâties ne comptent que pour deux tiers dans le coût exponentiel de
         // la suivante : 1M × 4^n devient 1M × 4^(2n/3) (voir RoadController.GetVoidRouteResearchCost).
@@ -783,7 +783,7 @@ public static class TechnologyDefinitions
             cost: 418750000,
             prerequisites: new[] { TechnologyId.ReliquaireSacre },
             modifiers: new Modifier[] { new(ECategory.VOID_ROUTE_COST_REDUCTION, EType.ADDITIVE, 1) },
-            tier: 11, line: 4),
+            tier: 11, line: 3),
 
         // === Branche de la Théocratie (tiers 12-13 depuis la baisse de 2 tiers) ===
         // Recherches du Dominion : cachées tant que le pouvoir divin Foi n'est pas débloqué
@@ -793,7 +793,7 @@ public static class TechnologyDefinitions
         new(TechnologyId.DogmeDeLEmprise,
             "tech_dogme_de_l_emprise_name", "tech_dogme_de_l_emprise_desc",
             cost: 1687500000,
-            prerequisites: new[] { TechnologyId.TheologieDeLAscension },
+            prerequisites: new[] { TechnologyId.TheologieDeLAscension, TechnologyId.ResistanceALaCorruption },
             modifiers: new Modifier[] { new(ECategory.DOMINION_LAYER_PENALTY_REDUCTION, EType.ADDITIVE, 0.5) },
             tier: 12, line: 5,
             requiresDominionUnlock: true),

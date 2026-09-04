@@ -68,6 +68,21 @@ namespace SettlersOfIdlestanSkia.Core
             return negative ? "-" + result : result;
         }
 
+        /// <summary>
+        /// Formate une durée exprimée en ticks de simulation (1 tick = 0.01 s) en h/m/s :
+        /// « 3h07m12s » au-delà de l'heure, « 7m12s » en dessous.
+        /// </summary>
+        public static string FormatTickDuration(long ticks)
+        {
+            long totalSeconds = Math.Max(0, ticks) / 100;
+            long hours = totalSeconds / 3600;
+            long minutes = (totalSeconds % 3600) / 60;
+            long seconds = totalSeconds % 60;
+            return hours > 0
+                ? $"{hours}h{minutes:D2}m{seconds:D2}s"
+                : $"{minutes}m{seconds:D2}s";
+        }
+
         // Mantisse à 3 chiffres significatifs maximum : 1.23, 12.3, 123.
         private static string FormatMantissa(double m)
             => m < 10 ? m.ToString("0.##") : m < 100 ? m.ToString("0.#") : m.ToString("0");
