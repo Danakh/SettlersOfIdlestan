@@ -29,7 +29,7 @@ public class MaritimeBeaconControllerTests
         var civ = new Civilization { Index = 0 };
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         if (greatLighthouseLevel > 0)
-            state.Features.Add(new GreatLighthouse(h1) { Level = greatLighthouseLevel });
+            state.AddFeature(new GreatLighthouse(h1) { Level = greatLighthouseLevel });
 
         var vertex = Vertex.Create(h1, h2, h3);
 
@@ -133,7 +133,7 @@ public class MaritimeBeaconControllerTests
 
         var civ = new Civilization { Index = 0 };
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-        state.Features.Add(new GreatLighthouse(h1) { Level = 2 });
+        state.AddFeature(new GreatLighthouse(h1) { Level = 2 });
 
         var nearVertex = Vertex.Create(h1, h2, h3); // touches the road directly (distance 0)
         var farVertex = Vertex.Create(h5, h6, h2);  // more than 1 edge away from the road
@@ -165,7 +165,7 @@ public class MaritimeBeaconControllerTests
 
         var civ = new Civilization { Index = 0 };
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-        state.Features.Add(new GreatLighthouse(h1) { Level = 2 });
+        state.AddFeature(new GreatLighthouse(h1) { Level = 2 });
 
         var farVertex = Vertex.Create(h2, h3, h4);
         var controller = Controller(state);

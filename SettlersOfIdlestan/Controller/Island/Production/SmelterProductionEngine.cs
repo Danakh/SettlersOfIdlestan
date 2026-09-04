@@ -25,6 +25,14 @@ internal sealed class SmelterProductionEngine
         foreach (var civ in _state.Civilizations)
         {
             var cities = civ.GetCitiesWith(BuildingType.Smelter);
+            if (cities.Count == 0) continue;
+
+            // Ne dépendent que des modificateurs de la civilisation, donc constants pendant tout
+            // l'événement d'horloge — ils étaient réagrégés à chaque cycle de chaque Fonderie, soit
+            // des milliers de fois par tranche pendant un saut de temps.
+            int oreInput = HarvestController.GetSmelterOreInput(civ);
+            int steelOutput = HarvestController.GetSmelterSteelOutput(civ);
+
             for (int i = 0; i < cities.Count; i++)
             {
                 var city = cities[i];
@@ -49,7 +57,6 @@ internal sealed class SmelterProductionEngine
                         if (civ.GetResourceQuantity(Resource.Steel) >= civ.GetResourceMaxQuantity(Resource.Steel)) break;
                     }
 
-                    int oreInput = HarvestController.GetSmelterOreInput(civ);
                     if (civ.GetResourceQuantity(Resource.Ore) < oreInput)
                     {
                         civ.RaiseLowStock(Resource.Ore);
@@ -63,7 +70,6 @@ internal sealed class SmelterProductionEngine
 
                     civ.RemoveResource(Resource.Ore,  oreInput);
                     civ.RemoveResource(Resource.Wood, Smelter.WoodInputPerCycle);
-                    int steelOutput = HarvestController.GetSmelterSteelOutput(civ);
                     for (int s = 0; s < steelOutput; s++)
                     {
                         _trader!.TryAutoTradeOnOverflow(civ, city, Resource.Steel);

@@ -82,7 +82,7 @@ namespace SOITests.ControllerTests
         public void Prestige_MonsterBonus_ZeroWhenMonstersPresent()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
-            state.Features.Add(new Bandit(new HexCoord(0, 0, IslandMap.SurfaceLayer)));
+            state.AddFeature(new Bandit(new HexCoord(0, 0, IslandMap.SurfaceLayer)));
             var controller = new PrestigeController();
             controller.Initialize(state.Civilizations[0], state);
 

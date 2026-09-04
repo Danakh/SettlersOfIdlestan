@@ -166,7 +166,14 @@ public class CorruptionController
                 {
                     if (divisor > 1 && _prng.Next(divisor) != 0) continue;
 
-                    var hexes = city.Position.GetHexes().Where(IsValidHex).ToList();
+                    // Même tampon réutilisé que la propagation : le Where/ToList allouait une
+                    // fermeture, un itérateur et une liste par cycle et par ville avec Temple.
+                    var hexes = _spreadCandidatesScratch;
+                    hexes.Clear();
+                    var cityHexes = city.Position.GetHexes();
+                    for (int h = 0; h < cityHexes.Length; h++)
+                        if (IsValidHex(cityHexes[h]))
+                            hexes.Add(cityHexes[h]);
                     if (hexes.Count == 0) continue;
 
                     var hex = hexes[_prng.Next(hexes.Count)];
@@ -183,14 +190,14 @@ public class CorruptionController
     /// </summary>
     private void ApplyTempleActionOnHex(Civilization civ, Temple temple, HexCoord hex)
     {
-        var corruption = _state!.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
+        var corruption = _state!.GetFirstFeatureAt<Corruption>(hex);
         if (corruption != null)
         {
             ReduceLevel(corruption);
             return;
         }
 
-        var dominion = _state.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault();
+        var dominion = _state.GetFirstFeatureAt<Dominion>(hex);
         int cap = GetTempleDominionCap(civ, temple.Level);
         if (dominion == null)
             _state.AddFeature(new Dominion(hex, level: 1));
@@ -206,6 +213,15 @@ public class CorruptionController
         return capPerLevel * templeLevel;
     }
 
+    /// <summary>
+    /// Tampons de <see cref="ProcessSpread"/>, réutilisés d'un cycle et d'un événement d'horloge à
+    /// l'autre. Le premier reçoit les milliers de Corruption/Dominion de l'île à chaque cycle, le
+    /// second les six voisins de chaque source : réalloués, ils faisaient à eux deux l'essentiel des
+    /// allocations de ce contrôleur.
+    /// </summary>
+    private readonly List<IslandFeature> _spreadSourcesScratch = new();
+    private readonly List<HexCoord> _spreadCandidatesScratch = new(6);
+
     private void ProcessSpread(long currentTick)
     {
         if (_state == null || _prng == null) return;
@@ -220,12 +236,25 @@ public class CorruptionController
         // multiplication par `cycles` donnerait un résultat incohérent.
         for (long c = 0; c < cycles; c++)
         {
-            // Snapshot : ReduceLevel peut retirer des features de _state.Features pendant l'itération.
-            var sources = _state.Features.Where(f => f is Corruption or Dominion).ToList();
+            // Snapshot : ReduceLevel peut retirer des features de _state pendant l'itération. Le
+            // tampon est réutilisé d'un cycle à l'autre plutôt que réalloué — cette passe tourne dix
+            // fois par événement d'horloge et recopiait à chaque fois les milliers de Corruption et
+            // Dominion d'une partie avancée.
+            //
+            // L'ordre reste scrupuleusement celui de _state.Features : c'est lui qui fixe la
+            // séquence des tirages du PRNG, et le moindre changement de cet ordre rendrait le saut de
+            // temps non déterministe (voir CLAUDE.md, sauvegardes de SOITests/saves/current).
+            var sources = _spreadSourcesScratch;
+            sources.Clear();
+            var allFeatures = _state.Features;
+            for (int i = 0; i < allFeatures.Count; i++)
+                if (allFeatures[i] is Corruption or Dominion)
+                    sources.Add(allFeatures[i]);
 
-            foreach (var source in sources)
+            for (int s = 0; s < sources.Count; s++)
             {
-                if (!_state.Features.Contains(source)) continue; // déjà supprimée plus tôt dans cette passe
+                var source = sources[s];
+                if (!_state.ContainsFeature(source)) continue; // déjà supprimée plus tôt dans cette passe
 
                 bool sourceIsDominion = source is Dominion;
 
@@ -242,14 +271,21 @@ public class CorruptionController
                 int divisor = sourceIsDominion ? GetDominionLayerDivisor(source.Position.Z) : 1;
                 if (_prng.Next(100 * divisor) >= level * chancePerLevel) continue;
 
-                var candidates = source.Position.Neighbors().Where(IsValidHex).ToList();
+                // Tampon réutilisé et boucle indexée : le Where/ToList allouait une fermeture, un
+                // itérateur et une liste par source et par cycle.
+                var candidates = _spreadCandidatesScratch;
+                candidates.Clear();
+                var neighbors = source.Position.Neighbors();
+                for (int n = 0; n < neighbors.Length; n++)
+                    if (IsValidHex(neighbors[n]))
+                        candidates.Add(neighbors[n]);
                 if (candidates.Count == 0) continue;
 
                 var neighborHex = candidates[_prng.Next(candidates.Count)];
 
                 var opposite = sourceIsDominion
-                    ? (IslandFeature?)_state.GetFeaturesAt(neighborHex).OfType<Corruption>().FirstOrDefault()
-                    : _state.GetFeaturesAt(neighborHex).OfType<Dominion>().FirstOrDefault();
+                    ? (IslandFeature?)_state.GetFirstFeatureAt<Corruption>(neighborHex)
+                    : _state.GetFirstFeatureAt<Dominion>(neighborHex);
 
                 if (opposite != null)
                 {
@@ -264,8 +300,8 @@ public class CorruptionController
                 }
 
                 var same = sourceIsDominion
-                    ? (IslandFeature?)_state.GetFeaturesAt(neighborHex).OfType<Dominion>().FirstOrDefault()
-                    : _state.GetFeaturesAt(neighborHex).OfType<Corruption>().FirstOrDefault();
+                    ? (IslandFeature?)_state.GetFirstFeatureAt<Dominion>(neighborHex)
+                    : _state.GetFirstFeatureAt<Corruption>(neighborHex);
 
                 // Un voisin vide compte comme un "même statut" de niveau 0 : une source suffisamment
                 // forte (écart > SpreadSameStatusLevelGap) sème une nouvelle poche à niveau 1, ce qui
@@ -313,8 +349,13 @@ public class CorruptionController
             .ApplyModifiers(Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, "", 0.0);
         if (chance <= 0) return false;
 
-        bool nearTemple = _state.PlayerCivilization.Cities.Any(c =>
-            c.FindBuilding(BuildingType.Temple) != null && c.Position.GetHexes().Contains(hex));
+        // Index hexagone → villes (voir Civilization.GetCitiesAdjacentTo) plutôt qu'un balayage des
+        // centaines de villes du joueur : cette question est posée à chaque annulation mutuelle
+        // Dominion/Corruption, donc des milliers de fois par saut de temps.
+        var cities = _state.PlayerCivilization.GetCitiesAdjacentTo(hex);
+        bool nearTemple = false;
+        for (int i = 0; i < cities.Count && !nearTemple; i++)
+            nearTemple = cities[i].FindBuilding(BuildingType.Temple) != null;
         if (!nearTemple) return false;
 
         return _prng!.Next(100) < (int)Math.Round(chance * 100);

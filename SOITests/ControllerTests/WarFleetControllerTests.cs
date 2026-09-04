@@ -28,7 +28,7 @@ public class WarFleetControllerTests
         var civ = new Civilization { Index = 0 };
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
         if (greatLighthouseLevel > 0)
-            state.Features.Add(new GreatLighthouse(h1) { Level = greatLighthouseLevel });
+            state.AddFeature(new GreatLighthouse(h1) { Level = greatLighthouseLevel });
 
         var beaconVertex = Vertex.Create(h1, h2, h3);
         civ.AddMaritimeBeacon(new MaritimeBeacon(beaconVertex) { CivilizationIndex = 0 });

@@ -14,7 +14,11 @@ fin de partie. Il fait deux choses :
 2. **`TickBenchmark` + `ClockProfiler`** — mesurent le coût d'un événement `GameClock.Advanced` et
    l'attribuent à chacun des ~15 contrôleurs abonnés à l'horloge.
 3. **`AllocationSampler`** (`--alloc-types`) — dit *quels types* sont alloués, par contrôleur.
-4. **`RenderQueryBenchmark`** (`--render-queries`) — mesure le travail **modèle** d'une image du
+4. **`SaveJumpBenchmark`** (`--load-save`) — rejoue un **saut de temps** (celui de `TimeJumpService`)
+   sur une **vraie sauvegarde** et attribue le temps à chaque contrôleur, plus le détail des neuf
+   étapes de `HarvestController` (`HarvestStepProfiler`). C'est le seul mode qui mesure ce que le
+   joueur attend réellement, barre de progression à l'écran.
+5. **`RenderQueryBenchmark`** (`--render-queries`) — mesure le travail **modèle** d'une image du
    plateau : les agrégats par hexagone que `GameBoardRenderer.Render` reconstruit, puis les requêtes
    que `DrawHarvestIndicator` pose pour chaque tuile. Aucune de ces requêtes ne touche au canvas,
    donc elles se mesurent depuis `SettlersOfIdlestanCore` seul, sans fenêtre ni GPU.
@@ -47,7 +51,17 @@ dotnet run --project SOIBench -c Release -- --cities 400 --alloc-types --breakdo
 
 # Coût d'une image du plateau, côté modèle (pas la simulation)
 dotnet run --project SOIBench -c Release -- --cities 240 --player-share 0.85 --render-queries
+
+# Saut de temps d'une heure rejoué sur une vraie sauvegarde (le cas du joueur qui revient)
+dotnet run --project SOIBench -c Release -- --load-save chemin/vers/autosave.json --rounds 3
 ```
+
+⚠️ **Pour un saut de temps, mesurer sur une sauvegarde, jamais sur la fixture synthétique.** Les
+deux postes qui dominaient un saut d'une heure — les prédicats de tâches encore en attente qui
+balaient les features, et la propagation Corruption/Dominion — sont invisibles sur la fixture, qui
+ne pose que ~15 features et marque toutes les tâches complétées. Mesurée sur la fixture, la même
+sauvegarde paraissait saine ; mesurée telle quelle, elle demandait 17 s de CPU pour une heure de
+jeu.
 
 ⚠️ **`--player-share 0.5` (le défaut) ne ressemble pas à une vraie fin de partie.** Dans une
 sauvegarde réelle le joueur possède ~85 % des villes ; à 50 % on mesure surtout l'IA des PNJ, qui
@@ -64,6 +78,7 @@ Voir `--help` pour la liste complète des options.
 | `µs / événement / ville` | Le coût unitaire. C'est lui qu'on cherche à faire baisser ; le total suivra. |
 | `allocations / événement` | Pression GC. Compte double en WebAssembly et sur mobile, où une collecte coûte bien plus cher que sur desktop. |
 | `rattrapage 8 h hors-ligne` | `AdvanceFromBank` découpe la banque en tranches de 100 ticks, soit un événement par tranche, d'affilée : 8 h d'absence = 288 000 événements. C'est le pire cas réel, et souvent le plus douloureux. |
+| `total` (mode `--load-save`) | Secondes de CPU du saut entier. C'est le chiffre que le joueur voit passer sous la barre de progression — le seul qui compte dans ce mode. Le découpage y est celui de `TimeJumpService` (10 000 ticks), pas celui du rattrapage : une heure ne fait que 36 événements, chacun très lourd. Les coupables n'y sont donc pas les mêmes qu'à 100 ticks par événement. |
 | `pente` (montée en charge) | Exposant local entre deux tailles consécutives. ≈1 = linéaire (on optimise les constantes), >1,3 = un chemin chaud parcourt plus que ses propres villes — chercher un produit cartésien avant toute micro-optimisation. |
 
 La pente log-log globale affichée en fin de table est biaisée vers le bas quand le coût fixe (IA des
@@ -185,6 +200,12 @@ C'est le prix à payer pour ne pas ajouter de crochet de profilage dans le code 
 réflexion échoue silencieusement et la répartition par contrôleur devient vide.
 `ClockProfiler_AttachesAndAttributesTimeToControllers` (dans `SOITests`) est le garde-fou : il
 échoue explicitement dans ce cas.
+
+`HarvestStepProfiler` a la même fragilité pour le champ privé `HarvestController._steps` : renommé
+ou remplacé par autre chose qu'un tableau de `ProductionStep(string, Action<long>)`, la réflexion
+échoue et le détail par étape disparaît (`IsAttached` faux), sans que le reste de la mesure en
+souffre. Ce détail est indispensable ici : `HarvestController` pesait 46 % d'un saut d'une heure, et
+c'est la Fonderie — pas la récolte automatique qu'on soupçonnait — qui en portait l'essentiel.
 
 ## Ordre de travail sur les perfs
 

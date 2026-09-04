@@ -171,7 +171,7 @@ public class WorldState : IJsonOnDeserialized
         _layers[IslandMap.SurfaceLayer] = new LayerState(map);
         _civilizations = civilizations ?? new();
         WorldId = worldId;
-        Features = new List<IslandFeature>();
+        _features = new List<IslandFeature>();
         PlunderCooldownDuration = new Dictionary<HexCoord, long>();
         Visibility.Recalculate();
     }
@@ -185,13 +185,13 @@ public class WorldState : IJsonOnDeserialized
         Visibility = new WorldVisibility(this);
         _layers[IslandMap.SurfaceLayer] = new LayerState();
         _civilizations = new List<SettlersOfIdlestan.Model.Civilization.Civilization>();
-        Features = new List<IslandFeature>();
+        _features = new List<IslandFeature>();
         PlunderCooldownDuration = new Dictionary<HexCoord, long>();
     }
 
     public void OnDeserialized()
     {
-        RebuildHexCache();
+        RebuildFeatureCaches();
         Visibility.Recalculate();
     }
 
@@ -242,14 +242,52 @@ public class WorldState : IJsonOnDeserialized
         return perHex;
     }
 
+    private List<IslandFeature> _features;
+
     /// <summary>
-    /// Toutes les features de l'île (Bandit, BanditHideout, TreasureTrove).
-    /// Utiliser AddFeature / RemoveFeature pour modifier afin de déclencher les events.
+    /// Toutes les features de l'île (Bandit, BanditHideout, TreasureTrove) — <b>lecture seule</b> ;
+    /// utiliser <see cref="AddFeature"/> / <see cref="RemoveFeature"/> pour muter. C'est ce qui rend
+    /// fiables les deux index dérivés (<see cref="_featuresByHex"/> et <see cref="_featuresByType"/>) :
+    /// une insertion directe dans la liste les laisserait silencieusement incomplets, et une question
+    /// aussi banale que « y a-t-il une Nécropole ? » répondrait non alors qu'elle existe.
+    ///
+    /// <para>Rend volontairement la <see cref="List{T}"/> concrète, pour la même raison que
+    /// <see cref="Civilizations"/> : c'est une collection parcourue à chaque tick, et via un
+    /// <c>IReadOnlyList</c> le <c>foreach</c> boxe l'énumérateur de structure. Le contrat de lecture
+    /// seule est donc tenu par convention ici, et non par le type.</para>
     /// </summary>
-    public List<IslandFeature> Features { get; set; }
+    [JsonIgnore]
+    public List<IslandFeature> Features => _features;
+
+    // Utilisé uniquement par la sérialisation JSON : conserve le nom de propriété historique
+    // "Features" dans les sauvegardes.
+    [JsonPropertyName("Features")]
+    [JsonInclude]
+    public List<IslandFeature> FeaturesSerialized
+    {
+        get => _features;
+        private set => _features = value ?? new();
+    }
 
     [JsonIgnore]
     private Dictionary<HexCoord, List<IslandFeature>> _featuresByHex = new();
+
+    /// <summary>
+    /// Index type → features, peuplé pour <b>chaque</b> type de la chaîne d'héritage de la feature
+    /// (jusqu'à <see cref="IslandFeature"/> incluse) : une <c>Necropolis</c> figure donc sous
+    /// <c>Necropolis</c>, <c>Monument</c> et <c>IslandFeature</c>. C'est ce qui permet à
+    /// <see cref="GetFeaturesOfType{T}"/> de répondre aussi bien pour un type concret que pour une
+    /// base commune, là où un index par type exact ne servirait que le premier.
+    ///
+    /// <para>Sans lui, chaque « existe-t-il une feature de type X ? » balayait les
+    /// <see cref="Features"/> — plusieurs milliers en fin de partie — en allouant au passage
+    /// l'itérateur de <c>OfType</c>. Ces questions sont posées sur les chemins les plus chauds du jeu
+    /// (prédicats de tâches réévalués à chaque récolte et à chaque vente, monuments interrogés à
+    /// chaque tick) : c'était le premier poste d'un saut de temps d'une heure sur une grosse
+    /// sauvegarde.</para>
+    /// </summary>
+    [JsonIgnore]
+    private readonly Dictionary<Type, List<IslandFeature>> _featuresByType = new();
 
     private void AddToHexCache(IslandFeature feature)
     {
@@ -271,19 +309,90 @@ public class WorldState : IJsonOnDeserialized
         }
     }
 
-    private void RebuildHexCache()
+    private void AddToTypeCache(IslandFeature feature)
+    {
+        for (Type? type = feature.GetType(); type != null && type != typeof(object); type = type.BaseType)
+        {
+            if (!_featuresByType.TryGetValue(type, out var list))
+            {
+                list = new List<IslandFeature>();
+                _featuresByType[type] = list;
+            }
+            list.Add(feature);
+        }
+    }
+
+    private void RemoveFromTypeCache(IslandFeature feature)
+    {
+        for (Type? type = feature.GetType(); type != null && type != typeof(object); type = type.BaseType)
+            if (_featuresByType.TryGetValue(type, out var list))
+                list.Remove(feature);
+    }
+
+    private void RebuildFeatureCaches()
     {
         _featuresByHex.Clear();
+        _featuresByType.Clear();
         foreach (var f in Features)
+        {
             AddToHexCache(f);
+            AddToTypeCache(f);
+        }
     }
+
+    /// <summary>
+    /// Features de type <typeparamref name="T"/> (concret ou base commune), sans allocation ni
+    /// balayage — voir <see cref="_featuresByType"/>. Liste vide si aucune. Remplace
+    /// <c>Features.OfType&lt;T&gt;()</c> sur les chemins appelés à chaque tick.
+    ///
+    /// <para>La liste rendue est celle de l'index, pas une copie : ne pas la muter, et ne pas
+    /// l'énumérer pendant un <see cref="AddFeature"/> / <see cref="RemoveFeature"/> du même type.</para>
+    /// </summary>
+    public IReadOnlyList<IslandFeature> GetFeaturesOfType<T>() where T : IslandFeature
+        => _featuresByType.TryGetValue(typeof(T), out var list) ? list : Array.Empty<IslandFeature>();
+
+    /// <summary>Première feature de type <typeparamref name="T"/>, ou null — équivalent de <c>Features.OfType&lt;T&gt;().FirstOrDefault()</c>.</summary>
+    public T? GetFirstFeature<T>() where T : IslandFeature
+    {
+        var list = GetFeaturesOfType<T>();
+        return list.Count > 0 ? (T)list[0] : null;
+    }
+
+    /// <summary>Vrai si au moins une feature de type <typeparamref name="T"/> existe — équivalent de <c>Features.OfType&lt;T&gt;().Any()</c>.</summary>
+    public bool HasFeature<T>() where T : IslandFeature => GetFeaturesOfType<T>().Count > 0;
 
     /// <summary>Retourne les features présentes sur cet hex (liste vide si aucune).</summary>
     public IReadOnlyList<IslandFeature> GetFeaturesAt(HexCoord hex)
         => _featuresByHex.TryGetValue(hex, out var list) ? list : Array.Empty<IslandFeature>();
 
+    /// <summary>
+    /// Première feature de type <typeparamref name="T"/> sur cet hex, ou null — équivalent sans
+    /// allocation de <c>GetFeaturesAt(hex).OfType&lt;T&gt;().FirstOrDefault()</c>, dont la chaîne
+    /// LINQ alloue son itérateur à chaque appel. La propagation Corruption/Dominion pose cette
+    /// question quatre fois par source et par cycle, sur des milliers de sources.
+    /// </summary>
+    public T? GetFirstFeatureAt<T>(HexCoord hex) where T : IslandFeature
+    {
+        if (!_featuresByHex.TryGetValue(hex, out var list)) return null;
+        for (int i = 0; i < list.Count; i++)
+            if (list[i] is T match) return match;
+        return null;
+    }
+
     /// <summary>Retourne true si au moins une feature est présente sur cet hex.</summary>
     public bool HasFeaturesAt(HexCoord hex) => _featuresByHex.ContainsKey(hex);
+
+    /// <summary>
+    /// Vrai si cette feature fait toujours partie du monde. Passe par l'index par hexagone (quelques
+    /// entrées) plutôt que par <c>Features.Contains</c>, qui balaie la liste entière : une passe qui
+    /// vérifie ainsi chacune de ses sources — la propagation Corruption/Dominion le fait — était
+    /// quadratique en nombre de features.
+    ///
+    /// <para>La position fait foi, et c'est <see cref="MoveFeature"/> seule qui la change : une
+    /// feature déplacée autrement serait déjà invisible à <see cref="GetFeaturesAt"/>.</para>
+    /// </summary>
+    public bool ContainsFeature(IslandFeature feature)
+        => _featuresByHex.TryGetValue(feature.Position, out var list) && list.Contains(feature);
 
     /// <summary>
     /// Retourne true si au moins une feature de cet hex empêche d'y bâtir un monument (voir
@@ -301,15 +410,17 @@ public class WorldState : IJsonOnDeserialized
 
     public void AddFeature(IslandFeature feature)
     {
-        Features.Add(feature);
+        _features.Add(feature);
         AddToHexCache(feature);
+        AddToTypeCache(feature);
         FeatureAdded?.Invoke(this, feature);
     }
 
     public bool RemoveFeature(IslandFeature feature)
     {
-        if (!Features.Remove(feature)) return false;
+        if (!_features.Remove(feature)) return false;
         RemoveFromHexCache(feature);
+        RemoveFromTypeCache(feature);
         FeatureRemoved?.Invoke(this, feature);
         return true;
     }

@@ -45,6 +45,23 @@ public static class TutorialTaskDefinitions
 
     private static int LiveMax(int recorded, int? live) => Math.Max(recorded, live ?? 0);
 
+    /// <summary>
+    /// Vrai si une feature de type <typeparamref name="T"/> satisfait <paramref name="predicate"/>.
+    /// Passe par l'index de <see cref="WorldState.GetFeaturesOfType{T}"/> plutôt que par
+    /// <c>Features.OfType&lt;T&gt;().Any(…)</c> : pour la même raison que <see cref="CountBuilding"/>,
+    /// ces prédicats sont réévalués à chaque récolte et à chaque vente tant que leur tâche est en
+    /// attente, et balayaient alors les milliers de features de l'île.
+    /// </summary>
+    private static bool AnyFeature<T>(WorldState? island, Func<T, bool> predicate) where T : IslandFeature
+    {
+        if (island == null) return false;
+
+        var features = island.GetFeaturesOfType<T>();
+        for (int i = 0; i < features.Count; i++)
+            if (predicate((T)features[i])) return true;
+        return false;
+    }
+
     private static int ComputePrestigePoints(WorldState? island)
     {
         if (island == null) return 0;
@@ -312,17 +329,17 @@ public static class TutorialTaskDefinitions
         new TutorialTask(TutorialTaskId.PlaceWonder,
             "task_place_wonder_name", "task_place_wonder_desc",
             (g, _, island) => g.HasPlacedWonder
-                || island?.Features.OfType<Wonder>().Any() == true),
+                || island?.HasFeature<Wonder>() == true),
 
         new TutorialTask(TutorialTaskId.BuildWonder,
             "task_build_wonder_name", "task_build_wonder_desc",
             (g, _, island) => g.HasBuiltWonder
-                || island?.Features.OfType<Wonder>().Any(w => w.Level >= 1) == true),
+                || AnyFeature<Wonder>(island, w => w.Level >= 1)),
 
         new TutorialTask(TutorialTaskId.BuildCorruptionSpireLevel1,
             "task_build_corruption_spire_name", "task_build_corruption_spire_desc",
             (g, _, island) => g.HasBuiltCorruptionSpire
-                || island?.Features.OfType<CorruptionSpire>().Any(s => s.Built) == true),
+                || AnyFeature<CorruptionSpire>(island, s => s.Built)),
 
         new TutorialTask(TutorialTaskId.PerformCorruptedPrestige,
             "task_perform_corrupted_prestige_name", "task_perform_corrupted_prestige_desc",
@@ -345,7 +362,7 @@ public static class TutorialTaskDefinitions
         new TutorialTask(TutorialTaskId.OpenAbyssGate,
             "task_open_abyss_gate_name", "task_open_abyss_gate_desc",
             (g, _, island) => g.HasBuiltAbyssGate
-                || island?.Features.OfType<AbyssGate>().Any(a => a.Built) == true),
+                || AnyFeature<AbyssGate>(island, a => a.Built)),
 
         new TutorialTask(TutorialTaskId.BuildVoidRoad,
             "task_build_void_road_name", "task_build_void_road_desc",
@@ -367,7 +384,7 @@ public static class TutorialTaskDefinitions
         new TutorialTask(TutorialTaskId.BuildNecropolis,
             "task_build_necropolis_name", "task_build_necropolis_desc",
             (g, _, island) => g.HasBuiltNecropolis
-                || island?.Features.OfType<Necropolis>().Any() == true),
+                || island?.HasFeature<Necropolis>() == true),
 
         new TutorialTask(TutorialTaskId.ReachCorruptionLevel5,
             "task_reach_corruption_level5_name", "task_reach_corruption_level5_desc",

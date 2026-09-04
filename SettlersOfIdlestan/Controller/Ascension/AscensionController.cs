@@ -531,7 +531,7 @@ public class AscensionController : IModifierProvider
     /// Niveau de la Nécropole bâtie sur l'île courante (0 s'il n'y en a pas) — chaque niveau majore
     /// de 10% les points divins de l'Ascension (voir <see cref="GetGodPointsGain"/>).
     /// </summary>
-    public int GetNecropolisLevel() => _state?.Features.OfType<Necropolis>().FirstOrDefault()?.Level ?? 0;
+    public int GetNecropolisLevel() => _state?.GetFirstFeature<Necropolis>()?.Level ?? 0;
 
     /// <summary>
     /// Bonus de points divins accordé par la Nécropole de l'île courante (0.10 par niveau, 0 sans

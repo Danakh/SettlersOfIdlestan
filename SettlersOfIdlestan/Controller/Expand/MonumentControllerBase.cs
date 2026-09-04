@@ -69,7 +69,7 @@ namespace SettlersOfIdlestan.Controller.Island
         protected virtual void OnClockAdvancedExtra() { }
 
         /// <summary>Le monument piloté, ou null s'il n'est pas encore posé.</summary>
-        protected TFeature? FindFeature() => _state?.Features.OfType<TFeature>().FirstOrDefault();
+        protected TFeature? FindFeature() => _state?.GetFirstFeature<TFeature>();
 
         /// <summary>
         /// Un cycle d'investissement : prélève les ressources dues et, si l'objectif courant est

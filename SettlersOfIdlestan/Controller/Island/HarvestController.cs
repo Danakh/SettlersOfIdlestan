@@ -1060,7 +1060,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (perHex.TryGetValue(hex, out var lastHarvest) && now - lastHarvest < HarvestCooldownTicks)
                 return false;
 
-            if (!TryHarvestHexOnce(civilizationIndex, civ, hex, now))
+            if (!TryHarvestHex(civilizationIndex, civ, hex, now, cycles: 1))
                 return false;
 
             perHex[hex] = now;
@@ -1091,9 +1091,14 @@ namespace SettlersOfIdlestan.Controller.Island
                 return;
             }
 
-            for (long i = 0; i < cycles; i++)
-                if (!TryHarvestHexOnce(civilizationIndex, civ, hex, now))
-                    break;
+            // Les cycles dus sont récoltés en une passe plutôt qu'un par un : cette récolte ne tire
+            // rien au sort et ne dépend d'aucun état qui changerait entre deux cycles — le blocage de
+            // l'hex, les villes voisines et le montant par cycle sont tous constants pendant
+            // l'événement d'horloge. Rejouée cycle par cycle, elle allouait un ResourceSet et levait
+            // un événement OnHarvestCompleted par cycle et par hexagone : sur un saut de temps d'une
+            // heure, 50 cycles pour chacun des centaines d'hexagones bordés par une ville du joueur,
+            // soit le premier poste d'allocation de toute la simulation.
+            TryHarvestHex(civilizationIndex, civ, hex, now, (int)cycles);
 
             perHex[hex] = lastTick;
         }
@@ -1103,8 +1108,17 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <see cref="PerformPeriodicHandOfGodHarvest"/> — vérifications de blocage puis récolte,
         /// hors gestion du cooldown (propre à chaque appelant).
         /// </summary>
-        private bool TryHarvestHexOnce(int civilizationIndex, Model.Civilization.Civilization civ, HexCoord hex, long now)
+        /// <param name="cycles">
+        /// Nombre de récoltes dues d'un coup (1 pour un clic joueur, le rattrapage de Main de Dieu
+        /// sinon). Le montant par ressource est simplement multiplié d'autant : la récolte manuelle
+        /// est entièrement déterministe, et le plafond de stockage est appliqué par
+        /// <c>AddResource</c> exactement comme il l'aurait été cycle par cycle. Un seul événement
+        /// <see cref="OnHarvestCompleted"/> est levé, portant le total.
+        /// </param>
+        private bool TryHarvestHex(int civilizationIndex, Model.Civilization.Civilization civ, HexCoord hex, long now, int cycles)
         {
+            if (cycles <= 0) return false;
+
             var features = _state!.GetFeaturesAt(hex);
             for (int i = 0; i < features.Count; i++)
                 if (features[i].BlocksHarvestFor(civ))
@@ -1126,7 +1140,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var tile = _state.GetMapFor(hex)?.GetTile(hex);
             if (tile == null) return false;
 
-            int amount = civ.ModifierAggregator.ApplyModifiers(ECategory.MANUAL_HARVEST_AMOUNT, "", 1);
+            int amount = civ.ModifierAggregator.ApplyModifiers(ECategory.MANUAL_HARVEST_AMOUNT, "", 1) * cycles;
 
             var harvested = new ResourceSet();
             Vertex? harvestCity = null;

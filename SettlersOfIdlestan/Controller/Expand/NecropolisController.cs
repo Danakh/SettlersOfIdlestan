@@ -59,12 +59,12 @@ namespace SettlersOfIdlestan.Controller.Island
             => playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_NECROPOLIS);
 
         public int GetNecropolisLevel()
-            => _state?.Features.OfType<Necropolis>().FirstOrDefault()?.Level ?? 0;
+            => _state?.GetFirstFeature<Necropolis>()?.Level ?? 0;
 
         public bool CanPlaceNecropolis(Civilization playerCiv)
         {
             if (!HasNecropolisUnlocked(playerCiv)) return false;
-            if (_state?.Features.OfType<Necropolis>().Any() == true) return false;
+            if (_state?.HasFeature<Necropolis>() == true) return false;
             return true;
         }
 

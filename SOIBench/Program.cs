@@ -37,6 +37,15 @@ public static class Program
         TickBenchmark.WarmUpProcess();
         Console.WriteLine("ok");
 
+        if (options.SavePath != null)
+        {
+            for (int i = 0; i < options.Rounds; i++)
+                PrintSaveJumpResult(SaveJumpBenchmark.Run(
+                    options.SavePath, options.JumpHours, options.JumpChunkTicks, options.SampleAllocationTypes),
+                    options.BreakdownTop);
+            return 0;
+        }
+
         foreach (int cityCount in options.CityCounts)
         {
             var islandOptions = options.ToIslandOptions(cityCount);
@@ -72,6 +81,57 @@ public static class Program
         if (options.CsvPath != null) WriteCsv(results, options.CsvPath);
 
         return 0;
+    }
+
+    /// <summary>
+    /// Saut de temps rejoué sur une sauvegarde réelle. Le chiffre qui compte est le total : c'est le
+    /// temps pendant lequel la barre de progression du jeu avance.
+    /// </summary>
+    private static void PrintSaveJumpResult(SaveJumpResult result, int breakdownTop)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"  {result.Describe}");
+        Console.WriteLine($"  ── saut de {result.TotalTicks / 100.0 / 60.0:F0} min : "
+                        + $"{result.Events} événements de {result.ChunkTicks} ticks ──");
+        Console.WriteLine($"  total                     : {result.TotalMs / 1000.0,10:F2} s");
+        Console.WriteLine($"  ms / événement            : {result.TotalMs / result.Events,10:F1}");
+        Console.WriteLine($"  allocations totales       : {FormatBytes(result.AllocatedBytes),10}");
+
+        if (!result.HasControllerBreakdown)
+        {
+            Console.WriteLine("  (répartition par contrôleur indisponible : champ GameClock.Advanced introuvable)");
+            Console.WriteLine();
+            return;
+        }
+
+        double total = result.ControllerCosts.Sum(c => c.TotalMs);
+        Console.WriteLine();
+        Console.WriteLine($"  {"contrôleur",-34}{"total s",10}{"%",8}{"alloc",14}");
+        foreach (var cost in result.ControllerCosts.Take(breakdownTop))
+            Console.WriteLine($"  {cost.Name,-34}{cost.TotalMs / 1000.0,10:F2}"
+                            + $"{(total <= 0 ? 0 : cost.TotalMs / total * 100.0),7:F1}%{FormatBytes(cost.AllocatedBytes),14}");
+
+        double unattributed = result.TotalMs - total;
+        if (unattributed > 0.01 * result.TotalMs)
+            Console.WriteLine($"  {"(non attribué)",-34}{unattributed / 1000.0,10:F2}{unattributed / result.TotalMs * 100.0,7:F1}%");
+        Console.WriteLine();
+
+        if (result.HarvestStepCosts.Count > 0)
+        {
+            Console.WriteLine($"  {"└ étape de HarvestController",-34}{"total s",10}{"%",8}{"alloc",14}");
+            foreach (var cost in result.HarvestStepCosts)
+                Console.WriteLine($"    {cost.Name,-32}{cost.TotalMs / 1000.0,10:F2}"
+                                + $"{(total <= 0 ? 0 : cost.TotalMs / total * 100.0),7:F1}%{FormatBytes(cost.AllocatedBytes),14}");
+            Console.WriteLine();
+        }
+
+        if (result.AllocationSamples.Count == 0) return;
+        long sampled = result.AllocationSamples.Sum(s => s.Bytes);
+        if (sampled <= 0) return;
+        Console.WriteLine($"  allocations échantillonnées par type ({FormatBytes(sampled)} vus)");
+        foreach (var sample in result.AllocationSamples.Take(breakdownTop))
+            Console.WriteLine($"  {Truncate(sample.TypeName, 55),-56}{(double)sample.Bytes / sampled * 100.0,6:F1}%");
+        Console.WriteLine();
     }
 
     /// <summary>
@@ -291,6 +351,13 @@ public static class Program
                                          de la simulation. Le dessin Skia lui-même n'est pas couvert.
               --render-frames <n>       Images mesurées par poste (défaut : 200).
 
+            Rejouer un saut de temps sur une vraie sauvegarde :
+              --load-save <path>        Charge cette sauvegarde et mesure un saut de temps dessus,
+                                         au lieu de générer une île. Ignore toutes les options de
+                                         génération ; --rounds répète la mesure (état rechargé).
+              --jump-hours <h>          Durée du saut (défaut : 1).
+              --jump-chunk <n>          Ticks par tranche (défaut : 10000 = TimeJumpService).
+
             Sorties :
               --csv <path>              Écrit les résultats (total + par contrôleur) en CSV.
               --save-fixture <dir>      Exporte chaque état généré en sauvegarde chargeable par le jeu.
@@ -323,6 +390,9 @@ internal sealed class BenchCliOptions
     public int RenderWarmupFrames { get; set; } = 20;
     public string? CsvPath { get; set; }
     public string? SaveFixtureDirectory { get; set; }
+    public string? SavePath { get; set; }
+    public double JumpHours { get; set; } = 1;
+    public long JumpChunkTicks { get; set; } = SaveJumpBenchmark.TimeJumpChunkTicks;
 
     public EndGameIslandOptions ToIslandOptions(int cityCount) => new()
     {
@@ -380,6 +450,11 @@ internal sealed class BenchCliOptions
                 case "--alloc-types": options.SampleAllocationTypes = true; break;
                 case "--render-queries": options.RenderQueries = true; break;
                 case "--render-frames": options.RenderFrames = int.Parse(RequireValue(args, ref i)); break;
+                case "--load-save": options.SavePath = RequireValue(args, ref i); break;
+                case "--jump-hours":
+                    options.JumpHours = double.Parse(RequireValue(args, ref i), CultureInfo.InvariantCulture);
+                    break;
+                case "--jump-chunk": options.JumpChunkTicks = long.Parse(RequireValue(args, ref i)); break;
                 case "--csv": options.CsvPath = RequireValue(args, ref i); break;
                 case "--save-fixture": options.SaveFixtureDirectory = RequireValue(args, ref i); break;
                 default: throw new ArgumentException($"Argument inconnu : {args[i]}");

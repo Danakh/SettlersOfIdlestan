@@ -544,8 +544,19 @@ public class MonsterFeatureController
     /// se superposent jamais entre eux, contrairement aux autres features (Monument, Os Divins, ...)
     /// qu'ils traversent librement.
     /// </summary>
-    private static bool IsOccupiedByMonster(WorldState state, HexCoord hex, MonsterFeature self) =>
-        state.GetFeaturesAt(hex).Any(f => f is MonsterFeature m && !ReferenceEquals(m, self));
+    /// <summary>
+    /// Boucle indexée plutôt qu'un <c>Any(f =&gt; ...)</c>, qui allouait une fermeture (elle capture
+    /// <paramref name="self"/>) et boxait l'énumérateur de <c>GetFeaturesAt</c> : cette question est
+    /// posée pour chacun des six voisins à chaque hex parcouru par chaque monstre.
+    /// </summary>
+    private static bool IsOccupiedByMonster(WorldState state, HexCoord hex, MonsterFeature self)
+    {
+        var features = state.GetFeaturesAt(hex);
+        for (int i = 0; i < features.Count; i++)
+            if (features[i] is MonsterFeature m && !ReferenceEquals(m, self))
+                return true;
+        return false;
+    }
 
     private void MoveMonster(MonsterFeature monster, long currentTick)
     {
@@ -568,36 +579,55 @@ public class MonsterFeatureController
         }
     }
 
+    /// <summary>
+    /// Tampons de <see cref="TryMoveOneHex"/>. Un monstre se déplace de plusieurs hexs par pas de
+    /// rattrapage et un saut de temps en rejoue des dizaines pour chacun : la chaîne de
+    /// <c>Where(...).ToList()</c> qu'ils remplacent allouait jusqu'à cinq fermetures et cinq listes
+    /// par hex parcouru.
+    /// </summary>
+    private readonly List<HexCoord> _moveNeighborsScratch = new(6);
+    private readonly List<HexCoord> _moveNoCooldownScratch = new(6);
+
     /// <summary>Déplace le monstre d'un seul hex. Retourne false si aucun voisin n'est franchissable.</summary>
     private bool TryMoveOneHex(MonsterFeature monster, long currentTick)
     {
         var map = _state!.GetMapFor(monster.Position)!;
-        var neighbors = monster.Position.Neighbors()
-            .Where(n => map.HasTile(n) && CanEnterTerrain(monster, map.GetTile(n)!.TerrainType))
-            .ToList();
 
         // L'Aventurier (monstre ami) reste cantonné au territoire déjà exploré par le joueur : il ne
         // s'aventure jamais dans le brouillard de guerre.
-        if (monster.AttacksOtherMonsters &&
-            _state.Visibility.GetForZ(monster.Position.Z).TryGetValue(_state.PlayerCivilization.Index, out var visibleMap))
-        {
-            neighbors = neighbors.Where(n => visibleMap.HasTile(n)).ToList();
-        }
+        VisibleIslandMap? visibleMap = null;
+        if (monster.AttacksOtherMonsters)
+            _state.Visibility.GetForZ(monster.Position.Z).TryGetValue(_state.PlayerCivilization.Index, out visibleMap);
 
         // L'Aventurier ne s'éloigne jamais de plus de AdventurerRoamRadiusHexes de son Relais (voir AdventurersWaypost).
-        if (monster is Adventurer adventurer && adventurer.SpawnCityPosition is { } spawnVertex)
-            neighbors = neighbors.Where(n => DistanceToCity(n, spawnVertex) <= AdventurersWaypost.AdventurerRoamRadiusHexes).ToList();
+        Vertex? spawnVertex = monster is Adventurer adventurer ? adventurer.SpawnCityPosition : null;
 
-        // Monstres et chasseurs (Aventurier) marchent librement sur les autres features (Monument, Os
-        // Divins, ...) mais ne se superposent jamais à un autre monstre ou chasseur.
-        neighbors = neighbors.Where(n => !IsOccupiedByMonster(_state, n, monster)).ToList();
+        // Les filtres successifs sont appliqués en une seule passe, dans le même ordre : ils
+        // conservent l'ordre des voisins, dont dépend l'indice tiré par ChooseDestination — et donc
+        // le déterminisme du PRNG.
+        var neighbors = _moveNeighborsScratch;
+        neighbors.Clear();
+        var allNeighbors = monster.Position.Neighbors();
+        for (int i = 0; i < allNeighbors.Length; i++)
+        {
+            var n = allNeighbors[i];
+            if (!map.HasTile(n) || !CanEnterTerrain(monster, map.GetTile(n)!.TerrainType)) continue;
+            if (visibleMap != null && !visibleMap.HasTile(n)) continue;
+            if (spawnVertex != null && DistanceToCity(n, spawnVertex) > AdventurersWaypost.AdventurerRoamRadiusHexes) continue;
+            // Monstres et chasseurs (Aventurier) marchent librement sur les autres features (Monument,
+            // Os Divins, ...) mais ne se superposent jamais à un autre monstre ou chasseur.
+            if (IsOccupiedByMonster(_state, n, monster)) continue;
+            neighbors.Add(n);
+        }
 
         if (neighbors.Count == 0) return false;
 
         // Seul le cooldown de pillage post-départ influence encore le choix de destination.
-        var noCooldown = neighbors
-            .Where(n => !_state.PlunderCooldownUntil.TryGetValue(n, out var until) || currentTick >= until)
-            .ToList();
+        var noCooldown = _moveNoCooldownScratch;
+        noCooldown.Clear();
+        for (int i = 0; i < neighbors.Count; i++)
+            if (!_state.PlunderCooldownUntil.TryGetValue(neighbors[i], out var until) || currentTick >= until)
+                noCooldown.Add(neighbors[i]);
         var candidates = noCooldown.Count > 0 ? noCooldown : neighbors;
 
         var chosen = ChooseDestination(monster, candidates);
