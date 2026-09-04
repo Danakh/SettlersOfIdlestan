@@ -1,3 +1,4 @@
+using SettlersOfIdlestan.Controller.Ascension;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
@@ -95,23 +96,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 bones.InvestmentEnabled.Clear();
                 _state.RunRecord.DivineBonesPurified++;
 
-                // Chaque Purification octroie directement 1 essence divine, seulement si le plafond
-                // (une essence par niveau de corruption à partir du niveau 4, plus 1 par pouvoir divin
-                // déjà débloqué — voir AscensionController.GetDivineEssenceCap) n'est pas déjà atteint —
-                // au-delà, il faut prestige ou débloquer un nouveau pouvoir divin pour relever ce
-                // plafond (la Purification a quand même lieu, mais n'accorde aucune essence).
-                // GodState.DivineEssence ne compte déjà pas les essences garanties par le Reliquaire
-                // (GodState.DivineEssenceReliquaryFloor, distinct) : un Reliquaire plein n'interdit
-                // donc jamais de nouvelles essences en début de cycle.
-                int essenceCap = bones.GetEssenceCap();
-                bones.EssenceGranted = _godState.DivineEssence < essenceCap;
-                if (bones.EssenceGranted)
-                {
-                    _godState.DivineEssence++;
-                    _godState.TotalDivineEssenceEarned++;
-                }
-
-                _state.EventLog.Add(bones.EssenceGranted ? GameEventType.DivineBonesPurified : GameEventType.DivineBonesPurifiedNoEssence, toast: true);
+                GrantPurificationEssence(bones, _godState, _state);
                 OnDivineBonesPurified?.Invoke(this, bones);
 
                 // Une fois purifiés, les Os Divins n'ont plus rien à offrir : ils disparaissent de la carte.
@@ -119,5 +104,49 @@ namespace SettlersOfIdlestan.Controller.Island
             }
         }
 
+        /// <summary>
+        /// Octroie l'essence divine d'une Purification qui vient de s'achever, puis journalise le
+        /// résultat. Partagé par la Purification ordinaire (<see cref="ProcessInvestment"/>) et par
+        /// la Purification Supérieure de la Nécropole
+        /// (NecropolisController.HarvestBonesUnderNecropolis) : les deux doivent appliquer exactement
+        /// le même plafond et produire les mêmes entrées de journal.
+        ///
+        /// <para>Chaque Purification octroie directement 1 essence divine, seulement si le plafond
+        /// (une essence par niveau de corruption, plus 1 par pouvoir divin déjà débloqué — voir
+        /// DivineBones.GetEssenceCap et AscensionController.GetDivineEssenceCap) n'est pas déjà
+        /// atteint — au-delà, il faut prestige ou débloquer un nouveau pouvoir divin pour le relever
+        /// (la Purification a quand même lieu, mais n'accorde aucune essence).
+        /// GodState.DivineEssence ne compte déjà pas les essences garanties par le Reliquaire
+        /// (GodState.DivineEssenceReliquaryFloor, distinct) : un Reliquaire plein n'interdit donc
+        /// jamais de nouvelles essences en début de cycle.</para>
+        ///
+        /// <para>L'essence qui atteint le plafond signale en plus
+        /// <see cref="GameEventType.DivineEssenceCapReached"/> (avec toast) : c'est le seul moment où
+        /// le joueur apprend que sa récolte est terminée pour ce niveau de corruption. La condition
+        /// exige l'octroi, ce qui la fait se déclencher une seule fois par plafond — les
+        /// Purifications suivantes, elles, n'accordent rien et journalisent
+        /// DivineBonesPurifiedNoEssence. Si ce plafond est inférieur aux points divins requis pour
+        /// ascensionner, un second événement rappelle les trois moyens d'atteindre quand même le
+        /// seuil.</para>
+        /// </summary>
+        internal static void GrantPurificationEssence(DivineBones bones, GodState godState, WorldState state)
+        {
+            int essenceCap = bones.GetEssenceCap();
+            bones.EssenceGranted = godState.DivineEssence < essenceCap;
+            if (bones.EssenceGranted)
+            {
+                godState.DivineEssence++;
+                godState.TotalDivineEssenceEarned++;
+            }
+
+            state.EventLog.Add(bones.EssenceGranted ? GameEventType.DivineBonesPurified : GameEventType.DivineBonesPurifiedNoEssence, toast: true);
+
+            if (!bones.EssenceGranted || godState.DivineEssence < essenceCap) return;
+
+            state.EventLog.Add(GameEventType.DivineEssenceCapReached, essenceCap.ToString(), toast: true);
+
+            if (essenceCap < AscensionController.MinDivineEssenceForAscension)
+                state.EventLog.Add(GameEventType.DivineEssenceCapBelowAscension, essenceCap.ToString());
+        }
     }
 }

@@ -104,7 +104,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private bool RelocationEnabled => RelocationVisible && CanAffordRelocation();
 
     // Marche de Dieu agit sur toutes les couches (voir AscensionController.WalkOfGodLayers /
-    // ApplyWalkOfGod), contrairement à Présence de Dieu ci-dessous restée réservée à la surface.
+    // ApplyWalkOfGod), comme Présence et Poing de Dieu ci-dessous.
     private bool WalkOfGodVisible => Ascension.IsPowerUnlocked(AscensionPowerId.WalkOfGod);
     private bool WalkOfGodEnabled => WalkOfGodVisible
                                   && (CurrentLayer == IslandMap.SurfaceLayer || CurrentLayer == LayerState.UnderworldZ
@@ -112,14 +112,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                                   && Ascension.GetWalkOfGodTargetHexes().Count > 0
                                   && Ascension.CanUseWalkOfGod();
 
+    // Présence de Dieu s'exerce elle aussi sur n'importe quel calque : la liste des cibles est celle
+    // du calque affiché (voir GetPresenceOfGodTargetHexes), donc aucune garde de surface ici. Elle est
+    // ce qui rend Poing de Dieu utilisable en profondeur, lui qui ne frappe que sous Dominion.
     private bool PresenceOfGodVisible => Ascension.IsPowerUnlocked(AscensionPowerId.PresenceOfGod);
     private bool PresenceOfGodEnabled => PresenceOfGodVisible
-                                      && CurrentLayer == IslandMap.SurfaceLayer
                                       && Ascension.GetPresenceOfGodTargetHexes().Count > 0
                                       && Ascension.CanUsePresenceOfGod();
 
-    // Poing de Dieu frappe sur n'importe quel calque (voir GetFistOfGodTargetHexes) : pas de garde
-    // de surface, contrairement aux deux pouvoirs ci-dessus.
+    // Poing de Dieu frappe sur n'importe quel calque (voir GetFistOfGodTargetHexes).
     private bool FistOfGodVisible => Ascension.IsPowerUnlocked(AscensionPowerId.FistOfGod);
     private bool FistOfGodEnabled => FistOfGodVisible
                                   && Ascension.GetFistOfGodTargetHexes().Count > 0

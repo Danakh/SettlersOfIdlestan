@@ -1204,25 +1204,31 @@ public class AscensionController : IModifierProvider
     public const int PresenceOfGodNeighborPoints = 3;
 
     /// <summary>
-    /// Hexs ciblables par Présence de Dieu : les hexs de la carte de surface, Eau (peu profonde)
-    /// incluse — la Corruption et le Dominion peuvent exister sur l'eau (voir
+    /// Hexs ciblables par Présence de Dieu : les hexs <b>visibles sur le calque affiché</b>, Eau (peu
+    /// profonde) incluse — la Corruption et le Dominion peuvent exister sur l'eau (voir
     /// CorruptionController.IsValidHex), et semer du Dominion en mer est le prélude à la
     /// terraformation par Marche de Dieu — mais pas l'Eau Profonde, qui reste hors de portée comme
-    /// pour Marche de Dieu — et actuellement découverts par le joueur (voir
-    /// <see cref="IsVisibleToPlayer"/>) : comme les autres pouvoirs divins ciblés, la Présence ne
-    /// s'exerce pas à l'aveugle.
+    /// pour Marche de Dieu. Comme les autres pouvoirs divins ciblés, la Présence ne s'exerce pas à
+    /// l'aveugle : le brouillard de guerre la borne.
+    ///
+    /// <para>Elle n'est <b>pas limitée à la surface</b>, comme Poing de Dieu et contrairement à Marche
+    /// de Dieu : la Corruption des profondeurs est la plus dense du jeu, et la Présence est la seule
+    /// source de Dominion que le joueur peut viser — sans elle, Poing de Dieu, qui ne frappe que sous
+    /// Dominion, n'a aucune cible dans l'Inframonde, l'Abysse ou le Pandémonium, et n'y sert donc
+    /// jamais à rien. Mesuré : la manche <c>--pandemonium-ascended</c> de SOIStrategyTester est le cas
+    /// limite, une arène corrompue à 12 par hex où l'enchaînement Présence → Poing est la seule voie
+    /// de dégâts qui n'oblige pas à approcher les monstres.</para>
     /// </summary>
     public IReadOnlyList<HexCoord> GetPresenceOfGodTargetHexes()
     {
         if (_state == null) return Array.Empty<HexCoord>();
 
-        var map = _state.GetMapForZ(IslandMap.SurfaceLayer);
-        if (map == null) return Array.Empty<HexCoord>();
+        if (!_state.Visibility.GetForZ(_state.CurrentViewedLayer).TryGetValue(_state.PlayerCivilization.Index, out var visibleMap))
+            return Array.Empty<HexCoord>();
 
-        return map.Tiles.Values
+        return visibleMap.Tiles.Values
             .Where(t => t.TerrainType != TerrainType.DeepWater)
             .Select(t => t.Coord)
-            .Where(IsVisibleToPlayer)
             .ToList();
     }
 
@@ -1316,9 +1322,10 @@ public class AscensionController : IModifierProvider
     /// établie, et le coup consomme précisément 1 niveau de ce Dominion (voir
     /// <see cref="ApplyFistOfGod"/>). Contrairement à Marche de Dieu, aucun niveau minimum n'est
     /// exigé : un Dominion de niveau 1 suffit, il disparaît simplement sous le coup. Contrairement à
-    /// Marche de Dieu et Présence de Dieu, le pouvoir n'est pas limité à la surface — les monstres des
-    /// profondeurs sont précisément ceux contre lesquels il vaut le plus — mais il reste borné au
-    /// brouillard de guerre : Dieu ne frappe pas à l'aveugle.
+    /// Marche de Dieu, le pouvoir n'est pas limité à la surface — les monstres des profondeurs sont
+    /// précisément ceux contre lesquels il vaut le plus, et <see cref="GetPresenceOfGodTargetHexes"/>
+    /// y sème le Dominion qu'il exige — mais il reste borné au brouillard de guerre : Dieu ne frappe
+    /// pas à l'aveugle.
     /// </summary>
     public IReadOnlyList<HexCoord> GetFistOfGodTargetHexes()
     {

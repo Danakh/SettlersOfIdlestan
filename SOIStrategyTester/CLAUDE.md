@@ -440,20 +440,25 @@ Il y a **deux manches, et elles n'ont pas le même verdict attendu** :
 | Manche | État de départ | Attendu | Ce qu'elle mesure |
 |---|---|---|---|
 | `--pandemonium` | l'Ascension minimale d'un début de race — 7/15 pouvoirs, **pas Poing de Dieu** | **DÉFAITE** | ce que valent les seuls moyens militaires |
-| `--pandemonium-ascended` | 20 Ascensions, 200 points divins, 15/15 pouvoirs, 9 races, tous les bâtiments uniques permanents | **VICTOIRE** | que le contenu final reste battable une fois la méta-progression faite |
+| `--pandemonium-ascended` | 20 Ascensions, 200 points divins, 16/16 pouvoirs, 9 races, tous les bâtiments uniques permanents, 20 000 points de prestige en caisse (`--prestige-points`) | **VICTOIRE** | que le contenu final reste battable une fois la méta-progression faite |
 
 Le code de sortie reflète **la conformité à l'attendu**, pas la victoire : la manche de base est un
 échec voulu, et la faire échouer le build à chaque exécution en ferait un bruit permanent. Ce qu'on
 veut détecter, c'est le jour où l'un des deux résultats change.
 
-🔴 **Et ce jour est arrivé : la manche ascensionnée échoue son attendu depuis que le coût de Poing de
-Dieu double.** Elle sort en code 1 avec `⚠ INATTENDU`, et c'est délibérément laissé tel quel : la
-retourner en DÉFAITE attendue graverait dans le marbre que le contenu final n'est pas battable. Voir
-« Manche ascensionnée » plus bas pour les mesures et ce qui reste à trancher.
+✅ **Les deux manches sont conformes à leur attendu** (dernière mesure : seed 1, île 5, victoire
+ascensionnée en 4,13 h simulées). Elles ne l'ont pas toujours été : le coût doublant de Poing de Dieu,
+puis son exigence de Dominion, ont retiré au pouvoir divin le rôle de levier unique qu'il avait. Ce
+qui gagne aujourd'hui, c'est le siège militaire — voir « Manche ascensionnée » plus bas.
+
+⚠️ **Le plafond d'heures fait partie du verdict.** La victoire tombe à 4,13 h : lancée avec
+`--max-island-hours 4`, la manche sortait en `⚠ INATTENDU` à 744/1800 PV, treize minutes simulées trop
+tôt. `PandemoniumAscended.bat` demande donc 6 h. Un `⚠ INATTENDU` accompagné de `— trop lent` et d'un
+dieu démon bien entamé se lit d'abord comme un plafond mal réglé, pas comme une régression.
 
 ```bash
 dotnet run --project SOIStrategyTester -c Release -- --pandemonium --seed 1 --max-island-hours 4
-dotnet run --project SOIStrategyTester -c Release -- --pandemonium-ascended --seed 1
+dotnet run --project SOIStrategyTester -c Release -- --pandemonium-ascended --seed 1 --max-island-hours 6
 # verification de plomberie (~2 min) : petite ile, peu de villes
 dotnet run --project SOIStrategyTester -c Release -- --pandemonium --seed 1 \
   --world-id 1 --underworld-cities 20 --abyss-cities 20 --max-island-hours 2
@@ -469,8 +474,8 @@ millier d'hexes par itération : compter une dizaine de minutes rien que pour fa
 autant par heure simulée d'assaut. Le verrouillage de la manche de base est visible dès la première
 demi-heure, et se lit à l'identique sur `--world-id 1 --underworld-cities 20 --abyss-cities 20`, qui
 donne le même verdict en deux minutes. La manche ascensionnée se terminait en 51 itérations tant que
-Poing de Dieu suffisait ; elle va maintenant jusqu'au bout des `--max-island-hours`, donc elle coûte
-autant que l'autre.
+Poing de Dieu suffisait à lui seul ; elle va maintenant jusqu'à ~4,1 h simulées (30 000 itérations),
+donc elle coûte autant que l'autre — compter une quarantaine de minutes de bout en bout.
 
 **Pour itérer sur la stratégie, repartir de la sauvegarde plutôt que de refabriquer.** La fabrication
 prend une dizaine de minutes (~260 villes posées route par route, puis ~4 500 bâtiments) ; la rejouer à
@@ -497,9 +502,16 @@ Maritimes, et l'ouverture du Pandémonium par un Portail bâti auquel `Pandemoni
 sur l'horloge — c'est lui qui calcule le niveau des monstres.
 
 Sont fabriqués, et documentés comme tels sur place : les *niveaux* de bâtiments et du Grand Phare
-(leur coût d'amélioration dépasse la capacité de stockage bien avant le plafond) et les points de
+(leur coût d'amélioration dépasse la capacité de stockage bien avant le plafond), les points de
 recherche des routes du Vide de l'Abysse (1 000 000 puis ×4 à chaque route — cinquante villes
-abyssales en demanderaient des dizaines, coût que rien dans le jeu ne finance). Monstres et
+abyssales en demanderaient des dizaines, coût que rien dans le jeu ne finance) et la **caisse de
+prestige** (`--prestige-points`, 20 000 par défaut). Cette dernière l'est depuis que le jalon Ascension
+Prestigieuse verse 1 point par point divin **gagné** (`GodState.TotalGodPointsEarned`) et non par
+essence divine : la fabrique n'en gagne aucun, elle gonfle `GodPoints` directement pour acheter les
+pouvoirs, si bien que la manche démarrait avec **90 points** — de quoi frapper sept fois. Elle mesurait
+alors la fabrique, plus le contenu. Les points sont ajoutés à `PrestigePoints` seul, jamais à
+`TotalPrestigePointsEarned`, qui fixe le `Tier` donc le niveau du dieu démon : deux valeurs de
+`--prestige-points` doivent rester comparables. Monstres et
 civilisations PNJ sont purgés partout **sauf** dans le Pandémonium, et la purge alterne avec
 l'expansion (`SettleLayer`) : une civilisation PNJ debout interdit les vertex proches de ses villes, et
 l'Abysse en fait naître une par île générée.
@@ -544,11 +556,18 @@ alors comme une limite de la carte, pas comme un manque de la fabrique.
 
 #### La stratégie
 
-`PandemoniumSiege` (aussi disponible en `PhaseKind.PandemoniumSiege`) tient en quatre règles :
+`PandemoniumSiege` (aussi disponible en `PhaseKind.PandemoniumSiege`) tient en cinq règles :
 **hors du Pandémonium on ne fait que récolter** (les 150 villes des profondeurs sont déjà au maximum,
 leur rôle est d'alimenter le stock commun) ; **Poing de Dieu sur la cible dès qu'il est débloqué** ;
-**dans l'arène on bâtit au maximum** (Mairie, puis garnison — Palissade/Caserne/Tour de guet —, puis
-production, puis tout au plafond) ; **on raid les Tentacules une par une, puis le dieu démon**.
+**Présence de Dieu sur cette même cible quand elle ne porte pas de Dominion**, sans quoi le Poing ne
+frappe rien ; **dans l'arène on bâtit au maximum** (Mairie, puis garnison — Palissade/Caserne/Tour de
+guet —, puis production, puis tout au plafond) ; **on raid les Tentacules une par une, puis le dieu
+démon**.
+
+**L'ordre Poing puis Présence n'est pas cosmétique** : le Poing consomme 1 niveau de Dominion, la
+Présence en pose 5 sur l'hex visé (et 3 sur chaque voisin). Dans cet ordre, une manifestation est
+suivie de cinq coups ; dans l'ordre inverse, chaque passe rechargerait un Dominion à peine entamé, au
+prix fort — les deux coûts doublent séparément mais puisent dans la même caisse de prestige.
 
 Deux écarts assumés avec l'autoplay standard : l'expansion est réécrite pour tirer la route vers l'hex
 visé (celle de `TryExpandOnce` vise le vertex prospectif le plus proche du réseau, jamais l'ennemi —
@@ -595,54 +614,68 @@ la manche de base représente un joueur qui ne l'a pas faite. Ce qu'elle établi
 connu avant de toucher aux PV du boss, c'est que le blocage est **géométrique** — on ne peut pas
 approcher l'arène — et non une question de dégâts, d'économie ou de durée.
 
-#### Manche ascensionnée — VICTOIRE attendue, DÉFAITE mesurée depuis le coût doublé
+#### Manche ascensionnée — VICTOIRE attendue, VICTOIRE mesurée, mais plus par le même levier
 
-**Historique — la manche gagnait en 51 coups.** Dieu démon abattu en **51 itérations** (25 secondes
-simulées), 8/8 Tentacules, sans qu'une seule ville de l'arène ne soit bâtie ni un seul soldat recruté.
-Le levier était unique et c'est **Poing de Dieu** : 100 dégâts au monstre visé, réduits par la seule
-armure, à n'importe quelle distance et sur n'importe quelle couche. 4 coups par Tentacule (360 PV,
-armure 1), 19 pour le dieu démon (1 800 PV, armure 4) — 51 en tout, pour 1 275 points de prestige sur
-les 20 085 en caisse, quand le coût ne montait que de 1 à chaque usage.
+**Dernière mesure, seed 1, île 5, `--max-island-hours 6`** (116 villes de surface + 100 Inframonde +
+50 Abysse, 4 782 bâtiments, 21 879 niveaux cumulés, 430 675 / 184 575 de stockage) : **dieu démon
+abattu en 4,13 h simulées** (29 721 itérations), 8/8 Tentacules, **24 villes dans l'arène et aucune
+perdue**. Conforme à l'attendu.
 
-**Ce qui a changé.** Le coût de Poing de Dieu **double** maintenant à chaque usage depuis le dernier
-prestige (0, 1, 2, 4, 8…, voir `AscensionController.TargetedPowerCost`). n coups coûtent 2^(n-1) - 1,
-donc la caisse n'achète plus qu'un logarithme de sa taille : **20 085 points ne financent que 15 coups**
-au lieu de 51 — 3 Tentacules sur 8, la 4ᵉ entamée puis régénérée. Le reste doit se prendre militairement,
-ce qui est exactement l'intention. La manche sort donc en `⚠ INATTENDU`.
+| Heure simulée | Villes | Soldats | Tentacules | Dieu démon |
+|---|---|---|---|---|
+| 1 h | 19 | 1 393 | 2 / 8 debout | 1800/1800 |
+| 2 h | 24 | 1 582 | **0 / 8** | 1779/1800 |
+| 3 h | 24 | 724 | 0 | 1718/1800 |
+| 4 h | 24 | 727 | 0 | **744**/1800 |
+| 4,13 h | 24 | 710 | 0 | **mort** |
 
-⚠️ **Depuis, Poing de Dieu ne frappe plus que les hexes portant un Dominion**, dont il consomme
-1 niveau (comme Marche de Dieu — voir `AscensionController.ApplyFistOfGod`). Le Pandémonium n'en porte
-aucun par défaut, donc `TryFistOfGod` y est probablement un no-op complet : les 15 coups que la caisse
-finançait encore tombent à 0 tant que le Dominion n'a pas été semé sur l'arène. **Non remesuré** — les
-trois lignes ci-dessous datent d'avant ce changement.
+**Historique — la manche gagnait en 51 coups, sans une seule ville ni un seul soldat.** Le levier était
+unique et c'était **Poing de Dieu** : 100 dégâts au monstre visé, réduits par la seule armure, à
+n'importe quelle distance. 4 coups par Tentacule (360 PV, armure 1), 19 pour le dieu démon (1 800 PV,
+armure 4), pour 1 275 points de prestige quand le coût ne montait que de 1 à chaque usage.
 
-**Trois états mesurés, seed 1, île 5** (108 villes de surface + 100 Inframonde + 50 Abysse, 4 496
-bâtiments, 20 371 niveaux cumulés, 386 975 / 163 645 de stockage) :
+**Deux changements de règle ont retiré au pouvoir divin ce rôle de levier unique**, et c'est
+l'intention :
+1. **Le coût double** à chaque usage depuis le dernier prestige (0, 1, 2, 4, 8…, voir
+   `AscensionController.TargetedPowerCost`). n coups coûtent 2^(n-1) - 1 : la caisse n'achète plus
+   qu'un logarithme de sa taille — **20 000 points ne financent que ~15 coups** au lieu de 51.
+2. **Le Poing ne frappe que les hexes portant un Dominion**, dont il consomme 1 niveau (voir
+   `AscensionController.ApplyFistOfGod`). Sans Dominion sur l'arène, `TryFistOfGod` est un no-op
+   complet : c'est `TryPresenceOfGod` qui l'y sème désormais (voir « La stratégie »).
 
-| Arène | Villes | Soldats | Vertex sûrs | Tentacules tuées | Dieu démon |
-|---|---|---|---|---|---|
-| rayon 3, Tentacules réparties | 3 | 246 | 0 / 25 | 3 / 8 | 1800/1800 |
-| rayon 3, Tentacules rayon 2 | 4 | 328 | 0 / 38 | 3 / 8 | 1800/1800 |
-| **rayon 4, Tentacules rayon 2** (actuel) | **10** | **820** | 0 / 38 | 3 / 8 | 1800/1800 |
+**Ce qui gagne aujourd'hui, c'est le militaire.** La ligne `divin :` des checkpoints le chiffre : les
+14 coups que la caisse finance partent **tous dans la première heure** (Poing à 16 384, Présence à 32,
+5 manifestations) et valent ~3 Tentacules ; la caisse reste ensuite bloquée à 3 676 points, inutilisable.
+Les 5 autres Tentacules et **la totalité des 1 800 PV du boss** sont pris par la garnison. Le pouvoir
+divin est devenu un coup de pouce d'ouverture, plus la solution.
 
-La colonisation, elle, est réparée : 10 villes et 820 soldats contre 3 et 246, aucune perdue. `0` vertex
-sûr ne veut pas dire qu'il n'y en avait pas — c'est que le siège **les a tous pris**. La géométrie a été
-mesurée sur 7 seeds avec la règle exacte du siège (sûr = ≥ 3 de tout monstre, `Max` sur les 3 hexes du
-vertex) : 2 à 9 emplacements sûrs sur l'île de rayon 3, **14 à 29 sur celle de rayon 4**, et en grappes
-connexes de 4 à 25 au lieu d'isolats — d'où le passage à `IslandRadius = 4`.
+⚠️ **La Corruption est le vrai prix d'entrée de l'enchaînement Présence → Poing.** Les hexes de l'arène
+sont corrompus à 12, et la Présence dissipe la Corruption *avant* de poser du Dominion (5 points au
+centre) : trois manifestations partent en fumée avant le premier niveau frappable, et la Corruption
+repousse à 12 en ~25 minutes simulées, donc chaque nouvelle cible repaie l'entrée. Refuser de payer
+tant que la Corruption dépasse 5 a été essayé : la règle devient inerte, la caisse reste pleine et le
+siège s'arrête. Les manifestations perdues sont le prix, et le coût doublant est le seul plafond utile.
 
-⚠️ **Ce qui bloque encore n'est plus la carte, c'est la règle du siège.** Le front reste figé à 3 hexes
-de la cible aux quatre checkpoints, dans les trois arènes. `PandemoniumSiege.SafeDistance = 3` définit
-« sûr » comme ≥ 3 de tout monstre, alors que frapper (Tour de guet + Surveillance) demande ≤ 2 : **les
-deux conditions sont complémentaires**, donc `TrySettleSafely` ne fondera jamais une ville capable de
-tirer, sur aucune carte et à aucun rayon de Tentacule. Poing de Dieu masquait ce trou en frappant à
-distance infinie. Agrandir l'arène donne une économie plus grande derrière une ligne qui, par
-construction, s'arrête un hex trop tôt : les 820 soldats ne combattent jamais.
+**Le joueur dispose du même enchaînement — la restriction de calque a été levée pour ça.**
+`GetPresenceOfGodTargetHexes` était bornée à `IslandMap.SurfaceLayer` : le Pandémonium n'était pas
+proposé, la manche mesurait donc quelque chose d'injouable, et surtout **Poing de Dieu ne servait
+jamais à rien en profondeur** — il ne frappe que sous Dominion, et la Présence est la seule source de
+Dominion que le joueur puisse viser (le Temple ne couvre que les 3 hexes d'une ville). La liste suit
+désormais le calque affiché, comme celle du Poing.
 
-**La piste à trancher** est donc l'avance fortifiée : autoriser à fonder à distance 2 de la cible quand
-la ville neuve peut être menée à Mairie + Palissade/Caserne/Tour de guet. La mesure qui justifiait de
-refuser (« 321 villes fondées et perdues, zéro dégât infligé ») a été prise avec 1 ville et 82 soldats
-derrière, pas 10 et 820.
+**Le front reste figé à 3 hexes de la cible à tous les checkpoints, et ce n'est plus un blocage.**
+`PandemoniumSiege.SafeDistance = 3` (« sûr » = ≥ 3 de tout monstre) et la portée de frappe (≤ 2, Tour
+de guet + Surveillance) sont complémentaires, donc `TrySettleSafely` ne fonde jamais une ville capable
+de tirer *à l'instant où elle est fondée*. Mais l'arène de rayon 4 en offre assez pour que le front
+progresse quand même par vagues, Camps Mobiles compris : 24 villes et 8/8 Tentacules le montrent. La
+piste « avance fortifiée » (fonder à distance 2 quand la ville peut être menée à Mairie +
+Palissade/Caserne/Tour de guet) reste ouverte, mais elle n'est plus nécessaire à la victoire.
+
+**Ce que la géométrie a coûté à établir**, à ne pas remesurer : sur 7 seeds, avec la règle exacte du
+siège (`Max` sur les 3 hexes du vertex), l'île de rayon 3 offrait 2 à 9 emplacements sûrs en isolats,
+celle de rayon 4 en offre **14 à 29 en grappes connexes de 4 à 25** — d'où `IslandRadius = 4`. Un
+`0 / N vertex sûrs` en checkpoint ne veut pas dire qu'il n'y en avait pas : c'est que le siège les a
+tous pris.
 
 All strategies in one run start from an **identical** fresh copy of the starting state (a new
 `MainGameController` is built per strategy), so ticks-to-objective are directly comparable.

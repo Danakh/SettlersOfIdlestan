@@ -1302,6 +1302,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_divine_bones_purified_no_essence_title"),
                 _localizationService.Get("event_divine_bones_purified_no_essence_body"),
                 NotificationIcon.Info),
+            GameEventType.DivineEssenceCapReached => (
+                _localizationService.Get("event_divine_essence_cap_reached_title"),
+                _localizationService.GetFormated("event_divine_essence_cap_reached_body", entry.Message ?? "?"),
+                NotificationIcon.Info),
             GameEventType.AbyssLostDivineEssence => (
                 _localizationService.Get("event_abyss_lost_divine_essence_title"),
                 _localizationService.GetFormated("event_abyss_lost_divine_essence_body", entry.Message ?? "?"),

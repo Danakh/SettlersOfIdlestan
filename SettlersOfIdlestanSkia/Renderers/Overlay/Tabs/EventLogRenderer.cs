@@ -1,4 +1,5 @@
-﻿using SettlersOfIdlestan.Model.Game;
+﻿using SettlersOfIdlestan.Controller.Ascension;
+using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
 using System;
@@ -278,6 +279,15 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Discovery,
             _localization.Get("event_divine_bones_purified_no_essence_title"),
             _localization.Get("event_divine_bones_purified_no_essence_body")),
+        GameEventType.DivineEssenceCapReached => (
+            EventLogTone.Warning,
+            _localization.Get("event_divine_essence_cap_reached_title"),
+            _localization.GetFormated("event_divine_essence_cap_reached_body", entry.Message ?? "?")),
+        GameEventType.DivineEssenceCapBelowAscension => (
+            EventLogTone.Warning,
+            _localization.Get("event_divine_essence_cap_below_ascension_title"),
+            _localization.GetFormated("event_divine_essence_cap_below_ascension_body",
+                entry.Message ?? "?", AscensionController.MinDivineEssenceForAscension)),
         GameEventType.AbyssLostDivineEssence => (
             EventLogTone.Danger,
             _localization.Get("event_abyss_lost_divine_essence_title"),

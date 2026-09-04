@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller;
+using SettlersOfIdlestan.Controller.Ascension;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
+using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 
@@ -15,7 +18,7 @@ namespace SOIStrategyTester;
 /// <summary>
 /// La stratégie de fin de partie de la manche Pandémonium — celle que rien d'existant ne sait jouer.
 ///
-/// <para>Elle tient en quatre règles, dans cet ordre de priorité :</para>
+/// <para>Elle tient en cinq règles, dans cet ordre de priorité :</para>
 /// <list type="number">
 ///   <item><b>Hors du Pandémonium, on ne fait que récolter.</b> Les cent cinquante villes des
 ///   profondeurs ne construisent plus rien : elles sont déjà au maximum, et leur seul rôle est
@@ -31,6 +34,9 @@ namespace SOIStrategyTester;
 ///   <item><b>Poing de Dieu sur cette même cible dès qu'il est débloqué</b>, avant tout le reste —
 ///   c'est la seule arme qui frappe sans approcher, et donc la seule qui départage les deux manches
 ///   (voir <see cref="TryFistOfGod"/>). No-op complet sans Ascension.</item>
+///   <item><b>Présence de Dieu sur la cible quand elle ne porte pas de Dominion</b>, parce que le
+///   Poing n'en frappe pas d'autres (voir <see cref="TryPresenceOfGod"/>) : une manifestation pose 5
+///   niveaux de Dominion sur l'hex visé, donc cinq coups de Poing.</item>
 /// </list>
 ///
 /// <para><b>Expansion dirigée vers la cible.</b> L'expansion de <see cref="CivilizationAutoplayer.TryExpandOnce"/>
@@ -118,7 +124,14 @@ internal sealed class PandemoniumSiege
         // n'est hors de portée. Placée avant tout le reste : 100 dégâts valent cent coups de soldat, et
         // son coût croissant en points de prestige la limite bien mieux qu'une place plus basse dans la
         // liste ne le ferait. No-op complet sans Ascension — c'est ce qui sépare les deux manches.
+        //
+        // La Présence vient juste après, et jamais avant : le Poing consomme le Dominion, la Présence
+        // le repose. Dans cet ordre, une manifestation est suivie de cinq coups (5 niveaux posés au
+        // centre) avant qu'une nouvelle ne soit nécessaire ; dans l'ordre inverse, chaque passe
+        // rechargerait un Dominion à peine entamé, au prix fort — le coût de la Présence double lui
+        // aussi à chaque usage.
         if (TryFistOfGod()) return true;
+        if (TryPresenceOfGod()) return true;
 
         // Règles 2 et 3 s'arrêtent au premier objectif qui agit, comme PriorityAutoplayStrategy : tant
         // qu'une ville de l'arène n'est pas défendable, l'expansion attend — fonder plus vite qu'on ne
@@ -163,7 +176,34 @@ internal sealed class PandemoniumSiege
         return $"{cities.Count} villes + {camps} camps dans l'arène, {soldiers} soldats, " +
                $"cible : {targetText} (à portée : {inRange}) ; " +
                $"expansion : {safeVertices}/{allVertices} vertex sûrs, {roads} routes, " +
-               $"camp avancé : {camp?.ToString() ?? "aucun"}";
+               $"camp avancé : {camp?.ToString() ?? "aucun"} ; {DescribeDivinePowers(target)}";
+    }
+
+    /// <summary>
+    /// L'état de l'enchaînement Présence → Poing, la seule voie de dégâts qui n'a pas à approcher
+    /// l'arène. Les trois nombres à lire ensemble : la caisse de prestige (elle seule paie les deux
+    /// pouvoirs, dont les coûts doublent séparément), le Dominion sur l'hex visé (à zéro, le Poing est
+    /// un no-op — voir <see cref="TryPresenceOfGod"/>) et la Corruption du même hex (à
+    /// <see cref="AscensionController.PresenceOfGodCenterPoints"/> ou plus, la Présence part entière
+    /// dans la Corruption et ne pose rien). Sans cette ligne, une manche où la caisse se vide sans
+    /// qu'un seul coup ne porte se lit exactement comme une manche où le poing frappe.
+    /// </summary>
+    private string DescribeDivinePowers(MonsterFeature? target)
+    {
+        var ascension = _controller.AscensionController;
+        var world = _auto.WorldState;
+
+        int bank = _controller.CurrentMainState?.GodState.PrestigeState?.PrestigePoints ?? 0;
+        int dominion = target == null || world == null
+            ? 0
+            : world.GetFirstFeatureAt<Dominion>(target.Position)?.Level ?? 0;
+        int corruption = target == null || world == null
+            ? 0
+            : world.GetFirstFeatureAt<Corruption>(target.Position)?.Level ?? 0;
+
+        return $"divin : {bank} pts, Poing {ascension.GetFistOfGodCost()} pts, " +
+               $"Présence {ascension.GetPresenceOfGodCost()} pts, " +
+               $"cible Dominion {dominion} / Corruption {corruption}";
     }
 
     // ── Règle 3 : le raid ────────────────────────────────────────────────────
@@ -212,18 +252,18 @@ internal sealed class PandemoniumSiege
     /// 1 pour une Tentacule), à n'importe quelle distance et sur n'importe quelle couche. Se paie en
     /// points de prestige — gratuit la première fois depuis le dernier prestige, puis 1, 2, et le coût
     /// double ensuite (4, 8, 16…) — donc la banque de prestige est ce qui plafonne réellement le nombre
-    /// de coups, et elle le plafonne durement : n coups coûtent 2^(n-1) - 1, si bien que les 20 085
-    /// points de la manche ascensionnée n'en achètent que 15, pour 3 Tentacules sur 8. C'est le
-    /// changement qui a rendu la manche dépendante du siège militaire au lieu du seul pouvoir divin.
+    /// de coups, et elle le plafonne durement : n coups coûtent 2^(n-1) - 1, si bien que les 20 000
+    /// points de la manche ascensionnée n'en achètent que 15, là où huit Tentacules et le dieu démon
+    /// en demandent 51 — et Présence de Dieu puise dans la même caisse. C'est le changement qui a rendu
+    /// la manche dépendante du siège militaire au lieu du seul pouvoir divin.
     ///
     /// <para>Volontairement sans cadence artificielle : le jeu n'en impose aucune au joueur, seul le
     /// coût croissant le fait. La manche mesure si l'état <i>peut</i> gagner, pas à quelle vitesse un
     /// humain clique.</para>
     ///
-    /// <para>⚠ Le poing ne frappe désormais que les hexes portant un Dominion, dont il consomme 1
-    /// niveau (voir AscensionController.ApplyFistOfGod) : sur une cible du Pandémonium sans Dominion,
-    /// cette règle est un no-op complet et le siège retombe entièrement sur le militaire. Non
-    /// remesuré depuis ce changement — voir SOIStrategyTester/CLAUDE.md, « Manche ascensionnée ».</para>
+    /// <para>⚠ Le poing ne frappe que les hexes portant un Dominion, dont il consomme 1 niveau (voir
+    /// AscensionController.ApplyFistOfGod). L'arène n'en porte aucun au départ : c'est
+    /// <see cref="TryPresenceOfGod"/> qui l'y sème, et sans elle cette règle est un no-op complet.</para>
     /// </summary>
     private bool TryFistOfGod()
     {
@@ -234,6 +274,63 @@ internal sealed class PandemoniumSiege
         if (!ascension.CanUseFistOfGod()) return false;
 
         return ascension.ApplyFistOfGod(target.Position);
+    }
+
+    /// <summary>
+    /// Manifeste la Présence de Dieu sur l'hex de la cible, pour y poser le Dominion sans lequel le
+    /// Poing ne frappe pas : 5 niveaux au centre et 3 sur chaque voisin, soit cinq coups de Poing sur
+    /// la cible et trois sur chacune de ses voisines — les Tentacules étant serrées dans un rayon de 2
+    /// autour du dieu démon (voir PandemoniumGenerator), une manifestation en arrose plusieurs.
+    ///
+    /// <para>Elle se paie sur la <b>même</b> caisse de prestige que le Poing, avec son propre compteur
+    /// d'usages qui double lui aussi (voir AscensionController.GetPresenceOfGodCost) : les deux
+    /// pouvoirs se disputent les points, et c'est le vrai plafond de la manche.</para>
+    ///
+    /// <para><b>Un seul garde : le Dominion déjà posé.</b> Tant qu'il en reste un niveau, le Poing a
+    /// de quoi frapper et recharger serait du gaspillage. La Corruption, elle, n'en est pas un, alors
+    /// qu'elle mange la manifestation : la Présence la dissipe d'abord niveau par niveau et ne pose du
+    /// Dominion qu'avec le reliquat (voir AscensionController.ApplyPresencePoints), or les hexes de
+    /// l'arène sont corrompus à 12 — mesuré — soit trois manifestations avant que le premier niveau de
+    /// Dominion n'apparaisse. Refuser de payer tant que la Corruption dépasse
+    /// <see cref="AscensionController.PresenceOfGodCenterPoints"/> a été essayé et rend la règle
+    /// inerte : l'enchaînement ne démarre jamais et la caisse reste pleine pendant que le siège
+    /// s'arrête. Les manifestations perdues dans la Corruption sont le prix d'entrée, et le coût
+    /// doublant est le seul plafond nécessaire — il coupe de lui-même au bout d'une quinzaine
+    /// d'usages, quoi qu'il arrive.</para>
+    ///
+    /// <para>Le joueur dispose exactement du même enchaînement : <c>GetPresenceOfGodTargetHexes</c>
+    /// suit le calque affiché et propose donc les hexes du Pandémonium. Ça n'a pas toujours été le cas
+    /// — la liste était bornée à <c>IslandMap.SurfaceLayer</c>, ce qui rendait Poing de Dieu inutile
+    /// en profondeur faute de Dominion à y viser, et cette manche mesurait alors quelque chose
+    /// d'injouable. La borne a été levée pour ça.</para>
+    /// </summary>
+    private bool TryPresenceOfGod()
+    {
+        var target = PickTarget();
+        if (target == null) return false;
+
+        var world = _auto.WorldState;
+        if (world == null) return false;
+
+        var ascension = _controller.AscensionController;
+        if (!ascension.CanUsePresenceOfGod()) return false;
+
+        // Semer du Dominion n'a de sens que pour le Poing : sans lui, la manifestation ne ferait que
+        // repousser la Corruption, au prix de points de prestige que rien ne rendra. Les deux pouvoirs
+        // sont de second rang et la fabrique les octroie ensemble, mais la manche de base tourne sur
+        // un jeu de pouvoirs partiel — c'est exactement là qu'un tel gaspillage passerait inaperçu.
+        if (!ascension.IsPowerUnlocked(AscensionPowerId.FistOfGod)) return false;
+
+        if (world.GetFirstFeatureAt<Dominion>(target.Position) != null) return false;
+
+        // Semer du Dominion qu'aucun Poing ne pourra frapper est une perte sèche : les deux coûts
+        // doublent séparément mais puisent dans la même caisse, donc une fois le prochain Poing hors
+        // de prix, la Présence n'achète plus rien. Mesuré sans ce garde : la manche continuait de
+        // payer 1024 puis 2048 points de manifestations après son dernier coup possible.
+        int bank = _controller.CurrentMainState?.GodState.PrestigeState?.PrestigePoints ?? 0;
+        if (bank - ascension.GetPresenceOfGodCost() < ascension.GetFistOfGodCost()) return false;
+
+        return ascension.ApplyPresenceOfGod(target.Position);
     }
 
     // ── Règle 2 : bâtir dans l'arène ─────────────────────────────────────────
