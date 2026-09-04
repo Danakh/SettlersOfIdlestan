@@ -724,10 +724,9 @@ namespace SettlersOfIdlestan.Controller
         /// Places the Corruption Spire if unlocked (3 UNLOCK_ABYSS prestige vertices) and not yet
         /// placed, preferring the most-corrupted placeable hex — the best chance of the hex reaching
         /// AbyssGate.RequiredCorruptionLevel while the Spire's own decay (CorruptionController.
-        /// ProcessMonumentCorruptionDecay) works against it. Keeps investment enabled only for the
-        /// initial build (stops once Built, to avoid endlessly funding Radius upgrades, which only
-        /// widen the decay area around the Spire). No-ops if the CorruptionSpireController dependency
-        /// was not supplied.
+        /// ProcessMonumentCorruptionDecay) works against it. The Spire has a single build stage, so
+        /// investment stops for good once Built (CorruptionSpireController.IsInvestmentComplete).
+        /// No-ops if the CorruptionSpireController dependency was not supplied.
         /// </summary>
         public bool TryCorruptionSpireInvestmentOnce()
         {

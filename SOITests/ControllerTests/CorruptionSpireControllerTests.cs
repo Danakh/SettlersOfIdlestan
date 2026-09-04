@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Prestige;
 using SOITests.TestUtilities;
 using System;
 using System.Collections.Generic;
@@ -29,6 +30,10 @@ namespace SOITests.ControllerTests
             }));
 
         private static (WorldState state, GameClock clock, CorruptionSpireController controller) CreateSetup()
+            => CreateSetupWithPrestigeState(new PrestigeState(), sourceLevel: 1);
+
+        private static (WorldState state, GameClock clock, CorruptionSpireController controller) CreateSetupWithPrestigeState(
+            PrestigeState prestigeState, int sourceLevel)
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
@@ -37,7 +42,7 @@ namespace SOITests.ControllerTests
             var tiles = new[] { new HexTile(UnderworldHex, TerrainType.Mountain) };
             state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(tiles, LayerState.UnderworldZ)));
             state.AddFeature(new Corruption(UnderworldHex));
-            state.AddFeature(new CorruptionSource(UnderworldHex, corruptionLevel: 1));
+            state.AddFeature(new CorruptionSource(UnderworldHex, corruptionLevel: sourceLevel));
 
             // Un avant-poste de l'Inframonde touchant UnderworldHex : requis pour investir
             // (l'investissement d'un Monument n'est possible que ville adjacente).
@@ -49,7 +54,7 @@ namespace SOITests.ControllerTests
             clock.Start();
 
             var controller = new CorruptionSpireController();
-            controller.Initialize(state, clock);
+            controller.Initialize(state, clock, prestigeState: prestigeState);
 
             return (state, clock, controller);
         }
@@ -86,7 +91,6 @@ namespace SOITests.ControllerTests
             UnlockAbyss(state.PlayerCivilization, 3);
             var spire = controller.PlaceCorruptionSpire(UnderworldHex);
             spire!.Built = true;
-            spire.Radius = 4;
 
             Assert.True(controller.DestroyCorruptionSpire());
 
@@ -94,10 +98,9 @@ namespace SOITests.ControllerTests
             Assert.False(controller.HasCorruptionSpireBuilt());
             Assert.True(controller.CanPlaceCorruptionSpire(state.PlayerCivilization));
 
-            // Reconstruction complète : la nouvelle Spire repart d'un rayon 1, non bâtie.
+            // Reconstruction complète : la nouvelle Spire repart non bâtie.
             var rebuilt = controller.PlaceCorruptionSpire(UnderworldHex);
             Assert.False(rebuilt!.Built);
-            Assert.Equal(1, rebuilt.Radius);
         }
 
         [Fact]
@@ -233,16 +236,15 @@ namespace SOITests.ControllerTests
             Assert.True(spire.Built);
             Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.CorruptionSpireBuilt);
             Assert.True(controller.HasCorruptionSpireBuilt());
-            Assert.Equal(1, spire.Radius);
 
-            // Investissement de construction réinitialisé — le panneau bascule désormais sur le
-            // coût d'amélioration du rayon (Radius + 1).
-            Assert.Empty(spire.InvestedResources);
+            // Comme la Faille des Abysses, l'investissement reste affiché à 100% : seul le
+            // prélèvement automatique est coupé.
+            Assert.NotEmpty(spire.InvestedResources);
             Assert.Empty(spire.InvestmentEnabled);
         }
 
         [Fact]
-        public void Investment_ContinuesAfterBuilt_UpgradesRadiusIndefinitely()
+        public void Investment_StopsOnceBuilt_NoLevelToUpgrade()
         {
             var (state, clock, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
@@ -254,24 +256,56 @@ namespace SOITests.ControllerTests
             spire.InvestmentEnabled.Add(Resource.Stone);
             clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks);
             Assert.True(spire.Built);
-            Assert.Equal(1, spire.Radius);
 
-            // Une fois bâtie, l'investissement reprend pour améliorer le rayon : le coût du premier
-            // niveau (rayon 2) est celui de base, chaque niveau suivant coûtant 50% de plus.
-            var radius2Cost = CorruptionSpire.GetRadiusUpgradeCost(2);
-            var radius3Cost = CorruptionSpire.GetRadiusUpgradeCost(3);
-            Assert.Equal(buildCost[Resource.Stone], radius2Cost[Resource.Stone]);
-            Assert.Equal((int)Math.Round(radius2Cost[Resource.Stone] * 1.5), radius3Cost[Resource.Stone]);
-
-            foreach (var kvp in radius2Cost)
-                spire.InvestedResources[kvp.Key] = kvp.Value;
+            // La Spire n'a plus de palier : le joueur a beau réactiver l'investissement et avoir de
+            // quoi payer, plus rien n'est prélevé et aucun niveau ne monte.
+            civ.AddResource(Resource.Stone, 100);
             spire.InvestmentEnabled.Add(Resource.Stone);
+            clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks * 5);
+
+            Assert.Equal(100, civ.GetResourceQuantity(Resource.Stone));
+            Assert.DoesNotContain(state.EventLog.Entries, e => e.Type == GameEventType.CorruptionSpireRadiusUpgraded);
+        }
+
+        [Fact]
+        public void Investment_CompletingAllResources_RecordsDestroyedSourceLevelAsPrestigeBonus()
+        {
+            // Le bonus de prestige de nettoyage ne dépend plus que du niveau de la Source détruite
+            // (voir PrestigeController.GetCorruptionClearBonusMultiplier).
+            var prestigeState = new PrestigeState();
+            var (_, clock, controller) = CreateSetupWithPrestigeState(prestigeState, sourceLevel: 3);
+            var spire = controller.PlaceCorruptionSpire(UnderworldHex)!;
+
+            foreach (var kvp in CorruptionSpire.GetSpireCost())
+            {
+                spire.InvestedResources[kvp.Key] = kvp.Value;
+                spire.InvestmentEnabled.Add(kvp.Key);
+            }
+
             clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks);
 
-            Assert.Equal(2, spire.Radius);
-            Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.CorruptionSpireRadiusUpgraded);
-            Assert.Empty(spire.InvestedResources);
-            Assert.Empty(spire.InvestmentEnabled);
+            Assert.True(spire.Built);
+            Assert.Equal(3, prestigeState.MaxCorruptionLevelCleared);
+        }
+
+        [Fact]
+        public void Investment_CompletingAllResources_KeepsTheBestSourceLevelEverDestroyed()
+        {
+            // Record global de la partie : une Source plus faible que le record ne le fait pas baisser.
+            var prestigeState = new PrestigeState { MaxCorruptionLevelCleared = 5 };
+            var (_, clock, controller) = CreateSetupWithPrestigeState(prestigeState, sourceLevel: 2);
+            var spire = controller.PlaceCorruptionSpire(UnderworldHex)!;
+
+            foreach (var kvp in CorruptionSpire.GetSpireCost())
+            {
+                spire.InvestedResources[kvp.Key] = kvp.Value;
+                spire.InvestmentEnabled.Add(kvp.Key);
+            }
+
+            clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks);
+
+            Assert.True(spire.Built);
+            Assert.Equal(5, prestigeState.MaxCorruptionLevelCleared);
         }
 
         [Fact]

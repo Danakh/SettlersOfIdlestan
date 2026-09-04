@@ -665,7 +665,11 @@ public class CorruptionControllerTests
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
         Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
-        Assert.Equal(5, prestigeState.MaxCorruptionLevelCleared);
+        Assert.Equal(5, state.RunRecord.MaxCorruptionLevelCleared);
+        // Nettoyer une zone n'alimente plus le bonus de prestige : celui-ci ne vient plus que de la
+        // destruction d'une Source de Corruption par une Spire (voir
+        // CorruptionSpireController.RecordCorruptionSourceDestroyed).
+        Assert.Equal(0, prestigeState.MaxCorruptionLevelCleared);
     }
 
     [Fact]
@@ -690,12 +694,12 @@ public class CorruptionControllerTests
     public void SpireHex_Spread_SourceNotProtected_CanSpreadOut()
     {
         // La Spire de Corruption ne protège plus son hex : le débordement peut s'y produire normalement.
-        // Rayon mis à 0 pour isoler ce mécanisme de la décroissance garantie (qui, à rayon ≥ 1,
-        // effacerait immédiatement la Corruption fraîchement débordée sur le voisin b).
+        // Spire laissée en construction (Built = false) pour isoler ce mécanisme de la décroissance
+        // garantie, qui effacerait immédiatement la Corruption fraîchement débordée sur le voisin b.
         var (state, a, b) = CreateTwoLandHexesSetup();
         var corruption = new Corruption(a, level: 10); // 100% de déclenchement si non protégé
         state.AddFeature(corruption);
-        state.AddFeature(new CorruptionSpire(a) { Radius = 0 });
+        state.AddFeature(new CorruptionSpire(a));
 
         var clock = new GameClock();
         clock.Start();
@@ -780,7 +784,7 @@ public class CorruptionControllerTests
         // Niveau 2 : 20% de déclenchement du débordement, tirage 31 (graine 1) → pas de débordement
         // ce tick, ce qui isole la décroissance garantie de la Spire de tout autre effet.
         state.AddFeature(new Corruption(b, level: 2)); // sur le voisin de la Spire, pas sur son propre hex
-        state.AddFeature(new CorruptionSpire(a) { Radius = 1, Built = true });
+        state.AddFeature(new CorruptionSpire(a) { Built = true });
 
         var clock = new GameClock();
         clock.Start();
@@ -806,7 +810,7 @@ public class CorruptionControllerTests
         // Niveau 2 : 20% de déclenchement du débordement, tirage 31 (graine 1) → pas de débordement
         // ce tick, ce qui isole la décroissance garantie de la Spire de tout autre effet.
         state.AddFeature(new Corruption(farHex, level: 2));
-        state.AddFeature(new CorruptionSpire(a) { Radius = 1, Built = true }); // rayon 1 : n'atteint pas farHex (distance 2)
+        state.AddFeature(new CorruptionSpire(a) { Built = true }); // rayon 1 : n'atteint pas farHex (distance 2)
 
         var clock = new GameClock();
         clock.Start();
@@ -824,8 +828,9 @@ public class CorruptionControllerTests
     public void ReduceLevel_ClearingCorruptionViaDominionAnnulation_MakesAbyssGateEligible_OnUnrelatedHex()
     {
         // AbyssGateController.IsAbyssGateEligible se base sur RunRecord.MaxCorruptionLevelCleared
-        // (le record global PrestigeState.MaxCorruptionLevelCleared, mis à jour en parallèle, ne sert
-        // qu'au bonus de prestige), ici alimenté par annulation mutuelle avec le Dominion (pas par
+        // (le record global PrestigeState.MaxCorruptionLevelCleared, réservé au bonus de prestige,
+        // n'est lui alimenté que par la destruction d'une Source de Corruption par une Spire), ici
+        // alimenté par annulation mutuelle avec le Dominion (pas par
         // Temple ni par la décroissance de la Spire) et sur un hex qui n'a AUCUN rapport avec celui de
         // la Spire — l'éligibilité doit être vraie quel que soit l'hex nettoyé et quel que soit le
         // mécanisme de nettoyage.
@@ -851,7 +856,7 @@ public class CorruptionControllerTests
 
         Assert.Empty(state.GetFeaturesAt(a).OfType<Corruption>());
         Assert.True(state.RunRecord.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel);
-        Assert.True(prestigeState.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel);
+        Assert.Equal(0, prestigeState.MaxCorruptionLevelCleared);
         Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.AbyssGateEligible && e.Toast);
 
         var gateController = new AbyssGateController();

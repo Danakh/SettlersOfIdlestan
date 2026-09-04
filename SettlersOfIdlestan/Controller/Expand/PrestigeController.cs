@@ -244,12 +244,12 @@ namespace SettlersOfIdlestan.Controller.Expand
         public int GetMaxCorruptionLevelCleared() => _prestigeState?.MaxCorruptionLevelCleared ?? 0;
 
         /// <summary>
-        /// Bonus de prestige lié au nettoyage de la Corruption : 2 × le niveau de pointe le plus élevé
-        /// jamais entièrement nettoyé (voir PrestigeState.MaxCorruptionLevelCleared), au minimum ×1.
-        /// Remplace l'ancien multiplicateur de la Spire de Corruption, qui ne dépendait que d'être
-        /// construite : la Spire reste le meilleur outil pour garantir le nettoyage d'une zone de haut
-        /// niveau (voir CorruptionController.ProcessMonumentCorruptionDecay), mais le Dominion peut
-        /// produire le même bonus en nettoyant naturellement une zone de Corruption.
+        /// Bonus de prestige lié au nettoyage de la Corruption : 2 × le niveau de la plus haute Source
+        /// de Corruption jamais détruite (voir PrestigeState.MaxCorruptionLevelCleared), au minimum ×1.
+        /// Une Source n'est détruite que par l'achèvement d'une Spire de Corruption posée dessus (voir
+        /// CorruptionSpireController.OnInvestmentCycleCompleted) : c'est là tout l'intérêt de la Spire,
+        /// dont le niveau n'est par ailleurs pas améliorable. Dissiper une zone de Corruption au Temple
+        /// ou au Dominion ne donne plus ce bonus — cela ne sert plus qu'à ouvrir la Faille des Abysses.
         /// </summary>
         public int GetCorruptionClearBonusMultiplier()
             => Math.Max(1, 2 * GetMaxCorruptionLevelCleared());
