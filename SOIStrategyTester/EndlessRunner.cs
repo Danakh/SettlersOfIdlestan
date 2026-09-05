@@ -174,11 +174,13 @@ public static class EndlessRunner
             int targetIdx0 = islandNumber - 1;
             bool pastFixedTargets = targetIdx0 >= endlessOptions.PrestigePointTargets.Count;
             bool hasTimeCap = pastFixedTargets || endlessOptions.TimeCapAllIslands;
+            // Passé les cibles fixes, la cible double les points réels du cycle précédent — sauf s'il
+            // n'y en a pas : une manche qui démarre déjà au-delà des cibles fixes doublerait 0 et
+            // prestigerait au premier point. La dernière cible fixe est alors le point de départ le
+            // moins arbitraire.
+            bool fellBackToLastFixedTarget = pastFixedTargets && lastAchievedPoints <= 0;
             int pointsTarget = pastFixedTargets
-                // Doubler les points réels du cycle précédent — sauf s'il n'y en a pas : une manche qui
-                // démarre déjà au-delà des cibles fixes doublerait 0 et prestigerait au premier point.
-                // La dernière cible fixe est alors le point de départ le moins arbitraire.
-                ? Math.Max(1, lastAchievedPoints > 0 ? lastAchievedPoints * 2 : LastFixedTarget(endlessOptions))
+                ? Math.Max(1, fellBackToLastFixedTarget ? LastFixedTarget(endlessOptions) : lastAchievedPoints * 2)
                 : endlessOptions.PrestigePointTargets[targetIdx0];
 
             // Dernière île jugée sur ses points : ne pas la laisser prestiger sous le plancher demandé
@@ -190,6 +192,7 @@ public static class EndlessRunner
             long islandStartTick = mainState.CurrentWorldState?.StartTick ?? clock.CurrentTick;
 
             string targetOrigin = flooredLastCycle ? " (plancher dernière île)"
+                : fellBackToLastFixedTarget ? " (last fixed target — no previous island to double)"
                 : pastFixedTargets ? " (2x previous)"
                 : "";
             // Le numéro d'île est rappelé à côté du cycle : les deux ne coïncident plus dès que la

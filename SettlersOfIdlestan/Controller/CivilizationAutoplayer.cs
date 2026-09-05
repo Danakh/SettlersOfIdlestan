@@ -980,6 +980,17 @@ namespace SettlersOfIdlestan.Controller
         /// state: true if starting a research or setting the queued research would actually do
         /// something. Used by <see cref="ResearchObjective.IsComplete"/> so the strategy only blocks
         /// on research for the tick(s) needed to (re)start it, never for the whole research duration.
+        ///
+        /// <para>Doit exclure les recherches <b>déjà en file</b>, comme <see cref="TryResearchOnce"/> :
+        /// <see cref="ResearchController.CanBeQueued"/> répond « oui » pour une recherche qui y est
+        /// déjà (c'est <see cref="ResearchController.EnqueueResearch"/> qui refuse le doublon), donc
+        /// sans ce filtre l'objectif se déclarait éternellement incomplet dès que la file avait plus
+        /// d'une place et n'était pas pleine : la moins chère des enfilables était celle déjà en tête
+        /// de file, TryResearchOnce ne pouvait pas la réenfiler, et
+        /// PriorityAutoplayStrategy.TryStepOnce s'arrêtant au premier objectif incomplet, toute la
+        /// stratégie gelait derrière la recherche. Vu au race gauntlet sur les races avancées, les
+        /// premières à avoir le jalon Ferveur Studieuse (+1 place de file) : 1 ville, 21 h simulées,
+        /// « bloqué sur l'objectif #0 ResearchObjective ».</para>
         /// </summary>
         public bool HasResearchActionAvailable()
         {
@@ -991,8 +1002,9 @@ namespace SettlersOfIdlestan.Controller
                 TechnologyDefinitions.All.Any(t => _researchController.GetStatus(t.Id) == TechnologyStatus.Available))
                 return true;
 
-            if (_researchController.GetResearchQueue().Count < _researchController.GetResearchQueueCapacity() &&
-                TechnologyDefinitions.All.Any(t => _researchController.CanBeQueued(t.Id)))
+            var queue = _researchController.GetResearchQueue();
+            if (queue.Count < _researchController.GetResearchQueueCapacity() &&
+                TechnologyDefinitions.All.Any(t => !queue.Contains(t.Id) && _researchController.CanBeQueued(t.Id)))
                 return true;
 
             return false;
@@ -1023,10 +1035,15 @@ namespace SettlersOfIdlestan.Controller
 
             // Remplit la file jusqu'à sa capacité, une recherche par appel : chaque ajout change ce
             // qui devient enfilable (voir CanBeQueued), donc le prochain tick relit le meilleur choix.
-            if (_researchController.GetResearchQueue().Count < _researchController.GetResearchQueueCapacity())
+            // Les recherches déjà en file sont exclues explicitement : CanBeQueued les accepte encore
+            // (seul EnqueueResearch refuse le doublon), et la moins chère des enfilables est
+            // justement celle qu'on vient d'y mettre — voir HasResearchActionAvailable, qui décrit le
+            // gel que ce filtre évite.
+            var queue = _researchController.GetResearchQueue();
+            if (queue.Count < _researchController.GetResearchQueueCapacity())
             {
                 var queued = TechnologyDefinitions.All
-                    .Where(t => _researchController.CanBeQueued(t.Id))
+                    .Where(t => !queue.Contains(t.Id) && _researchController.CanBeQueued(t.Id))
                     .OrderBy(t => t.Cost)
                     .FirstOrDefault();
                 if (queued != null && _researchController.EnqueueResearch(queued.Id))

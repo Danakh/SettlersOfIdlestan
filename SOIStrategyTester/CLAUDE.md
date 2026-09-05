@@ -139,7 +139,8 @@ strategy as a starting point to tune (per the workflow above), not a finished an
 
 `--race-gauntlet` answers a different question from the two modes above: **can every race actually
 play the game?** It plays, once per race, every island **from the one the Ascension starts on through
-`--last-island`** (islands 3 → 5 by default — see below) and prints a PASS/FAIL table.
+`--last-island`** (islands 4 → 5 for a Base race, island 5 alone for an Advanced one — see below) and
+prints a PASS/FAIL table.
 It is the race-wide counterpart of `SOITests`' `FullIslandTest`, which only ever exercises Humans — but
 deliberately *not* a test: it takes minutes, its per-island outcome depends on the seed, and a FAIL is
 something to read and judge, not to gate a build on.
@@ -147,21 +148,25 @@ something to read and judge, not to gate a build on.
 ```bash
 dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --seed 1
 # one race, one island, to check the plumbing (~2 s):
-dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --races Human --last-island 3 --seed 1
+dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --races Human --last-island 4 --seed 1
 ```
 
 Or double-click `RaceGauntlet.bat`. Exit code is 0 only if every race passed.
 
-**The run starts where the Ascension puts it, not on island 1.** The first Ascension milestone skips
-the two opening islands (`AscensionController.AscensionSkippedIslandCount`), so
-`GameStateFactory.NewGameForRace` lands on **island 3** and the gauntlet plays 3 → 4 → 5. That is why
-the bound is expressed as an island *number* (`--last-island`, default 5) rather than a count: the
-count follows from it (`LastIsland - FirstIsland + 1`, three by default), and the whole point of
-stopping at 5 is that it is the first island the atlas marks `IsEndgameIsland`. `--prestige-point-targets`
-is indexed by island number too (`EndlessRunOptions.FirstIslandNumber`), so island 3 gets the third
-entry (500) on the *first* cycle — the calibration stays attached to the island it was measured on.
-Consequence worth knowing before comparing numbers: the first island of a run no longer inherits
-anything from islands 1–2, so its 500-point target is out of reach and it ends on the time cap.
+**The run starts where the Ascension puts it, not on island 1.** The milestones a race's tier comes
+with decide how much of the archipelago the Ascension skips
+(`AscensionController.AscensionSkippedIslandCount`), so `GameStateFactory.NewGameForRace` lands a Base
+race on **island 4** and an Advanced one straight on **island 5** — see the meta-progression table
+below. That is why the bound is expressed as an island *number* (`--last-island`, default 5) rather
+than a count: the count follows from it (`LastIsland - FirstIsland + 1`, so two islands for a Base
+race and one for an Advanced one), and the whole point of stopping at 5 is that it is the first island
+the atlas marks `IsEndgameIsland`. `--prestige-point-targets` is indexed by island number too
+(`EndlessRunOptions.FirstIslandNumber`), so a run starting on island 4 gets the fourth entry (1000) on
+its *first* cycle — the calibration stays attached to the island it was measured on.
+Consequence worth knowing before comparing numbers: the first island of a run no longer inherits the
+prestige points of the islands before it, so those high targets are out of reach and the island ends
+on the time cap instead. What it does inherit is its tier's permanent unique buildings, which is a far
+bigger head start than the points ever were.
 
 **End-game round — `--last-island 5 --final-island-points 100`.** "Did it prestige" stops
 discriminating past the first island or two: every race that isn't outright blocked clears them. The
@@ -185,12 +190,25 @@ summary keeps them apart:
 - **"N pts hasn't moved in 8 passes"** — the stagnation valve. The island stopped producing well
   before the time cap, so more time would change nothing; the strategy has run out of things to do.
 
-**Each race starts where a player would actually first pick it** —
-`GameStateFactory.NewGameForRace` unlocks a superset of divine powers guaranteed to cover the race's
-own `RaceDefinition.RequiredPowers` combination (first row of the ascension grid for a Base race,
-first two rows for an Advanced one — each advanced race's 3 required powers are drawn from the 6
-second-rank powers, so granting all of them covers every race regardless of which one is being
-started) and then goes through the **real**
+**Each race starts where a player would actually first pick it**, with the whole meta-progression of
+its tier — `GameStateFactory.NewGameForRace`:
+
+| | Divine powers | Milestones | Permanent unique buildings | Starts on |
+|---|---|---|---|---|
+| **Base** (Human, Elf, Dwarf, Goblin, Orc) | first circle (Faith + 6) | **2/4** (1 ascended race: the Humans of the cycle that just ended) | Builders' Guild, Harvesters' Guild, Academy, War Room | **island 4** |
+| **Advanced** (Giant, Garuda, Mermaid, DarkElf) | first two circles (13) | **4/4** (the 5 base races ascended) | all 17 offered: the 12 common ones + the 5 base races' racial buildings | **island 5** |
+
+The starting island is *not* a separate setting: the milestones decide it
+(`AscensionController.AscensionSkippedIslandCount`), so a Base race skips 3 islands and an Advanced
+one skips 4. Neither is `AscensionState.AscensionsPerformed`, which is only raised as far as the
+permanent-building slots demand (2 per Ascension) — 2 ascensions for a Base race, 9 for an Advanced
+one. The Base list deliberately leaves out the Imperial Port: it is the prestige condition, and
+granting it would remove the first thing the run measures. An Advanced race gets it, which is why its
+single island is judged on points rather than on reaching a prestige at all.
+
+Powers are granted as a superset guaranteed to cover the race's own `RaceDefinition.RequiredPowers`
+combination (each advanced race's 3 required powers are drawn from the 6 second-rank ones, so granting
+every second-rank power covers all of them). The run then goes through the **real**
 `AscensionController.PerformAscension`. That last part matters: it is the only path that regenerates
 the island *for that race* (start terrain, Underworld start for the Dark Elves) and that grants the free
 prestige vertices which come with Faith and with race selection being unlocked (central vertex + its 3
@@ -199,11 +217,11 @@ would measure every race on a Human map with a Human prestige map. Side effect w
 therefore starts with research already unlocked and a Market vertex bought, so it is *not* comparable
 to `StepIslandScenarios`' island-1 numbers.
 
-⚠️ **Every reference table below predates that change** — they were measured when the gauntlet still
-started on island 1 and ran four or five islands from there, so their island columns are islands 1–5
-*with* the islands 1–2 inheritance behind them. They are kept as the record of what was fixed (the
-Wonder gate, the DarkElf blockers), not as the current baseline; the first run of the 3 → 5 round
-replaces them.
+⚠️ **Every reference table below predates all of this** — they were measured when the gauntlet started
+on island 1, ran four or five islands from there, and gave each race nothing but its required divine
+powers. Their island columns are islands 1–5 *with* the islands 1–2 inheritance behind them and no
+permanent unique buildings at all. They are kept as the record of what was fixed (the Wonder gate, the
+DarkElf blockers), not as the current baseline; the first run of the new round replaces them.
 
 **The verdict is only "did it reach the next prestige, N times".** That is the one goal every race
 shares. FullIslandTest's per-stage checkpoints (12 cities, Library everywhere) are race-hostile by

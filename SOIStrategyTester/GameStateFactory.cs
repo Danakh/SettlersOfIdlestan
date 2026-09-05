@@ -5,6 +5,7 @@ using System.Linq;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Ascension;
 using SettlersOfIdlestan.Model.Ascension;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Races;
 
@@ -54,27 +55,123 @@ public static class GameStateFactory
     /// a race on a map and a prestige map it never actually starts from.</para>
     ///
     /// <para>Which island that is, is the Ascension's own answer and is deliberately not overridden:
-    /// the milestones skip the opening of the archipelago (island 3 for a first Ascension — see
+    /// the milestones skip the opening of the archipelago (see
     /// AscensionController.AscensionSkippedIslandCount), so a race is measured from where a player
-    /// actually restarts, and the gauntlet plays from there up to its <c>--last-island</c>. Read it
-    /// back from <c>CurrentWorldState.WorldId</c> rather than assuming a number.</para>
+    /// actually restarts, and the gauntlet plays from there up to its <c>--last-island</c>. With the
+    /// per-tier meta-progression below that means island 4 for a Base race and island 5 for an
+    /// Advanced one. Read it back from <c>CurrentWorldState.WorldId</c> rather than assuming a
+    /// number.</para>
     ///
     /// <para>The powers are granted rather than purchased: god points buy nothing else, so the
     /// bookkeeping would change no gameplay. The essence spent to trigger the Ascension is the
     /// controller's own minimum.</para>
+    ///
+    /// <para><b>Méta-progression par palier de race</b>, celle d'un joueur qui vient d'en débloquer
+    /// une de ce palier :</para>
+    /// <list type="bullet">
+    /// <item>Race de base — tout le premier cercle de pouvoirs divins (voir <see cref="RequiredPowersFor"/>),
+    /// les <b>2 premiers jalons</b> (une seule race déjà ascensionnée : les Humains du cycle qui
+    /// vient de se terminer), et les 4 bâtiments uniques permanents de
+    /// <see cref="BaseTierPermanentUniqueBuildings"/>.</item>
+    /// <item>Race avancée — les deux premiers cercles de pouvoirs, les <b>4 jalons</b> (les 5 races
+    /// de base déjà ascensionnées, donc 3 races minimum largement dépassées) et <b>tous</b> les
+    /// bâtiments uniques permanents proposés : les communs, plus les bâtiments raciaux de ces 5
+    /// races de base (voir AscensionController.PermanentUniqueBuildingChoices).</item>
+    /// </list>
+    /// <para>Les jalons décidant de l'île de départ, ce palier fixe aussi l'île sur laquelle la race
+    /// commence — île 4 pour une race de base, île 5 pour une avancée (voir
+    /// AscensionController.AscensionSkippedIslandCount). Le nombre d'Ascensions déjà accomplies n'est
+    /// pas un réglage en soi : il est déduit du nombre de bâtiments permanents à ouvrir (2
+    /// emplacements par Ascension, voir AscensionController.PermanentUniqueBuildingSlots), et c'est
+    /// l'unique raison pour laquelle il ne vaut pas 1.</para>
     /// </summary>
     public static MainGameController NewGameForRace(RaceId race, int? prngSeed)
     {
         var controller = NewGame(worldId: null, prngSeed);
         var godState = controller.CurrentMainState!.GodState;
+        var ascensionState = godState.AscensionState;
+        bool advanced = RaceDefinitions.Get(race).Tier == RaceTier.Advanced;
 
         foreach (var power in RequiredPowersFor(RaceDefinitions.Get(race).Tier))
-            godState.AscensionState.UnlockedPowers.Add(power);
+            ascensionState.UnlockedPowers.Add(power);
+
+        // Races déjà ascensionnées : ce sont elles qui débloquent les jalons (voir
+        // AscensionMilestoneDefinitions) et qui ajoutent leur bâtiment racial aux choix permanents.
+        // Une race de base n'en a besoin d'aucune : l'Ascension déclenchée plus bas y verse les
+        // Humains du cycle en cours (voir AscensionController.CreditAscensionPointsAndArchiveCycle),
+        // ce qui suffit au 2ᵉ jalon. Une race avancée les a toutes les cinq.
+        if (advanced)
+            foreach (var baseRace in BaseRaces)
+                ascensionState.AscendedRaces.Add(baseRace);
+
+        // Choix permanents visés — pour une race avancée, tout ce qui est proposé une fois les races
+        // de base ascensionnées (12 communs + leurs 5 bâtiments raciaux).
+        var permanentBuildings = advanced
+            ? controller.AscensionController.PermanentUniqueBuildingChoices.ToList()
+            : BaseTierPermanentUniqueBuildings.ToList();
+
+        // Assez d'Ascensions pour ouvrir un emplacement par bâtiment visé, l'Ascension déclenchée
+        // juste après en comptant pour une. Au minimum 1 : c'est ce qui fait entrer les Humains dans
+        // AscendedRaces (le tout premier cycle n'y compte pas) et donc le 2ᵉ jalon.
+        ascensionState.AscensionsPerformed = Math.Max(1, (permanentBuildings.Count + 1) / 2 - 1);
 
         godState.DivineEssence = AscensionController.MinDivineEssenceForAscension;
+
+        // Les pouvoirs sont accordés plutôt qu'achetés, mais un joueur les aurait payés : 13 points
+        // divins pour le premier cercle, 43 pour les deux (voir AscensionPowerDefinitions). Le total
+        // *gagné* compte quand même, et pas qu'en comptabilité — c'est lui que le jalon Ascension
+        // Prestigieuse convertit 1 pour 1 en points de prestige au début du cycle (voir
+        // AscensionController.GrantPrestigiousAscensionPoints), et les deux paliers ont ce jalon.
+        // Sans lui la manche démarrait la bourse à 5 points, celle de l'essence dépensée ici.
+        // L'Ascension ajoute son propre gain au total juste avant de verser la dotation, d'où la
+        // soustraction : le cycle commence avec exactement GrantedGodPointsEarned points de prestige.
+        // GodPoints (la caisse) reste à 0 : ces points-là sont réputés dépensés dans les pouvoirs.
+        godState.TotalGodPointsEarned = Math.Max(0,
+            GrantedGodPointsEarned - controller.AscensionController.GetGodPointsGain(godState));
+
         controller.PerformAscension(race);
+
+        // Après l'Ascension : les emplacements se comptent sur AscensionsPerformed, qu'elle vient
+        // d'incrémenter, et ApplyPermanentUniqueBuildingToCivilization doit être rappelée — celle de
+        // l'initialisation d'île a tourné avant que quoi que ce soit ne soit choisi.
+        foreach (var building in permanentBuildings)
+            if (!controller.AscensionController.SelectPermanentUniqueBuilding(building))
+                throw new InvalidOperationException(
+                    $"Bâtiment unique permanent {building} refusé pour {race} : " +
+                    $"{controller.AscensionController.PermanentUniqueBuildings.Count}/" +
+                    $"{controller.AscensionController.PermanentUniqueBuildingSlots} emplacements utilisés.");
+        controller.AscensionController.ApplyPermanentUniqueBuildingToCivilization();
+
         return controller;
     }
+
+    /// <summary>
+    /// Bâtiments uniques permanents d'une race de base : Guilde des bâtisseurs, Guilde des
+    /// récolteurs, Académie et Salle de guerre — l'automatisation des routes, de la récolte, de la
+    /// recherche et du militaire, soit ce qu'un joueur choisit en premier. Volontairement sans Port
+    /// Impérial : c'est la condition de prestige, l'offrir retirerait à la manche ce qu'elle mesure
+    /// en premier. Une race avancée, elle, prend tout (voir <see cref="NewGameForRace"/>).
+    /// </summary>
+    private static readonly IReadOnlyList<BuildingType> BaseTierPermanentUniqueBuildings = new[]
+    {
+        BuildingType.BuildersGuild,
+        BuildingType.HarvestersGuild,
+        BuildingType.Academy,
+        BuildingType.WarRoom,
+    };
+
+    /// <summary>
+    /// Points divins réputés gagnés avant le cycle, donc points de prestige en caisse à son début
+    /// (jalon Ascension Prestigieuse, 1 pour 1). 50 : de quoi avoir payé les 43 points des deux
+    /// premiers cercles de pouvoirs, avec la petite marge d'un joueur réel — voir
+    /// <see cref="NewGameForRace"/>.
+    /// </summary>
+    private const int GrantedGodPointsEarned = 50;
+
+    /// <summary>Les 5 races de base (Humains compris) — celles qu'une race avancée a déjà toutes
+    /// ascensionnées dans <see cref="NewGameForRace"/>.</summary>
+    private static readonly IReadOnlyList<RaceId> BaseRaces =
+        RaceDefinitions.All.Where(r => r.Tier == RaceTier.Base).Select(r => r.Id).ToList();
 
     /// <summary>
     /// Variante « ascensionnée » de <see cref="NewGameForRace"/> : la partie démarre après

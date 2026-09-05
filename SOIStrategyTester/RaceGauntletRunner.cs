@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Races;
 using SOIStrategyTester.Model;
@@ -18,9 +19,10 @@ public class RaceGauntletOptions
 
     /// <summary>
     /// Numéro de la <b>dernière</b> île que chaque race doit terminer — une île par prestige, en
-    /// partant de celle où l'Ascension dépose la race (île 3 avec le premier jalon, voir
-    /// AscensionController.AscensionSkippedIslandCount et GameStateFactory.NewGameForRace). Le
-    /// nombre de cycles s'en déduit : 3 → 5 fait trois îles.
+    /// partant de celle où l'Ascension dépose la race : île 4 pour une race de base, île 5 pour une
+    /// avancée, chacune démarrant avec la méta-progression de son palier (voir
+    /// GameStateFactory.NewGameForRace et AscensionController.AscensionSkippedIslandCount). Le
+    /// nombre de cycles s'en déduit : 4 → 5 fait deux îles, 5 → 5 une seule.
     ///
     /// <para>Exprimé en numéro d'île et non plus en nombre d'îles parce que c'est le numéro qui porte
     /// le sens : la calibration des cibles de points (<see cref="PrestigePointTargets"/>) est par
@@ -69,16 +71,17 @@ public class RaceGauntletOptions
 
 /// <summary>
 /// Plays one race at a time from the island its Ascension starts on up to <see
-/// cref="RaceGauntletOptions.LastIsland"/> (island 3 → 5 by default) and reports which races make it
-/// through — the "can everyone actually play the game?" check that FullIslandTest only ever answers
-/// for Humans.
+/// cref="RaceGauntletOptions.LastIsland"/> (islands 4 → 5 for a Base race, island 5 alone for an
+/// Advanced one) and reports which races make it through — the "can everyone actually play the game?"
+/// check that FullIslandTest only ever answers for Humans.
 ///
-/// <para>Each race starts from <see cref="GameStateFactory.NewGameForRace"/>: the divine powers its
-/// tier requires are unlocked and the Ascension's own island is generated for that race, so a race is
-/// measured on the state a player reaches it in, not on a Human start with the racial modifiers
-/// bolted on. That island is island 3 as soon as the first Ascension milestone skips the two opening
-/// islands (AscensionController.AscensionSkippedIslandCount) — the run is therefore three islands
-/// long by default, not five, and every per-island target is read from the island's own number.</para>
+/// <para>Each race starts from <see cref="GameStateFactory.NewGameForRace"/>: the divine powers, the
+/// Ascension milestones and the permanent unique buildings its tier comes with are granted, and the
+/// Ascension's own island is generated for that race — so a race is measured on the state a player
+/// reaches it in, not on a Human start with the racial modifiers bolted on. Those milestones are also
+/// what fixes the starting island (AscensionController.AscensionSkippedIslandCount): two for a Base
+/// race lands on island 4, four for an Advanced one lands straight on island 5. Every per-island
+/// target is read from the island's own number.</para>
 ///
 /// <para>Islands are driven by <see cref="EndlessRunner"/>, exactly like <c>--endless</c>: it decides
 /// when to prestige (points target, or the per-island time cap) rather than the strategy. The verdict
@@ -157,6 +160,16 @@ public static class RaceGauntletRunner
             result.FirstIsland = firstIsland;
             result.IslandsRequested = islandCount;
             Console.WriteLine($"-- islands {firstIsland}..{options.LastIsland} ({islandCount} prestige{(islandCount > 1 ? "s" : "")})");
+
+            // La méta-progression de départ dépend du palier de la race (voir
+            // GameStateFactory.NewGameForRace) et c'est elle qui décide de l'île de départ : la
+            // rappeler ici évite de la déduire du code en relisant un log.
+            var ascension = controller.AscensionController;
+            int milestones = AscensionMilestoneDefinitions.All.Count(d => ascension.IsMilestoneUnlocked(d.Id));
+            int powers = controller.CurrentMainState.GodState.AscensionState.UnlockedPowers.Count;
+            Console.WriteLine($"-- start: {powers} divine powers, {milestones}/{AscensionMilestoneDefinitions.All.Count} milestones, " +
+                              $"{ascension.PermanentUniqueBuildings.Count} permanent unique buildings " +
+                              $"({string.Join(", ", ascension.PermanentUniqueBuildings)})");
 
             var endlessOptions = new EndlessRunOptions
             {
