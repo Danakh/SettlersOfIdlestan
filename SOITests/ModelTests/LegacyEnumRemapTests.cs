@@ -55,4 +55,22 @@ public class LegacyEnumRemapTests
         Assert.Contains(AscensionPowerId.ArmOfGod, result);
         Assert.Contains(AscensionPowerId.Removed, result);
     }
+
+    /// <summary>
+    /// [Legacy remap v0.21] Une sauvegarde antérieure à la file de recherche multi-places n'a qu'un
+    /// champ QueuedResearch : sa valeur doit atterrir dans TechnologyTree.ResearchQueue, et le champ
+    /// ne doit plus être réécrit dans les nouvelles sauvegardes.
+    /// </summary>
+    [Fact]
+    public void TechnologyTree_LegacyQueuedResearch_IsLoadedIntoResearchQueue()
+    {
+        var tree = JsonSerializer.Deserialize<TechnologyTree>(
+            "{\"ActiveResearch\":\"Architecture\",\"QueuedResearch\":\"Artisanat\"}");
+
+        Assert.NotNull(tree);
+        Assert.Equal(TechnologyId.Architecture, tree.ActiveResearch);
+        Assert.Equal(new[] { TechnologyId.Artisanat }, tree.ResearchQueue);
+
+        Assert.DoesNotContain("QueuedResearch", JsonSerializer.Serialize(tree));
+    }
 }

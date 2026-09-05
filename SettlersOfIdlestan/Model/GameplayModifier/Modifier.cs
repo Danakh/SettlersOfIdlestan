@@ -305,6 +305,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             DOMINION_SMELTER_SPEED_PER_LEVEL,
             /// <summary>Flags que la relocalisation d'une ville ne coûte plus aucune ressource (voir CityBuilderController.RelocationCost). SubCategory unused. Accordé par le jalon d'Ascension Exode Divin (AscensionMilestoneId.FreeRelocation).</summary>
             FREE_RELOCATION,
+            /// <summary>Places supplémentaires dans la file de recherche (voir ResearchController.GetResearchQueueCapacity). Base = 0 sans UNLOCK_RESEARCH_QUEUE, 1 avec : +1 donne donc une file d'une place même sans le déblocage, et de deux places avec. SubCategory unused. Accordé par le jalon d'Ascension Ferveur Studieuse (AscensionMilestoneId.ResearchProduction).</summary>
+            RESEARCH_QUEUE_SIZE,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

@@ -833,10 +833,17 @@ public class AscensionController : IModifierProvider
         }
 
         // Jalon Ferveur Studieuse (AscensionMilestoneId.ResearchProduction) : double la génération de
-        // points de recherche, base 1.0 (100%) additionnée aux autres sources — voir
-        // Civilization.RESEARCH_PRODUCTION_SPEED.
+        // points de recherche (base 1.0, soit +100% additionné aux autres sources — voir
+        // Civilization.ResearchProductionSpeed), quadruple leur vitesse d'investissement dans la
+        // recherche active (+300%, voir Civilization.ResearchInvestmentSpeed) et ajoute une place à
+        // la file de recherche — une place même sans le vertex de prestige qui la débloque, deux
+        // avec (voir ResearchController.GetResearchQueueCapacity).
         if (IsMilestoneUnlocked(AscensionMilestoneId.ResearchProduction))
+        {
             yield return new Modifier(Modifier.ECategory.RESEARCH_PRODUCTION_SPEED, Modifier.EType.ADDITIVE, 1.0);
+            yield return new Modifier(Modifier.ECategory.RESEARCH_INVESTMENT_SPEED, Modifier.EType.ADDITIVE, 3.0);
+            yield return new Modifier(Modifier.ECategory.RESEARCH_QUEUE_SIZE, Modifier.EType.ADDITIVE, 1);
+        }
 
         // Jalon Exode Divin (AscensionMilestoneId.FreeRelocation) : relocaliser une ville ne coûte
         // plus rien — simple drapeau, voir CityBuilderController.RelocationCost. Le déblocage de

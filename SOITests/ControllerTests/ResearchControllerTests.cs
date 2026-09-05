@@ -7,6 +7,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
+using System.Collections.Generic;
 using Xunit;
 
 namespace SOITests.ControllerTests;
@@ -315,10 +316,10 @@ public class ResearchControllerTests
 
     /// <summary>
     /// La répétition et la file d'attente sont mutuellement exclusives : mettre une recherche
-    /// en file désactive la répétition en cours (voir ResearchController.SetQueuedResearch).
+    /// en file désactive la répétition en cours (voir ResearchController.EnqueueResearch).
     /// </summary>
     [Fact]
-    public void SetQueuedResearch_DisablesActiveLoop()
+    public void EnqueueResearch_DisablesActiveLoop()
     {
         var civ = new Civilization { Index = 0 };
         var city = new City(CityVertex) { CivilizationIndex = 0 };
@@ -342,7 +343,7 @@ public class ResearchControllerTests
         Assert.True(ctrl.ToggleLoopResearch(TechnologyId.MasterHarvest));
         Assert.True(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
 
-        Assert.True(ctrl.SetQueuedResearch(TechnologyId.StorageOptimization));
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.StorageOptimization));
 
         Assert.Equal(TechnologyId.StorageOptimization, ctrl.GetQueuedResearch());
         Assert.False(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
@@ -374,7 +375,7 @@ public class ResearchControllerTests
         var ctrl = new ResearchController();
         ctrl.Initialize(state, clock, prestigeState);
 
-        Assert.True(ctrl.SetQueuedResearch(TechnologyId.StorageOptimization));
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.StorageOptimization));
         Assert.Equal(TechnologyId.StorageOptimization, ctrl.GetQueuedResearch());
 
         Assert.True(ctrl.ToggleLoopResearch(TechnologyId.MasterHarvest));
@@ -411,7 +412,7 @@ public class ResearchControllerTests
         ctrl.Initialize(state, clock, prestigeState);
 
         Assert.True(ctrl.StartResearch(TechnologyId.StorageOptimization));
-        Assert.True(ctrl.SetQueuedResearch(TechnologyId.MasterHarvest));
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.MasterHarvest));
 
         long cost = ctrl.GetResearchProgress(TechnologyId.StorageOptimization).total;
         prestigeState.TechnologyTree.ActiveResearchConsumed = cost;
@@ -620,5 +621,158 @@ public class ResearchControllerTests
         prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Architecture);
 
         Assert.True(ctrl.ShouldDisplay(TechnologyId.ResearchMethods));
+    }
+
+    /// <summary>
+    /// Prépare une civilisation avec une file de recherche de la capacité voulue : le vertex de
+    /// prestige (UNLOCK_RESEARCH_QUEUE) donne la première place, RESEARCH_QUEUE_SIZE les suivantes —
+    /// c'est ce dernier que porte le jalon d'Ascension Ferveur Studieuse.
+    /// </summary>
+    private static (ResearchController ctrl, PrestigeState prestigeState, GameClock clock) BuildQueueScenario(
+        bool queueUnlocked, int extraQueueSlots)
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var modifiers = new List<Modifier>();
+        if (queueUnlocked)
+            modifiers.Add(new Modifier(Modifier.ECategory.UNLOCK_RESEARCH_QUEUE, Modifier.EType.ADDITIVE, 1));
+        if (extraQueueSlots != 0)
+            modifiers.Add(new Modifier(Modifier.ECategory.RESEARCH_QUEUE_SIZE, Modifier.EType.ADDITIVE, extraQueueSlots));
+        civ.AddCustomAggregator(new StaticModifierProvider(modifiers));
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        civ.TechnologyTree = prestigeState.TechnologyTree;
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+        return (ctrl, prestigeState, clock);
+    }
+
+    /// <summary>
+    /// Le jalon d'Ascension Ferveur Studieuse (RESEARCH_QUEUE_SIZE +1) ouvre une place de file à lui
+    /// seul, sans le vertex de prestige qui débloque la fonctionnalité.
+    /// </summary>
+    [Fact]
+    public void ResearchQueueSizeModifier_OpensOneSlot_WithoutQueueUnlock()
+    {
+        var (ctrl, _, _) = BuildQueueScenario(queueUnlocked: false, extraQueueSlots: 1);
+
+        Assert.Equal(1, ctrl.GetResearchQueueCapacity());
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.Fortifications));
+        Assert.Equal(TechnologyId.Fortifications, ctrl.GetQueuedResearch());
+    }
+
+    /// <summary>Sans le vertex ni le jalon, la file reste fermée : rien ne peut y être mis.</summary>
+    [Fact]
+    public void ResearchQueue_IsClosed_WithoutUnlockNorMilestone()
+    {
+        var (ctrl, _, _) = BuildQueueScenario(queueUnlocked: false, extraQueueSlots: 0);
+
+        Assert.Equal(0, ctrl.GetResearchQueueCapacity());
+        Assert.False(ctrl.CanBeQueued(TechnologyId.Fortifications));
+        Assert.False(ctrl.EnqueueResearch(TechnologyId.Fortifications));
+    }
+
+    /// <summary>Vertex + jalon cumulent : deux places de file.</summary>
+    [Fact]
+    public void ResearchQueueSizeModifier_AddsToUnlockedSlot()
+    {
+        var (ctrl, _, _) = BuildQueueScenario(queueUnlocked: true, extraQueueSlots: 1);
+
+        Assert.Equal(2, ctrl.GetResearchQueueCapacity());
+    }
+
+    /// <summary>
+    /// File pleine : enfiler une recherche de plus évince la tête (celle qui serait partie en
+    /// premier) et fait remonter les autres d'un rang, au lieu d'être refusé.
+    /// </summary>
+    [Fact]
+    public void EnqueueResearch_EvictsOldest_WhenQueueIsFull()
+    {
+        var (ctrl, prestigeState, _) = BuildQueueScenario(queueUnlocked: true, extraQueueSlots: 1);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Fortifications);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Architecture);
+
+        Assert.True(ctrl.StartResearch(TechnologyId.HarvestEfficiency));
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.StorageOptimization));
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.MilitaryBuildings));
+        Assert.Equal(new[] { TechnologyId.StorageOptimization, TechnologyId.MilitaryBuildings }, ctrl.GetResearchQueue());
+
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.HarvestTools));
+
+        Assert.Equal(new[] { TechnologyId.MilitaryBuildings, TechnologyId.HarvestTools }, ctrl.GetResearchQueue());
+        Assert.Equal(1, ctrl.GetQueuePosition(TechnologyId.MilitaryBuildings));
+        Assert.Equal(2, ctrl.GetQueuePosition(TechnologyId.HarvestTools));
+        Assert.Equal(0, ctrl.GetQueuePosition(TechnologyId.StorageOptimization));
+    }
+
+    /// <summary>
+    /// Avec plusieurs places, une recherche dont le prérequis est déjà en file (et pas seulement en
+    /// cours) peut être enfilée derrière lui : c'est ce qui permet d'aligner une branche entière
+    /// (voir ResearchController.WillBeAvailableAfterActiveResearch).
+    /// </summary>
+    [Fact]
+    public void EnqueueResearch_AcceptsTechWhosePrerequisiteIsAlreadyQueued()
+    {
+        var (ctrl, _, _) = BuildQueueScenario(queueUnlocked: true, extraQueueSlots: 1);
+
+        Assert.True(ctrl.StartResearch(TechnologyId.HarvestEfficiency));
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.Architecture));
+
+        // StorageOptimization a Architecture pour prérequis : ni complétée ni active, mais en file.
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.StorageOptimization));
+        Assert.Equal(new[] { TechnologyId.Architecture, TechnologyId.StorageOptimization }, ctrl.GetResearchQueue());
+    }
+
+    /// <summary>Re-sélectionner une recherche déjà en file l'en retire (clic de bascule du rendu).</summary>
+    [Fact]
+    public void DequeueResearch_RemovesFromQueue()
+    {
+        var (ctrl, _, _) = BuildQueueScenario(queueUnlocked: true, extraQueueSlots: 1);
+
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.Fortifications));
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.Architecture));
+
+        Assert.True(ctrl.DequeueResearch(TechnologyId.Fortifications));
+
+        Assert.Equal(new[] { TechnologyId.Architecture }, ctrl.GetResearchQueue());
+        Assert.False(ctrl.DequeueResearch(TechnologyId.Fortifications));
+    }
+
+    /// <summary>
+    /// Une recherche répétable qui prend le relais ne passe en répétition automatique que si elle
+    /// vidait la file : sinon elle ne se terminerait jamais et les recherches derrière elle ne
+    /// démarreraient jamais (voir ResearchController.StartNextQueuedResearch).
+    /// </summary>
+    [Fact]
+    public void QueuedRepeatableResearch_DoesNotAutoLoop_WhenQueueStillHasEntries()
+    {
+        var (ctrl, prestigeState, clock) = BuildQueueScenario(queueUnlocked: true, extraQueueSlots: 1);
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestEfficiency);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.HarvestTools);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Architecture);
+
+        Assert.True(ctrl.StartResearch(TechnologyId.StorageOptimization));
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.MasterHarvest));
+        Assert.True(ctrl.EnqueueResearch(TechnologyId.Fortifications));
+
+        // Amène la recherche active à son coût : la prochaine consommation (1 PR minimum) la termine.
+        long cost = ctrl.GetResearchProgress(TechnologyId.StorageOptimization).total;
+        prestigeState.TechnologyTree.ActiveResearchConsumed = cost;
+        prestigeState.TechnologyTree.ActiveResearchLastConsumptionTick = 0;
+        prestigeState.TechnologyTree.ResearchPoints = 1;
+
+        clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks); // sentinel
+        clock.SimulateAdvance(ResearchController.ResearchConsumptionCooldownTicks); // complète StorageOptimization
+
+        Assert.Equal(TechnologyId.MasterHarvest, ctrl.ActiveResearch);
+        Assert.False(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
+        Assert.Equal(new[] { TechnologyId.Fortifications }, ctrl.GetResearchQueue());
     }
 }

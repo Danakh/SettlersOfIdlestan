@@ -54,7 +54,30 @@ public class TechnologyTree : IModifierProvider
     }
 
     public TechnologyId? ActiveResearch { get; set; }
-    public TechnologyId? QueuedResearch { get; set; }
+
+    /// <summary>
+    /// Recherches en file d'attente, dans l'ordre de démarrage : la tête part dès que la recherche
+    /// active se termine ou est annulée. Le nombre de places est dynamique (voir
+    /// ResearchController.GetResearchQueueCapacity) — la liste peut donc être plus longue que la
+    /// capacité courante si celle-ci vient de baisser, et ResearchController la retaille alors.
+    /// </summary>
+    public List<TechnologyId> ResearchQueue { get; set; } = new();
+
+    /// <summary>
+    /// [Legacy remap v0.21] File d'attente à une seule place des sauvegardes antérieures. Propriété
+    /// en écriture seule : elle verse son contenu dans <see cref="ResearchQueue"/> à la
+    /// désérialisation et n'est jamais réécrite (aucun getter, donc absente des nouvelles
+    /// sauvegardes).
+    /// </summary>
+    public TechnologyId? QueuedResearch
+    {
+        set
+        {
+            if (value.HasValue && !ResearchQueue.Contains(value.Value))
+                ResearchQueue.Add(value.Value);
+        }
+    }
+
     // long : les coûts des recherches de tier 13+ dépassent int.MaxValue (voir Technology.Cost) ;
     // les anciennes sauvegardes int se désérialisent sans conversion.
     public long ActiveResearchConsumed { get; set; }

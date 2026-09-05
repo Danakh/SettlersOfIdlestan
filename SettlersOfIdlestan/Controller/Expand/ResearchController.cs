@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -85,8 +86,22 @@ namespace SettlersOfIdlestan.Controller.Expand
                     }
                 }
 
+            // La capacité de file peut avoir baissé depuis la sauvegarde (vertex de prestige perdu à
+            // l'Ascension, par exemple) : les places en trop sont rendues ici, les dernières enfilées
+            // partant les premières.
+            TrimResearchQueueToCapacity();
+
             if (_clock != null)
                 _clock.Advanced += OnClockAdvanced;
+        }
+
+        private void TrimResearchQueueToCapacity()
+        {
+            var queue = Tree?.ResearchQueue;
+            if (queue == null) return;
+            int capacity = GetResearchQueueCapacity();
+            while (queue.Count > capacity)
+                queue.RemoveAt(queue.Count - 1);
         }
 
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
@@ -276,20 +291,28 @@ namespace SettlersOfIdlestan.Controller.Expand
                 return;
             }
 
-            // Auto-démarrer la recherche suivante si elle est en file d'attente
-            if (tree.QueuedResearch.HasValue)
-            {
-                var queued = tree.QueuedResearch.Value;
-                tree.QueuedResearch = null;
-                StartResearch(queued);
+            StartNextQueuedResearch(tree);
+        }
 
-                // Si la recherche qui prend le relais est répétable, elle devient la nouvelle
-                // répétition par défaut (comportement attendu : file et répétition ne coexistent
-                // jamais, donc la file "se transforme" en répétition une fois lancée).
-                var queuedTech = TechnologyDefinitions.Get(queued);
-                if (queuedTech?.Repeatable == true)
-                    tree.LoopResearch = queued;
-            }
+        /// <summary>
+        /// Dépile la tête de la file d'attente et la démarre, si la file n'est pas vide. Appelé à la
+        /// complétion d'une recherche comme à son annulation, les deux laissant le slot actif libre.
+        /// </summary>
+        private void StartNextQueuedResearch(TechnologyTree tree)
+        {
+            if (tree.ResearchQueue.Count == 0) return;
+
+            var queued = tree.ResearchQueue[0];
+            tree.ResearchQueue.RemoveAt(0);
+            StartResearch(queued);
+
+            // Si la recherche qui prend le relais est répétable et qu'elle vidait la file, elle
+            // devient la nouvelle répétition par défaut (comportement attendu : file et répétition
+            // ne coexistent jamais, donc la file "se transforme" en répétition une fois lancée).
+            // Tant qu'il reste des recherches derrière elle, on ne la met pas en boucle : elle ne
+            // se terminerait plus jamais et les suivantes ne démarreraient donc jamais.
+            if (tree.ResearchQueue.Count == 0 && TechnologyDefinitions.Get(queued)?.Repeatable == true)
+                tree.LoopResearch = queued;
         }
 
         public bool IsDemoLocked(TechnologyId id)
@@ -326,10 +349,10 @@ namespace SettlersOfIdlestan.Controller.Expand
         public int GetRepeatCount(TechnologyId id)
             => Tree?.RepeatCounts.TryGetValue(id, out var count) == true ? count : 0;
 
-        /// <summary>True si le bouton "loop" peut être proposé pour cette recherche (répétable + file débloquée).</summary>
+        /// <summary>True si le bouton "loop" peut être proposé pour cette recherche (répétable + au moins une place de file).</summary>
         public bool CanLoop(TechnologyId id)
         {
-            if (Tree == null || !IsResearchQueueUnlocked()) return false;
+            if (Tree == null || GetResearchQueueCapacity() <= 0) return false;
             return TechnologyDefinitions.Get(id)?.Repeatable == true;
         }
 
@@ -346,7 +369,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             {
                 // Activer la répétition désactive la file : les deux sont mutuellement exclusives.
                 Tree.LoopResearch = id;
-                Tree.QueuedResearch = null;
+                Tree.ResearchQueue.Clear();
             }
             return true;
         }
@@ -378,46 +401,83 @@ namespace SettlersOfIdlestan.Controller.Expand
             tree.ActiveResearchConsumed = 0;
             tree.ActiveResearchLastConsumptionTick = 0;
 
-            // Si une recherche différente était en file d'attente, elle démarre immédiatement
-            // au lieu de laisser le slot actif vide (même logique qu'à la complétion normale,
-            // voir AdvanceActiveResearch).
-            if (tree.QueuedResearch.HasValue)
-            {
-                var queued = tree.QueuedResearch.Value;
-                tree.QueuedResearch = null;
-                StartResearch(queued);
-
-                var queuedTech = TechnologyDefinitions.Get(queued);
-                if (queuedTech?.Repeatable == true)
-                    tree.LoopResearch = queued;
-            }
+            // Si une recherche était en file d'attente, elle démarre immédiatement au lieu de
+            // laisser le slot actif vide (même logique qu'à la complétion normale, voir
+            // AdvanceActiveResearch).
+            StartNextQueuedResearch(tree);
             return true;
         }
 
-        public TechnologyId? GetQueuedResearch()
-            => Tree?.QueuedResearch;
-
-        public bool SetQueuedResearch(TechnologyId? id)
+        /// <summary>
+        /// Nombre de places de la file d'attente : une place dès que la file est débloquée
+        /// (UNLOCK_RESEARCH_QUEUE, vertex de prestige), plus les places accordées par
+        /// RESEARCH_QUEUE_SIZE (jalon d'Ascension Ferveur Studieuse). Le jalon suffit donc à lui
+        /// seul à ouvrir une première place, sans le vertex.
+        /// </summary>
+        public int GetResearchQueueCapacity()
         {
-            if (Tree == null) return false;
+            int baseCapacity = IsResearchQueueUnlocked() ? 1 : 0;
+            double bonus = _state?.PlayerCivilization.ModifierAggregator.ApplyModifiers(
+                Modifier.ECategory.RESEARCH_QUEUE_SIZE, "", 0.0) ?? 0.0;
+            return Math.Max(0, baseCapacity + (int)bonus);
+        }
+
+        /// <summary>Recherches en file, de la prochaine à démarrer à la dernière.</summary>
+        public IReadOnlyList<TechnologyId> GetResearchQueue()
+            => Tree?.ResearchQueue ?? (IReadOnlyList<TechnologyId>)Array.Empty<TechnologyId>();
+
+        /// <summary>Rang de cette recherche dans la file (1 = prochaine à démarrer), 0 si elle n'y est pas.</summary>
+        public int GetQueuePosition(TechnologyId id)
+        {
+            var queue = Tree?.ResearchQueue;
+            if (queue == null) return 0;
+            int index = queue.IndexOf(id);
+            return index < 0 ? 0 : index + 1;
+        }
+
+        /// <summary>Prochaine recherche de la file, null si elle est vide.</summary>
+        public TechnologyId? GetQueuedResearch()
+        {
+            var queue = Tree?.ResearchQueue;
+            return queue == null || queue.Count == 0 ? null : queue[0];
+        }
+
+        /// <summary>
+        /// Ajoute une recherche en fin de file. Quand la file est déjà pleine, la plus ancienne
+        /// (la tête, qui aurait démarré la première) est évincée et les suivantes remontent d'un
+        /// rang — sélectionner sans cesse de nouvelles recherches fait donc glisser la file au lieu
+        /// d'être refusé.
+        /// </summary>
+        public bool EnqueueResearch(TechnologyId id)
+        {
+            if (Tree == null || !CanBeQueued(id)) return false;
             var tree = Tree;
-            if (id == null)
-            {
-                tree.QueuedResearch = null;
-                return true;
-            }
-            if (!CanBeQueued(id.Value)) return false;
-            tree.QueuedResearch = id.Value;
+
+            int capacity = GetResearchQueueCapacity();
+            if (capacity <= 0) return false;
+            if (tree.ResearchQueue.Contains(id)) return false;
+
+            while (tree.ResearchQueue.Count >= capacity)
+                tree.ResearchQueue.RemoveAt(0);
+
+            tree.ResearchQueue.Add(id);
             // Mettre une recherche en file désactive la répétition en cours : les deux sont mutuellement exclusives.
             tree.LoopResearch = null;
             return true;
         }
 
+        /// <summary>Retire une recherche de la file. False si elle n'y était pas.</summary>
+        public bool DequeueResearch(TechnologyId id)
+            => Tree?.ResearchQueue.Remove(id) == true;
+
+        /// <summary>Vide la file d'attente.</summary>
+        public void ClearResearchQueue() => Tree?.ResearchQueue.Clear();
+
         public bool CanBeQueued(TechnologyId id)
         {
             if (Tree == null) return false;
             if (IsDemoLocked(id)) return false;
-            if (!IsResearchQueueUnlocked()) return false;
+            if (GetResearchQueueCapacity() <= 0) return false;
             var tree = Tree;
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null) return false;
@@ -429,17 +489,26 @@ namespace SettlersOfIdlestan.Controller.Expand
             return ArePrerequisitesMet(tree, tech) || WillBeAvailableAfterActiveResearch(tree, tech);
         }
 
+        /// <summary>
+        /// Vrai si les prérequis manquants de cette recherche seront tous couverts par ce qui est
+        /// déjà lancé ou en file devant elle : la recherche active et les recherches déjà mises en
+        /// file. C'est ce qui permet d'enfiler une branche entière d'un coup quand la file compte
+        /// plusieurs places.
+        /// </summary>
         private bool WillBeAvailableAfterActiveResearch(TechnologyTree tree, Technology tech)
         {
-            if (tree.ActiveResearch == null) return false;
-            var activeId = tree.ActiveResearch.Value;
-            if (!tech.Prerequisites.Contains(activeId)) return false;
+            bool coversAtLeastOne = false;
             foreach (var prereq in tech.Prerequisites)
             {
-                if (prereq != activeId && !IsPrerequisiteSatisfied(tree, prereq))
-                    return false;
+                if (IsPrerequisiteSatisfied(tree, prereq)) continue;
+                if (tree.ActiveResearch == prereq || tree.ResearchQueue.Contains(prereq))
+                {
+                    coversAtLeastOne = true;
+                    continue;
+                }
+                return false;
             }
-            return true;
+            return coversAtLeastOne;
         }
 
         public TechnologyStatus GetStatus(TechnologyId id)

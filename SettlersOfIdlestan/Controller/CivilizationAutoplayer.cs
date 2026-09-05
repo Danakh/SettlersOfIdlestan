@@ -991,7 +991,7 @@ namespace SettlersOfIdlestan.Controller
                 TechnologyDefinitions.All.Any(t => _researchController.GetStatus(t.Id) == TechnologyStatus.Available))
                 return true;
 
-            if (_researchController.IsResearchQueueUnlocked() && _researchController.GetQueuedResearch() == null &&
+            if (_researchController.GetResearchQueue().Count < _researchController.GetResearchQueueCapacity() &&
                 TechnologyDefinitions.All.Any(t => _researchController.CanBeQueued(t.Id)))
                 return true;
 
@@ -1000,7 +1000,7 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>
         /// Starts the cheapest available research if none is active, and queues the next cheapest
-        /// if the research queue prestige perk is unlocked. No-ops when research is not unlocked.
+        /// while the research queue still has a free slot. No-ops when research is not unlocked.
         /// </summary>
         public bool TryResearchOnce()
         {
@@ -1021,13 +1021,15 @@ namespace SettlersOfIdlestan.Controller
                     didSomething = true;
             }
 
-            if (_researchController.IsResearchQueueUnlocked() && _researchController.GetQueuedResearch() == null)
+            // Remplit la file jusqu'à sa capacité, une recherche par appel : chaque ajout change ce
+            // qui devient enfilable (voir CanBeQueued), donc le prochain tick relit le meilleur choix.
+            if (_researchController.GetResearchQueue().Count < _researchController.GetResearchQueueCapacity())
             {
                 var queued = TechnologyDefinitions.All
                     .Where(t => _researchController.CanBeQueued(t.Id))
                     .OrderBy(t => t.Cost)
                     .FirstOrDefault();
-                if (queued != null && _researchController.SetQueuedResearch(queued.Id))
+                if (queued != null && _researchController.EnqueueResearch(queued.Id))
                     didSomething = true;
             }
 

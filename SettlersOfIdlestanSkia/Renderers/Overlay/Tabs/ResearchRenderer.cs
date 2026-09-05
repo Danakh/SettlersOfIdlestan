@@ -295,7 +295,8 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private void DrawNode(SKCanvas canvas, Technology tech, SKRect rect, TechnologyStatus status, ResearchController ctrl)
     {
-        bool isQueued    = ctrl.GetQueuedResearch() == tech.Id;
+        int queuePosition = ctrl.GetQueuePosition(tech.Id);
+        bool isQueued    = queuePosition > 0;
         bool isDemoLocked = ctrl.IsDemoLocked(tech.Id);
 
         var bgPaint = status switch
@@ -362,7 +363,11 @@ public sealed class ResearchRenderer : IGameRenderer
 
         if (isQueued)
         {
-            string nextLabel = _localization.Get("research_next_label");
+            // La tête de file garde le libellé "Suivante" ; au-delà, le rang est affiché tel quel —
+            // la file peut compter plusieurs places (voir ResearchController.GetResearchQueueCapacity).
+            string nextLabel = queuePosition == 1
+                ? _localization.Get("research_next_label")
+                : _localization.GetFormated("research_queue_position_label", queuePosition);
             SkiaTextUtils.DrawText(canvas, nextLabel, rect.MidX, rect.Top + 51f, SKTextAlign.Center, _smallFont, _queuedTextPaint);
         }
 
@@ -562,10 +567,12 @@ public sealed class ResearchRenderer : IGameRenderer
             }
             else
             {
-                if (ctrl.GetQueuedResearch() == techId)
-                    ctrl.SetQueuedResearch(null);
-                else if (ctrl.CanBeQueued(techId))
-                    ctrl.SetQueuedResearch(techId);
+                // Re-cliquer une recherche déjà en file l'en retire ; sinon elle s'ajoute en fin de
+                // file, en évinçant la tête si toutes les places sont prises (voir EnqueueResearch).
+                if (ctrl.GetQueuePosition(techId) > 0)
+                    ctrl.DequeueResearch(techId);
+                else
+                    ctrl.EnqueueResearch(techId);
             }
             return;
         }
