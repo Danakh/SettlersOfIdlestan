@@ -22,7 +22,7 @@ public static class AscensionPowerDefinitions
             "ascension_power_divineinventory_name", "ascension_power_divineinventory_desc", column: 0, godPointCost: 5),
 
         new AscensionPowerDefinition(AscensionPowerId.HornOfPlenty,
-            "ascension_power_hornofplenty_name", "ascension_power_hornofplenty_desc", column: 0, godPointCost: 7),
+            "ascension_power_hornofplenty_name", "ascension_power_hornofplenty_desc", column: 0, godPointCost: 10),
 
         new AscensionPowerDefinition(AscensionPowerId.MemoryOfGod,
             "ascension_power_memoryofgod_name", "ascension_power_memoryofgod_desc", column: 1, godPointCost: 2),
@@ -37,7 +37,7 @@ public static class AscensionPowerDefinitions
             "ascension_power_presenceofgod_name", "ascension_power_presenceofgod_desc", column: 2, godPointCost: 5),
 
         new AscensionPowerDefinition(AscensionPowerId.GreaterPurification,
-            "ascension_power_greaterpurification_name", "ascension_power_greaterpurification_desc", column: 2, godPointCost: 7),
+            "ascension_power_greaterpurification_name", "ascension_power_greaterpurification_desc", column: 2, godPointCost: 10),
 
         new AscensionPowerDefinition(AscensionPowerId.ArmOfGod,
             "ascension_power_armofgod_name", "ascension_power_armofgod_desc", column: 3, godPointCost: 2),
@@ -46,7 +46,7 @@ public static class AscensionPowerDefinitions
             "ascension_power_fistofgod_name", "ascension_power_fistofgod_desc", column: 3, godPointCost: 5),
 
         new AscensionPowerDefinition(AscensionPowerId.WrathOfGod,
-            "ascension_power_wrathofgod_name", "ascension_power_wrathofgod_desc", column: 3, godPointCost: 7),
+            "ascension_power_wrathofgod_name", "ascension_power_wrathofgod_desc", column: 3, godPointCost: 10),
 
         new AscensionPowerDefinition(AscensionPowerId.DivineConstruction,
             "ascension_power_divineconstruction_name", "ascension_power_divineconstruction_desc", column: 4, godPointCost: 2),
