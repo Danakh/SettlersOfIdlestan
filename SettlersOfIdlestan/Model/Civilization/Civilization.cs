@@ -512,6 +512,14 @@ public class Civilization
     /// AscensionController.ApplyPermanentUniqueBuildingToCivilization, appelé à chaque début d'île.
     /// Marque immédiatement chaque type comme "déjà construit" (bloque sa construction manuelle,
     /// comme tout bâtiment unique) et fait apparaître ses bonus civ-wide.
+    ///
+    /// <para>Un exemplaire du même type déjà construit physiquement dans une ville est détruit au
+    /// passage (voir <see cref="DestroyPhysicalCopiesOfGrantedUniqueBuildings"/>) : le bâtiment
+    /// accordé le remplace, au niveau max absolu et sans occuper d'emplacement. Sans cette
+    /// destruction, l'exemplaire en ville gardait la clé du cache (le bâtiment accordé n'étant alors
+    /// jamais créé, l'emplacement permanent ne servait à rien) et ses modifiers étaient comptés deux
+    /// fois par <see cref="RebuildUniqueBuildingsModifiers"/> — une fois via les villes, une fois via
+    /// le type accordé.</para>
     /// </summary>
     public void SetAscensionGrantedUniqueBuildings(IEnumerable<BuildingType> types)
     {
@@ -521,8 +529,32 @@ public class Civilization
         // dictionnaire) — repartir propre plutôt que de laisser une instance orpheline d'un type qui
         // ne serait plus accordé continuer à occuper de la mémoire pour rien.
         _ascensionGrantedBuildingInstances.Clear();
+        DestroyPhysicalCopiesOfGrantedUniqueBuildings();
         RebuildUniqueBuildingCache();
         RebuildUniqueBuildingsModifiers();
+    }
+
+    /// <summary>
+    /// Détruit dans les villes tout bâtiment dont le type est désormais accordé en permanence par
+    /// l'Ascension — cas d'un bâtiment unique construit normalement, puis choisi comme bâtiment
+    /// permanent (le choix ne prend effet qu'au début d'île suivant, rechargement d'une sauvegarde
+    /// compris). L'emplacement de ville est ainsi libéré, et le bâtiment accordé — increvable et au
+    /// niveau max absolu — devient le seul exemplaire.
+    /// </summary>
+    private void DestroyPhysicalCopiesOfGrantedUniqueBuildings()
+    {
+        if (_ascensionGrantedUniqueBuildings.Count == 0) return;
+
+        for (int i = 0; i < _cities.Count; i++)
+        {
+            var city = _cities[i];
+            for (int j = city.Buildings.Count - 1; j >= 0; j--)
+            {
+                var building = city.Buildings[j];
+                if (_ascensionGrantedUniqueBuildings.Contains(building.Type))
+                    city.RemoveBuilding(building);
+            }
+        }
     }
 
     /// <summary>

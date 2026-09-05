@@ -315,6 +315,71 @@ public class AscensionControllerTests
         Assert.Equal(1.2, civ.ResearchProductionSpeed, precision: 5);
     }
 
+    /// <summary>
+    /// Bâtiment unique déjà construit en ville, puis choisi comme bâtiment permanent : l'exemplaire
+    /// physique est détruit au début d'île suivant (voir
+    /// Civilization.SetAscensionGrantedUniqueBuildings) et remplacé par le bâtiment accordé, au
+    /// niveau max absolu et sans occuper d'emplacement de ville.
+    /// </summary>
+    [Fact]
+    public void ApplyPermanentUniqueBuildingToCivilization_SameUniqueBuildingAlreadyBuiltInCity_DestroysThePhysicalCopy()
+    {
+        var (_, city, civ, ascension, _) = CreateTestSetup(ascensionsPerformed: 1);
+
+        // Académie construite normalement dans une ville, avant tout choix de bâtiment permanent.
+        var academy = new Academy { Level = 2 };
+        city.AddBuilding(academy);
+        civ.RegisterUniqueBuildingInCache(academy);
+        civ.RebuildUniqueBuildingsModifiers();
+        Assert.Contains(city.Buildings, b => b.Type == BuildingType.Academy);
+
+        ascension.SelectPermanentUniqueBuilding(BuildingType.Academy);
+        ascension.ApplyPermanentUniqueBuildingToCivilization();
+
+        // L'emplacement de ville est libéré : l'exemplaire construit n'existe plus.
+        Assert.DoesNotContain(city.Buildings, b => b.Type == BuildingType.Academy);
+
+        // Le bâtiment accordé prend sa place : instance neuve, au niveau max absolu, hors des villes.
+        int grantedLevel = ascension.GetPermanentUniqueBuildingLevel(BuildingType.Academy);
+        var granted = civ.GetUniqueBuilding(BuildingType.Academy);
+        Assert.NotNull(granted);
+        Assert.NotSame(academy, granted);
+        Assert.Equal(grantedLevel, granted!.Level);
+        Assert.True(civ.IsAscensionGrantedUniqueBuilding(BuildingType.Academy));
+
+        // Les modifiers viennent du seul bâtiment accordé — ni ceux de l'exemplaire détruit
+        // (niveau 2), ni les deux cumulés.
+        Assert.Equal(1.0 + 0.1 * grantedLevel, civ.ResearchProductionSpeed, precision: 5);
+    }
+
+    /// <summary>
+    /// Après destruction de l'exemplaire construit (voir le test précédent), le type reste bloqué à
+    /// la construction manuelle : le bâtiment accordé compte comme l'unique exemplaire.
+    /// </summary>
+    [Fact]
+    public void ApplyPermanentUniqueBuildingToCivilization_AfterDestroyingPhysicalCopy_BlocksRebuildingIt()
+    {
+        var (state, city, civ, ascension, _) = CreateTestSetup(ascensionsPerformed: 1);
+
+        city.AddBuilding(new Academy { Level = 2 });
+        civ.RebuildUniqueBuildingCache();
+        civ.RebuildUniqueBuildingsModifiers();
+
+        ascension.SelectPermanentUniqueBuilding(BuildingType.Academy);
+        ascension.ApplyPermanentUniqueBuildingToCivilization();
+
+        civ.AddResource(Resource.Brick, 1000);
+        civ.AddResource(Resource.Stone, 1000);
+        civ.AddResource(Resource.Glass, 1000);
+
+        var buildingController = new BuildingController(state);
+        var result = buildingController.BuildBuilding(city, BuildingType.Academy);
+
+        Assert.False(result);
+        Assert.DoesNotContain(city.Buildings, b => b.Type == BuildingType.Academy);
+        Assert.Contains(BuildingType.Academy, civ.UniqueBuildings);
+    }
+
     [Fact]
     public void CanPurchasePower_Faith_CostsOneGodPointAndRequiresEnoughPoints()
     {
