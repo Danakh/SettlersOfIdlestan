@@ -418,16 +418,7 @@ namespace SettlersOfIdlestan.Controller.Magic
         {
             if (_state == null) return;
             while (UsedPower > TotalPowerBudget)
-            {
-                var automated = _state.Magic.ActiveRituals
-                    .Where(r => IsRitualAutomated(r.Id))
-                    .OrderByDescending(r => r.Power)
-                    .FirstOrDefault();
-                if (automated == null) break;
-
-                if (automated.Power > 1) automated.Power--;
-                else _state.Magic.ActiveRituals.Remove(automated);
-            }
+                if (!ReduceStrongestAutomatedRitual()) break;
         }
 
         // ── Sorts instantanés ────────────────────────────────────────────────
@@ -809,14 +800,17 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         /// <summary>
         /// Une fois par seconde, ajuste la puissance des rituels automatisés (case "auto" sous les
-        /// boutons -/+, voir <see cref="SetRitualAutomated"/>) : si le gain net de cristaux/seconde est
-        /// négatif, réduit d'1 point le rituel automatisé le plus puissant (l'arrêtant s'il n'a plus que
-        /// la puissance 1) ; sinon augmente d'1 point le rituel automatisé le moins puissant, mais
-        /// seulement si la puissance totale reste dans le budget ET si le supplément d'entretien qui en
-        /// résulte laisse le gain net strictement positif. Un rituel armé mais pas encore lancé compte
-        /// comme une puissance 0 : il est donc servi en premier, et son lancement obéit aux mêmes règles
-        /// que n'importe quelle montée en puissance. Au plus un ajustement par seconde : on laisse
-        /// le tick suivant réévaluer la situation plutôt que de converger d'un coup, comme demandé.
+        /// boutons -/+, voir <see cref="SetRitualAutomated"/>) en les maintenant équilibrés en niveau :
+        /// si le gain net de cristaux/seconde est négatif, réduit d'1 point le rituel automatisé le plus
+        /// puissant (l'arrêtant s'il n'a plus que la puissance 1) ; sinon augmente d'1 point l'un des
+        /// rituels automatisés les moins puissants, mais seulement si la puissance totale reste dans le
+        /// budget ET si le supplément d'entretien qui en résulte laisse le gain net strictement positif.
+        /// Un rituel armé mais pas encore lancé compte comme une puissance 0 : il est donc servi en
+        /// premier, et son lancement obéit aux mêmes règles que n'importe quelle montée en puissance.
+        /// Quand le budget est saturé, l'équilibrage reprend 1 point au plus puissant dès que son écart
+        /// avec le plus faible atteint 2 (voir <see cref="AdjustAutomatedRitualPowerOnce"/>). Au plus un
+        /// ajustement par seconde : on laisse le tick suivant réévaluer la situation plutôt que de
+        /// converger d'un coup, comme demandé.
         /// </summary>
         private void ProcessRitualPowerAutomation()
         {
@@ -838,42 +832,46 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         private bool AdjustAutomatedRitualPowerOnce()
         {
-            var automatedIds = _state!.Magic.AutomatedRituals;
-            if (automatedIds.Count == 0) return false;
+            if (_state!.Magic.AutomatedRituals.Count == 0) return false;
 
             double net = GetNetCrystalPerSecond();
-            if (net < 0)
-            {
-                var toReduce = _state.Magic.ActiveRituals
-                    .Where(r => IsRitualAutomated(r.Id))
-                    .OrderByDescending(r => r.Power)
-                    .FirstOrDefault();
-                if (toReduce == null) return false;
+            if (net < 0) return ReduceStrongestAutomatedRitual();
 
-                // Le rituel arrêté reste armé : l'automatisation le relancera quand les cristaux reviendront.
-                if (toReduce.Power > 1) toReduce.Power--;
-                else _state.Magic.ActiveRituals.Remove(toReduce);
+            var candidates = GetAutomationBalancingCandidates();
+            if (candidates.Count == 0) return false;
+            int minPower = candidates[0].Power; // trié par puissance croissante
+
+            if (UsedPower >= TotalPowerBudget)
+            {
+                // Budget saturé : plus rien à distribuer, la seule marge d'équilibrage est de reprendre
+                // 1 point au rituel le plus fort pour que le tick suivant le rende au plus faible. On ne
+                // le fait qu'à partir d'un écart de 2, sans quoi le point ferait l'aller-retour à
+                // l'infini ; un écart de 1 est de toute façon inévitable dès que le budget ne se divise
+                // pas également entre les rituels automatisés.
+                var strongest = GetStrongestAutomatedRitual();
+                if (strongest == null || strongest.Power - minPower < 2) return false;
+                strongest.Power--;
                 return true;
             }
-
-            if (UsedPower >= TotalPowerBudget) return false;
 
             var civ = GetPlayerCiv();
             if (civ == null) return false;
 
-            foreach (var id in automatedIds.OrderBy(i => GetActiveRitual(i)?.Power ?? 0).ToList())
+            // Seuls les rituels déjà au niveau le plus bas peuvent monter : un rituel plus puissant ne
+            // prend jamais la place d'un plus faible bloqué (cristaux insuffisants, entretien trop lourd),
+            // sinon l'écart se creuserait indéfiniment au lieu de se résorber.
+            foreach (var (id, power) in candidates)
             {
+                if (power > minPower) break;
+
                 var def = RitualDefinitions.Get(id);
                 if (def == null) continue;
-
-                var active = GetActiveRitual(id);
-                int power = active?.Power ?? 0;
 
                 double upkeepIncreasePerSecond = (GetUpkeepCost(def, power + 1) - GetUpkeepCost(def, power))
                     / (UpkeepIntervalTicks / 100.0);
                 if (net - upkeepIncreasePerSecond <= 0) continue;
 
-                if (active == null)
+                if (power == 0)
                 {
                     if (!CanLaunchRitual(id)) continue;
                     LaunchRitual(id);
@@ -884,10 +882,64 @@ namespace SettlersOfIdlestan.Controller.Magic
                 if (civ.GetResourceQuantity(Resource.Crystal) < cost) continue;
 
                 civ.RemoveResource(Resource.Crystal, cost);
-                active.Power++;
+                GetActiveRitual(id)!.Power++;
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// Rituels automatisés que l'équilibrage peut effectivement servir, triés par puissance croissante
+        /// (puissance 0 = armé mais pas encore lancé), à égalité par identifiant pour rester déterministe.
+        /// Un rituel armé qui ne peut pas être lancé parce que le nombre de rituels simultanés est déjà
+        /// atteint est exclu : le laisser à puissance 0 dans la liste bloquerait la montée de tous les
+        /// autres, qui attendraient éternellement que le plus faible rattrape son retard.
+        /// </summary>
+        private List<(RitualId Id, int Power)> GetAutomationBalancingCandidates()
+        {
+            var result = new List<(RitualId Id, int Power)>();
+            bool slotFree = _state!.Magic.ActiveRituals.Count < MaxActiveRituals;
+
+            foreach (var id in _state.Magic.AutomatedRituals)
+            {
+                var active = GetActiveRitual(id);
+                if (active == null && (!slotFree || !IsRitualKnown(id))) continue;
+                result.Add((id, active?.Power ?? 0));
+            }
+
+            result.Sort((a, b) => a.Power != b.Power
+                ? a.Power.CompareTo(b.Power)
+                : ((int)a.Id).CompareTo((int)b.Id));
+            return result;
+        }
+
+        /// <summary>Rituel automatisé actif le plus puissant (à égalité, le plus petit identifiant).</summary>
+        private ActiveRitual? GetStrongestAutomatedRitual()
+        {
+            ActiveRitual? strongest = null;
+            var actives = _state!.Magic.ActiveRituals;
+            for (int i = 0; i < actives.Count; i++)
+            {
+                var candidate = actives[i];
+                if (!IsRitualAutomated(candidate.Id)) continue;
+                if (strongest == null || candidate.Power > strongest.Power
+                    || (candidate.Power == strongest.Power && (int)candidate.Id < (int)strongest.Id))
+                    strongest = candidate;
+            }
+            return strongest;
+        }
+
+        /// <summary>Retire 1 point de puissance au rituel automatisé le plus puissant, l'arrêtant s'il
+        /// n'a plus que la puissance 1. Le rituel arrêté reste armé : l'automatisation le relancera quand
+        /// les cristaux reviendront.</summary>
+        private bool ReduceStrongestAutomatedRitual()
+        {
+            var toReduce = GetStrongestAutomatedRitual();
+            if (toReduce == null) return false;
+
+            if (toReduce.Power > 1) toReduce.Power--;
+            else _state!.Magic.ActiveRituals.Remove(toReduce);
+            return true;
         }
 
         // ── Cercles de Fées ───────────────────────────────────────────────────

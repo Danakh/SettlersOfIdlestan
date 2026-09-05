@@ -462,6 +462,89 @@ namespace SOITests.ControllerTests
             Assert.True(controller.IsRitualAutomated(RitualId.Growth));
         }
 
+        /// <summary>
+        /// Montage d'automatisation avec une vraie production de cristaux (Hutte d'Alchimie ×100 sur un
+        /// Cercle de Fées) : le gain net reste largement positif, donc l'automatisation monte en puissance
+        /// au lieu de se réduire. <paramref name="powerBonus"/> s'ajoute au budget de base de 1.
+        /// </summary>
+        private static (WorldState state, GameClock clock, MagicController controller) CreateProducingAutomationSetup(
+            int powerBonus, int maxCountBonus)
+        {
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.PlayerCivilization;
+            civ.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
+            civ.Cities[0].AddBuilding(new AlchimistHut { Level = 1 });
+            state.AddFeature(new FairyCircle(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Found = true });
+            UnlockMagic(civ, RitualId.Growth, RitualId.Clairvoyance);
+            GrantCrystalStorage(civ, 100000);
+            civ.AddResource(Resource.Crystal, 100000);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(BuildingType.AlchimistHut), EType.MULTIPLICATIVE, 99.0),
+                new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, powerBonus),
+                new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, maxCountBonus),
+            }));
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MagicController();
+            controller.Initialize(state, clock, new GamePRNG(42),
+                new CityBuilderController(state), new BuildingController(state),
+                harvestController: new HarvestController(state, clock),
+                godState: CreateDivineRitualsGodState());
+
+            return (state, clock, controller);
+        }
+
+        [Fact]
+        public void ProcessRitualPowerAutomation_BalancesPowerBetweenAutomatedRituals()
+        {
+            // Budget saturé (4) partagé par deux rituels automatisés de puissance 3 et 1 : l'équilibrage
+            // reprend 1 point au plus fort, que le tick suivant rend au plus faible — jusqu'à 2/2.
+            var (state, clock, controller) = CreateProducingAutomationSetup(powerBonus: 3, maxCountBonus: 1);
+            Assert.Equal(4, controller.TotalPowerBudget);
+
+            clock.SimulateAdvance(1, chunkTicks: 1); // amorce le suivi (coldStartOnZero)
+
+            Assert.True(controller.LaunchRitual(RitualId.Growth));
+            Assert.True(controller.IncreaseRitualPower(RitualId.Growth));
+            Assert.True(controller.IncreaseRitualPower(RitualId.Growth)); // puissance 3
+            Assert.True(controller.LaunchRitual(RitualId.Clairvoyance));  // puissance 1, budget saturé
+            Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
+            Assert.True(controller.SetRitualAutomated(RitualId.Clairvoyance, true));
+
+            clock.SimulateAdvance(MagicController.RitualAutomationIntervalTicks * 5,
+                chunkTicks: MagicController.RitualAutomationIntervalTicks);
+
+            Assert.Equal(2, controller.GetActiveRitual(RitualId.Growth)!.Power);
+            Assert.Equal(2, controller.GetActiveRitual(RitualId.Clairvoyance)!.Power);
+            Assert.Equal(4, controller.UsedPower);
+        }
+
+        [Fact]
+        public void ProcessRitualPowerAutomation_GivesFreePowerToWeakestRitualNotToStrongest()
+        {
+            // Budget de 5, rituels automatisés à 3 et 1 : le point libre va au plus faible, et le plus
+            // fort ne monte pas tant que l'écart n'est pas résorbé (écart de 1 : budget indivisible).
+            var (state, clock, controller) = CreateProducingAutomationSetup(powerBonus: 4, maxCountBonus: 1);
+            Assert.Equal(5, controller.TotalPowerBudget);
+
+            clock.SimulateAdvance(1, chunkTicks: 1); // amorce le suivi (coldStartOnZero)
+
+            Assert.True(controller.LaunchRitual(RitualId.Growth));
+            Assert.True(controller.IncreaseRitualPower(RitualId.Growth));
+            Assert.True(controller.IncreaseRitualPower(RitualId.Growth)); // puissance 3
+            Assert.True(controller.LaunchRitual(RitualId.Clairvoyance));  // puissance 1, 1 point libre
+            Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
+            Assert.True(controller.SetRitualAutomated(RitualId.Clairvoyance, true));
+
+            clock.SimulateAdvance(MagicController.RitualAutomationIntervalTicks * 5,
+                chunkTicks: MagicController.RitualAutomationIntervalTicks);
+
+            Assert.Equal(3, controller.GetActiveRitual(RitualId.Growth)!.Power);
+            Assert.Equal(2, controller.GetActiveRitual(RitualId.Clairvoyance)!.Power);
+        }
+
         // ── Entretien & effondrement ─────────────────────────────────────────
 
         [Fact]
