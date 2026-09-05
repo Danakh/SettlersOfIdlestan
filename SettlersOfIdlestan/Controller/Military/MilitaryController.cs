@@ -556,6 +556,10 @@ public class MilitaryController
 
     public bool IsRaidUnlocked(Civilization civ) => _raidEngine.IsRaidUnlocked(civ);
     public bool IsRaidActive() => _raidEngine.IsRaidActive();
+    /// <summary>Entretien en or réellement débité chaque seconde par le raid en cours, réductions comprises (voir RaidEngine.EffectiveUpkeep).</summary>
+    public int GetRaidUpkeep(Civilization civ) => _raidEngine.EffectiveUpkeep(civ);
+    /// <summary>Entretien en or de la première seconde d'un raid lancé maintenant, réductions comprises (voir RaidEngine.InitialEffectiveUpkeep).</summary>
+    public int GetRaidInitialUpkeep(Civilization civ) => _raidEngine.InitialEffectiveUpkeep(civ);
     public Vertex? GetRaidTarget() => _raidEngine.GetRaidTarget();
     public HexCoord? GetRaidTargetHex() => _raidEngine.GetRaidTargetHex();
     public List<Vertex> GetSelectableTargets(Civilization civ) => _raidEngine.GetSelectableTargets(civ);

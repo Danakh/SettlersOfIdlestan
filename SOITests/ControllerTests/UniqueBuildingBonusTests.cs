@@ -87,7 +87,7 @@ public class UniqueBuildingBonusTests
     }
 
     [Fact]
-    public void SkullPit_GrantsMaxSoldiersBonusAndAttackRangeAndAttackSpeed()
+    public void SkullPit_GrantsMaxSoldiersBonusAndAttackRangeAndAttackSpeedAndRaidUpkeepReduction()
     {
         var (_, city, civ) = CreateSetup();
         Assert.Equal(0, civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_MAX_SOLDIERS_BONUS, "", 0));
@@ -98,6 +98,7 @@ public class UniqueBuildingBonusTests
         Assert.Equal(5, civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_MAX_SOLDIERS_BONUS, "", 0));
         Assert.Equal(1, civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_ATTACK_RANGE, "", 0));
         Assert.Equal(1.1, civ.ModifierAggregator.ApplyModifiers(ECategory.ATTACK_SPEED, "", 1.0));
+        Assert.Equal(10, civ.ModifierAggregator.ApplyModifiers(ECategory.RAID_UPKEEP_REDUCTION, "", 0));
     }
 
     [Fact]

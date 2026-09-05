@@ -25,6 +25,9 @@ internal class RaidEngine
     private MonsterCombatEngine? _monsterCombatEngine;
     private SoldierProductionEngine? _productionEngine;
 
+    /// <summary>Entretien en or débité à la première seconde d'un raid ; il croît ensuite de 2 par seconde (voir PayUpkeep).</summary>
+    internal const int InitialUpkeep = 10;
+
     private const long RaidCheckIntervalTicks = 100L;
     private long _lastRaidCheckTick = 0;
 
@@ -101,7 +104,7 @@ internal class RaidEngine
         _state.AutomationSettings.WarHeraldTargetVertex = null;
         _state.AutomationSettings.RaidTargetHex = null;
         _state.AutomationSettings.RaidTargetVertex = targetCityVertex;
-        _state.AutomationSettings.RaidCurrentUpkeep = 10;
+        _state.AutomationSettings.RaidCurrentUpkeep = InitialUpkeep;
         ApplyRaidFlows(civ, targetCityVertex);
 
         // Vendetta : un raid manuel du joueur sur une ville ennemie met à jour la civilisation ciblée
@@ -125,7 +128,7 @@ internal class RaidEngine
         _state.AutomationSettings.WarHeraldTargetVertex = null;
         _state.AutomationSettings.RaidTargetVertex = null;
         _state.AutomationSettings.RaidTargetHex = targetHex;
-        _state.AutomationSettings.RaidCurrentUpkeep = 10;
+        _state.AutomationSettings.RaidCurrentUpkeep = InitialUpkeep;
         ApplyMonsterRaidFlows(civ, targetHex);
 
         var nearestCities = civ.Cities
@@ -383,17 +386,42 @@ internal class RaidEngine
         }
     }
 
+    /// <summary>
+    /// Entretien réellement débité chaque seconde : l'entretien courant du raid (<see cref="InitialUpkeep"/>
+    /// au départ, +2 par cycle) diminué de RAID_UPKEEP_REDUCTION (Fosse aux Crânes orque), jamais sous 0.
+    /// La réduction s'applique au paiement plutôt qu'à la valeur stockée, pour qu'un bâtiment construit
+    /// ou perdu pendant le raid prenne effet immédiatement sans fausser l'escalade.
+    /// </summary>
+    internal int EffectiveUpkeep(Civilization civ)
+    {
+        if (_state == null) return 0;
+        return Math.Max(0, _state.AutomationSettings.RaidCurrentUpkeep - UpkeepReduction(civ));
+    }
+
+    /// <summary>
+    /// Entretien qu'un raid lancé maintenant coûterait à sa première seconde, réductions comprises —
+    /// ce qu'annonce l'infobulle de l'action Raid tant qu'aucun raid n'est en cours.
+    /// </summary>
+    internal int InitialEffectiveUpkeep(Civilization civ)
+        => Math.Max(0, InitialUpkeep - UpkeepReduction(civ));
+
+    private static int UpkeepReduction(Civilization civ)
+        => (int)civ.ModifierAggregator.ApplyModifiers(ECategory.RAID_UPKEEP_REDUCTION, "", 0.0);
+
     /// <summary>Débite l'upkeep courant et l'augmente pour le prochain cycle. Retourne false (et arrête le raid) si les fonds sont insuffisants.</summary>
     private bool PayUpkeep(Civilization playerCiv)
     {
-        int upkeep = _state!.AutomationSettings.RaidCurrentUpkeep;
+        int upkeep = EffectiveUpkeep(playerCiv);
         if (playerCiv.GetResourceQuantity(Resource.Gold) < upkeep)
         {
             StopRaid(playerCiv);
             return false;
         }
-        playerCiv.RemoveResource(Resource.Gold, upkeep);
-        _state.AutomationSettings.RaidCurrentUpkeep = upkeep + 2;
+        // Entretien entièrement absorbé par les réductions : rien à débiter — RemoveResource refuse
+        // une quantité nulle (voir Civilization.RemoveResource). L'escalade court quand même.
+        if (upkeep > 0)
+            playerCiv.RemoveResource(Resource.Gold, upkeep);
+        _state.AutomationSettings.RaidCurrentUpkeep += 2;
         return true;
     }
 

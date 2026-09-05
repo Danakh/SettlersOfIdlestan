@@ -309,6 +309,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             RESEARCH_QUEUE_SIZE,
             /// <summary>Nombre de routes de SURFACE posées par cycle d'automatisation de la Guilde des bâtisseurs (voir RoadController.BuildRoadsForGuildBurst). Base = 1 ; +4 = 5 routes posées d'un coup à chaque cycle en surface. La cadence des cycles elle-même est inchangée, et l'Inframonde garde sa route par cycle. SubCategory unused. Accordé par le jalon d'Ascension Exode Divin (AscensionMilestoneId.FreeRelocation).</summary>
             BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE,
+            /// <summary>Réduction plate de l'entretien en or payé chaque seconde par un Raid actif (voir RaidEngine.PayUpkeep). Base = 0 ; 10 annule les 10 or/s de départ, l'escalade de +2/s continuant à courir. Jamais sous 0. SubCategory unused. Accordé par la Fosse aux Crânes (Orcs).</summary>
+            RAID_UPKEEP_REDUCTION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

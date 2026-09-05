@@ -685,6 +685,18 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsRaidActive), ex); return false; }
     }
 
+    private int GetRaidUpkeep(Civilization civ)
+    {
+        try { return _gameControllerService.MainGameController.MilitaryController.GetRaidUpkeep(civ); }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(GetRaidUpkeep), ex); return 0; }
+    }
+
+    private int GetRaidInitialUpkeep(Civilization civ)
+    {
+        try { return _gameControllerService.MainGameController.MilitaryController.GetRaidInitialUpkeep(civ); }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(GetRaidInitialUpkeep), ex); return 0; }
+    }
+
     private bool IsWarHeraldVisible()
     {
         var civ = _gameControllerService.PlayerCivilization;
@@ -794,13 +806,13 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 {
                     _localization.Get("raid_action_stop"),
                     _localization.Get("tooltip_raid_active"),
-                    _localization.GetFormated("raid_upkeep_cost_current", worldState?.AutomationSettings.RaidCurrentUpkeep ?? 0),
+                    _localization.GetFormated("raid_upkeep_cost_current", GetRaidUpkeep(civ)),
                 }
                 : new List<string>
                 {
                     _localization.Get("raid_action"),
                     _localization.Get("tooltip_raid"),
-                    _localization.Get("raid_upkeep_cost"),
+                    _localization.GetFormated("raid_upkeep_cost", GetRaidInitialUpkeep(civ)),
                 };
             iconActions.Add(new CivActionSnapshot(
                 CivPanelSnapshot.KeyRaid,

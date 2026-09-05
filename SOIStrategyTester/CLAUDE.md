@@ -141,9 +141,18 @@ strategy as a starting point to tune (per the workflow above), not a finished an
 play the game?** It plays, once per race, every island **from the one the Ascension starts on through
 `--last-island`** (islands 4 → 5 for a Base race, island 5 alone for an Advanced one — see below) and
 prints a PASS/FAIL table.
-It is the race-wide counterpart of `SOITests`' `FullIslandTest`, which only ever exercises Humans — but
-deliberately *not* a test: it takes minutes, its per-island outcome depends on the seed, and a FAIL is
-something to read and judge, not to gate a build on.
+It is the race-wide counterpart of `SOITests`' `FullIslandTest`, which only ever exercises Humans.
+
+**It also exists as a test — one case per race, up to island 6, skipped by default.**
+`SOITests/StrategyTesterTests/RaceGauntletTests.cs` drives this same runner (and reads this same
+strategy file, copied into the test output), so a round can be played from the IDE's test runner
+rather than the CLI. It stays off unless asked for, and that is deliberate: a round takes minutes to
+tens of minutes per race, its per-island outcome depends on the seed, and a FAIL is something to read
+and judge, not to gate a build on. To play it:
+
+```bash
+SOI_RACE_GAUNTLET=1 dotnet test SOITests --filter "FullyQualifiedName~RaceGauntletTests"
+```
 
 ```bash
 dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --seed 1

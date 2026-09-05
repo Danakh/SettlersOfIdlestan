@@ -23,6 +23,11 @@
     <!-- PerformanceTests/ valide le générateur d'états de fin de partie et le profileur d'horloge de
          SOIBench. La dépendance va bien dans ce sens : SOIBench ne connaît que le coeur du jeu. -->
     <ProjectReference Include="..\SOIBench\SOIBench.csproj" />
+    <!-- StrategyTesterTests/ joue le race gauntlet de SOIStrategyTester (désactivé par défaut, voir
+         RaceGauntletTests). Même sens de dépendance : SOIStrategyTester ne connaît que le coeur du
+         jeu, jamais les tests. Apporte aussi ses Data/**/*.json en sortie, dont la stratégie que la
+         manche joue. -->
+    <ProjectReference Include="..\SOIStrategyTester\SOIStrategyTester.csproj" />
   </ItemGroup>
 
   <ItemGroup>

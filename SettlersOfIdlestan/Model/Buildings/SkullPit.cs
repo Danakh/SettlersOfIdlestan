@@ -6,9 +6,9 @@ namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
 /// Fosse aux Crânes : bâtiment unique racial des Orcs (voir RaceDefinitions). Augmente la capacité
-/// maximale de soldats des villes, ajoute +1 de portée d'attaque des villes et +10% de vitesse
-/// d'attaque. Niveau max par défaut 0 : constructible uniquement quand la race Orc fournit son
-/// BUILDING_MAX_LEVEL +1.
+/// maximale de soldats des villes, ajoute +1 de portée d'attaque des villes, +10% de vitesse
+/// d'attaque et retranche 10 or/s à l'entretien d'un Raid actif. Niveau max par défaut 0 :
+/// constructible uniquement quand la race Orc fournit son BUILDING_MAX_LEVEL +1.
 /// </summary>
 public class SkullPit : Building, IUniqueBuilding
 {
@@ -35,5 +35,6 @@ public class SkullPit : Building, IUniqueBuilding
         yield return new Modifier(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 5);
         yield return new Modifier(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1);
         yield return new Modifier(ECategory.ATTACK_SPEED, EType.ADDITIVE, 0.1);
+        yield return new Modifier(ECategory.RAID_UPKEEP_REDUCTION, EType.ADDITIVE, 10);
     }
 }
