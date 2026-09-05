@@ -79,12 +79,20 @@ internal class RaidEngine
     internal List<Vertex> GetSelectableAlliedTargets(Civilization civ)
         => civ.MilitaryVertices.Select(v => v.Position).ToList();
 
+    /// <summary>
+    /// Monstres ciblables par un raid : sur la couche affichée, et surtout <b>actuellement visibles</b>
+    /// pour le joueur. <see cref="IslandFeature.Found"/> ne suffit pas — c'est un
+    /// drapeau collant posé à la découverte (voir FeatureController.DiscoverFeatures) : un monstre qui
+    /// s'éloigne ensuite dans le brouillard de guerre le garde à true et restait proposé comme cible
+    /// alors que son hexagone n'est plus visible.
+    /// </summary>
     internal List<HexCoord> GetSelectableMonsterTargets()
     {
         if (_state == null) return new List<HexCoord>();
         int currentLayer = _state.CurrentViewedLayer;
+        var playerCiv = _state.PlayerCivilization;
         return _state.Features.OfType<MonsterFeature>()
-            .Where(m => m.Found && m.Position.Z == currentLayer && m is not Adventurer)
+            .Where(m => m.Found && m.Position.Z == currentLayer && m is not Adventurer && IsHexVisibleTo(m.Position, playerCiv))
             .Select(m => m.Position)
             .ToList();
     }
@@ -94,6 +102,13 @@ internal class RaidEngine
         var visibleMaps = _state!.Visibility.GetForZ(vertex.Position.Z);
         if (!visibleMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
         return visibleMap.IsVertexVisible(vertex.Position);
+    }
+
+    private bool IsHexVisibleTo(HexCoord hex, Civilization civ)
+    {
+        var visibleMaps = _state!.Visibility.GetForZ(hex.Z);
+        if (!visibleMaps.TryGetValue(civ.Index, out var visibleMap)) return true;
+        return visibleMap.HasTile(hex);
     }
 
     private const int NearestCitiesCheckedForSoldierCapacity = 3;
@@ -365,7 +380,10 @@ internal class RaidEngine
         else
         {
             var monster = _state.Features.OfType<MonsterFeature>().FirstOrDefault(m => m.Position.Equals(targetHex));
-            if (monster == null)
+            // Même règle que pour une ville : la cible doit exister et rester visible — un monstre qui
+            // s'éloigne dans le brouillard de guerre met fin au raid au lieu d'en facturer l'entretien
+            // indéfiniment.
+            if (monster == null || !IsHexVisibleTo(monster.Position, playerCiv))
             {
                 StopRaid(playerCiv);
                 return;
