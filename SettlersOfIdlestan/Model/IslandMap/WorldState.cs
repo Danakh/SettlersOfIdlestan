@@ -383,6 +383,29 @@ public class WorldState : IJsonOnDeserialized
     public bool HasFeaturesAt(HexCoord hex) => _featuresByHex.ContainsKey(hex);
 
     /// <summary>
+    /// Somme des niveaux de Dominion présents sur les 3 hexs d'un emplacement. C'est la mesure
+    /// commune à tous les bonus indexés sur l'emprise divine autour d'une ville : régénération de
+    /// défense (Foi Protectrice, Bastion Consacré — voir MilitaryController.GetDefenseRegenSpeed) et
+    /// vitesse de Fonderie (Creuset du Dominion — voir HarvestController.GetEffectiveSmelterCooldown).
+    ///
+    /// <para>Appelée à chaque événement d'horloge pour chaque emplacement : boucles indexées, pas de
+    /// LINQ.</para>
+    /// </summary>
+    public int GetDominionLevelSumAround(Vertex position)
+    {
+        int total = 0;
+        var hexes = position.GetHexes();
+        for (int h = 0; h < hexes.Length; h++)
+        {
+            var features = GetFeaturesAt(hexes[h]);
+            for (int f = 0; f < features.Count; f++)
+                if (features[f] is Dominion dominion)
+                    total += dominion.Level;
+        }
+        return total;
+    }
+
+    /// <summary>
     /// Vrai si cette feature fait toujours partie du monde. Passe par l'index par hexagone (quelques
     /// entrées) plutôt que par <c>Features.Contains</c>, qui balaie la liste entière : une passe qui
     /// vérifie ainsi chacune de ses sources — la propagation Corruption/Dominion le fait — était

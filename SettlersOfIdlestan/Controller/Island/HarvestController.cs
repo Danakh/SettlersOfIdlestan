@@ -540,11 +540,26 @@ namespace SettlersOfIdlestan.Controller.Island
             => Math.Max(1L, (long)(AlchimistHutPotionBaseIntervalTicks * Math.Pow(0.9, level - 1)));
 
 
-        /// <summary>Cooldown effectif du cycle de la Fonderie, après réduction par niveau puis application du modificateur SMELTER_SPEED.</summary>
-        public static long GetEffectiveSmelterCooldown(Civilization civ, Smelter smelter)
+        /// <summary>
+        /// Cooldown effectif du cycle de la Fonderie : réduction par niveau, puis modificateur
+        /// SMELTER_SPEED de la civilisation, auquel s'ajoute le bonus par niveau de Dominion sur les
+        /// 3 hexs de la ville (DOMINION_SMELTER_SPEED_PER_LEVEL, Creuset du Dominion) — même calcul
+        /// que la régénération de défense du Bastion Consacré, voir
+        /// <see cref="MilitaryController.GetDefenseRegenSpeed"/>.
+        ///
+        /// <para><paramref name="state"/> et <paramref name="city"/> sont nullables : un appelant qui
+        /// ne sait pas dans quelle ville se trouve la Fonderie passe null explicitement et n'obtient
+        /// que la part de civilisation, sans bonus de Dominion.</para>
+        /// </summary>
+        public static long GetEffectiveSmelterCooldown(WorldState? state, Civilization civ, City? city, Smelter smelter)
         {
             long baseCooldown = smelter.GetAutomaticHarvestCooldown(Smelter.ProductionCooldownTicks);
             double speed = civ.ModifierAggregator.ApplyModifiers(ECategory.SMELTER_SPEED, "", 1.0);
+
+            double perDominionLevel = civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_SMELTER_SPEED_PER_LEVEL, "", 0.0);
+            if (perDominionLevel > 0 && state != null && city != null)
+                speed += perDominionLevel * state.GetDominionLevelSumAround(city.Position);
+
             return Math.Max(1L, (long)(baseCooldown / speed));
         }
 
@@ -927,7 +942,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 var smelter = city.FindBuilding<Smelter>(BuildingType.Smelter);
                 if (smelter != null && smelter.Level >= 1 && smelter.ActivationStatus == ActivationStatus.ACTIVE)
                 {
-                    double cyclesPerSecond = 100.0 / GetEffectiveSmelterCooldown(civ, smelter);
+                    double cyclesPerSecond = 100.0 / GetEffectiveSmelterCooldown(_state, civ, city, smelter);
                     AddSourceRate(result, Resource.Steel, BuildingSourceKey(BuildingType.Smelter), GetSmelterSteelOutput(civ) * cyclesPerSecond);
                 }
 
@@ -993,7 +1008,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 var smelter = city.FindBuilding<Smelter>(BuildingType.Smelter);
                 if (smelter != null && smelter.Level >= 1 && smelter.ActivationStatus == ActivationStatus.ACTIVE)
                 {
-                    double cyclesPerSecond = 100.0 / GetEffectiveSmelterCooldown(civ, smelter);
+                    double cyclesPerSecond = 100.0 / GetEffectiveSmelterCooldown(_state, civ, city, smelter);
                     string smelterKey = BuildingSourceKey(BuildingType.Smelter);
                     AddSourceRate(result, Resource.Ore, smelterKey, GetSmelterOreInput(civ) * cyclesPerSecond);
                     AddSourceRate(result, Resource.Wood, smelterKey, Smelter.WoodInputPerCycle * cyclesPerSecond);

@@ -249,7 +249,7 @@ public class CityBuildingService
     {
         var civ = SelectedCivilization;
         var smelter = SelectedCity?.Buildings.OfType<Smelter>().FirstOrDefault();
-        return civ == null || smelter == null ? Smelter.ProductionCooldownTicks : HarvestController.GetEffectiveSmelterCooldown(civ, smelter);
+        return civ == null || smelter == null ? Smelter.ProductionCooldownTicks : HarvestController.GetEffectiveSmelterCooldown(State, civ, SelectedCity, smelter);
     }
 
     /// <summary>Minerai consommé par coulée de la Fonderie de la civilisation sélectionnée.</summary>

@@ -39,7 +39,7 @@ internal sealed class SmelterProductionEngine
                 var smelter = city.FindBuilding<Smelter>(BuildingType.Smelter);
                 if (smelter == null || smelter.Level < 1 || smelter.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
-                long cooldown = HarvestController.GetEffectiveSmelterCooldown(civ, smelter);
+                long cooldown = HarvestController.GetEffectiveSmelterCooldown(_state, civ, city, smelter);
                 long lastTick = smelter.LastProductionTick;
                 long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, cooldown, coldStartOnZero: true);
                 smelter.LastProductionTick = lastTick;

@@ -275,20 +275,9 @@ public class MilitaryController
         // pour chaque emplacement à chaque événement d'horloge.
         double buildingBonus = vertex is City city ? city.DefenseRegenBonus : 0;
 
-        double dominionBonus = 0.0;
-        if (perDominionLevel > 0)
-        {
-            int dominionLevels = 0;
-            var hexes = vertex.Position.GetHexes();
-            for (int h = 0; h < hexes.Length; h++)
-            {
-                var features = _state!.GetFeaturesAt(hexes[h]);
-                for (int f = 0; f < features.Count; f++)
-                    if (features[f] is Dominion dominion)
-                        dominionLevels += dominion.Level;
-            }
-            dominionBonus = perDominionLevel * dominionLevels;
-        }
+        double dominionBonus = perDominionLevel > 0
+            ? perDominionLevel * _state!.GetDominionLevelSumAround(vertex.Position)
+            : 0.0;
 
         double underworldBonus = vertex.Position.Z == LayerState.UnderworldZ ? underworldRegenBonus : 0.0;
 

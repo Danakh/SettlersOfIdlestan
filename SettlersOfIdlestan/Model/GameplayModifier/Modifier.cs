@@ -292,6 +292,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             MARITIME_BEACON_DEEP_WATER_PLACEMENT,
             /// <summary>Réduction du malus de profondeur appliqué aux actions du Dominion (production de Temple et débordement, voir CorruptionController.GetDominionLayerDivisorMilli), par couche franchie. Base = 0.0, soit un malus de 2 par couche (÷2 Inframonde, ÷4 Abysses, ÷8 Pandémonium) ; 0.5 ramène le malus à 1,5 par couche (÷1,5 / ÷2,25 / ÷3,375). Jamais sous 1 (aucun malus). SubCategory unused. Accordé par le Dogme de l'Emprise.</summary>
             DOMINION_LAYER_PENALTY_REDUCTION,
+            /// <summary>Bonus de vitesse de la Fonderie par niveau de Dominion sur les 3 hexs de sa ville. Base = 0.0 ; s'ajoute au multiplicateur SMELTER_SPEED après multiplication par la somme des niveaux de Dominion autour de la ville — même calcul que DOMINION_DEFENSE_REGEN_PER_LEVEL (voir HarvestController.GetEffectiveSmelterCooldown). SubCategory unused. Accordé par le Creuset du Dominion.</summary>
+            DOMINION_SMELTER_SPEED_PER_LEVEL,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

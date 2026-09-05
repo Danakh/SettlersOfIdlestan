@@ -354,6 +354,12 @@ public class TechnologyModifierTests
         Assert.Equal(0.01, BuildAggregator(TechnologyId.BastionConsacre).ApplyModifiers(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, "", 0.0), 5);
     }
 
+    [Fact]
+    public void CreusetDuDominion_DominionSmelterSpeedPerLevel_Plus0Point03()
+    {
+        Assert.Equal(0.03, BuildAggregator(TechnologyId.CreusetDuDominion).ApplyModifiers(ECategory.DOMINION_SMELTER_SPEED_PER_LEVEL, "", 0.0), 5);
+    }
+
     // ── RequiresDominionUnlock ────────────────────────────────────────────────
     // Les recherches du Dominion doivent rester verrouillées derrière le pouvoir divin Foi ;
     // celles qui n'en dépendent pas ne doivent pas porter le flag par accident.
@@ -367,6 +373,7 @@ public class TechnologyModifierTests
             TechnologyId.Evangelisation,
             TechnologyId.TerreConsacree,
             TechnologyId.BastionConsacre,
+            TechnologyId.CreusetDuDominion,
         };
         var actual = TechnologyDefinitions.All
             .Where(t => t.RequiresDominionUnlock)

@@ -163,6 +163,11 @@ public enum TechnologyId
     // niveau abaisse le multiplicateur du coût en points de recherche des routes du Vide (×3 → ×2).
     CartesDesEtoiles,
     CoeurDeLaTerre,
+    // Un tier au-dessus de l'Acier Abyssal et du Cœur de la Terre, dont elle dépend : chaque Fonderie
+    // gagne 3% de vitesse par niveau de Dominion sur les 3 hexs de sa ville (voir
+    // ECategory.DOMINION_SMELTER_SPEED_PER_LEVEL). Verrouillée derrière le pouvoir divin Foi comme
+    // les autres recherches du Dominion.
+    CreusetDuDominion,
     // Baissée de 2 tiers (coût / 16) puis d'un tier supplémentaire (coût / 4), tier 9, pour la rendre
     // accessible plus tôt.
     Omniscience,

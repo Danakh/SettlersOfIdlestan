@@ -1031,6 +1031,8 @@
   "tech_necropole_divine_desc": "Unlocks the Necropolis, a monument built on unpurified Divine Bones.\n► Construction consumes the bones, sacrificing the Divine Essence they held\n► Each level raises the Divine Points earned on Ascension by 10%",
   "tech_coeur_de_la_terre_name": "Heart of the Earth",
   "tech_coeur_de_la_terre_desc": "Your miners hear the heartbeat of the world: +50% Mine harvest speed.",
+  "tech_creuset_du_dominion_name": "Crucible of Dominion",
+  "tech_creuset_du_dominion_desc": "Steel melts faster where your god reigns: each Smelter gains +3% speed per Dominion level on its city's hexes.",
   "tech_omniscience_name": "Omniscience",
   "tech_omniscience_desc": "Nothing escapes your scholars anymore: +50% research point generation speed.",
   "tech_legion_eternelle_name": "Eternal Legion",

@@ -6,6 +6,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Monsters;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
@@ -334,7 +335,7 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(Smelter.OreInputPerCycle, HarvestController.GetSmelterOreInput(civ));
             Assert.Equal(Smelter.SteelOutputPerCycle, HarvestController.GetSmelterSteelOutput(civ));
-            Assert.Equal(Smelter.ProductionCooldownTicks, HarvestController.GetEffectiveSmelterCooldown(civ, new Smelter { Level = 1 }));
+            Assert.Equal(Smelter.ProductionCooldownTicks, HarvestController.GetEffectiveSmelterCooldown(null, civ, null, new Smelter { Level = 1 }));
         }
 
         [Fact]
@@ -369,7 +370,7 @@ namespace SOITests.ControllerTests
                 new Modifier(ECategory.SMELTER_SPEED, EType.ADDITIVE, 0.15),
             }));
 
-            Assert.True(HarvestController.GetEffectiveSmelterCooldown(civ, new Smelter { Level = 1 }) < Smelter.ProductionCooldownTicks);
+            Assert.True(HarvestController.GetEffectiveSmelterCooldown(null, civ, null, new Smelter { Level = 1 }) < Smelter.ProductionCooldownTicks);
         }
 
         [Fact]
@@ -377,7 +378,38 @@ namespace SOITests.ControllerTests
         {
             var civ = new Civilization { Index = 0 };
 
-            Assert.True(HarvestController.GetEffectiveSmelterCooldown(civ, new Smelter { Level = 3 }) < Smelter.ProductionCooldownTicks);
+            Assert.True(HarvestController.GetEffectiveSmelterCooldown(null, civ, null, new Smelter { Level = 3 }) < Smelter.ProductionCooldownTicks);
+        }
+
+        /// <summary>
+        /// Creuset du Dominion : le bonus s'ajoute au multiplicateur SMELTER_SPEED, en comptant les
+        /// niveaux de Dominion des 3 hexs de la ville — même mesure que le Bastion Consacré.
+        /// </summary>
+        [Fact]
+        public void Smelter_WithDominionAroundCity_HasShorterCooldown()
+        {
+            var (state, _, city) = CreateSmelterSetup(smelterLevel: 1, initialOre: 999, initialWood: 999, initialSteel: 0, steelStorageCapacity: 1000);
+            var civ = state.Civilizations[0];
+            var smelter = city.FindBuilding<Smelter>(BuildingType.Smelter)!;
+
+            // Dominion 2 + 3 + 4 = 9 niveaux autour de la ville ; le Centre n'est pas un hex de la
+            // ville et ne doit pas compter.
+            state.AddFeature(new Dominion(NE,   level: 2));
+            state.AddFeature(new Dominion(East, level: 3));
+            state.AddFeature(new Dominion(NE11, level: 4));
+            state.AddFeature(new Dominion(Center, level: 5));
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.DOMINION_SMELTER_SPEED_PER_LEVEL, EType.ADDITIVE, 0.03),
+            }));
+
+            // Vitesse 1 + 9 × 0.03 = 1.27 ⇒ 2000 / 1.27 = 1574 ticks.
+            Assert.Equal((long)(Smelter.ProductionCooldownTicks / 1.27),
+                HarvestController.GetEffectiveSmelterCooldown(state, civ, city, smelter));
+
+            // Sans la ville, l'appelant n'obtient que la part de civilisation.
+            Assert.Equal(Smelter.ProductionCooldownTicks,
+                HarvestController.GetEffectiveSmelterCooldown(state, civ, null, smelter));
         }
 
         // ── Commerce — vente d'Acier (Aciers Spéciaux) ────────────────────────

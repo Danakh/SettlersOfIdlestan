@@ -721,6 +721,20 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.HARVEST_SPEED, "Mine", EType.ADDITIVE, 0.5) },
             tier: 10, line: 1),
 
+        // Jonction de l'Acier Abyssal et du Cœur de la Terre : chaque Fonderie gagne 3% de vitesse
+        // par niveau de Dominion présent sur les 3 hexs de sa ville — même mesure de l'emprise que la
+        // régénération de défense du Bastion Consacré (WorldState.GetDominionLevelSumAround), le
+        // bonus s'ajoutant au multiplicateur SMELTER_SPEED (voir
+        // HarvestController.GetEffectiveSmelterCooldown). Sans Dominion elle ne donne rien, d'où le
+        // verrou derrière le pouvoir divin Foi.
+        new(TechnologyId.CreusetDuDominion,
+            "tech_creuset_du_dominion_name", "tech_creuset_du_dominion_desc",
+            cost: 418750000,
+            prerequisites: new[] { TechnologyId.AcierAbyssal, TechnologyId.CoeurDeLaTerre },
+            modifiers: new Modifier[] { new(ECategory.DOMINION_SMELTER_SPEED_PER_LEVEL, EType.ADDITIVE, 0.03) },
+            tier: 11, line: 1,
+            requiresDominionUnlock: true),
+
         // Baissée d'un tier (coût / 4).
         new(TechnologyId.Omniscience,
             "tech_omniscience_name", "tech_omniscience_desc",
