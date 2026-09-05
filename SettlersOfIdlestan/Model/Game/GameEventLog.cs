@@ -138,6 +138,17 @@ public class GameEventLog
 
     private readonly Queue<GameLogEntry> _pendingToasts = new();
 
+    private EventLogFilter? _filter;
+
+    /// <summary>
+    /// Câble les préférences d'affichage du joueur (voir <see cref="EventLogFilter"/>). Elles
+    /// vivent dans <see cref="GameSettings"/>, donc hors du WorldState : ce câblage est refait à
+    /// chaque île/prestige/ascension/chargement, comme celui d'AutomationSettings.
+    ///
+    /// Sans câblage, rien n'est filtré : un journal non lié (tests, génération) journalise tout.
+    /// </summary>
+    public void Bind(EventLogFilter? filter) => _filter = filter;
+
     /// <summary>
     /// Ajoute une entrée au journal.
     ///
@@ -163,6 +174,16 @@ public class GameEventLog
                 + $" (toast={toast}, message={message ?? "aucun"})");
             return;
         }
+
+        // La famille est désormais connue du joueur, et sa case apparaît dans les réglages. Marqué
+        // avant le filtrage : une famille masquée doit rester listée, sans quoi la décocher la
+        // ferait disparaître de l'écran qui sert à la recocher.
+        _filter?.MarkKnown(type);
+
+        // Famille masquée par le joueur : on refuse l'entrée à la source plutôt que de la filtrer
+        // à l'affichage. C'est ce qui éteint d'un coup ses trois manifestations — la ligne du
+        // journal, la pulsation de l'onglet (qui compte Entries) et le toast (jamais mis en file).
+        if (_filter?.IsEventVisible(type) == false) return;
 
         var entry = new GameLogEntry(type, message, toast);
         Entries.Insert(0, entry);

@@ -96,7 +96,7 @@ public sealed class TabBarRenderer : IDisposable
         _underworldGlowing = _hasUnderworldTab && !(_gameControllerService.CurrentWorldState?.HasVisitedUnderworld ?? true);
         _hasAbyssTab      = !ascensionPending && IsLayerAccessible(LayerState.AbyssZ);
         _hasPandemoniumTab = !ascensionPending && IsLayerAccessible(LayerState.PandemoniumZ);
-        bool showEventsTab = !ascensionPending && (showPrestigeTabs || HasEventLogEntries());
+        bool showEventsTab = !ascensionPending && (showPrestigeTabs || HasEventLogEntries() || HasHiddenEventCategories());
 
         if (!_hasResearchTab   && _activeTab == TabResearch)   _activeTab = TabIsland;
         if (!showPrestigeTabs  && _activeTab is TabPrestige or TabStats) _activeTab = TabIsland;
@@ -260,6 +260,17 @@ public sealed class TabBarRenderer : IDisposable
     {
         try { return _gameControllerService.CurrentWorldState?.EventLog?.HasEntries == true; }
         catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(HasEventLogEntries), ex); return false; }
+    }
+
+    /// <summary>
+    /// Le joueur a masqué au moins une famille d'événements (voir EventLogFilter). Sans ce cas,
+    /// l'onglet resterait caché tant que le journal est vide — et un joueur qui a tout décoché sur
+    /// une île sans prestige n'aurait plus aucun moyen de rouvrir les réglages pour revenir dessus.
+    /// </summary>
+    private bool HasHiddenEventCategories()
+    {
+        try { return _gameControllerService.CurrentGameState?.Settings.EventLogFilter.HiddenCategories.Count > 0; }
+        catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(HasHiddenEventCategories), ex); return false; }
     }
 
     private bool IsResearchUnlocked()

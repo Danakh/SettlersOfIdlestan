@@ -483,6 +483,9 @@ public sealed class GameScreen : IDisposable
     public EventLogSnapshot GetEventLogSnapshot() =>
         _overlayRenderer?.GetEventLogSnapshot() ?? EventLogSnapshot.Hidden;
 
+    public void ToggleEventLogSettingsFromHost() => _overlayRenderer?.ToggleEventLogSettingsFromHost();
+    public void ToggleEventLogFilterFromHost(string key) => _overlayRenderer?.ToggleEventLogFilterFromHost(key);
+
     /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
     public StatsSnapshot GetStatsSnapshot() =>
         _overlayRenderer?.GetStatsSnapshot() ?? StatsSnapshot.Hidden;

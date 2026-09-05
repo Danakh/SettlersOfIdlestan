@@ -504,6 +504,11 @@ namespace SettlersOfIdlestan.Controller
 
                 WorldState.Visibility.Recalculate();
 
+                // Préférences d'affichage du Journal : elles vivent dans les settings (donc
+                // cross-île/prestige/ascension) alors que le journal, lui, naît avec le WorldState.
+                // Recâblé ici à chaque initialisation, comme AutomationSettings.Bind plus bas.
+                WorldState.EventLog.Bind(CurrentMainState!.Settings.EventLogFilter);
+
                 // Migration : les anciennes sauvegardes stockaient les épingles du panel de
                 // civilisation par île (AutomationSettings.PinnedToCivPanel). On les reporte vers
                 // les settings persistants pour qu'elles survivent aux nouvelles îles/prestiges.

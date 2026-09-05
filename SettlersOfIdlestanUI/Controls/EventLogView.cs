@@ -1,8 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using SettlersOfIdlestanUI.ViewModels;
@@ -27,6 +29,9 @@ public sealed class EventLogView : UserControl
     private static readonly SolidColorBrush Accent = new(Color.FromRgb(255, 215, 0));
     private static readonly SolidColorBrush Muted = new(Color.FromRgb(120, 120, 130));
     private static readonly SolidColorBrush BodyText = new(Color.FromRgb(200, 200, 210));
+    private static readonly SolidColorBrush TabIdle = new(Color.FromArgb(220, 30, 30, 40));
+    private static readonly SolidColorBrush TabActive = new(Color.FromArgb(220, 60, 55, 20));
+    private static readonly SolidColorBrush TabBorder = new(Color.FromRgb(60, 60, 80));
 
     public EventLogView(EventLogViewModel viewModel)
     {
@@ -36,14 +41,25 @@ public sealed class EventLogView : UserControl
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Stretch;
 
-        var header = new TextBlock
+        var title = new TextBlock
         {
             FontSize = 17,
             FontWeight = FontWeight.Bold,
             Foreground = Accent,
-            Margin = new Thickness(0, 0, 0, 14),
+            VerticalAlignment = VerticalAlignment.Center,
             [!TextBlock.TextProperty] = new Binding(nameof(EventLogViewModel.Title)),
         };
+
+        // Onglet Reglages, en haut a droite : bascule la page entre la liste et les cases a
+        // cocher. Un Border cliquable plutot qu'un Button — le template Button du theme repeint
+        // le fond au survol et masquerait l'etat actif.
+        var settingsTab = BuildSettingsTab(viewModel);
+
+        var header = new DockPanel { LastChildFill = false, Margin = new Thickness(0, 0, 0, 14) };
+        DockPanel.SetDock(title, Dock.Left);
+        DockPanel.SetDock(settingsTab, Dock.Right);
+        header.Children.Add(title);
+        header.Children.Add(settingsTab);
 
         var empty = new TextBlock
         {
@@ -61,10 +77,20 @@ public sealed class EventLogView : UserControl
                 (_, _) => BuildCard(), supportsRecycling: true),
         };
 
+        var entriesPage = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            [!IsVisibleProperty] = new Binding(nameof(EventLogViewModel.ShowEntries)),
+        };
+        entriesPage.Children.Add(empty);
+        entriesPage.Children.Add(entries);
+
+        var settingsPage = BuildSettingsPage(viewModel);
+
         var stack = new StackPanel { Orientation = Orientation.Vertical };
         stack.Children.Add(header);
-        stack.Children.Add(empty);
-        stack.Children.Add(entries);
+        stack.Children.Add(entriesPage);
+        stack.Children.Add(settingsPage);
 
         var scroll = new ScrollViewer
         {
@@ -76,6 +102,122 @@ public sealed class EventLogView : UserControl
         };
 
         Content = new Border { Background = PanelBackground, Child = scroll };
+    }
+
+    /// <summary>
+    /// Bouton engrenage de l'onglet Reglages. Sa surbrillance suit ShowSettings : sans elle, rien
+    /// ne dirait, une fois la page basculee, d'ou vient ce qu'on regarde ni comment en sortir.
+    /// </summary>
+    private static Control BuildSettingsTab(EventLogViewModel viewModel)
+    {
+        var gear = GearIcon.Create(16, Accent);
+        gear.HorizontalAlignment = HorizontalAlignment.Center;
+        gear.VerticalAlignment = VerticalAlignment.Center;
+
+        var tab = new Border
+        {
+            Padding = new Thickness(8, 5),
+            CornerRadius = new CornerRadius(6),
+            BorderThickness = new Thickness(1),
+            VerticalAlignment = VerticalAlignment.Center,
+            Cursor = new Cursor(StandardCursorType.Hand),
+            Child = gear,
+            [!BackgroundProperty] = new Binding(nameof(EventLogViewModel.ShowSettings))
+            {
+                Converter = new FuncValueConverter<bool, IBrush>(on => on ? TabActive : TabIdle),
+            },
+            [!BorderBrushProperty] = new Binding(nameof(EventLogViewModel.ShowSettings))
+            {
+                Converter = new FuncValueConverter<bool, IBrush>(on => on ? Accent : TabBorder),
+            },
+        };
+
+        tab.PointerPressed += (_, e) =>
+        {
+            e.Handled = true;
+            viewModel.ToggleSettings();
+        };
+
+        return tab;
+    }
+
+    /// <summary>
+    /// Page Reglages : une case a cocher par famille d'evenements. Decochee, la famille disparait
+    /// du journal, n'allume plus l'onglet et ne produit plus de toast — le filtre est applique a
+    /// la source, dans GameEventLog.Add.
+    /// </summary>
+    private static Control BuildSettingsPage(EventLogViewModel viewModel)
+    {
+        var header = new TextBlock
+        {
+            FontSize = 13,
+            FontWeight = FontWeight.Bold,
+            Foreground = Accent,
+            [!TextBlock.TextProperty] = new Binding(nameof(EventLogViewModel.SettingsTitle)),
+        };
+
+        var hint = new TextBlock
+        {
+            FontSize = 12,
+            Foreground = Muted,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 4, 0, 12),
+            [!TextBlock.TextProperty] = new Binding(nameof(EventLogViewModel.SettingsHint)),
+        };
+
+        var rows = new ItemsControl
+        {
+            [!ItemsControl.ItemsSourceProperty] = new Binding(nameof(EventLogViewModel.Filters)),
+            ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel { Spacing = 4 }),
+            ItemTemplate = new FuncDataTemplate<EventLogFilterViewModel>(
+                (_, _) => BuildFilterRow(viewModel), supportsRecycling: true),
+        };
+
+        // Une famille n'apparait qu'une fois croisee dans la partie : la liste peut donc etre vide.
+        var noFilter = new TextBlock
+        {
+            FontSize = 12,
+            Foreground = Muted,
+            TextWrapping = TextWrapping.Wrap,
+            [!TextBlock.TextProperty] = new Binding(nameof(EventLogViewModel.SettingsEmptyMessage)),
+            [!IsVisibleProperty] = new Binding(nameof(EventLogViewModel.HasNoFilter)),
+        };
+
+        var stack = new StackPanel { Orientation = Orientation.Vertical };
+        stack.Children.Add(header);
+        stack.Children.Add(hint);
+        stack.Children.Add(noFilter);
+        stack.Children.Add(rows);
+
+        return new Border
+        {
+            Padding = new Thickness(12, 10),
+            CornerRadius = new CornerRadius(6),
+            BorderThickness = new Thickness(1),
+            Background = TabIdle,
+            BorderBrush = TabBorder,
+            Child = stack,
+            [!IsVisibleProperty] = new Binding(nameof(EventLogViewModel.ShowSettings)),
+        };
+    }
+
+    private static Control BuildFilterRow(EventLogViewModel viewModel)
+    {
+        EventLogFilterViewModel? model = null;
+
+        var box = new CheckBox
+        {
+            // Sans couleur explicite, le libelle herite du noir du theme, illisible sur ce fond
+            // sombre (meme correctif que la bascule globale de l'onglet Automatisation).
+            Foreground = BodyText,
+            [!ToggleButton.IsCheckedProperty] = new Binding(nameof(EventLogFilterViewModel.IsChecked)),
+            [!ContentProperty] = new Binding(nameof(EventLogFilterViewModel.Label)),
+        };
+
+        box.DataContextChanged += (_, _) => model = box.DataContext as EventLogFilterViewModel;
+        box.Click += (_, _) => { if (model != null) viewModel.ToggleFilter(model); };
+
+        return box;
     }
 
     private static Control BuildCard()

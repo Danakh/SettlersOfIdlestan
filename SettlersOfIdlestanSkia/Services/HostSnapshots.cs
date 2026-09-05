@@ -646,16 +646,33 @@ public enum EventLogTone
 public sealed record EventLogEntrySnapshot(string Title, string Body, EventLogTone Tone);
 
 /// <summary>
+/// Une famille d'evenements masquable depuis l'onglet Reglages du journal. La cle est le nom de
+/// l'EventLogCategory du modele : elle repart telle quelle vers le renderer au clic.
+/// </summary>
+public sealed record EventLogFilterSnapshot(string Key, string Label, bool IsChecked);
+
+/// <summary>
 /// Onglet plein ecran du journal. La liste vient du modele, deja bornee a 50 entrees et triee
 /// de la plus recente a la plus ancienne.
+///
+/// L'onglet Reglages (bouton en haut a droite) remplace la liste par les cases a cocher de
+/// <paramref name="Filters"/> : les deux ne sont jamais affiches en meme temps.
+///
+/// <paramref name="Filters"/> ne contient que les familles deja croisees dans la partie, et peut
+/// donc etre vide — d'ou <paramref name="SettingsEmptyMessage"/>.
 /// </summary>
 public sealed record EventLogSnapshot(
     bool IsVisible,
     string Title,
     string EmptyMessage,
-    IReadOnlyList<EventLogEntrySnapshot> Entries)
+    IReadOnlyList<EventLogEntrySnapshot> Entries,
+    bool ShowSettings,
+    string SettingsTitle,
+    string SettingsHint,
+    string SettingsEmptyMessage,
+    IReadOnlyList<EventLogFilterSnapshot> Filters)
 {
-    public static readonly EventLogSnapshot Hidden = new(false, "", "", []);
+    public static readonly EventLogSnapshot Hidden = new(false, "", "", [], false, "", "", "", []);
 }
 
 /// <summary>

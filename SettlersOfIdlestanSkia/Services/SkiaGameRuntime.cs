@@ -290,6 +290,9 @@ public sealed class SkiaGameRuntime : IDisposable
         _onTitleScreen ? EventLogSnapshot.Hidden
                        : _gameScreen?.GetEventLogSnapshot() ?? EventLogSnapshot.Hidden;
 
+    public void ToggleEventLogSettings() => _gameScreen?.ToggleEventLogSettingsFromHost();
+    public void ToggleEventLogFilter(string key) => _gameScreen?.ToggleEventLogFilterFromHost(key);
+
     /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
     public StatsSnapshot GetStatsSnapshot() =>
         _onTitleScreen ? StatsSnapshot.Hidden

@@ -345,6 +345,9 @@ public sealed class OverlayRenderer : IGameRenderer
     public EventLogSnapshot GetEventLogSnapshot() =>
         _eventLogRenderer.GetSnapshot(_tabBar.ActiveTab == TabBarRenderer.TabEvents);
 
+    public void ToggleEventLogSettingsFromHost() => _eventLogRenderer.ToggleSettingsFromHost();
+    public void ToggleEventLogFilterFromHost(string key) => _eventLogRenderer.ToggleFilterFromHost(key);
+
     /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
     public StatsSnapshot GetStatsSnapshot() =>
         _prestigeHistoryRenderer.GetSnapshot(_tabBar.ActiveTab == TabBarRenderer.TabStats);

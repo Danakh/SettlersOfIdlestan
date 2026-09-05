@@ -13,6 +13,10 @@ public sealed class EventLogRenderer : IDisposable
 
     private bool _disposed;
 
+    /// Onglet Réglages ouvert (bouton engrenage en haut à droite). État de vue seul : il ne
+    /// survit pas au rechargement, contrairement aux cases elles-mêmes (GameSettings).
+    private bool _showSettings;
+
     public EventLogRenderer(GameControllerService gameControllerService, LocalizationService localization)
     {
         _gameControllerService = gameControllerService;
@@ -46,7 +50,51 @@ public sealed class EventLogRenderer : IDisposable
             IsVisible: true,
             Title: _localization.Get("tab_events"),
             EmptyMessage: _localization.Get("events_empty"),
-            Entries: entries);
+            Entries: entries,
+            ShowSettings: _showSettings,
+            SettingsTitle: _localization.Get("events_settings_title"),
+            SettingsHint: _localization.Get("events_settings_hint"),
+            SettingsEmptyMessage: _localization.Get("events_settings_empty"),
+            Filters: GetFilterRows());
+    }
+
+    /// <summary>
+    /// Une ligne par famille déjà croisée dans la partie, dans l'ordre d'affichage du modèle.
+    /// Cochée = visible : le modèle, lui, stocke les catégories masquées (voir EventLogFilter).
+    ///
+    /// Les familles jamais rencontrées sont omises — les lister dévoilerait le bestiaire complet,
+    /// dieu démon compris, dès le premier bandit.
+    /// </summary>
+    private IReadOnlyList<EventLogFilterSnapshot> GetFilterRows()
+    {
+        var filter = _gameControllerService.CurrentGameState?.Settings.EventLogFilter;
+        if (filter == null) return [];
+
+        var rows = new List<EventLogFilterSnapshot>();
+        foreach (var category in EventLogFilter.DisplayOrder)
+        {
+            if (!filter.IsCategoryKnown(category)) continue;
+
+            rows.Add(new EventLogFilterSnapshot(
+                Key: category.ToString(),
+                Label: _localization.Get(EventLogFilter.GetLabelKey(category)),
+                IsChecked: filter.IsCategoryVisible(category)));
+        }
+        return rows;
+    }
+
+    /// <summary>Ouvre/ferme l'onglet Réglages depuis une vue portée par l'hôte.</summary>
+    public void ToggleSettingsFromHost() => _showSettings = !_showSettings;
+
+    /// <summary>
+    /// Bascule une famille depuis une vue portée par l'hôte. La clé est le nom de l'enum : une
+    /// clé inconnue (sauvegarde plus récente, vue désynchronisée) est ignorée sans lever.
+    /// </summary>
+    public void ToggleFilterFromHost(string key)
+    {
+        var filter = _gameControllerService.CurrentGameState?.Settings.EventLogFilter;
+        if (filter == null) return;
+        if (Enum.TryParse<EventLogCategory>(key, out var category)) filter.ToggleCategory(category);
     }
 
     private (EventLogTone Tone, string Title, string Body) GetEntryContent(GameLogEntry entry) => entry.Type switch
