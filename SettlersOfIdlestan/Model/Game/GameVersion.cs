@@ -9,6 +9,6 @@ namespace SettlersOfIdlestan.Model.Game
     /// </summary>
     public static class GameVersion
     {
-        public const string Current = "0.20.1";
+        public const string Current = "0.21.0";
     }
 }
