@@ -515,7 +515,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (!IsMagicUnlocked() || !IsSpellKnown(id)) return false;
             if (def.TargetKind == SpellTargetKind.AllyCity && GetAllyCityTargets().Count == 0) return false;
             if (def.TargetKind == SpellTargetKind.BuildableVertex && GetBuildableCityTargets().Count == 0) return false;
-            if (def.TargetKind == SpellTargetKind.VoidVertex && GetVoidBridgeTargets().Count == 0) return false;
+            if (def.TargetKind == SpellTargetKind.VoidRoad && GetVoidBridgeTargets().Count == 0) return false;
             return civ.GetResourceQuantity(Resource.Crystal) >= GetSpellCost(def);
         }
 
@@ -530,7 +530,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (civ == null || def == null) return null;
             if (def.TargetKind == SpellTargetKind.AllyCity && GetAllyCityTargets().Count == 0) return "spell_blocked_no_ally_city";
             if (def.TargetKind == SpellTargetKind.BuildableVertex && GetBuildableCityTargets().Count == 0) return "spell_blocked_no_buildable_vertex";
-            if (def.TargetKind == SpellTargetKind.VoidVertex && GetVoidBridgeTargets().Count == 0) return "spell_blocked_no_void_vertex";
+            if (def.TargetKind == SpellTargetKind.VoidRoad && GetVoidBridgeTargets().Count == 0) return "spell_blocked_no_void_road";
             if (civ.GetResourceQuantity(Resource.Crystal) < GetSpellCost(def)) return "spell_blocked_crystals";
             return null;
         }
@@ -645,16 +645,15 @@ namespace SettlersOfIdlestan.Controller.Magic
         // ── Pont du Vide ─────────────────────────────────────────────────────
 
         /// <summary>
-        /// Vertex ciblables par le Pont du Vide sur le calque actuellement affiché : bordés par au moins
-        /// deux hexagones de Vide, entièrement visibles pour le joueur (les trois hexagones sont révélés),
-        /// et dont au moins une des trois arêtes n'est pas déjà occupée par une route de la civilisation —
-        /// sinon le sort n'aurait plus rien à bâtir. La visibilité suffit à borner la portée : les routes
-        /// révèlent les trois hexagones de chacune de leurs extrémités, donc chaque lancement rend
-        /// ciblables les vertex atteints, de proche en proche.
+        /// Routes du Vide ciblables par le Pont du Vide sur le calque actuellement affiché : arêtes séparant
+        /// deux hexagones de Vide, tous deux visibles pour le joueur, et pas déjà occupées par une route de
+        /// la civilisation — sinon le sort n'aurait rien à bâtir. La visibilité suffit à borner la portée :
+        /// les routes révèlent les trois hexagones de chacune de leurs extrémités, donc chaque lancement
+        /// rend ciblables les arêtes atteintes, de proche en proche.
         /// </summary>
-        public List<Vertex> GetVoidBridgeTargets()
+        public List<Edge> GetVoidBridgeTargets()
         {
-            var result = new List<Vertex>();
+            var result = new List<Edge>();
             var civ = GetPlayerCiv();
             if (civ == null || _state == null || _roadController == null) return result;
 
@@ -665,39 +664,39 @@ namespace SettlersOfIdlestan.Controller.Magic
             foreach (var road in civ.Roads)
                 if (road.Position.Z == currentLayer) ownRoads.Add(road.Position);
 
-            var seen = new HashSet<Vertex>();
+            var seen = new HashSet<Edge>();
             foreach (var tile in visibleMap.Tiles.Values)
             {
                 if (tile.TerrainType != TerrainType.Void) continue;
 
-                foreach (SecondaryHexDirection direction in Enum.GetValues<SecondaryHexDirection>())
+                foreach (HexDirection direction in Enum.GetValues<HexDirection>())
                 {
-                    var vertex = tile.Coord.Vertex(direction);
-                    if (!seen.Add(vertex)) continue;
-                    if (!_roadController.IsVoidBridgeVertex(vertex, visibleMap)) continue;
-                    if (RoadController.GetEdgesAtVertex(vertex).All(ownRoads.Contains)) continue;
-                    result.Add(vertex);
+                    var edge = tile.Coord.Edge(direction);
+                    if (!seen.Add(edge)) continue;
+                    if (ownRoads.Contains(edge)) continue;
+                    if (!_roadController.IsVoidBridgeEdge(edge, visibleMap)) continue;
+                    result.Add(edge);
                 }
             }
             return result;
         }
 
         /// <summary>
-        /// Lance le Pont du Vide sur un vertex bordé de Vide : bâtit gratuitement les trois routes qui s'y
-        /// rejoignent (voir <see cref="RoadController.BuildVoidBridge"/>) et consomme les cristaux. Le coût
-        /// double au lancement suivant.
+        /// Lance le Pont du Vide sur une arête bordée de Vide : bâtit gratuitement cette seule route
+        /// (voir <see cref="RoadController.BuildVoidBridge"/>) et consomme les cristaux. Le coût double
+        /// au lancement suivant.
         /// </summary>
-        public bool CastSpellOnVoidVertex(SpellId id, Vertex vertex)
+        public bool CastSpellOnVoidRoad(SpellId id, Edge edge)
         {
             var def = SpellDefinitions.Get(id);
-            if (def == null || def.TargetKind != SpellTargetKind.VoidVertex) return false;
+            if (def == null || def.TargetKind != SpellTargetKind.VoidRoad) return false;
             if (!CanCastSpell(id)) return false;
             if (_roadController == null) return false;
-            if (!GetVoidBridgeTargets().Any(v => v.Equals(vertex))) return false;
+            if (!GetVoidBridgeTargets().Any(e => e.Equals(edge))) return false;
             var civ = GetPlayerCiv()!;
 
             int cost = GetSpellCost(def);
-            if (_roadController.BuildVoidBridge(civ.Index, vertex) == 0) return false;
+            if (!_roadController.BuildVoidBridge(civ.Index, edge)) return false;
 
             civ.RemoveResource(Resource.Crystal, cost);
             RegisterSpellCast(id);

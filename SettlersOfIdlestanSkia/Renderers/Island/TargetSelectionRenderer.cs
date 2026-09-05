@@ -23,6 +23,10 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
 
     private const float VertexSnapRadius = 30f;
     private const float VertexHighlightRadius = 14f;
+    private const float EdgeSnapRadius = 26f;
+    private const float EdgeStrokeWidth = 8f;
+    /// <summary>Raccourcissement du segment aux deux bouts, comme les routes (voir RoadRenderer).</summary>
+    private const float EdgeTrimFactor = 0.18f;
     private const float ButtonWidth = 120f;
     private const float ButtonHeight = 38f;
     private const float ButtonMargin = 14f;
@@ -35,6 +39,10 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
     private SKPaint? _friendlyHoverFill;
     private SKPaint? _friendlyHexBorder;
     private SKPaint? _hostileHexBorder;
+    private SKPaint? _friendlyEdge;
+    private SKPaint? _friendlyEdgeHover;
+    private SKPaint? _hostileEdge;
+    private SKPaint? _hostileEdgeHover;
     private SKPaint? _cancelBgPaint;
     private SKPaint? _cancelTextPaint;
     private SKFont? _cancelFont;
@@ -74,6 +82,10 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
         _friendlyHoverFill = new SKPaint { Color = new SKColor(80, 230, 100, 180), Style = SKPaintStyle.Fill, IsAntialias = true };
         _friendlyHexBorder = new SKPaint { Color = new SKColor(50, 200, 80, 220), StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
         _hostileHexBorder = new SKPaint { Color = new SKColor(220, 60, 60, 220), StrokeWidth = 2f, Style = SKPaintStyle.Stroke, IsAntialias = true };
+        _friendlyEdge = new SKPaint { Color = new SKColor(50, 200, 80, 160), StrokeWidth = EdgeStrokeWidth, StrokeCap = SKStrokeCap.Round, Style = SKPaintStyle.Stroke, IsAntialias = true };
+        _friendlyEdgeHover = new SKPaint { Color = new SKColor(80, 230, 100, 240), StrokeWidth = EdgeStrokeWidth + 3f, StrokeCap = SKStrokeCap.Round, Style = SKPaintStyle.Stroke, IsAntialias = true };
+        _hostileEdge = new SKPaint { Color = new SKColor(220, 60, 60, 160), StrokeWidth = EdgeStrokeWidth, StrokeCap = SKStrokeCap.Round, Style = SKPaintStyle.Stroke, IsAntialias = true };
+        _hostileEdgeHover = new SKPaint { Color = new SKColor(255, 100, 100, 240), StrokeWidth = EdgeStrokeWidth + 3f, StrokeCap = SKStrokeCap.Round, Style = SKPaintStyle.Stroke, IsAntialias = true };
         _cancelBgPaint = new SKPaint { Color = new SKColor(180, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
         _secondaryActionBgPaint = new SKPaint { Color = new SKColor(110, 20, 20), Style = SKPaintStyle.Fill, IsAntialias = true };
         _cancelTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
@@ -144,6 +156,15 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
                 DrawHexLabel(canvas, label, cx, cy);
         }
 
+        var edgePaint = hostile ? _hostileEdge! : _friendlyEdge!;
+        var edgeHoverPaint = hostile ? _hostileEdgeHover! : _friendlyEdgeHover!;
+        foreach (var edge in _selectionService.EdgeTargets)
+        {
+            if (edge.Z != _currentLayer) continue;
+            bool isHovered = _selectionService.HoveredEdge?.Equals(edge) == true;
+            DrawEdgeSegment(canvas, edge, isHovered ? edgeHoverPaint : edgePaint);
+        }
+
         canvas.Restore();
 
         SkiaTextUtils.DrawText(canvas,
@@ -178,6 +199,34 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
+    /// <summary>Trace l'arête ciblable le long de la frontière entre ses deux hexagones, comme une route.</summary>
+    private void DrawEdgeSegment(SKCanvas canvas, Edge edge, SKPaint paint)
+    {
+        var vertices = edge.GetVertices();
+        if (vertices.Length < 2) return;
+
+        var v1 = VertexToIsland(vertices[0]);
+        var v2 = VertexToIsland(vertices[1]);
+        var start = new SKPoint(v1.X + (v2.X - v1.X) * EdgeTrimFactor, v1.Y + (v2.Y - v1.Y) * EdgeTrimFactor);
+        var end = new SKPoint(v2.X - (v2.X - v1.X) * EdgeTrimFactor, v2.Y - (v2.Y - v1.Y) * EdgeTrimFactor);
+        canvas.DrawLine(start, end, paint);
+    }
+
+    /// <summary>Arête ciblable la plus proche du point (en coordonnées Island), dans le rayon d'accroche.</summary>
+    private Edge? FindNearestEdgeTarget(SKPoint islandPt)
+    {
+        Edge? best = null;
+        float bestDist = EdgeSnapRadius;
+        foreach (var edge in _selectionService.EdgeTargets)
+        {
+            if (edge.Z != _currentLayer) continue;
+            var (hex1, hex2) = edge.GetHexes();
+            float dist = SKPoint.Distance(islandPt, EdgeToIsland(hex1.Q, hex1.R, hex2.Q, hex2.R));
+            if (dist < bestDist) { bestDist = dist; best = edge; }
+        }
+        return best;
+    }
+
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
         if (!_selectionService.IsActive) return;
@@ -197,6 +246,8 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
         var (q, r) = IslandToAxial(islandPt.X, islandPt.Y);
         var hoveredHex = new HexCoord(q, r, _currentLayer);
         _selectionService.HoveredHex = _selectionService.HexTargets.Any(h => h.Equals(hoveredHex)) ? hoveredHex : null;
+
+        _selectionService.HoveredEdge = FindNearestEdgeTarget(islandPt);
     }
 
     private void OnPointerPressed(object? sender, PointerEventArgs e)
@@ -235,7 +286,14 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
         var (q, r) = IslandToAxial(islandPt.X, islandPt.Y);
         var hex = new HexCoord(q, r, _currentLayer);
         if (_selectionService.HexTargets.Any(h => h.Equals(hex)))
+        {
             _selectionService.ConfirmHex(hex);
+            return;
+        }
+
+        var bestEdge = FindNearestEdgeTarget(islandPt);
+        if (bestEdge != null)
+            _selectionService.ConfirmEdge(bestEdge);
     }
 
     private void OnKeyPressed(object? sender, KeyEventArgs e)
@@ -264,6 +322,10 @@ public sealed class TargetSelectionRenderer : HexBasedRenderer, IGameRenderer
         _friendlyHoverFill?.Dispose();
         _friendlyHexBorder?.Dispose();
         _hostileHexBorder?.Dispose();
+        _friendlyEdge?.Dispose();
+        _friendlyEdgeHover?.Dispose();
+        _hostileEdge?.Dispose();
+        _hostileEdgeHover?.Dispose();
         _cancelBgPaint?.Dispose();
         _secondaryActionBgPaint?.Dispose();
         _cancelTextPaint?.Dispose();

@@ -4,11 +4,13 @@ using System.Collections.Generic;
 
 namespace SettlersOfIdlestanSkia.Services;
 
-/// <summary>Forme des cibles proposées : ville (Vertex), hexagone, ou les deux à la fois (ex: Raid sur ville ou monstre).</summary>
+/// <summary>Forme des cibles proposées : ville (Vertex), hexagone, arête (route), ou ville et hexagone
+/// à la fois (ex: Raid sur ville ou monstre).</summary>
 public enum TargetSelectionShape
 {
     Vertex,
     Hex,
+    Edge,
     Mixed,
 }
 
@@ -33,8 +35,10 @@ public sealed class TargetSelectionService
     public string TitleKey { get; private set; } = string.Empty;
     public IReadOnlyList<Vertex> VertexTargets { get; private set; } = Array.Empty<Vertex>();
     public IReadOnlyList<HexCoord> HexTargets { get; private set; } = Array.Empty<HexCoord>();
+    public IReadOnlyList<Edge> EdgeTargets { get; private set; } = Array.Empty<Edge>();
     public Vertex? HoveredVertex { get; set; }
     public HexCoord? HoveredHex { get; set; }
+    public Edge? HoveredEdge { get; set; }
 
     /// <summary>Libellé optionnel affiché sur chaque hexagone ciblable (ex: niveau de corruption).</summary>
     public IReadOnlyDictionary<HexCoord, string>? HexLabels { get; private set; }
@@ -45,6 +49,7 @@ public sealed class TargetSelectionService
 
     private Action<Vertex>? _onVertexConfirmed;
     private Action<HexCoord>? _onHexConfirmed;
+    private Action<Edge>? _onEdgeConfirmed;
     private Action? _secondaryAction;
 
     /// <summary>Déclenché à l'entrée en mode ciblage (pour mettre en pause/masquer l'overlay).</summary>
@@ -68,12 +73,15 @@ public sealed class TargetSelectionService
         TitleKey = titleKey;
         VertexTargets = targets;
         HexTargets = Array.Empty<HexCoord>();
+        EdgeTargets = Array.Empty<Edge>();
         _onVertexConfirmed = onConfirmed;
         _onHexConfirmed = null;
+        _onEdgeConfirmed = null;
         SecondaryActionLabelKey = secondaryActionLabelKey;
         _secondaryAction = secondaryAction;
         HoveredVertex = null;
         HoveredHex = null;
+        HoveredEdge = null;
         IsActive = true;
         if (!wasActive) Entered?.Invoke(this, EventArgs.Empty);
     }
@@ -89,13 +97,44 @@ public sealed class TargetSelectionService
         TitleKey = titleKey;
         HexTargets = targets;
         VertexTargets = Array.Empty<Vertex>();
+        EdgeTargets = Array.Empty<Edge>();
         HexLabels = hexLabels;
         _onHexConfirmed = onConfirmed;
         _onVertexConfirmed = null;
+        _onEdgeConfirmed = null;
         SecondaryActionLabelKey = null;
         _secondaryAction = null;
         HoveredVertex = null;
         HoveredHex = null;
+        HoveredEdge = null;
+        IsActive = true;
+        if (!wasActive) Entered?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Entre en mode ciblage d'arête : propose des routes (Edge) à désigner sur la carte — utilisé par le
+    /// sort Pont du Vide, qui bâtit la seule route choisie.
+    /// </summary>
+    public void EnterEdgeSelection(string titleKey, IReadOnlyList<Edge> targets, Action<Edge> onConfirmed,
+        TargetSelectionTheme theme = TargetSelectionTheme.Friendly)
+    {
+        if (targets.Count == 0) return;
+
+        bool wasActive = IsActive;
+        Shape = TargetSelectionShape.Edge;
+        Theme = theme;
+        TitleKey = titleKey;
+        EdgeTargets = targets;
+        VertexTargets = Array.Empty<Vertex>();
+        HexTargets = Array.Empty<HexCoord>();
+        _onEdgeConfirmed = onConfirmed;
+        _onVertexConfirmed = null;
+        _onHexConfirmed = null;
+        SecondaryActionLabelKey = null;
+        _secondaryAction = null;
+        HoveredVertex = null;
+        HoveredHex = null;
+        HoveredEdge = null;
         IsActive = true;
         if (!wasActive) Entered?.Invoke(this, EventArgs.Empty);
     }
@@ -117,12 +156,15 @@ public sealed class TargetSelectionService
         TitleKey = titleKey;
         VertexTargets = vertexTargets;
         HexTargets = hexTargets;
+        EdgeTargets = Array.Empty<Edge>();
         _onVertexConfirmed = onVertexConfirmed;
         _onHexConfirmed = onHexConfirmed;
+        _onEdgeConfirmed = null;
         SecondaryActionLabelKey = null;
         _secondaryAction = null;
         HoveredVertex = null;
         HoveredHex = null;
+        HoveredEdge = null;
         IsActive = true;
         if (!wasActive) Entered?.Invoke(this, EventArgs.Empty);
     }
@@ -135,30 +177,44 @@ public sealed class TargetSelectionService
     /// </summary>
     public void ConfirmVertex(Vertex target)
     {
-        if (!IsActive || Shape == TargetSelectionShape.Hex) return;
+        if (!IsActive || Shape == TargetSelectionShape.Hex || Shape == TargetSelectionShape.Edge) return;
         var callback = _onVertexConfirmed;
-        _onVertexConfirmed = null;
-        _onHexConfirmed = null;
+        ClearCallbacks();
         callback?.Invoke(target);
-        if (_onVertexConfirmed == null && _onHexConfirmed == null)
-        {
-            Reset();
-            Confirmed?.Invoke(this, EventArgs.Empty);
-        }
+        FinishConfirmation();
     }
 
     public void ConfirmHex(HexCoord target)
     {
-        if (!IsActive || Shape == TargetSelectionShape.Vertex) return;
+        if (!IsActive || Shape == TargetSelectionShape.Vertex || Shape == TargetSelectionShape.Edge) return;
         var callback = _onHexConfirmed;
+        ClearCallbacks();
+        callback?.Invoke(target);
+        FinishConfirmation();
+    }
+
+    public void ConfirmEdge(Edge target)
+    {
+        if (!IsActive || Shape != TargetSelectionShape.Edge) return;
+        var callback = _onEdgeConfirmed;
+        ClearCallbacks();
+        callback?.Invoke(target);
+        FinishConfirmation();
+    }
+
+    private void ClearCallbacks()
+    {
         _onVertexConfirmed = null;
         _onHexConfirmed = null;
-        callback?.Invoke(target);
-        if (_onVertexConfirmed == null && _onHexConfirmed == null)
-        {
-            Reset();
-            Confirmed?.Invoke(this, EventArgs.Empty);
-        }
+        _onEdgeConfirmed = null;
+    }
+
+    /// <summary>Referme la session de ciblage, sauf si le callback vient lui-même d'en rouvrir une.</summary>
+    private void FinishConfirmation()
+    {
+        if (_onVertexConfirmed != null || _onHexConfirmed != null || _onEdgeConfirmed != null) return;
+        Reset();
+        Confirmed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Déclenche le bouton d'action secondaire (ex: "Détruire la ville") au lieu de choisir
@@ -185,9 +241,9 @@ public sealed class TargetSelectionService
         IsActive = false;
         HoveredVertex = null;
         HoveredHex = null;
+        HoveredEdge = null;
         HexLabels = null;
-        _onVertexConfirmed = null;
-        _onHexConfirmed = null;
+        ClearCallbacks();
         SecondaryActionLabelKey = null;
         _secondaryAction = null;
     }

@@ -1032,19 +1032,24 @@ namespace SOITests.ControllerTests
 
         private const int VoidBridgeCost = 2500;
 
+        // L'île de test place sa ville sur le vertex partagé par center, NE et E : mettre center et E
+        // en Vide fait de l'arête qui les sépare une route du Vide, visible grâce à la ville.
+        private static readonly HexCoord VoidCenterHex = new(0, 0, IslandMap.SurfaceLayer);
+        private static readonly HexCoord VoidEastHex = new(1, 0, IslandMap.SurfaceLayer);
+        /// <summary>Troisième hexagone du second vertex de l'arête du Vide — révélé par la route qui l'emprunte.</summary>
+        private static readonly HexCoord VoidSouthEastHex = new(1, -1, IslandMap.SurfaceLayer);
+
         /// <summary>
-        /// Île de test dont deux des trois hexagones du vertex de la ville sont du Vide : ce vertex
-        /// devient donc une cible du Pont du Vide, et ses trois hexagones sont visibles grâce à la ville.
+        /// Île de test dont deux hexagones voisins du vertex de la ville sont du Vide : l'arête qui les
+        /// sépare devient donc une cible du Pont du Vide, et ses deux hexagones sont visibles grâce à la ville.
         /// </summary>
-        private static (WorldState state, MagicController controller, Vertex voidVertex) CreateVoidSetup()
+        private static (WorldState state, MagicController controller, Edge voidEdge) CreateVoidSetup()
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
 
-            var cityVertex = state.PlayerCivilization.Cities[0].Position;
-            var hexes = cityVertex.GetHexes();
-            state.CurrentViewedMap.GetTile(hexes[0])!.TerrainType = TerrainType.Void;
-            state.CurrentViewedMap.GetTile(hexes[1])!.TerrainType = TerrainType.Void;
+            state.CurrentViewedMap.GetTile(VoidCenterHex)!.TerrainType = TerrainType.Void;
+            state.CurrentViewedMap.GetTile(VoidEastHex)!.TerrainType = TerrainType.Void;
             state.NotifyTerrainChanged();
 
             var clock = new GameClock();
@@ -1055,66 +1060,70 @@ namespace SOITests.ControllerTests
                 new CityBuilderController(state), new BuildingController(state),
                 harvestController: null, roadController: new RoadController(state));
 
-            return (state, controller, cityVertex);
+            return (state, controller, Edge.Create(VoidCenterHex, VoidEastHex));
         }
 
         [Fact]
-        public void GetVoidBridgeTargets_ReturnsVertexBorderedByTwoVoidHexes()
+        public void GetVoidBridgeTargets_ReturnsEdgeBetweenTwoVoidHexes()
         {
-            var (_, controller, voidVertex) = CreateVoidSetup();
+            var (_, controller, voidEdge) = CreateVoidSetup();
 
-            Assert.Contains(controller.GetVoidBridgeTargets(), v => v.Equals(voidVertex));
+            Assert.Contains(controller.GetVoidBridgeTargets(), e => e.Equals(voidEdge));
         }
 
         [Fact]
-        public void GetVoidBridgeTargets_IgnoresVertexWithASingleVoidHex()
+        public void GetVoidBridgeTargets_IgnoresEdgeWithASingleVoidHex()
         {
-            var (state, controller, voidVertex) = CreateVoidSetup();
+            var (state, controller, voidEdge) = CreateVoidSetup();
 
-            // Un seul hexagone de Vide : le vertex ne borde plus assez de néant pour le sort.
-            state.CurrentViewedMap.GetTile(voidVertex.GetHexes()[0])!.TerrainType = TerrainType.Plain;
+            // Un seul hexagone de Vide : l'arête ne sépare plus deux néants, le sort ne peut plus la bâtir.
+            state.CurrentViewedMap.GetTile(VoidCenterHex)!.TerrainType = TerrainType.Plain;
             state.NotifyTerrainChanged();
 
-            Assert.DoesNotContain(controller.GetVoidBridgeTargets(), v => v.Equals(voidVertex));
+            Assert.DoesNotContain(controller.GetVoidBridgeTargets(), e => e.Equals(voidEdge));
         }
 
         [Fact]
-        public void CastSpellOnVoidVertex_BuildsTheThreeRoadsAndConsumesCrystals()
+        public void CastSpellOnVoidRoad_BuildsTheTargetedRoadAndConsumesCrystals()
         {
-            var (state, controller, voidVertex) = CreateVoidSetup();
+            var (state, controller, voidEdge) = CreateVoidSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.VoidBridge);
             GrantCrystalStorage(civ, 10000);
             civ.AddResource(Resource.Crystal, 10000);
 
-            Assert.True(controller.CastSpellOnVoidVertex(SpellId.VoidBridge, voidVertex));
+            Assert.True(controller.CastSpellOnVoidRoad(SpellId.VoidBridge, voidEdge));
 
-            Assert.Equal(3, civ.Roads.Count);
-            foreach (var edge in RoadController.GetEdgesAtVertex(voidVertex))
-                Assert.Contains(civ.Roads, r => r.Position.Equals(edge));
+            var road = Assert.Single(civ.Roads);
+            Assert.Equal(voidEdge, road.Position);
+            Assert.True(road.BuiltBySpell);
             Assert.Equal(10000 - VoidBridgeCost, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         [Fact]
-        public void CastSpellOnVoidVertex_MultipliesTheCostAtEachCast()
+        public void CastSpellOnVoidRoad_MultipliesTheCostAtEachCast()
         {
-            var (state, controller, voidVertex) = CreateVoidSetup();
+            var (state, controller, voidEdge) = CreateVoidSetup();
             var civ = state.PlayerCivilization;
             UnlockSpells(civ, SpellId.VoidBridge);
             GrantCrystalStorage(civ, 100000);
             civ.AddResource(Resource.Crystal, 100000);
 
+            state.CurrentViewedMap.GetTile(VoidSouthEastHex)!.TerrainType = TerrainType.Void;
+            state.NotifyTerrainChanged();
+
             var def = SpellDefinitions.Get(SpellId.VoidBridge)!;
             Assert.Equal(VoidBridgeCost, controller.GetSpellCost(def));
 
-            Assert.True(controller.CastSpellOnVoidVertex(SpellId.VoidBridge, voidVertex));
+            Assert.True(controller.CastSpellOnVoidRoad(SpellId.VoidBridge, voidEdge));
             Assert.Equal(VoidBridgeCost * 2, controller.GetSpellCost(def));
 
-            // Le vertex voisin, révélé par les routes qui viennent d'être bâties, borde lui aussi le Vide.
-            var nextTarget = controller.GetVoidBridgeTargets().First(v => !v.Equals(voidVertex));
-            Assert.True(controller.CastSpellOnVoidVertex(SpellId.VoidBridge, nextTarget));
+            // L'arête voisine, révélée par la route qui vient d'être bâtie, sépare elle aussi deux Vides.
+            var nextTarget = controller.GetVoidBridgeTargets().First(e => !e.Equals(voidEdge));
+            Assert.True(controller.CastSpellOnVoidRoad(SpellId.VoidBridge, nextTarget));
             Assert.Equal(VoidBridgeCost * 4, controller.GetSpellCost(def));
 
+            Assert.Equal(2, civ.Roads.Count);
             Assert.Equal(100000 - VoidBridgeCost - VoidBridgeCost * 2, civ.GetResourceQuantity(Resource.Crystal));
         }
 
@@ -1333,7 +1342,7 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void CastSpellOnVoidVertex_FailsForVertexWithoutVoid()
+        public void CastSpellOnVoidRoad_FailsForEdgeWithoutVoid()
         {
             var (state, controller, _) = CreateVoidSetup();
             var civ = state.PlayerCivilization;
@@ -1341,18 +1350,17 @@ namespace SOITests.ControllerTests
             GrantCrystalStorage(civ, 10000);
             civ.AddResource(Resource.Crystal, 10000);
 
-            var farAwayVertex = Vertex.Create(
+            var farAwayEdge = Edge.Create(
                 new HexCoord(50, 0, IslandMap.SurfaceLayer),
-                new HexCoord(51, 0, IslandMap.SurfaceLayer),
-                new HexCoord(50, 1, IslandMap.SurfaceLayer));
+                new HexCoord(51, 0, IslandMap.SurfaceLayer));
 
-            Assert.False(controller.CastSpellOnVoidVertex(SpellId.VoidBridge, farAwayVertex));
+            Assert.False(controller.CastSpellOnVoidRoad(SpellId.VoidBridge, farAwayEdge));
             Assert.Empty(civ.Roads);
             Assert.Equal(10000, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         [Fact]
-        public void CastSpellOnVoidVertex_FailsForUntargetedCast()
+        public void CastSpellOnVoidRoad_FailsForUntargetedCast()
         {
             var (state, controller, _) = CreateVoidSetup();
             var civ = state.PlayerCivilization;
@@ -1365,7 +1373,7 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void GetSpellBlockedReasonKey_ReturnsNoVoidVertexReasonWithoutVoid()
+        public void GetSpellBlockedReasonKey_ReturnsNoVoidRoadReasonWithoutVoid()
         {
             var (state, _, controller) = CreateSetup();
             var civ = state.PlayerCivilization;
@@ -1374,7 +1382,7 @@ namespace SOITests.ControllerTests
             civ.AddResource(Resource.Crystal, 10000);
 
             Assert.False(controller.CanCastSpell(SpellId.VoidBridge));
-            Assert.Equal("spell_blocked_no_void_vertex", controller.GetSpellBlockedReasonKey(SpellId.VoidBridge));
+            Assert.Equal("spell_blocked_no_void_road", controller.GetSpellBlockedReasonKey(SpellId.VoidBridge));
         }
     }
 }

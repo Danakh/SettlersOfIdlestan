@@ -690,70 +690,54 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
-        /// Vrai si le vertex est bordé par au moins deux hexagones de Vide — cible du sort Pont du Vide
-        /// (<see cref="BuildVoidBridge"/>). Les trois hexagones doivent exister sur la carte du layer.
+        /// Vrai si l'arête sépare deux hexagones de Vide — cible du sort Pont du Vide
+        /// (<see cref="BuildVoidBridge"/>). Les deux hexagones doivent exister sur la carte fournie.
         /// </summary>
-        public bool IsVoidBridgeVertex(Vertex vertex, IslandMap map)
+        public bool IsVoidBridgeEdge(Edge edge, IslandMap map)
         {
-            int voidCount = 0;
-            foreach (var hex in vertex.GetHexes())
-            {
-                var tile = map.GetTile(hex);
-                if (tile == null) return false;
-                if (tile.TerrainType == TerrainType.Void) voidCount++;
-            }
-            return voidCount >= 2;
+            var tile1 = map.GetTile(edge.Hex1);
+            var tile2 = map.GetTile(edge.Hex2);
+            return tile1?.TerrainType == TerrainType.Void && tile2?.TerrainType == TerrainType.Void;
         }
 
         /// <summary>
-        /// Sort Pont du Vide : bâtit d'un coup, et gratuitement, les trois routes autour d'un vertex bordé
-        /// de Vide — ni ressources, ni points de recherche (le coût est payé en cristaux par le sort), ni
-        /// contrainte de raccordement au réseau. Les arêtes déjà occupées par une route de la civilisation
-        /// ou protégées par une route ennemie proche de sa ville sont simplement ignorées ; les autres
-        /// routes ennemies sont conquises comme lors d'une construction normale.
-        /// Retourne le nombre de routes réellement posées (0 si le vertex n'offrait plus rien à bâtir).
+        /// Sort Pont du Vide : bâtit gratuitement la route du Vide ciblée — ni ressources, ni points de
+        /// recherche (le coût est payé en cristaux par le sort), ni contrainte de raccordement au réseau.
+        /// Une arête déjà occupée par une route de la civilisation, ou protégée par une route ennemie
+        /// proche de sa ville, n'est pas bâtie ; les autres routes ennemies sont conquises comme lors
+        /// d'une construction normale.
+        /// Retourne vrai si la route a réellement été posée.
         /// </summary>
-        public int BuildVoidBridge(int civilizationIndex, Vertex vertex)
+        public bool BuildVoidBridge(int civilizationIndex, Edge edge)
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
 
             var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            var map = _state.GetMapForZ(vertex.Z);
-            if (map == null) return 0;
+            var map = _state.GetMapForZ(edge.Z);
+            if (map == null) return false;
+            if (!map.HasTile(edge.Hex1) || !map.HasTile(edge.Hex2)) return false;
+            if (civ.Roads.Any(r => r.Position.Equals(edge))) return false;
 
-            var enemyProtectedEdges = new HashSet<Edge>(
-                _state.Civilizations
-                    .Where(c => c.Index != civilizationIndex)
-                    .SelectMany(c => c.Roads)
-                    .Where(r => r.Position.Z == vertex.Z && r.DistanceToNearestCity <= 2)
-                    .Select(r => r.Position));
+            bool isEnemyProtected = _state.Civilizations
+                .Where(c => c.Index != civilizationIndex)
+                .SelectMany(c => c.Roads)
+                .Any(r => r.Position.Equals(edge) && r.DistanceToNearestCity <= 2);
+            if (isEnemyProtected) return false;
 
-            var built = new List<Edge>();
-            foreach (var edge in GetEdgesAtVertex(vertex))
-            {
-                if (!map.HasTile(edge.Hex1) || !map.HasTile(edge.Hex2)) continue;
-                if (civ.Roads.Any(r => r.Position.Equals(edge))) continue;
-                if (enemyProtectedEdges.Contains(edge)) continue;
+            TryRemoveEnemyRoadAt(edge, civilizationIndex);
+            civ.AddRoad(new Road(edge) { CivilizationIndex = civilizationIndex, BuiltBySpell = true });
 
-                TryRemoveEnemyRoadAt(edge, civilizationIndex);
-                civ.AddRoad(new Road(edge) { CivilizationIndex = civilizationIndex, BuiltBySpell = true });
-                built.Add(edge);
-            }
-
-            if (built.Count == 0) return 0;
-
-            ComputeRoadDistancesForCivilization(civ, vertex.Z);
-            InvalidateBuildableRoadsCacheForLayer(vertex.Z);
+            ComputeRoadDistancesForCivilization(civ, edge.Z);
+            InvalidateBuildableRoadsCacheForLayer(edge.Z);
             _state.Visibility.RecalculateFor(civilizationIndex);
 
             // Même événement qu'une route bâtie à la main : c'est lui qui déclenche l'extension
             // automatique de la carte de l'Abysse (voir MainGameController.OnRoadBuiltExtendMap).
-            foreach (var edge in built)
-                OnRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civilizationIndex, edge));
+            OnRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civilizationIndex, edge));
 
-            return built.Count;
+            return true;
         }
 
         private void TryRemoveEnemyRoadAt(Edge edge, int buildingCivIndex)

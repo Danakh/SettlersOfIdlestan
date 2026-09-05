@@ -15,7 +15,7 @@ public enum SpellId
     /// <summary>Édification Arcanique — fait apparaître une ville entièrement développée sur un vertex libre
     /// desservi par une route, sans aucune des restrictions de placement habituelles.</summary>
     ArcaneEdification,
-    /// <summary>Pont du Vide — bâtit gratuitement les trois routes autour d'un vertex bordé de Vide.</summary>
+    /// <summary>Pont du Vide — bâtit gratuitement une route du Vide ciblée.</summary>
     VoidBridge,
 }
 
@@ -24,7 +24,7 @@ public enum SpellId
 /// <see cref="AllyCity"/> : le joueur doit désigner une de ses propres villes.
 /// <see cref="BuildableVertex"/> : le joueur doit désigner un vertex libre touché par une de ses routes
 /// (les autres règles de placement — distances entre villes, terrain racial — ne s'appliquent pas).
-/// <see cref="VoidVertex"/> : le joueur doit désigner un vertex bordé par au moins deux hexagones de Vide.
+/// <see cref="VoidRoad"/> : le joueur doit désigner une arête séparant deux hexagones de Vide.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<SpellTargetKind>))]
 public enum SpellTargetKind
@@ -32,7 +32,7 @@ public enum SpellTargetKind
     None,
     AllyCity,
     BuildableVertex,
-    VoidVertex,
+    VoidRoad,
 }
 
 /// <summary>
