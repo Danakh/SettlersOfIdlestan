@@ -367,8 +367,9 @@ public class RaceSystemTests
         // joueur — ne doit donc pas débloquer la Ziggourat via AscendedRaces.
         Assert.DoesNotContain(RaceId.Human, godState.AscensionState.AscendedRaces);
         Assert.Equal(5, godState.GodPoints);
-        // Sans Foi débloquée, aucun vertex de prestige n'est offert.
-        Assert.Empty(controller.CurrentMainState.PrestigeState!.PurchasedVertices);
+        // Le vertex central est offert par le premier jalon (Héritage Ancestral), débloqué par
+        // l'Ascension qui vient d'avoir lieu — sans Foi, rien d'autre n'est offert.
+        Assert.Equal(new[] { PrestigeMap.CentralVertex }, controller.CurrentMainState.PrestigeState!.PurchasedVertices);
     }
 
     /// <summary>
@@ -432,8 +433,15 @@ public class RaceSystemTests
 
     // ── Vertex de prestige offerts à l'Ascension ─────────────────────────────
 
+    /// <summary>Vertex de la carte de prestige situés à <paramref name="rank"/> arêtes ou moins du centre.</summary>
+    private static IReadOnlyList<Vertex> VerticesUpToRank(int rank) =>
+        PrestigeMapController.DefaultMap.Vertices
+            .Where(v => v.Coord.EdgeDistanceTo(PrestigeMap.CentralVertex) <= rank)
+            .Select(v => v.Coord)
+            .ToList();
+
     [Fact]
-    public void PerformAscension_WithFaithOnly_GrantsCentralPrestigeVertexOnly()
+    public void PerformAscension_FirstMilestoneOnly_GrantsTheCentralPrestigeVertexOnly()
     {
         var controller = new MainGameController();
         controller.CreateNewGame();
@@ -442,6 +450,7 @@ public class RaceSystemTests
         godState.DivineEssence = 5;
         Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.Faith));
 
+        // Première Ascension : seul le jalon Héritage Ancestral est débloqué, soit le rang 0.
         controller.PerformAscension();
 
         var purchased = controller.CurrentMainState.PrestigeState!.PurchasedVertices;
@@ -450,7 +459,7 @@ public class RaceSystemTests
     }
 
     [Fact]
-    public void PerformAscension_WithRacesUnlocked_GrantsCentralVertexAndItsThreeNeighborsFree()
+    public void PerformAscension_WithPrestigiousAscensionMilestone_GrantsRank1Free()
     {
         var controller = new MainGameController();
         controller.CreateNewGame();
@@ -458,6 +467,9 @@ public class RaceSystemTests
         godState.GodPoints = 100;
         godState.DivineEssence = 5;
         UnlockFirstRow(controller.AscensionController);
+        // L'Ascension déclenchée ici crédite la race du cycle qui s'achève (Humains par défaut) :
+        // 1 race différente ascensionnée, soit le jalon Ascension Prestigieuse et lui seul.
+        godState.AscensionState.AscensionsPerformed = 1;
 
         controller.PerformAscension(RaceId.Dwarf);
 
@@ -469,12 +481,63 @@ public class RaceSystemTests
         foreach (var neighbor in neighbors)
             Assert.Contains(neighbor.Coord, purchased);
         Assert.Equal(4, purchased.Count);
-        // Gratuit = aucun point de prestige dépensé.
-        Assert.Equal(0, prestigeState.PrestigePoints);
+        // Gratuit : les points de prestige versés par le jalon Ascension Prestigieuse sont tous
+        // encore disponibles, aucun n'a été dépensé pour ces vertex.
+        Assert.Equal(godState.TotalGodPointsEarned, prestigeState.PrestigePoints);
         // Le voisin Port & Marché garantit un Marché de départ : la civilisation peut acheter la
         // ressource que son terrain de départ ne produit pas (ex. la brique des Nains).
         var startingCity = controller.CurrentMainState.CurrentWorldState!.PlayerCivilization.Cities[0];
         Assert.Contains(startingCity.Buildings, b => b.Type == BuildingType.Market);
+    }
+
+    [Fact]
+    public void PerformAscension_WithResearchProductionMilestone_GrantsRank2Free()
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        var godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = 5;
+        UnlockFirstRow(controller.AscensionController);
+        // 1 race déjà ascensionnée + celle du cycle qui s'achève = les 2 exigées par Ferveur Studieuse.
+        godState.AscensionState.AscensionsPerformed = 1;
+        godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
+
+        controller.PerformAscension(RaceId.Dwarf);
+
+        var purchased = controller.CurrentMainState.PrestigeState!.PurchasedVertices;
+        Assert.Equal(VerticesUpToRank(2).Count, purchased.Count);
+        foreach (var vertex in VerticesUpToRank(2))
+            Assert.Contains(vertex, purchased);
+        // Rang 3 : encore payant.
+        Assert.DoesNotContain(PrestigeMap.TraderGuildVertex, purchased);
+    }
+
+    [Fact]
+    public void PerformAscension_WithFreeRelocationMilestone_GrantsRank3Free()
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        var godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = 5;
+        UnlockFirstRow(controller.AscensionController);
+        // 2 races déjà ascensionnées + celle du cycle qui s'achève = les 3 exigées par Exode Divin.
+        godState.AscensionState.AscensionsPerformed = 1;
+        godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Orc);
+
+        controller.PerformAscension(RaceId.Dwarf);
+
+        var purchased = controller.CurrentMainState.PrestigeState!.PurchasedVertices;
+        foreach (var vertex in VerticesUpToRank(3))
+            Assert.Contains(vertex, purchased);
+        // Relocalisation est de rang 4 : offert en plus par ce même jalon.
+        Assert.Contains(PrestigeMap.OuterHarborVertex, purchased);
+        Assert.Equal(VerticesUpToRank(3).Count + 1, purchased.Count);
+        // Les portes des branches profondes (rang 4) restent payantes.
+        Assert.DoesNotContain(PrestigeMap.DeepestMineVertex, purchased);
+        Assert.DoesNotContain(PrestigeMap.SteelSecretVertex, purchased);
     }
 
     [Fact]

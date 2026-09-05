@@ -42,10 +42,14 @@ public sealed class AscensionRenderer : IDisposable
     private const float InnerTabWidth      = 150f;
     private const int   BuildingCardColumns = 4;
     private const float BuildingCardHeight  = 64f;
-    // Cartes de jalon (voir DrawMilestonesTab) : une par ligne (contrairement aux grilles ci-dessus),
-    // assez hautes pour une description sur 2 lignes — seulement 4 jalons aujourd'hui, jamais besoin
-    // de défilement dédié.
-    private const float MilestoneCardHeight = 80f;
+    // Cartes de jalon (voir DrawMilestonesTab) : une par ligne (contrairement aux grilles ci-dessus).
+    // Seulement 4 jalons aujourd'hui, jamais besoin de défilement dédié — mais la hauteur s'adapte à
+    // la description (voir GetMilestoneCardHeight) : elle tient en deux temps séparés par un retour à
+    // la ligne (effet propre au jalon, puis vertex de prestige offerts), et une hauteur fixe tronquait
+    // les traductions les plus longues.
+    private const float MilestoneCardMinHeight  = 80f;
+    /// <summary>Ligne de base de la première ligne de description, relative au haut de la carte.</summary>
+    private const float MilestoneDescBaseline   = 40f;
     // Cartes de race (voir DrawRacesTab) : nom + un court texte d'ambiance de 2-3 lignes
     // (RaceDefinition.DescKey) ou, verrouillée, nom + jusqu'à 3 prérequis (voir
     // DrawRaceLockRequirement) — les infos de gameplay (bonus/malus, bâtiment racial) passent en
@@ -864,21 +868,32 @@ public sealed class AscensionRenderer : IDisposable
         float cardGap = 12f;
         int raceCount = ascension.AscendedRaces.Count;
 
+        float cardY = cardTop;
         for (int i = 0; i < AscensionMilestoneDefinitions.All.Count; i++)
         {
             var def = AscensionMilestoneDefinitions.All[i];
-            float cardY = cardTop + i * (MilestoneCardHeight + cardGap);
-            DrawMilestoneCard(canvas, x, cardY, contentWidth, def, ascension, raceCount);
+            float cardHeight = GetMilestoneCardHeight(def, contentWidth);
+            DrawMilestoneCard(canvas, x, cardY, contentWidth, cardHeight, def, ascension, raceCount);
+            cardY += cardHeight + cardGap;
         }
+    }
+
+    /// <summary>Hauteur d'une carte de jalon : de quoi loger toute sa description sous l'en-tête
+    /// (nom + état), sans jamais descendre sous <see cref="MilestoneCardMinHeight"/>.</summary>
+    private float GetMilestoneCardHeight(AscensionMilestoneDefinition def, float width)
+    {
+        var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.DescKey), width - 28f, _descFont);
+        float needed = MilestoneDescBaseline + (descLayout.Lines.Count - 1) * _descFont.Spacing + 12f;
+        return Math.Max(MilestoneCardMinHeight, needed);
     }
 
     /// <summary>Une carte de jalon : nom à gauche, état (Débloqué, ou progression X/Y races) à
     /// droite, description sur la ligne suivante. Contrairement aux pouvoirs divins achetables, rien
     /// n'est cliquable ici — le jalon se débloque tout seul (voir AscensionController.
     /// IsMilestoneUnlocked) — seul le survol affiche un tooltip détaillant la condition manquante.</summary>
-    private void DrawMilestoneCard(SKCanvas canvas, float x, float y, float width, AscensionMilestoneDefinition def, AscensionController ascension, int raceCount)
+    private void DrawMilestoneCard(SKCanvas canvas, float x, float y, float width, float height, AscensionMilestoneDefinition def, AscensionController ascension, int raceCount)
     {
-        var rect = new SKRect(x, y, x + width, y + MilestoneCardHeight);
+        var rect = new SKRect(x, y, x + width, y + height);
         bool unlocked = ascension.IsMilestoneUnlocked(def.Id);
         bool hovered = rect.Contains(_hoverPosition.X, _hoverPosition.Y);
 
@@ -896,7 +911,7 @@ public sealed class AscensionRenderer : IDisposable
         SkiaTextUtils.DrawText(canvas, status, x + width - 14f, y + 20f, SKTextAlign.Right, _descFont, unlocked ? _accentPaint : _mutedPaint);
 
         var descLayout = SkiaTextUtils.MeasureWrappedText(_localization.Get(def.DescKey), width - 28f, _descFont);
-        DrawCenteredTextLayout(canvas, descLayout, x + width / 2f, y + 40f, _descFont, unlocked ? _descPaint : _mutedPaint);
+        DrawCenteredTextLayout(canvas, descLayout, x + width / 2f, y + MilestoneDescBaseline, _descFont, unlocked ? _descPaint : _mutedPaint);
 
         canvas.Restore();
 

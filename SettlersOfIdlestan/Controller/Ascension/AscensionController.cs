@@ -370,8 +370,9 @@ public class AscensionController : IModifierProvider
     /// <summary>
     /// Vrai si le choix de race est débloqué : au moins une race de base autre qu'Humains est
     /// actuellement sélectionnable (voir <see cref="IsRaceUnlocked"/>). Conditionne l'apparition de
-    /// l'écran de choix de race, les vertex de prestige offerts (voir
-    /// <see cref="GrantFreePrestigeVertices"/>) et le décompte des races ascensionnées.
+    /// l'écran de choix de race, les vertex de prestige propres à la race offerts à l'Ascension
+    /// (voir <see cref="GrantFreePrestigeVertices"/> — les vertex offerts par rang, eux, dépendent
+    /// des jalons) et le décompte des races ascensionnées.
     /// </summary>
     public bool IsRaceSelectionUnlocked =>
         RaceDefinitions.All.Any(r => r.Tier == RaceTier.Base && r.Id != RaceId.Human && IsRaceUnlocked(r.Id));
@@ -751,37 +752,56 @@ public class AscensionController : IModifierProvider
     }
 
     /// <summary>
+    /// Rang maximal des vertex de prestige offerts au début de chaque cycle d'Ascension, ou -1 tant
+    /// qu'aucun jalon n'est débloqué. Le rang est la distance en arêtes au vertex central, la même
+    /// mesure que celle qui fixe le coût d'un vertex (voir PrestigeMap.DefaultCost) : un rang par
+    /// jalon, dans l'ordre de AscensionMilestoneDefinitions — Héritage Ancestral offre le rang 0
+    /// (le vertex central, « Recherche »), Ascension Prestigieuse le rang 1 (Caserne, Port &amp;
+    /// Marché, Laboratoire), Ferveur Studieuse le rang 2 et Exode Divin le rang 3. Chaque jalon
+    /// englobe les précédents : les rangs sont cumulatifs, pas exclusifs.
+    /// </summary>
+    public int FreePrestigeVertexRank =>
+        IsMilestoneUnlocked(AscensionMilestoneId.FreeRelocation)           ?  3 :
+        IsMilestoneUnlocked(AscensionMilestoneId.ResearchProduction)       ?  2 :
+        IsMilestoneUnlocked(AscensionMilestoneId.PrestigiousAscension)     ?  1 :
+        IsMilestoneUnlocked(AscensionMilestoneId.PermanentUniqueBuildings) ?  0 :
+                                                                             -1;
+
+    /// <summary>
     /// Vertex de la carte de prestige offerts (ajoutés à PurchasedVertices sans coût) au début de
-    /// chaque cycle d'Ascension : le vertex central dès que Foi (le premier pouvoir divin) est
-    /// débloquée, plus ses 3 voisins (Caserne, Port &amp; Marché, Laboratoire) une fois le choix de
-    /// race débloqué — le Marché de départ ainsi garanti permet d'acheter la ressource que le
-    /// terrain de départ de la race ne produit pas (ex. la brique des Nains). S'y ajoutent les
-    /// vertex propres à la race choisie (RaceDefinition.FreePrestigeVertices), eux aussi sans
-    /// contrainte de contiguïté : les Elfes noirs partent ainsi avec Culture Fongique, seule source
-    /// de nourriture viable pour un départ souterrain. S'y ajoute enfin le vertex Relocalisation
-    /// (PrestigeMap.OuterHarborVertex) une fois le jalon Exode Divin débloqué
+    /// chaque cycle d'Ascension : tous ceux jusqu'au rang débloqué par les jalons (voir
+    /// <see cref="FreePrestigeVertexRank"/>) — le Port &amp; Marché du rang 1 garantit par exemple un
+    /// Marché de départ, qui permet d'acheter la ressource que le terrain de départ de la race ne
+    /// produit pas (ex. la brique des Nains). S'y ajoutent les vertex propres à la race choisie
+    /// (RaceDefinition.FreePrestigeVertices), eux aussi sans contrainte de contiguïté : les Elfes
+    /// noirs partent ainsi avec Culture Fongique, seule source de nourriture viable pour un départ
+    /// souterrain. S'y ajoute enfin le vertex Relocalisation (PrestigeMap.OuterHarborVertex, de rang
+    /// 4 donc hors des rangs offerts) une fois le jalon Exode Divin débloqué
     /// (AscensionMilestoneId.FreeRelocation).
     /// </summary>
     private void GrantFreePrestigeVertices(PrestigeState prestigeState, RaceId race)
     {
-        if (!IsPowerUnlocked(AscensionPowerId.Faith)) return;
-
-        if (!prestigeState.PurchasedVertices.Contains(Model.Prestige.PrestigeMap.PrestigeMap.CentralVertex))
-            prestigeState.PurchasedVertices.Add(Model.Prestige.PrestigeMap.PrestigeMap.CentralVertex);
-
-        if (!IsRaceSelectionUnlocked) return;
-
-        foreach (var neighbor in Expand.PrestigeMapController.DefaultMap.GetNeighbors(Model.Prestige.PrestigeMap.PrestigeMap.CentralVertex))
-            if (!prestigeState.PurchasedVertices.Contains(neighbor.Coord))
-                prestigeState.PurchasedVertices.Add(neighbor.Coord);
-
-        foreach (var vertex in RaceDefinitions.Get(race).FreePrestigeVertices)
+        void Grant(Vertex vertex)
+        {
             if (!prestigeState.PurchasedVertices.Contains(vertex))
                 prestigeState.PurchasedVertices.Add(vertex);
+        }
 
-        if (IsMilestoneUnlocked(AscensionMilestoneId.FreeRelocation)
-            && !prestigeState.PurchasedVertices.Contains(Model.Prestige.PrestigeMap.PrestigeMap.OuterHarborVertex))
-            prestigeState.PurchasedVertices.Add(Model.Prestige.PrestigeMap.PrestigeMap.OuterHarborVertex);
+        int freeRank = FreePrestigeVertexRank;
+        if (freeRank >= 0)
+        {
+            var center = Model.Prestige.PrestigeMap.PrestigeMap.CentralVertex;
+            foreach (var vertex in Expand.PrestigeMapController.DefaultMap.Vertices)
+                if (vertex.Coord.EdgeDistanceTo(center) <= freeRank)
+                    Grant(vertex.Coord);
+        }
+
+        if (IsRaceSelectionUnlocked)
+            foreach (var vertex in RaceDefinitions.Get(race).FreePrestigeVertices)
+                Grant(vertex);
+
+        if (IsMilestoneUnlocked(AscensionMilestoneId.FreeRelocation))
+            Grant(Model.Prestige.PrestigeMap.PrestigeMap.OuterHarborVertex);
     }
 
     public IEnumerable<Modifier> GetModifiers()
@@ -848,9 +868,14 @@ public class AscensionController : IModifierProvider
         // Jalon Exode Divin (AscensionMilestoneId.FreeRelocation) : relocaliser une ville ne coûte
         // plus rien — simple drapeau, voir CityBuilderController.RelocationCost. Le déblocage de
         // l'action elle-même reste porté par le vertex de prestige Relocalisation, offert à chaque
-        // Ascension par ce même jalon (voir GrantFreePrestigeVertices).
+        // Ascension par ce même jalon (voir GrantFreePrestigeVertices). Le jalon fait en outre poser
+        // à la Guilde des bâtisseurs 5 routes de surface d'un coup à chaque cycle au lieu d'une
+        // (base 1 + 4), l'Inframonde gardant sa route par cycle.
         if (IsMilestoneUnlocked(AscensionMilestoneId.FreeRelocation))
+        {
             yield return new Modifier(Modifier.ECategory.FREE_RELOCATION, Modifier.EType.ADDITIVE, 1.0);
+            yield return new Modifier(Modifier.ECategory.BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE, Modifier.EType.ADDITIVE, 4.0);
+        }
 
         // Bonus/malus de la race jouée pendant ce cycle (voir RaceDefinitions).
         foreach (var modifier in RaceDefinitions.Get(SelectedRace).Modifiers)

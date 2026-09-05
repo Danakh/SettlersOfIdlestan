@@ -146,15 +146,21 @@ namespace SettlersOfIdlestan.Controller.Island
                 guild.LastRoadBuildTick = lastTick;
                 if (cycles <= 0) continue;
 
-                BuildRoadsForGuildBurst(civ, guild, cycles, surfaceEnabled, underworldEnabled);
+                // Accélération propre à la surface (jalon d'Ascension Exode Divin) : plusieurs routes
+                // posées par cycle en surface, l'Inframonde restant à une route par cycle.
+                int surfaceRoadsPerCycle = Math.Max(1, (int)Math.Round(
+                    civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE, "", 1.0)));
+
+                BuildRoadsForGuildBurst(civ, guild, cycles, surfaceRoadsPerCycle, surfaceEnabled, underworldEnabled);
             }
         }
 
         /// <summary>
-        /// Pose jusqu'à <paramref name="cycles"/> routes automatiques pour une civilisation en un seul
-        /// appel (rattrapage après un saut de temps ; un cycle = une route posée, comportement
-        /// inchangé). S'arrête dès qu'un cycle ne trouve plus de route constructible — les cycles
-        /// suivants échoueraient pour la même raison.
+        /// Pose les routes automatiques de <paramref name="cycles"/> cycles pour une civilisation en un
+        /// seul appel (rattrapage après un saut de temps). Un cycle pose jusqu'à
+        /// <paramref name="surfaceRoadsPerCycle"/> routes de surface (1 par défaut) ou, à défaut, une
+        /// seule route d'Inframonde. S'arrête dès qu'un cycle ne trouve plus de route constructible —
+        /// les cycles suivants échoueraient pour la même raison.
         ///
         /// Les deux layers (surface et Inframonde — l'Abysse n'a pas d'automatisation de routes)
         /// maintiennent chacun une liste de travail locale des arêtes constructibles, mise à jour de
@@ -196,42 +202,15 @@ namespace SettlersOfIdlestan.Controller.Island
         /// changerait quels hexagones comptent comme "nouveaux" pour ce mécanisme au fil d'une rafale
         /// à plusieurs cycles, un changement de comportement de jeu et pas seulement de performance.
         /// </summary>
-        private void BuildRoadsForGuildBurst(Civilization civ, BuildersGuild guild, long cycles, bool surfaceEnabled, bool underworldEnabled)
+        private void BuildRoadsForGuildBurst(Civilization civ, BuildersGuild guild, long cycles, int surfaceRoadsPerCycle, bool surfaceEnabled, bool underworldEnabled)
         {
             LayerBurstContext? surfaceCtx = null;
             LayerBurstContext? underworldCtx = null;
             bool surfaceTouched = false;
             bool underworldTouched = false;
 
-            for (long c = 0; c < cycles; c++)
+            void BuildChosen(Road chosen, LayerBurstContext ctx)
             {
-                Road? chosen = null;
-                LayerBurstContext? chosenCtx = null;
-
-                if (surfaceEnabled)
-                {
-                    surfaceCtx ??= SeedLayerBurstContext(civ, IslandMap.SurfaceLayer, guild.MaxAutoRoadDistance);
-                    if (surfaceCtx.Working.Count > 0)
-                    {
-                        chosen = surfaceCtx.Working[_prng!.Next(surfaceCtx.Working.Count)];
-                        chosenCtx = surfaceCtx;
-                    }
-                }
-
-                // La guilde priorise la surface : l'Inframonde n'est considéré que si aucune route
-                // de surface n'est disponible ce cycle.
-                if (chosen == null && underworldEnabled)
-                {
-                    underworldCtx ??= SeedLayerBurstContext(civ, LayerState.UnderworldZ, guild.MaxAutoRoadDistance);
-                    if (underworldCtx.Working.Count > 0)
-                    {
-                        chosen = underworldCtx.Working[_prng!.Next(underworldCtx.Working.Count)];
-                        chosenCtx = underworldCtx;
-                    }
-                }
-
-                if (chosen == null) break;
-
                 TryRemoveEnemyRoadAt(chosen.Position, civ.Index);
                 var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
                 civ.AddRoad(road);
@@ -242,12 +221,43 @@ namespace SettlersOfIdlestan.Controller.Island
                 // Voir la doc de la méthode : doit être émis avant le patch pour l'Inframonde.
                 OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
 
-                PatchCandidatesAfterBuild(civ, guild, chosenCtx!, road);
+                PatchCandidatesAfterBuild(civ, guild, ctx, road);
 
                 // Seule la couche de la route posée a changé : les autres n'ont aucune raison d'être
                 // reconstruites, et le sont à chaque route quand l'Inframonde est automatisé.
                 if (!onSurface)
                     _state!.Visibility.RecalculateForLayer(civ.Index, chosen.Position.Z);
+            }
+
+            for (long c = 0; c < cycles; c++)
+            {
+                bool built = false;
+
+                // La surface pose jusqu'à surfaceRoadsPerCycle routes par cycle (1 par défaut, 5 avec
+                // le jalon d'Ascension Exode Divin — voir BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE).
+                if (surfaceEnabled)
+                {
+                    surfaceCtx ??= SeedLayerBurstContext(civ, IslandMap.SurfaceLayer, guild.MaxAutoRoadDistance);
+                    for (int s = 0; s < surfaceRoadsPerCycle && surfaceCtx.Working.Count > 0; s++)
+                    {
+                        BuildChosen(surfaceCtx.Working[_prng!.Next(surfaceCtx.Working.Count)], surfaceCtx);
+                        built = true;
+                    }
+                }
+
+                // La guilde priorise la surface : l'Inframonde n'est considéré que si aucune route
+                // de surface n'est disponible ce cycle.
+                if (!built && underworldEnabled)
+                {
+                    underworldCtx ??= SeedLayerBurstContext(civ, LayerState.UnderworldZ, guild.MaxAutoRoadDistance);
+                    if (underworldCtx.Working.Count > 0)
+                    {
+                        BuildChosen(underworldCtx.Working[_prng!.Next(underworldCtx.Working.Count)], underworldCtx);
+                        built = true;
+                    }
+                }
+
+                if (!built) break;
             }
 
             if (surfaceTouched)

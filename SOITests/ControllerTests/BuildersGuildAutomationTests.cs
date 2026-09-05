@@ -148,6 +148,54 @@ public class BuildersGuildAutomationTests
     }
 
     // =========================================================================
+    // Test 1 bis — Cadence de surface accélérée (jalon d'Ascension Exode Divin)
+    // =========================================================================
+
+    private sealed class FlatModifierProvider : IModifierProvider
+    {
+        private readonly List<Modifier> _mods;
+        public FlatModifierProvider(params Modifier[] mods) => _mods = new(mods);
+        public IEnumerable<Modifier> GetModifiers() => _mods;
+#pragma warning disable CS0067
+        public event System.Action? OnModifiersChanged;
+#pragma warning restore CS0067
+    }
+
+    /// <summary>
+    /// BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE (base 1, +4 avec le jalon Exode Divin) : un cycle de
+    /// 500 ticks pose 5 routes de surface au lieu d'une, sans toucher à la cadence elle-même.
+    /// </summary>
+    [Fact]
+    public void AutoRoad_WithSurfaceRoadsPerCycleModifier_BuildsFiveRoadsPerCycle()
+    {
+        var state = CreateNineteenHexIslandState();
+        var civ   = state.Civilizations[0];
+        var city  = civ.Cities[0];
+
+        // Niveau 3 : routes automatiques jusqu'à distance 3, largement plus de 5 arêtes candidates.
+        city.AddBuilding(new BuildersGuild { Level = 3 });
+        state.AutomationSettings.RoadAutomationEnabled = true;
+        civ.ModifierAggregator.Register(new FlatModifierProvider(
+            new Modifier(ECategory.BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE, EType.ADDITIVE, 4)));
+
+        var clock = new GameClock();
+        clock.Start();
+
+        var roadController = new RoadController();
+        roadController.Initialize(state, clock, new GamePRNG());
+
+        // Premier avancement : amorce du timer (first-fire guard).
+        clock.SimulateAdvance(10);
+        Assert.Empty(civ.Roads);
+
+        clock.SimulateAdvance(500);
+        Assert.Equal(5, civ.Roads.Count);
+
+        clock.SimulateAdvance(500);
+        Assert.Equal(10, civ.Roads.Count);
+    }
+
+    // =========================================================================
     // Test 2 — Full scenario: road saturation → outpost auto-build → new roads
     // =========================================================================
 

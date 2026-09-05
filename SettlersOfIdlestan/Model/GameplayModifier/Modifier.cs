@@ -307,6 +307,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             FREE_RELOCATION,
             /// <summary>Places supplémentaires dans la file de recherche (voir ResearchController.GetResearchQueueCapacity). Base = 0 sans UNLOCK_RESEARCH_QUEUE, 1 avec : +1 donne donc une file d'une place même sans le déblocage, et de deux places avec. SubCategory unused. Accordé par le jalon d'Ascension Ferveur Studieuse (AscensionMilestoneId.ResearchProduction).</summary>
             RESEARCH_QUEUE_SIZE,
+            /// <summary>Nombre de routes de SURFACE posées par cycle d'automatisation de la Guilde des bâtisseurs (voir RoadController.BuildRoadsForGuildBurst). Base = 1 ; +4 = 5 routes posées d'un coup à chaque cycle en surface. La cadence des cycles elle-même est inchangée, et l'Inframonde garde sa route par cycle. SubCategory unused. Accordé par le jalon d'Ascension Exode Divin (AscensionMilestoneId.FreeRelocation).</summary>
+            BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]
