@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -17,7 +17,7 @@ public static class Program
     private const double DefaultEndlessIslandHours = 24.0;
 
     /// <summary>Default --max-island-hours in gauntlet mode, where it caps <i>every</i> island: lower,
-    /// since 9 races x 4 islands run back to back and the question is reachability, not depth.</summary>
+    /// since 9 races x 3 islands run back to back and the question is reachability, not depth.</summary>
     private const double DefaultGauntletIslandHours = 8.0;
 
     /// <summary>Default --max-island-hours for --pandemonium, where it caps the assault itself. Bien plus
@@ -104,7 +104,7 @@ public static class Program
             bool allPassed = RaceGauntletRunner.Run(strategies[0], runOptions, new RaceGauntletOptions
             {
                 Races = options.Races,
-                Islands = options.Islands,
+                LastIsland = options.LastIsland,
                 Seed = options.Seed,
                 OutputDirectory = options.GauntletOutputDirectory,
                 PrestigePointTargets = options.PrestigePointTargets,
@@ -131,6 +131,10 @@ public static class Program
                 CheckpointIntervalHours = options.CheckpointHours,
                 MaxCycles = options.MaxCycles,
                 PrestigePointTargets = options.PrestigePointTargets,
+                // Île réellement en cours (--world-id, ou celle d'une sauvegarde) : les cibles sont
+                // indexées par numéro d'île, une manche reprise à l'île 7 ne repart donc pas sur la
+                // cible de l'île 1. Sur une partie neuve (île 1), c'est le comportement historique.
+                FirstIslandNumber = endlessController.CurrentMainState?.CurrentWorldState?.WorldId ?? 1,
                 MaxIslandHoursAfterFixedTargets = options.MaxIslandHours ?? DefaultEndlessIslandHours,
             };
             EndlessRunner.Run(endlessController, strategies[0], globalObjective, runOptions, endlessOptions);
@@ -221,21 +225,27 @@ public static class Program
                                          (default: 1).
               --max-cycles <n>          Safety cap on the number of phase-loop cycles (default: 100000).
               --prestige-point-targets <a,b,c,...>
-                                         Comma-separated prestige-point target for the 1st, 2nd, 3rd...
-                                         prestige (default: 35,80,500,1000). Once past the list, each
-                                         island's target instead doubles the previous island's actual
-                                         points.
+                                         Comma-separated prestige-point target for island 1, 2, 3...
+                                         (default: 35,80,500,1000) — indexed by island number, which
+                                         only differs from the prestige rank in gauntlet mode, where
+                                         the run starts on the Ascension's island. Once past the list,
+                                         each island's target instead doubles the previous island's
+                                         actual points.
               --max-island-hours <n>    Once past --prestige-point-targets, each island prestiges as soon
                                          as it reaches its doubled target OR this many simulated hours have
                                          passed, whichever comes first (default: 24).
 
-            Race gauntlet — plays the first N islands once per race, each starting with the divine powers
-            its tier requires, and reports which races get through (see RaceGauntletRunner):
+            Race gauntlet — plays, once per race, every island from the one its Ascension starts on (island
+            3 with the first milestone) through --last-island, each with the divine powers its tier
+            requires, and reports which races get through (see RaceGauntletRunner):
               --race-gauntlet           Run the gauntlet instead of racing strategies. --objective is not
                                          used (the goal is fixed: one prestige per island); --strategies
                                          defaults to Data/Strategies/race-gauntlet.json.
               --races <a,b,...>         Races to run (default: every implemented race).
-              --islands <n>             Islands each race must clear (default: 4).
+              --last-island <n>         Last island each race must finish (default: 5, the first endgame
+                                         island). The run is islands <Ascension island>..n — three islands
+                                         by default. Prestige-point targets are indexed by island number,
+                                         so island 3 gets the third --prestige-point-targets entry.
               --seed <n>                Shared seed — same for every race, which is what makes the run
                                          comparable. Omit for a random one.
               --gauntlet-output <dir>   Per-race CSVs + summary.csv/summary.json (default: race-gauntlet).
@@ -244,11 +254,11 @@ public static class Program
               --abandon-island-hours <n> Simulated hours on one island without ever reaching
                                          Prestige-available before the race is declared blocked
                                          (default: 24).
-              --final-island-points <n> Also require the LAST island to be worth n prestige points for
-                                         the race to pass, and raise that island's own prestige target
+              --final-island-points <n> Also require island --last-island to be worth n prestige points
+                                         for the race to pass, and raise that island's own prestige target
                                          to n so it isn't cut short below it (default: 0, verdict on
                                          the island count alone). The end-game round is
-                                         `--islands 5 --final-island-points 100`.
+                                         `--last-island 5 --final-island-points 100`.
 
             Pandémonium — les deux manches de fin de partie : un état où tout est acquis (100 % des
             recherches et des vertex de prestige, île de surface conquise et bâtie, villes des
@@ -320,7 +330,9 @@ internal class CliOptions
 
     public bool RaceGauntlet { get; set; }
     public List<RaceId> Races { get; set; } = new();
-    public int Islands { get; set; } = 4;
+    /// <summary>Dernière île que chaque race doit terminer (--last-island) — la manche part de l'île
+    /// où l'Ascension dépose la race, voir RaceGauntletOptions.LastIsland.</summary>
+    public int LastIsland { get; set; } = 5;
     public string GauntletOutputDirectory { get; set; } = "race-gauntlet";
     public double AbandonIslandHours { get; set; } = 24.0;
 
@@ -413,8 +425,8 @@ internal class CliOptions
                         .Select(ParseRace)
                         .ToList();
                     break;
-                case "--islands":
-                    options.Islands = int.Parse(RequireValue(args, ref i));
+                case "--last-island":
+                    options.LastIsland = int.Parse(RequireValue(args, ref i));
                     break;
                 case "--gauntlet-output":
                     options.GauntletOutputDirectory = RequireValue(args, ref i);
@@ -474,8 +486,8 @@ internal class CliOptions
         if (options.RaceGauntlet)
         {
             options.StrategiesPath ??= DefaultGauntletStrategiesPath;
-            if (options.Islands < 1)
-                throw new ArgumentException("--islands must be at least 1.");
+            if (options.LastIsland < 1)
+                throw new ArgumentException("--last-island must be at least 1.");
         }
         else if (string.IsNullOrEmpty(options.ObjectivePath))
         {

@@ -84,8 +84,9 @@ above with sane defaults, and `pause`s at the end so the summary stays on screen
 --checkpoint-hours <n>        Simulated-hours interval between checkpoint rows/console lines (default: 1)
 --max-cycles <n>              Safety cap on the number of prestige cycles (default: 100000)
 --prestige-point-targets <a,b,c,...>
-                               Comma-separated prestige-point target for the 1st, 2nd, 3rd... prestige
-                               (default: 35,80,500,1000). Past the list, each island's target instead
+                               Comma-separated prestige-point target for island 1, 2, 3... (default:
+                               35,80,500,1000) — indexed by island number, which in endless mode (island
+                               1 first) is the prestige rank. Past the list, each island's target instead
                                doubles the previous island's *actual* points at prestige time.
 --max-island-hours <n>        Once past --prestige-point-targets, each island prestiges as soon as it
                                reaches its doubled target OR this many simulated hours pass, whichever
@@ -96,8 +97,10 @@ above with sane defaults, and `pause`s at the end so the summary stays on screen
 checks `PrestigeController.CalculatePrestigePoints() >= pointsTarget` (and, once past the fixed target
 list, `island age >= --max-island-hours`) — the moment either is true *and* `PrestigeIsAvailable()`
 (points ≥ 20 **and** an Imperial Port built — not just points), it prestiges immediately, wherever the
-strategy currently is. `pointsTarget` for cycle N is `--prestige-point-targets[N-1]` while N is within
-the list, else `2 × <actual points the previous prestige had>`.
+strategy currently is. `pointsTarget` for a cycle is the `--prestige-point-targets` entry of the island
+it plays (`EndlessRunOptions.FirstIslandNumber + cycle - 1`, so simply the cycle rank in endless mode,
+which starts on island 1) while that island is within the list, else `2 × <actual points the previous
+prestige had>` — or the list's last entry when there is no previous prestige to double.
 
 **Stagnation safety valve — the fixed targets are not a guarantee.** A cycle *can* plateau below its
 fixed target (all reachable building levels maxed, no Wonder/Imperial-Port headroom yet, map exhausted)
@@ -135,7 +138,8 @@ strategy as a starting point to tune (per the workflow above), not a finished an
 ### Race gauntlet mode
 
 `--race-gauntlet` answers a different question from the two modes above: **can every race actually
-play the game?** It plays the first N islands (4 by default) once per race and prints a PASS/FAIL table.
+play the game?** It plays, once per race, every island **from the one the Ascension starts on through
+`--last-island`** (islands 3 → 5 by default — see below) and prints a PASS/FAIL table.
 It is the race-wide counterpart of `SOITests`' `FullIslandTest`, which only ever exercises Humans — but
 deliberately *not* a test: it takes minutes, its per-island outcome depends on the seed, and a FAIL is
 something to read and judge, not to gate a build on.
@@ -143,23 +147,34 @@ something to read and judge, not to gate a build on.
 ```bash
 dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --seed 1
 # one race, one island, to check the plumbing (~2 s):
-dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --races Human --islands 1 --seed 1
+dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --races Human --last-island 3 --seed 1
 ```
 
 Or double-click `RaceGauntlet.bat`. Exit code is 0 only if every race passed.
 
-**End-game round — `--islands 5 --final-island-points 100`.** Past four islands, "did it prestige"
-stops discriminating: every race that isn't outright blocked clears them. The question on island 5 —
-the first one a civilization enters with a real prestige-vertex inheritance behind it — is whether it
+**The run starts where the Ascension puts it, not on island 1.** The first Ascension milestone skips
+the two opening islands (`AscensionController.AscensionSkippedIslandCount`), so
+`GameStateFactory.NewGameForRace` lands on **island 3** and the gauntlet plays 3 → 4 → 5. That is why
+the bound is expressed as an island *number* (`--last-island`, default 5) rather than a count: the
+count follows from it (`LastIsland - FirstIsland + 1`, three by default), and the whole point of
+stopping at 5 is that it is the first island the atlas marks `IsEndgameIsland`. `--prestige-point-targets`
+is indexed by island number too (`EndlessRunOptions.FirstIslandNumber`), so island 3 gets the third
+entry (500) on the *first* cycle — the calibration stays attached to the island it was measured on.
+Consequence worth knowing before comparing numbers: the first island of a run no longer inherits
+anything from islands 1–2, so its 500-point target is out of reach and it ends on the time cap.
+
+**End-game round — `--last-island 5 --final-island-points 100`.** "Did it prestige" stops
+discriminating past the first island or two: every race that isn't outright blocked clears them. The
+question on island 5 — the last one, and the first flagged `IsEndgameIsland` — is whether it
 still *produces* at an end-game rate. `--final-island-points <n>` adds that second condition to the
-verdict: clear all N islands **and** be worth n prestige points on island N. It also raises that
+verdict: clear every island **and** be worth n prestige points on `--last-island`. It also raises that
 island's own points target to n (`EndlessRunOptions.LastCyclePointsFloor`) — without which the island
 would prestige at its computed target (2× the previous island's actual, ~80–120 in practice) and the
 criterion would be measuring that target rather than the race.
 
 ```bash
 dotnet run --project SOIStrategyTester -c Release -- --race-gauntlet --seed 1 \
-  --islands 5 --final-island-points 100 --gauntlet-output race-gauntlet-endgame
+  --last-island 5 --final-island-points 100 --gauntlet-output race-gauntlet-endgame
 ```
 
 Or double-click `RaceGauntletEndGame.bat`. A failure here reads in three distinct ways, and the
@@ -177,12 +192,18 @@ first two rows for an Advanced one — each advanced race's 3 required powers ar
 second-rank powers, so granting all of them covers every race regardless of which one is being
 started) and then goes through the **real**
 `AscensionController.PerformAscension`. That last part matters: it is the only path that regenerates
-island 1 *for that race* (start terrain, Underworld start for the Dark Elves) and that grants the free
+the island *for that race* (start terrain, Underworld start for the Dark Elves) and that grants the free
 prestige vertices which come with Faith and with race selection being unlocked (central vertex + its 3
 neighbours, plus `RaceDefinition.FreePrestigeVertices`). Poking `AscensionState.SelectedRace` instead
 would measure every race on a Human map with a Human prestige map. Side effect worth knowing: the run
 therefore starts with research already unlocked and a Market vertex bought, so it is *not* comparable
 to `StepIslandScenarios`' island-1 numbers.
+
+⚠️ **Every reference table below predates that change** — they were measured when the gauntlet still
+started on island 1 and ran four or five islands from there, so their island columns are islands 1–5
+*with* the islands 1–2 inheritance behind them. They are kept as the record of what was fixed (the
+Wonder gate, the DarkElf blockers), not as the current baseline; the first run of the 3 → 5 round
+replaces them.
 
 **The verdict is only "did it reach the next prestige, N times".** That is the one goal every race
 shares. FullIslandTest's per-stage checkpoints (12 cities, Library everywhere) are race-hostile by
@@ -191,8 +212,11 @@ cap at Town Hall 2 — so failing them would say nothing about playability. How 
 got (cities, buildings, points, research, Wonder) is reported next to the verdict instead; that is
 where a race being *weak* rather than *blocked* shows up.
 
-Islands are driven by `EndlessRunner` (same per-cycle prestige trigger as `--endless`), with two
+Islands are driven by `EndlessRunner` (same per-cycle prestige trigger as `--endless`), with three
 gauntlet-specific behaviours:
+- `EndlessRunOptions.FirstIslandNumber` — the island the Ascension actually started on, read back from
+  the controller. It is what maps each cycle onto its `--prestige-point-targets` entry (island number,
+  not cycle rank) and what labels the console/CSV/summary lines with real island numbers.
 - `EndlessRunOptions.TimeCapAllIslands` — `--max-island-hours` (default **8** here, not 24) caps
   *every* island, including the ones covered by a fixed `--prestige-point-targets` entry. Without it a
   target a race can't reach turns into an unbounded grind. In practice islands 3–4 end on this cap
@@ -229,7 +253,8 @@ is unchanged to the point. Whichever monument hex `OrderByLeastSacrifice` now pr
 likely cause for a race that only ever has four cities' worth of hexes to choose from; it has not been
 chased down, and a single seed does not make it a regression.
 
-**End-game round — seed 1, `--islands 5 --final-island-points 100`: 9/9.** Every race clears the five
+**End-game round — seed 1, `--islands 5 --final-island-points 100` (`--islands` était alors le
+drapeau, îles 1 à 5) : 9/9.** Every race clears the five
 islands *and* is worth 100+ points on the last one. Islands 1–4 are point-identical to the 4-island
 table above (same seed, same run up to that point), so the column that carries information here is
 island 5:
@@ -425,7 +450,8 @@ monument's `GetPlaceableHexes()` from cheapest to costliest to sacrifice — few
 harvesting the hex first, then the most abundant of the resources lost. Both callers benefit: the
 autoplay takes `hexes[0]`, and the player sees candidates best-first.
 
-Result, `--race-gauntlet --races DarkElf --islands 4 --seed 1`: **FAIL 0/4 → PASS 4/4**, with
+Result, `--race-gauntlet --races DarkElf --islands 4 --seed 1` (drapeau de l'époque, îles 1 à 4) :
+**FAIL 0/4 → PASS 4/4**, with
 47 / 284 / 745 / 765 points per island. On the 5-island end-game round it goes further and tops the
 table at 972 points and 15 cities on island 5.
 
@@ -526,12 +552,17 @@ chemin : utiliser `RecalculateFor(civIndex)`, comme lui.
 
 #### Les deux manches se jouent sur une île endgame
 
-L'Ascension régénère toujours la **première** île de l'atlas, la plus petite : 20 hexes de terre, 0 à 1
+L'Ascension repartait toujours de la **première** île de l'atlas, la plus petite : 20 hexes de terre, 0 à 1
 emplacement de Balise Maritime selon le seed, et une surface qui plafonne à 14-16 villes. Une manche de
 fin de partie ne peut pas se mesurer là-dessus, donc la fabrique bascule explicitement sur l'île
 `--world-id` (défaut **5**, la première que l'atlas marque `IsEndgameIsland`) en réécrivant le numéro
 d'île puis en appelant `MainGameController.RestartIsland` — voir `EndGameStateFactory.SwitchToIsland`,
 seul point de fabrication de la bascule, tout le reste étant le vrai chemin du jeu.
+
+Depuis que les jalons d'Ascension sautent le début de l'archipel
+(`AscensionController.AscensionSkippedIslandCount`), l'état ascensionné — toutes races ascensionnées,
+donc tous les jalons — démarre déjà sur l'île 5 : la bascule est un no-op dans le cas par défaut. Elle
+reste nécessaire pour les autres (`--world-id 1` de la vérification de plomberie, notamment).
 
 Ce que ça change, à seed 1 :
 

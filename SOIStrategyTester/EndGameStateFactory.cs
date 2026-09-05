@@ -528,9 +528,12 @@ public static class EndGameStateFactory
     /// génération par <c>IslandMapGenerator</c> au tier et au niveau de corruption de la partie,
     /// réinitialisation des contrôleurs, et application des bonus de départ des vertex de prestige.</para>
     ///
-    /// <para>Indispensable : <c>AscensionController.PerformAscension</c> régénère toujours la première
-    /// île de l'atlas, la plus petite. Sans cette bascule, une manche censée mesurer la fin de partie
-    /// se jouerait sur la carte de départ — vingt hexes de terre et aucune île à atteindre au large.</para>
+    /// <para>Reste indispensable, même si l'Ascension ne repart plus de l'île 1 : les jalons la font
+    /// désormais démarrer au plus loin sur l'île 5 (voir AscensionController.AscensionSkippedIslandCount),
+    /// ce qui rend cette bascule inopérante dans le cas par défaut mais pas dans les autres — une
+    /// manche demandée sur une autre île (<c>--world-id</c>, notamment le 1 de la vérification de
+    /// plomberie) passe toujours par ici, et l'ancien cas reste possible pour un état de départ qui
+    /// n'aurait pas tous les jalons.</para>
     /// </summary>
     private static void SwitchToIsland(MainGameController controller, int worldId)
     {

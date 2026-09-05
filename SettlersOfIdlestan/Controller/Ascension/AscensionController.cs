@@ -571,6 +571,13 @@ public class AscensionController : IModifierProvider
     /// premier cycle, joué avant que le choix de race soit débloqué, ne rejoint pas AscendedRaces —
     /// SelectedRace n'y vaut Humains que par défaut (voir AscensionState.SelectedRace), sans que le
     /// joueur ait rien choisi ; le compter débloquerait la Ziggourat sans un vrai choix de race.
+    ///
+    /// <para>Attention : <paramref name="firstIslandParameters"/> est forcément construit avant cet
+    /// appel, donc avant que l'Ascension en cours ne soit créditée — l'appelant qui choisit l'île de
+    /// départ d'après les jalons (voir <see cref="AscensionSkippedIslandCount"/>) doit donc enchaîner
+    /// <see cref="RequestAscension"/> puis <see cref="ConfirmAscensionRace"/> plutôt que d'utiliser
+    /// cette méthode, sans quoi il lit les jalons d'un cycle de retard (voir
+    /// MainGameController.PerformAscension).</para>
     /// </summary>
     public void PerformAscension(MainGameState mainGameState, IslandParameters firstIslandParameters, RaceId chosenRace)
     {
@@ -766,6 +773,24 @@ public class AscensionController : IModifierProvider
         IsMilestoneUnlocked(AscensionMilestoneId.PrestigiousAscension)     ?  1 :
         IsMilestoneUnlocked(AscensionMilestoneId.PermanentUniqueBuildings) ?  0 :
                                                                              -1;
+
+    /// <summary>
+    /// Nombre d'îles du début de l'archipel sautées au démarrage d'un nouveau cycle d'Ascension :
+    /// les jalons font repartir de plus en plus loin, pour ne pas rejouer les îles-tutoriel à chaque
+    /// cycle — Héritage Ancestral saute les îles 1 et 2 (départ île 3), Ascension Prestigieuse saute
+    /// aussi la 3 (départ île 4), Ferveur Studieuse aussi la 4 (départ île 5, la première île de fin
+    /// de partie). Exode Divin n'en saute pas davantage : au-delà de l'île 5 toutes les îles sont
+    /// des îles de fin de partie, il n'y a plus rien à sauter. Comme tout jalon, ceci suppose une
+    /// Ascension déjà accomplie (voir <see cref="IsMilestoneUnlocked"/>) : le compte doit donc être
+    /// lu après avoir crédité l'Ascension en cours, jamais avant — voir
+    /// MainGameController.PerformAscension / ConfirmAscensionRace, et
+    /// AtlasController.GetAscensionStartingWorldId qui le consomme.
+    /// </summary>
+    public int AscensionSkippedIslandCount =>
+        IsMilestoneUnlocked(AscensionMilestoneId.ResearchProduction)       ? 4 :
+        IsMilestoneUnlocked(AscensionMilestoneId.PrestigiousAscension)     ? 3 :
+        IsMilestoneUnlocked(AscensionMilestoneId.PermanentUniqueBuildings) ? 2 :
+                                                                            0;
 
     /// <summary>
     /// Vertex de la carte de prestige offerts (ajoutés à PurchasedVertices sans coût) au début de

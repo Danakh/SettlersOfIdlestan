@@ -46,12 +46,18 @@ public static class GameStateFactory
     /// the first time they can pick it: the divine powers its tier requires are unlocked, and the game
     /// starts on the first island of a fresh Ascension cycle.
     ///
-    /// <para>Getting there through the real <see cref="AscensionController.PerformAscension(SettlersOfIdlestan.Model.Game.MainGameState, SettlersOfIdlestan.Controller.Generator.IslandParameters, RaceId)"/>
-    /// rather than by poking <c>AscensionState.SelectedRace</c> is deliberate — it is the only path
-    /// that regenerates island 1 <i>for that race</i> (start terrain, Underworld start for the Dark
-    /// Elves) and grants the free prestige vertices that come with Faith and with race selection being
-    /// unlocked (central vertex + its 3 neighbours, plus RaceDefinition.FreePrestigeVertices). Skipping
-    /// it would measure a race on a map and a prestige map it never actually starts from.</para>
+    /// <para>Getting there through the real <c>MainGameController.PerformAscension</c> rather than by
+    /// poking <c>AscensionState.SelectedRace</c> is deliberate — it is the only path that regenerates
+    /// the island <i>for that race</i> (start terrain, Underworld start for the Dark Elves) and grants
+    /// the free prestige vertices that come with Faith and with race selection being unlocked (central
+    /// vertex + its 3 neighbours, plus RaceDefinition.FreePrestigeVertices). Skipping it would measure
+    /// a race on a map and a prestige map it never actually starts from.</para>
+    ///
+    /// <para>Which island that is, is the Ascension's own answer and is deliberately not overridden:
+    /// the milestones skip the opening of the archipelago (island 3 for a first Ascension — see
+    /// AscensionController.AscensionSkippedIslandCount), so a race is measured from where a player
+    /// actually restarts, and the gauntlet plays from there up to its <c>--last-island</c>. Read it
+    /// back from <c>CurrentWorldState.WorldId</c> rather than assuming a number.</para>
     ///
     /// <para>The powers are granted rather than purchased: god points buy nothing else, so the
     /// bookkeeping would change no gameplay. The essence spent to trigger the Ascension is the
@@ -84,7 +90,9 @@ public static class GameStateFactory
     ///
     /// <para>Tout passe par les vrais chemins : les pouvoirs sont achetés par
     /// <see cref="AscensionController.PurchasePower"/> dans l'ordre des colonnes, l'Ascension finale
-    /// est la vraie (elle régénère l'île 1 pour la race, incrémente le compteur d'Ascensions et verse
+    /// est la vraie (elle régénère l'île de départ du cycle pour la race — toutes les races étant déjà
+    /// ascensionnées ici, les jalons la fixent à l'île 5, la première île de fin de partie, celle-là
+    /// même que la manche vise par défaut —, incrémente le compteur d'Ascensions et verse
     /// la dotation d'Ascension Prestigieuse), et les bâtiments permanents passent par
     /// <see cref="AscensionController.SelectPermanentUniqueBuilding"/>, qui refuse au-delà des
     /// emplacements réellement ouverts.</para>

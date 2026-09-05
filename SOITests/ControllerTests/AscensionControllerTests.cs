@@ -2006,6 +2006,52 @@ public class AscensionControllerTests
         Assert.Contains(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.FREE_RELOCATION);
     }
 
+    // ── Île de départ du cycle suivant (AscensionController.AscensionSkippedIslandCount) ─────
+    // Les jalons font sauter le début de l'archipel : chaque cycle repart plus loin que le précédent
+    // jusqu'aux îles de fin de partie (île 5+, voir AtlasController.GetAscensionStartingWorldId).
+
+    [Fact]
+    public void PerformAscension_WithAncestralLegacyMilestone_StartsTheNewCycleOnTheThirdIsland()
+    {
+        var controller = CreateAscendableGame(out _);
+
+        controller.PerformAscension();
+
+        // Héritage Ancestral est acquis par l'Ascension qui vient d'être accomplie : îles 1 et 2 sautées.
+        Assert.Equal(3, controller.CurrentMainState!.CurrentWorldState!.WorldId);
+    }
+
+    [Fact]
+    public void PerformAscension_WithPrestigiousAscensionMilestone_StartsTheNewCycleOnTheFourthIsland()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        // Deux Ascensions déjà accomplies, toutes deux en Humains (seule la seconde compte comme race
+        // ascensionnée, voir CreditAscensionPointsAndArchiveCycle) : celle déclenchée ici n'ajoute
+        // donc aucune race et s'arrête au deuxième jalon.
+        godState.AscensionState.AscensionsPerformed = 2;
+        godState.AscensionState.AscendedRaces.Add(RaceId.Human);
+
+        controller.PerformAscension();
+
+        Assert.Equal(4, controller.CurrentMainState!.CurrentWorldState!.WorldId);
+    }
+
+    [Fact]
+    public void PerformAscension_WithScholarlyFervorMilestone_StartsTheNewCycleOnTheFirstEndgameIsland()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        // 1 race déjà ascensionnée + les Humains de l'Ascension déclenchée ici = les 2 races
+        // différentes exigées par Ferveur Studieuse.
+        godState.AscensionState.AscensionsPerformed = 2;
+        godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
+
+        controller.PerformAscension();
+
+        // Île 5 : la première des îles de fin de partie (IslandParameters.IsEndgameIsland, voir
+        // AtlasController.BuildHighEndIsland).
+        Assert.Equal(5, controller.CurrentMainState!.CurrentWorldState!.WorldId);
+    }
+
     /// <summary>Débloque le choix de race (voir AscensionController.IsRaceSelectionUnlocked), sans
     /// lequel aucun vertex de prestige n'est offert à l'Ascension — voir GrantFreePrestigeVertices.</summary>
     private static void UnlockRaceSelection(GodState godState)

@@ -16,8 +16,18 @@ public class RaceGauntletOptions
     /// <summary>Races to run, in order. Defaults to every implemented race (see RaceDefinitions).</summary>
     public List<RaceId> Races { get; set; } = new();
 
-    /// <summary>How many islands each race must clear — one prestige per island.</summary>
-    public int Islands { get; set; } = 4;
+    /// <summary>
+    /// Numéro de la <b>dernière</b> île que chaque race doit terminer — une île par prestige, en
+    /// partant de celle où l'Ascension dépose la race (île 3 avec le premier jalon, voir
+    /// AscensionController.AscensionSkippedIslandCount et GameStateFactory.NewGameForRace). Le
+    /// nombre de cycles s'en déduit : 3 → 5 fait trois îles.
+    ///
+    /// <para>Exprimé en numéro d'île et non plus en nombre d'îles parce que c'est le numéro qui porte
+    /// le sens : la calibration des cibles de points (<see cref="PrestigePointTargets"/>) est par
+    /// île, et l'île 5 est la première que l'atlas marque <c>IsEndgameIsland</c> — la borne dont
+    /// dépend le verdict de la manche de fin de partie.</para>
+    /// </summary>
+    public int LastIsland { get; set; } = 5;
 
     /// <summary>PRNG seed. The same seed for every race is what makes the results comparable; leave
     /// null for a random one (useful to check a failure isn't specific to one generated map).</summary>
@@ -26,6 +36,9 @@ public class RaceGauntletOptions
     /// <summary>Directory for the per-race CSVs and the summary files.</summary>
     public string OutputDirectory { get; set; } = "race-gauntlet";
 
+    /// <summary>Cibles de points de prestige <b>par numéro d'île</b> (position 1 = île 1), passées
+    /// telles quelles à EndlessRunOptions.PrestigePointTargets : une manche qui démarre à l'île 3
+    /// prend donc la 3ᵉ entrée pour son premier cycle — voir EndlessRunOptions.FirstIslandNumber.</summary>
     public List<int> PrestigePointTargets { get; set; } = new() { 35, 80, 500, 1000 };
 
     /// <summary>Simulated-hours cap on every island (see EndlessRunOptions.TimeCapAllIslands).</summary>
@@ -37,14 +50,13 @@ public class RaceGauntletOptions
     public double CheckpointHours { get; set; } = 1.0;
 
     /// <summary>
-    /// Points de prestige que la <b>dernière</b> île doit rapporter pour que la race passe, en plus
-    /// d'avoir enchaîné les <see cref="Islands"/> îles. 0 (défaut) : verdict sur le seul nombre d'îles.
+    /// Points de prestige que l'île <see cref="LastIsland"/> doit rapporter pour que la race passe, en
+    /// plus d'avoir enchaîné toutes les îles jusque-là. 0 (défaut) : verdict sur le seul nombre d'îles.
     ///
-    /// <para>C'est le critère de la manche « fin de partie » : au-delà des 4 îles d'échauffement, la
-    /// question intéressante n'est plus « la race arrive-t-elle à prestiger » — à ce stade toutes y
-    /// arrivent — mais « produit-elle encore des points à un rythme d'end game ». D'où une manche à
-    /// 5 îles où la 5ᵉ doit rapporter 100 points, la 5ᵉ étant la première île dont la civilisation
-    /// démarre avec un vrai héritage de vertex de prestige.</para>
+    /// <para>C'est le critère de la manche « fin de partie » : la question intéressante n'est plus
+    /// « la race arrive-t-elle à prestiger » — à ce stade toutes y arrivent — mais « produit-elle
+    /// encore des points à un rythme d'end game ». D'où une manche qui s'arrête à l'île 5, la
+    /// première que l'atlas marque <c>IsEndgameIsland</c>, en lui demandant 100 points.</para>
     ///
     /// <para>Câblé sur <see cref="EndlessRunOptions.LastCyclePointsFloor"/>, sans quoi la mesure
     /// serait truquée : l'île prestigerait à sa propre cible calculée, plus basse, et le critère
@@ -56,12 +68,17 @@ public class RaceGauntletOptions
 }
 
 /// <summary>
-/// Plays the first N islands (4 by default) once per race and reports which races make it through —
-/// the "can everyone actually play the game?" check that FullIslandTest only ever answers for Humans.
+/// Plays one race at a time from the island its Ascension starts on up to <see
+/// cref="RaceGauntletOptions.LastIsland"/> (island 3 → 5 by default) and reports which races make it
+/// through — the "can everyone actually play the game?" check that FullIslandTest only ever answers
+/// for Humans.
 ///
 /// <para>Each race starts from <see cref="GameStateFactory.NewGameForRace"/>: the divine powers its
-/// tier requires are unlocked and island 1 is generated for that race, so a race is measured on the
-/// state a player reaches it in, not on a Human start with the racial modifiers bolted on.</para>
+/// tier requires are unlocked and the Ascension's own island is generated for that race, so a race is
+/// measured on the state a player reaches it in, not on a Human start with the racial modifiers
+/// bolted on. That island is island 3 as soon as the first Ascension milestone skips the two opening
+/// islands (AscensionController.AscensionSkippedIslandCount) — the run is therefore three islands
+/// long by default, not five, and every per-island target is read from the island's own number.</para>
 ///
 /// <para>Islands are driven by <see cref="EndlessRunner"/>, exactly like <c>--endless</c>: it decides
 /// when to prestige (points target, or the per-island time cap) rather than the strategy. The verdict
@@ -82,7 +99,7 @@ public static class RaceGauntletRunner
     };
 
     private const string SummaryCsvHeader =
-        "Race,Tier,Verdict,IslandsCleared,IslandsRequested,SimulatedHours,Iterations,FailureReason," +
+        "Race,Tier,Verdict,IslandsCleared,IslandsRequested,FirstIsland,LastIsland,SimulatedHours,Iterations,FailureReason," +
         "Island,WorldId,IslandHours,Cities,Buildings,TotalBuildingLevels,PrestigePoints,Research,UniqueBuildings,WonderLevel";
 
     public static bool Run(StrategyDefinition strategy, StrategyRunOptions runOptions, RaceGauntletOptions options)
@@ -94,11 +111,11 @@ public static class RaceGauntletRunner
         var outputDirectory = Path.GetFullPath(options.OutputDirectory);
         Directory.CreateDirectory(outputDirectory);
 
-        Console.WriteLine($"Race gauntlet — {races.Count} races x {options.Islands} islands, strategy '{strategy.Name}', " +
-                          $"seed {(options.Seed?.ToString(CultureInfo.InvariantCulture) ?? "random")}.");
+        Console.WriteLine($"Race gauntlet — {races.Count} races, from the Ascension island through island {options.LastIsland}, " +
+                          $"strategy '{strategy.Name}', seed {(options.Seed?.ToString(CultureInfo.InvariantCulture) ?? "random")}.");
         Console.WriteLine(options.MinFinalIslandPrestigePoints > 0
-            ? $"Pass: clear all {options.Islands} islands AND earn {options.MinFinalIslandPrestigePoints}+ prestige points on island {options.Islands}."
-            : $"Pass: clear all {options.Islands} islands.");
+            ? $"Pass: clear every island up to island {options.LastIsland} AND earn {options.MinFinalIslandPrestigePoints}+ prestige points on it."
+            : $"Pass: clear every island up to island {options.LastIsland}.");
         Console.WriteLine($"Output: {outputDirectory}");
 
         var results = new List<RaceGauntletResult>();
@@ -122,25 +139,38 @@ public static class RaceGauntletRunner
         {
             Race = race,
             Tier = RaceDefinitions.Get(race).Tier,
-            IslandsRequested = options.Islands,
+            LastIsland = options.LastIsland,
+            // Provisoire, remplacé dès que l'île de départ est connue : majorant, pour qu'une race qui
+            // meurt avant même d'avoir une partie se lise FAIL et non PASS sur 0 île demandée.
+            IslandsRequested = Math.Max(1, options.LastIsland),
             MinFinalIslandPrestigePoints = options.MinFinalIslandPrestigePoints,
         };
 
         try
         {
             var controller = GameStateFactory.NewGameForRace(race, options.Seed);
+
+            // L'Ascension décide de l'île de départ (jalons — voir GameStateFactory.NewGameForRace) :
+            // la manche joue de là jusqu'à LastIsland, soit une île de moins par jalon acquis.
+            int firstIsland = controller.CurrentMainState!.CurrentWorldState!.WorldId;
+            int islandCount = Math.Max(1, options.LastIsland - firstIsland + 1);
+            result.FirstIsland = firstIsland;
+            result.IslandsRequested = islandCount;
+            Console.WriteLine($"-- islands {firstIsland}..{options.LastIsland} ({islandCount} prestige{(islandCount > 1 ? "s" : "")})");
+
             var endlessOptions = new EndlessRunOptions
             {
                 CsvPath = Path.Combine(outputDirectory, $"race-{race}.csv"),
                 CheckpointIntervalHours = options.CheckpointHours,
-                MaxCycles = options.Islands,
+                MaxCycles = islandCount,
                 PrestigePointTargets = options.PrestigePointTargets,
+                FirstIslandNumber = firstIsland,
                 MaxIslandHoursAfterFixedTargets = options.MaxIslandHours,
                 TimeCapAllIslands = true,
                 AbandonIslandAfterHours = options.AbandonIslandAfterHours,
                 LastCyclePointsFloor = options.MinFinalIslandPrestigePoints,
             };
-            var objective = new ObjectiveSpec { Kind = ObjectiveKind.PrestigeRunCountAtLeast, Count = options.Islands };
+            var objective = new ObjectiveSpec { Kind = ObjectiveKind.PrestigeRunCountAtLeast, Count = islandCount };
 
             var run = EndlessRunner.Run(controller, strategy, objective, runOptions, endlessOptions);
 
@@ -156,7 +186,7 @@ public static class RaceGauntletRunner
             if (string.IsNullOrEmpty(result.FailureReason) && result.IslandsCleared >= result.IslandsRequested
                 && !result.FinalIslandPointsReached)
                 result.FailureReason =
-                    $"island {result.Islands.Count}: {result.FinalIslandPoints}/{options.MinFinalIslandPrestigePoints} " +
+                    $"island {options.LastIsland}: {result.FinalIslandPoints}/{options.MinFinalIslandPrestigePoints} " +
                     $"prestige points after {FormatHours(result.Islands[^1].TickDuration)}h — {run.LastPrestigeReason}";
 
             // The state the race ended on, in the game's own save format: loadable in the Desktop head
@@ -174,7 +204,7 @@ public static class RaceGauntletRunner
         }
 
         string finalPoints = options.MinFinalIslandPrestigePoints > 0 && result.ReachedFinalIsland
-            ? $", {result.FinalIslandPoints}/{options.MinFinalIslandPrestigePoints} pts on the last one"
+            ? $", {result.FinalIslandPoints}/{options.MinFinalIslandPrestigePoints} pts on island {options.LastIsland}"
             : "";
         Console.WriteLine(result.Passed
             ? $"-> {race}: PASS — {result.IslandsCleared}/{result.IslandsRequested} islands{finalPoints} in {FormatHours(result.Ticks)}h simulated."
@@ -202,9 +232,11 @@ public static class RaceGauntletRunner
                 for (int i = 0; i < r.Islands.Count; i++)
                 {
                     var s = r.Islands[i];
+                    // Colonne Island : le numéro d'île réel (la manche ne démarre plus à 1), qui vaut
+                    // WorldId — gardé à côté, c'est lui que porte PrestigeRunStats.
                     csv.WriteLine(string.Join(',', RaceColumns(r).Concat(new object?[]
                     {
-                        i + 1, s.WorldId, FormatHours(s.TickDuration), s.CityCount, s.BuildingCount,
+                        r.FirstIsland + i, s.WorldId, FormatHours(s.TickDuration), s.CityCount, s.BuildingCount,
                         s.TotalBuildingLevels, s.PrestigePoints, s.ResearchCompleted, s.UniqueBuildings, s.WonderLevel,
                     })));
                 }
@@ -215,7 +247,7 @@ public static class RaceGauntletRunner
         File.WriteAllText(jsonPath, JsonSerializer.Serialize(new
         {
             options.Seed,
-            options.Islands,
+            options.LastIsland,
             options.PrestigePointTargets,
             options.MaxIslandHours,
             options.AbandonIslandAfterHours,
@@ -230,20 +262,23 @@ public static class RaceGauntletRunner
     private static IEnumerable<object?> RaceColumns(RaceGauntletResult r) => new object?[]
     {
         r.Race, r.Tier, r.Passed ? "PASS" : "FAIL", r.IslandsCleared, r.IslandsRequested,
-        FormatHours(r.Ticks), r.Iterations, Escape(r.FailureReason),
+        r.FirstIsland, r.LastIsland, FormatHours(r.Ticks), r.Iterations, Escape(r.FailureReason),
     };
 
     private static void PrintSummary(List<RaceGauntletResult> results, RaceGauntletOptions options)
     {
         Console.WriteLine();
         Console.WriteLine("======== Race gauntlet summary ========");
-        Console.WriteLine($"{"Race",-9} {"Tier",-8} {"Verdict",-7} {"Islands",-8} {"Sim h",-8}  Per island (points / cities / hours)");
+        Console.WriteLine($"{"Race",-9} {"Tier",-8} {"Verdict",-7} {"Islands",-8} {"Sim h",-8}  Per island (island: points / cities / hours)");
 
         foreach (var r in results)
         {
+            // Le numéro d'île est préfixé : la manche ne commence plus à l'île 1, une colonne nue se
+            // lirait comme un rang de cycle.
             var perIsland = r.Islands.Count == 0
                 ? "-"
-                : string.Join("  ", r.Islands.Select(s => $"{s.PrestigePoints}p/{s.CityCount}c/{FormatHours(s.TickDuration)}h"));
+                : string.Join("  ", r.Islands.Select((s, i) =>
+                    $"i{r.FirstIsland + i}: {s.PrestigePoints}p/{s.CityCount}c/{FormatHours(s.TickDuration)}h"));
 
             Console.WriteLine($"{r.Race,-9} {r.Tier,-8} {(r.Passed ? "PASS" : "FAIL"),-7} " +
                               $"{$"{r.IslandsCleared}/{r.IslandsRequested}",-8} {FormatHours(r.Ticks),-8}  {perIsland}");
@@ -255,7 +290,7 @@ public static class RaceGauntletRunner
         if (options.MinFinalIslandPrestigePoints > 0)
         {
             Console.WriteLine();
-            Console.WriteLine($"Island {options.Islands} — {options.MinFinalIslandPrestigePoints}+ prestige points required:");
+            Console.WriteLine($"Island {options.LastIsland} — {options.MinFinalIslandPrestigePoints}+ prestige points required:");
             foreach (var r in results)
                 Console.WriteLine(r.ReachedFinalIsland
                     ? $"{"",-9} {r.Race,-9} {r.FinalIslandPoints,5} pts  {(r.FinalIslandPointsReached ? "ok" : "short")}"
@@ -294,6 +329,15 @@ public class RaceGauntletResult
 {
     public RaceId Race { get; set; }
     public RaceTier Tier { get; set; }
+
+    /// <summary>Île sur laquelle l'Ascension a déposé la race — début de la manche (voir
+    /// RaceGauntletOptions.LastIsland). 0 tant que la partie n'a pas pu être créée.</summary>
+    public int FirstIsland { get; set; }
+
+    /// <summary>Dernière île à terminer (copie de RaceGauntletOptions.LastIsland).</summary>
+    public int LastIsland { get; set; }
+
+    /// <summary>Nombre d'îles à enchaîner : <see cref="LastIsland"/> - <see cref="FirstIsland"/> + 1.</summary>
     public int IslandsRequested { get; set; }
     public int IslandsCleared { get; set; }
     public long Ticks { get; set; }
@@ -310,10 +354,10 @@ public class RaceGauntletResult
     public int MinFinalIslandPrestigePoints { get; set; }
 
     /// <summary>
-    /// Points rapportés par l'île <see cref="IslandsRequested"/> — celle sur laquelle porte le
-    /// critère —, 0 si la race n'est jamais allée jusque-là. Volontairement pas « la dernière île
-    /// terminée » : pour une race qui cale sur l'île 5, ce serait les points de l'île 4, affichés
-    /// dans la colonne de l'île 5.
+    /// Points rapportés par l'île <see cref="LastIsland"/> — celle sur laquelle porte le critère —,
+    /// 0 si la race n'est jamais allée jusque-là. Volontairement pas « la dernière île terminée » :
+    /// pour une race qui cale sur l'île 5, ce serait les points de l'île 4, affichés dans la colonne
+    /// de l'île 5.
     /// </summary>
     public int FinalIslandPoints =>
         Islands.Count >= IslandsRequested && IslandsRequested > 0 ? Islands[IslandsRequested - 1].PrestigePoints : 0;

@@ -284,16 +284,27 @@ namespace SettlersOfIdlestan.Controller
         /// Comme <see cref="PerformAscension()"/>, en choisissant la race du prochain cycle
         /// (voir AscensionController.GetSelectableRaces — Humains tant que la première rangée de
         /// pouvoirs divins n'est pas complète).
+        ///
+        /// <para>Déroule les deux phases de l'Ascension (AscensionController.RequestAscension puis
+        /// ConfirmAscensionRace) d'affilée, sans passer par la pause du parcours UI : l'île de départ
+        /// dépend des jalons, qui comptent l'Ascension en cours (voir
+        /// AscensionController.AscensionSkippedIslandCount), elle ne peut donc être choisie qu'une
+        /// fois la première phase passée. La race est validée avant que quoi que ce soit ne soit
+        /// crédité, pour qu'un choix invalide laisse la partie intacte.</para>
         /// </summary>
         public void PerformAscension(RaceId chosenRace)
         {
             if (CurrentMainState == null)
                 throw new InvalidOperationException("No main state available.");
+            if (!AscensionController.GetSelectableRaces().Contains(chosenRace))
+                throw new InvalidOperationException($"Race {chosenRace} is not selectable.");
 
-            var worldId = AtlasController.GetAscensionStartingWorldId(CurrentMainState.GodState.AscensionState.AscensionsPerformed);
-            var parameters = AtlasController.GetIslandParameters(worldId);
             TaskRecordController.RecordAscension(AscensionController.GetGodPointsGain(CurrentMainState.GodState));
-            AscensionController.PerformAscension(CurrentMainState, parameters, chosenRace);
+            AscensionController.RequestAscension(CurrentMainState);
+
+            var worldId = AtlasController.GetAscensionStartingWorldId(AscensionController.AscensionSkippedIslandCount);
+            var parameters = AtlasController.GetIslandParameters(worldId);
+            AscensionController.ConfirmAscensionRace(CurrentMainState, parameters, chosenRace);
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
         }
@@ -330,7 +341,9 @@ namespace SettlersOfIdlestan.Controller
             if (CurrentMainState == null)
                 throw new InvalidOperationException("No main state available.");
 
-            var worldId = AtlasController.GetAscensionStartingWorldId(CurrentMainState.GodState.AscensionState.AscensionsPerformed);
+            // L'Ascension en cours est déjà créditée (RequestAscension) : les jalons qui décident de
+            // l'île de départ la comptent donc bien — voir AscensionController.AscensionSkippedIslandCount.
+            var worldId = AtlasController.GetAscensionStartingWorldId(AscensionController.AscensionSkippedIslandCount);
             var parameters = AtlasController.GetIslandParameters(worldId);
             AscensionController.ConfirmAscensionRace(CurrentMainState, parameters, chosenRace);
             InitializeControllersForCurrentIsland();

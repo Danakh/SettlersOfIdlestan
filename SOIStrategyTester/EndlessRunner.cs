@@ -18,10 +18,21 @@ public class EndlessRunOptions
     public double CheckpointIntervalHours { get; set; } = 1.0;
     public long MaxCycles { get; set; } = 100_000;
 
-    /// <summary>Fixed prestige-point target for the Nth prestige (1-indexed by position). Once the
-    /// cycle count exceeds this list, the target instead doubles the previous cycle's actual points
-    /// each time — see MaxIslandHoursAfterFixedTargets.</summary>
+    /// <summary>Fixed prestige-point target per island, indexed by island number (position 1 = island
+    /// 1) — see <see cref="FirstIslandNumber"/>, which is what maps a cycle onto its entry. Once the
+    /// island number runs past this list, the target instead doubles the previous cycle's actual
+    /// points each time — see MaxIslandHoursAfterFixedTargets.</summary>
     public List<int> PrestigePointTargets { get; set; } = new() { 35, 80, 500, 1000 };
+
+    /// <summary>
+    /// Numéro d'île du premier cycle : c'est lui qui aligne les cycles sur
+    /// <see cref="PrestigePointTargets"/>, indexé par numéro d'île et non par rang de cycle. Vaut 1
+    /// pour une partie neuve ; le race gauntlet le renseigne avec l'île sur laquelle l'Ascension a
+    /// réellement démarré (île 3 avec le premier jalon, voir
+    /// AscensionController.AscensionSkippedIslandCount) pour que son premier cycle reçoive la cible
+    /// calibrée pour cette île-là, pas celle de l'île 1.
+    /// </summary>
+    public int FirstIslandNumber { get; set; } = 1;
 
     /// <summary>Once past PrestigePointTargets, each island is capped at this many simulated hours —
     /// whichever of (2× previous points) or this time limit is reached first ends the island.</summary>
@@ -156,12 +167,19 @@ public static class EndlessRunner
 
         for (long cycle = 1; cycle <= endlessOptions.MaxCycles; cycle++)
         {
-            int cycleIdx0 = (int)Math.Min(cycle - 1, int.MaxValue);
-            bool pastFixedTargets = cycleIdx0 >= endlessOptions.PrestigePointTargets.Count;
+            // Cible indexée par numéro d'île, pas par rang de cycle : une manche qui démarre sur
+            // l'île 3 (Ascension, voir EndlessRunOptions.FirstIslandNumber) prend la cible calibrée
+            // pour l'île 3.
+            int islandNumber = (int)Math.Min(cycle - 1 + endlessOptions.FirstIslandNumber, int.MaxValue);
+            int targetIdx0 = islandNumber - 1;
+            bool pastFixedTargets = targetIdx0 >= endlessOptions.PrestigePointTargets.Count;
             bool hasTimeCap = pastFixedTargets || endlessOptions.TimeCapAllIslands;
             int pointsTarget = pastFixedTargets
-                ? Math.Max(1, lastAchievedPoints * 2)
-                : endlessOptions.PrestigePointTargets[cycleIdx0];
+                // Doubler les points réels du cycle précédent — sauf s'il n'y en a pas : une manche qui
+                // démarre déjà au-delà des cibles fixes doublerait 0 et prestigerait au premier point.
+                // La dernière cible fixe est alors le point de départ le moins arbitraire.
+                ? Math.Max(1, lastAchievedPoints > 0 ? lastAchievedPoints * 2 : LastFixedTarget(endlessOptions))
+                : endlessOptions.PrestigePointTargets[targetIdx0];
 
             // Dernière île jugée sur ses points : ne pas la laisser prestiger sous le plancher demandé
             // simplement parce que sa cible calculée était plus basse (voir LastCyclePointsFloor).
@@ -174,9 +192,12 @@ public static class EndlessRunner
             string targetOrigin = flooredLastCycle ? " (plancher dernière île)"
                 : pastFixedTargets ? " (2x previous)"
                 : "";
+            // Le numéro d'île est rappelé à côté du cycle : les deux ne coïncident plus dès que la
+            // manche démarre ailleurs qu'à l'île 1 (voir FirstIslandNumber).
+            string cycleLabel = $"Cycle {cycle} (island {islandNumber})";
             Console.WriteLine(hasTimeCap
-                ? $"== Cycle {cycle}: target {pointsTarget} prestige points{targetOrigin}, or {endlessOptions.MaxIslandHoursAfterFixedTargets}h simulated — whichever comes first =="
-                : $"== Cycle {cycle}: target {pointsTarget} prestige points{targetOrigin} ==");
+                ? $"== {cycleLabel}: target {pointsTarget} prestige points{targetOrigin}, or {endlessOptions.MaxIslandHoursAfterFixedTargets}h simulated — whichever comes first =="
+                : $"== {cycleLabel}: target {pointsTarget} prestige points{targetOrigin} ==");
 
             bool prestigedThisCycle = false;
             int pointsAtLastPassBoundary = -1;
@@ -265,13 +286,13 @@ public static class EndlessRunner
                         {
                             string why = DescribeMissingPrestigeRequirements(controller, currentPoints);
                             Console.WriteLine(
-                                $"Cycle {cycle}: abandoned after {FormatHours(islandAge)}h on this island without ever reaching " +
+                                $"{cycleLabel}: abandoned after {FormatHours(islandAge)}h on this island without ever reaching " +
                                 $"Prestige-available ({why}).");
                             DumpBlockedState(controller, phase, priorityStrategy);
                             WriteRow(csv, "Abandoned", cycle, phaseIndex, phase.Kind, iterationsUsed, prestigeCount, pointsTarget, clock, controller, mainState);
                             csv.Flush();
                             result.FailureReason =
-                                $"island {cycle}: no prestige after {FormatHours(islandAge)}h simulated ({why})";
+                                $"island {islandNumber}: no prestige after {FormatHours(islandAge)}h simulated ({why})";
                             return Finish(result, prestigeCount, clock, iterationsUsed);
                         }
 
@@ -326,11 +347,11 @@ public static class EndlessRunner
             {
                 string why = DescribeMissingPrestigeRequirements(controller, controller.PrestigeController.CalculatePrestigePoints());
                 Console.WriteLine(
-                    $"Cycle {cycle}: gave up after {endlessOptions.MaxPassesPerCycle} passes without ever reaching " +
+                    $"{cycleLabel}: gave up after {endlessOptions.MaxPassesPerCycle} passes without ever reaching " +
                     $"Prestige-available ({why}) — aborting endless run.");
                 DumpBlockedState(controller, lastPhase, lastPriorityStrategy);
                 csv.Flush();
-                result.FailureReason = $"island {cycle}: no prestige after {endlessOptions.MaxPassesPerCycle} passes ({why})";
+                result.FailureReason = $"island {islandNumber}: no prestige after {endlessOptions.MaxPassesPerCycle} passes ({why})";
                 return Finish(result, prestigeCount, clock, iterationsUsed);
             }
         }
@@ -423,6 +444,11 @@ public static class EndlessRunner
     private const int PrestigeControllerRequiredPoints = 20; // SettlersOfIdlestan.Controller.Expand.PrestigeController.PrestigeRequiredPoints
     private const int IdleBreakThreshold = 300; // consecutive no-op iterations (≈150 simulated seconds at the default time step) before giving up on a phase early
     private const int StagnantPassLimit = 8; // full passes through every phase with zero prestige-point movement before giving up on the whole cycle
+
+    /// <summary>Dernière cible fixe de la liste, ou 1 si elle est vide — cible de repli du premier
+    /// cycle d'une manche qui démarre déjà au-delà des cibles fixes (voir la boucle de cycles).</summary>
+    private static int LastFixedTarget(EndlessRunOptions options)
+        => options.PrestigePointTargets.Count > 0 ? options.PrestigePointTargets[^1] : 1;
 
     /// <summary>
     /// État de la Merveille et des PNJ à un instant donné. <c>WonderLevel</c> à 0 ne dit pas laquelle
