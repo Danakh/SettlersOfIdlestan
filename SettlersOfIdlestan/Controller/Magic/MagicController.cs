@@ -575,19 +575,26 @@ namespace SettlersOfIdlestan.Controller.Magic
             return true;
         }
 
-        /// <summary>Vertex constructibles par le joueur sur le calque actuellement affiché, ciblables par le sort d'édification.</summary>
+        /// <summary>
+        /// Vertex ciblables par le sort d'édification sur le calque actuellement affiché : tout vertex
+        /// libre touché par une route du joueur. L'Édification Arcanique ignore les autres règles de
+        /// placement (distance minimale aux autres villes, restrictions raciales de terrain), mais exige
+        /// toujours qu'une route mène à l'emplacement — voir
+        /// <see cref="CityBuilderController.GetRoadReachableFreeVertices"/>.
+        /// </summary>
         public List<Vertex> GetBuildableCityTargets()
         {
             var civ = GetPlayerCiv();
             if (civ == null || _state == null || _cityBuilder == null) return new List<Vertex>();
             int currentLayer = _state.CurrentViewedLayer;
-            return _cityBuilder.GetBuildableVertices(civ.Index).Where(v => v.Z == currentLayer).ToList();
+            return _cityBuilder.GetRoadReachableFreeVertices(civ.Index).Where(v => v.Z == currentLayer).ToList();
         }
 
         /// <summary>
-        /// Lance un sort ciblant un vertex constructible : fonde gratuitement une ville déjà développée
-        /// (Hôtel de ville niveau <see cref="ArcaneEdificationTownHallLevel"/>, tous les bâtiments disponibles
-        /// au niveau <see cref="ArcaneEdificationBuildingLevel"/>, défense et garnison au maximum).
+        /// Lance un sort ciblant un vertex atteint par une route : fonde gratuitement une ville déjà
+        /// développée (Hôtel de ville niveau <see cref="ArcaneEdificationTownHallLevel"/>, tous les bâtiments
+        /// disponibles au niveau <see cref="ArcaneEdificationBuildingLevel"/>, défense et garnison au maximum),
+        /// en s'affranchissant des règles de placement habituelles (distances entre villes, terrain racial).
         /// </summary>
         public const int ArcaneEdificationTownHallLevel = 3;
         public const int ArcaneEdificationBuildingLevel = 2;
@@ -601,7 +608,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             var civ = GetPlayerCiv()!;
 
             City city;
-            try { city = _cityBuilder.CreateCityFree(civ.Index, vertex); }
+            try { city = _cityBuilder.CreateCityFree(civ.Index, vertex, ignorePlacementRestrictions: true); }
             catch (InvalidOperationException) { return false; }
             catch (ArgumentException) { return false; }
 

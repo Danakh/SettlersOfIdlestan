@@ -298,14 +298,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (flightRange > 0)
                 AddFlightCandidateVertices(vertices, knownVertices, civ, flightRange, excludingCity);
 
-            // Un Camp Mobile de cette même civilisation n'empêche pas d'y bâtir une ville par-dessus
-            // (voir doc de GetBuildableVertices) — seuls les IBuildVertex d'autres civilisations, ou
-            // les propres villes/flottes/balises, comptent comme occupation ici.
-            var occupiedVertices = _occupiedVerticesScratch;
-            occupiedVertices.Clear();
-            foreach (var bv in _state.GetAllBuildVertices())
-                if (!(bv is MobileCamp camp && camp.CivilizationIndex == civilizationIndex))
-                    occupiedVertices.Add(bv.Position);
+            var occupiedVertices = CollectOccupiedVertices(civilizationIndex);
 
             // Contraintes de distance : plutôt que de mesurer chaque candidat contre chaque ville
             // (produit cartésien candidats × villes, les deux se comptant en centaines/milliers en
@@ -341,6 +334,43 @@ namespace SettlersOfIdlestan.Controller.Island
                 _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, totalLandingSiteCount, _state.TerrainVersion, vertices);
 
             return vertices;
+        }
+
+        /// <summary>
+        /// Vertex atteints par le réseau routier de la civilisation et libres de toute occupation,
+        /// <b>sans</b> aucune des autres règles de placement : ni distance minimale entre villes (la
+        /// sienne ou celle d'autrui), ni restriction raciale de terrain. Sert au sort d'Édification
+        /// Arcanique, qui s'affranchit de ces règles mais garde l'exigence d'une route menant à
+        /// l'emplacement — voir <see cref="GetBuildableVertices"/> pour le placement normal.
+        /// </summary>
+        public List<Vertex> GetRoadReachableFreeVertices(int civilizationIndex)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var civ = _state.GetCivilization(civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            var vertices = CollectRoadTouchingVertices(civ, out _);
+            var occupiedVertices = CollectOccupiedVertices(civilizationIndex);
+
+            return vertices.Where(v => !occupiedVertices.Contains(v)).ToList();
+        }
+
+        /// <summary>
+        /// Vertex déjà occupés par un <see cref="IBuildVertex"/> et donc interdits à une nouvelle
+        /// ville. Un Camp Mobile de cette même civilisation n'empêche pas d'y bâtir une ville
+        /// par-dessus (voir doc de <see cref="GetBuildableVertices"/>) — seuls les IBuildVertex
+        /// d'autres civilisations, ou les propres villes/flottes/balises, comptent comme occupation.
+        /// <para>Rend un <b>tampon partagé</b>, valable jusqu'au prochain appel.</para>
+        /// </summary>
+        private HashSet<Vertex> CollectOccupiedVertices(int civilizationIndex)
+        {
+            var occupiedVertices = _occupiedVerticesScratch;
+            occupiedVertices.Clear();
+            foreach (var bv in _state!.GetAllBuildVertices())
+                if (!(bv is MobileCamp camp && camp.CivilizationIndex == civilizationIndex))
+                    occupiedVertices.Add(bv.Position);
+            return occupiedVertices;
         }
 
         /// <summary>
@@ -675,7 +705,11 @@ namespace SettlersOfIdlestan.Controller.Island
         /// Fonde une ville sur un vertex constructible sans en payer le coût (utilisé par les sorts magiques).
         /// Lance une exception si le vertex n'est pas constructible par cette civilisation.
         /// </summary>
-        public City CreateCityFree(int civilizationIndex, Vertex vertex)
+        /// <param name="ignorePlacementRestrictions">Quand vrai, seules l'accessibilité par une route et
+        /// l'absence d'occupation sont exigées (voir <see cref="GetRoadReachableFreeVertices"/>) : les
+        /// distances minimales entre villes et les restrictions raciales de terrain sont ignorées.
+        /// C'est le mode de l'Édification Arcanique.</param>
+        public City CreateCityFree(int civilizationIndex, Vertex vertex, bool ignorePlacementRestrictions = false)
         {
             if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
             if (vertex == null) throw new ArgumentNullException(nameof(vertex));
@@ -683,14 +717,16 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            EnsureVertexBuildable(civilizationIndex, vertex);
+            EnsureVertexBuildable(civilizationIndex, vertex, ignorePlacementRestrictions);
 
             return CreateCityAt(civilizationIndex, vertex, civ);
         }
 
-        private void EnsureVertexBuildable(int civilizationIndex, Vertex vertex)
+        private void EnsureVertexBuildable(int civilizationIndex, Vertex vertex, bool ignorePlacementRestrictions = false)
         {
-            var buildable = GetBuildableVertices(civilizationIndex);
+            var buildable = ignorePlacementRestrictions
+                ? GetRoadReachableFreeVertices(civilizationIndex)
+                : GetBuildableVertices(civilizationIndex);
             if (!buildable.Any(v => v.Equals(vertex)))
                 throw new InvalidOperationException("Vertex not buildable by this civilization");
         }

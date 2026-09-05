@@ -12,7 +12,8 @@ public enum SpellId
     Abundance,
     /// <summary>Invocation de Troupes — consomme des cristaux pour faire apparaître des soldats dans une ville alliée ciblée.</summary>
     SummonTroops,
-    /// <summary>Édification Arcanique — fait apparaître une ville entièrement développée sur un vertex constructible ciblé.</summary>
+    /// <summary>Édification Arcanique — fait apparaître une ville entièrement développée sur un vertex libre
+    /// desservi par une route, sans aucune des restrictions de placement habituelles.</summary>
     ArcaneEdification,
     /// <summary>Pont du Vide — bâtit gratuitement les trois routes autour d'un vertex bordé de Vide.</summary>
     VoidBridge,
@@ -21,7 +22,8 @@ public enum SpellId
 /// <summary>
 /// Cible requise pour lancer un sort. <see cref="None"/> : effet immédiat sans ciblage.
 /// <see cref="AllyCity"/> : le joueur doit désigner une de ses propres villes.
-/// <see cref="BuildableVertex"/> : le joueur doit désigner un vertex où il peut fonder une ville.
+/// <see cref="BuildableVertex"/> : le joueur doit désigner un vertex libre touché par une de ses routes
+/// (les autres règles de placement — distances entre villes, terrain racial — ne s'appliquent pas).
 /// <see cref="VoidVertex"/> : le joueur doit désigner un vertex bordé par au moins deux hexagones de Vide.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<SpellTargetKind>))]

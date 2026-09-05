@@ -867,6 +867,56 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void CastSpellOnVertex_IgnoresMinimumDistanceBetweenOwnCities()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.ArcaneEdification);
+            GrantCrystalStorage(civ, 2000);
+            civ.AddResource(Resource.Crystal, 2000);
+
+            // Route partant de la ville existante : son autre extrémité n'est qu'à une arête, donc
+            // refusée par le placement normal (distance minimale de 3 entre villes d'une même civ).
+            var cityVertex = civ.Cities[0].Position;
+            var edge = RoadController.GetEdgesAtVertex(cityVertex)[0];
+            civ.AddRoad(new Road(edge));
+            var targetVertex = edge.GetVertices().First(v => !v.Equals(cityVertex));
+
+            var cityBuilder = new CityBuilderController(state);
+            Assert.DoesNotContain(targetVertex, cityBuilder.GetBuildableVertices(civ.Index));
+
+            // L'Édification Arcanique ignore la contrainte de distance.
+            Assert.Contains(targetVertex, controller.GetBuildableCityTargets());
+            Assert.True(controller.CastSpellOnVertex(SpellId.ArcaneEdification, targetVertex));
+            Assert.Single(civ.Cities.Where(c => c.Position.Equals(targetVertex)));
+        }
+
+        [Fact]
+        public void CastSpellOnVertex_IgnoresRacialTerrainRestriction()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.ArcaneEdification);
+            GrantCrystalStorage(civ, 2000);
+            civ.AddResource(Resource.Crystal, 2000);
+
+            // Restriction raciale de terrain (type Nains) : le vertex lointain ne touche aucune
+            // Montagne, le placement normal le refuse donc.
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN, TerrainType.Mountain.ToString(), EType.ADDITIVE, 1),
+            }));
+
+            var targetVertex = AddFarBuildableVertex(civ);
+
+            var cityBuilder = new CityBuilderController(state);
+            Assert.DoesNotContain(targetVertex, cityBuilder.GetBuildableVertices(civ.Index));
+
+            Assert.True(controller.CastSpellOnVertex(SpellId.ArcaneEdification, targetVertex));
+            Assert.Single(civ.Cities.Where(c => c.Position.Equals(targetVertex)));
+        }
+
+        [Fact]
         public void CastSpellOnVertex_DoesNotExceedBuildingMaxLevel()
         {
             // Sans la recherche "Foi" (UNLOCK_DOMINION), le Temple a un niveau max de 1 : l'édification
