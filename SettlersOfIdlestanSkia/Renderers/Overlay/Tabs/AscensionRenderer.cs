@@ -102,6 +102,12 @@ public sealed class AscensionRenderer : IDisposable
     // sur lequel le joueur vient de cliquer.
     private readonly PermanentBuildingConfirmPopupRenderer _permanentBuildingConfirmPopup;
 
+    // Clic sur l'onglet Surface pendant l'attente du choix de race (voir OpenSurfaceEntryPopup,
+    // appelé par OverlayRenderer.HandleTabClickFromHost) : avertissement s'il manque le choix,
+    // confirmation sinon — c'est le même départ sur une nouvelle île que le bouton Confirmer de
+    // l'onglet Races.
+    private readonly AscensionRaceGatePopupRenderer _raceGatePopup;
+
     // Vue de la carte des pouvoirs. Les hexagones sont dessinés en coordonnées locales dans un
     // canvas translaté/mis à l'échelle ; _mapViewportRect délimite la zone où la carte reçoit les
     // clics, le zoom et le déplacement — tout ce qui est au-dessus (barre d'onglets internes,
@@ -228,6 +234,7 @@ public sealed class AscensionRenderer : IDisposable
         _confirmPopup = new AscensionConfirmPopupRenderer(localization, onConfirm: () => _gameControllerService.RequestAscension());
         _permanentBuildingConfirmPopup = new PermanentBuildingConfirmPopupRenderer(localization,
             onConfirm: type => _gameControllerService.MainGameController.AscensionController.SelectPermanentUniqueBuilding(type));
+        _raceGatePopup = new AscensionRaceGatePopupRenderer(localization, onConfirm: ConfirmPendingRace);
     }
 
     public void Initialize(SKSize canvasSize)
@@ -235,6 +242,7 @@ public sealed class AscensionRenderer : IDisposable
         _canvasSize = canvasSize;
         _confirmPopup.Initialize(canvasSize);
         _permanentBuildingConfirmPopup.Initialize(canvasSize);
+        _raceGatePopup.Initialize(canvasSize);
         // La carte est recentrée au premier rendu, une fois la hauteur de l'en-tête connue.
         _zoom = 1f;
         _mapCentered = false;
@@ -244,11 +252,14 @@ public sealed class AscensionRenderer : IDisposable
 
     /// <summary>
     /// Instantané de la confirmation ouverte pour la vue de l'hôte, s'il y en a une (Ascension hors
-    /// choix de race, ou choix d'un bâtiment unique permanent) : les deux s'excluent, aucune des
-    /// deux n'étant accessible tant que l'autre est ouverte (voir HandlePointerPressed).
+    /// choix de race, choix d'un bâtiment unique permanent, ou clic sur l'onglet Surface pendant
+    /// l'attente du choix de race) : elles s'excluent, aucune n'étant accessible tant qu'une autre
+    /// est ouverte (voir HandlePointerPressed).
     /// </summary>
     public ModalPopupSnapshot GetOverlayModalSnapshot() =>
-        _permanentBuildingConfirmPopup.IsOpen ? _permanentBuildingConfirmPopup.GetSnapshot() : _confirmPopup.GetSnapshot();
+        _raceGatePopup.IsOpen ? _raceGatePopup.GetSnapshot()
+        : _permanentBuildingConfirmPopup.IsOpen ? _permanentBuildingConfirmPopup.GetSnapshot()
+        : _confirmPopup.GetSnapshot();
 
     public void InvokeOverlayModalButtonFromHost(string popupId, string key)
     {
@@ -256,6 +267,39 @@ public sealed class AscensionRenderer : IDisposable
             _confirmPopup.InvokeButton(key);
         else if (popupId == ModalPopupSnapshot.IdPermanentBuildingConfirm)
             _permanentBuildingConfirmPopup.InvokeButton(key);
+        else if (popupId is ModalPopupSnapshot.IdAscensionRaceRequired or ModalPopupSnapshot.IdAscensionRaceConfirm)
+            _raceGatePopup.InvokeButton(key);
+    }
+
+    /// <summary>
+    /// Clic sur l'onglet Surface pendant qu'une Ascension attend son choix de race (voir
+    /// OverlayRenderer.HandleTabClickFromHost) : l'île du cycle précédent n'existe plus, il n'y a donc
+    /// rien à y afficher — le geste vaut « repartir sur une nouvelle île ». Ouvre la confirmation
+    /// quand la sélection courante est valide (même condition que le bouton Confirmer de l'onglet
+    /// Races, voir DrawRacesTab), l'avertissement sinon.
+    /// </summary>
+    public void OpenSurfaceEntryPopup()
+    {
+        var ascension = _gameControllerService.MainGameController.AscensionController;
+        if (!ascension.IsAscensionPending) return;
+
+        if (_pendingSelectedRace is { } chosen && ascension.GetSelectableRaces().Contains(chosen))
+            _raceGatePopup.OpenConfirm(chosen);
+        else
+            _raceGatePopup.OpenWarning();
+    }
+
+    /// <summary>
+    /// Départ sur la nouvelle île avec la race choisie — commun au bouton Confirmer de l'onglet
+    /// Races et à la modale du clic sur l'onglet Surface (voir OpenSurfaceEntryPopup).
+    /// </summary>
+    private void ConfirmPendingRace(RaceId chosenRace)
+    {
+        var ascension = _gameControllerService.MainGameController.AscensionController;
+        if (!ascension.IsAscensionPending || !ascension.GetSelectableRaces().Contains(chosenRace)) return;
+
+        _gameControllerService.ConfirmAscensionRace(chosenRace);
+        _pendingRaceScrollOffsetPx = 0f;
     }
 
     public void RenderAscensionPage(SKCanvas canvas, GameRenderContext context)
@@ -299,6 +343,11 @@ public sealed class AscensionRenderer : IDisposable
             _pendingRaceScrollOffsetPx = 0f;
         }
         _wasAscensionPending = ascensionPendingNow;
+
+        // L'attente vient de se terminer (race confirmée, ou partie rechargée) : la modale du clic
+        // sur l'onglet Surface n'a plus d'objet — même garde que _confirmPopup face à une Ascension
+        // devenue impossible (voir DrawAscendSection).
+        if (!ascensionPendingNow && _raceGatePopup.IsOpen) _raceGatePopup.Close();
 
         float contentWidth = Math.Min(720f, _canvasSize.Width - Padding * 2);
         float x = (_canvasSize.Width - contentWidth) / 2;
@@ -1123,6 +1172,7 @@ public sealed class AscensionRenderer : IDisposable
     private bool IsMapInteractive(SKPoint position) =>
         _activeInnerTab == InnerTab.Powers
         && !_confirmPopup.IsOpen
+        && !_raceGatePopup.IsOpen
         && !_mapViewportRect.IsEmpty
         && _mapViewportRect.Contains(position.X, position.Y);
 
@@ -1220,7 +1270,7 @@ public sealed class AscensionRenderer : IDisposable
     {
         // Confirmation portée par la modale de l'hôte : elle intercepte déjà les clics, mais la
         // garde reste ici — c'est ce renderer qui détient l'état d'ouverture.
-        if (_confirmPopup.IsOpen || _permanentBuildingConfirmPopup.IsOpen) return true;
+        if (_confirmPopup.IsOpen || _permanentBuildingConfirmPopup.IsOpen || _raceGatePopup.IsOpen) return true;
 
         if (!_ascendButtonRect.IsEmpty && _ascendButtonRect.Contains(position.X, position.Y))
         {
@@ -1274,12 +1324,7 @@ public sealed class AscensionRenderer : IDisposable
         var racesContentPosition = new SKPoint(position.X, position.Y + _pendingRaceScrollOffsetPx);
         if (!_pendingConfirmRect.IsEmpty && _pendingConfirmRect.Contains(racesContentPosition.X, racesContentPosition.Y))
         {
-            var ascensionForRaceConfirm = _gameControllerService.MainGameController.AscensionController;
-            if (_pendingSelectedRace is { } chosenRace && ascensionForRaceConfirm.GetSelectableRaces().Contains(chosenRace))
-            {
-                _gameControllerService.ConfirmAscensionRace(chosenRace);
-                _pendingRaceScrollOffsetPx = 0f;
-            }
+            if (_pendingSelectedRace is { } chosenRace) ConfirmPendingRace(chosenRace);
             return true;
         }
         foreach (var (raceId, raceRect, clickable) in _pendingRaceCardRects)
@@ -1340,6 +1385,7 @@ public sealed class AscensionRenderer : IDisposable
         if (_disposed) return;
         _confirmPopup.Dispose();
         _permanentBuildingConfirmPopup.Dispose();
+        _raceGatePopup.Dispose();
         _bgPaint.Dispose();
         _cardPaint.Dispose();
         _cardLockedPaint.Dispose();

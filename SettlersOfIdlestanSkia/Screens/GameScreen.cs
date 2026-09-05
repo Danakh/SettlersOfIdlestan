@@ -456,6 +456,8 @@ public sealed class GameScreen : IDisposable
             case ModalPopupSnapshot.IdPrestigeCorruptionWarning:
             case ModalPopupSnapshot.IdAscensionConfirm:
             case ModalPopupSnapshot.IdPermanentBuildingConfirm:
+            case ModalPopupSnapshot.IdAscensionRaceRequired:
+            case ModalPopupSnapshot.IdAscensionRaceConfirm:
                 _overlayRenderer?.InvokeOverlayModalButtonFromHost(popupId, buttonKey);
                 break;
         }
@@ -465,8 +467,8 @@ public sealed class GameScreen : IDisposable
     public TabBarSnapshot GetTabBarSnapshot() =>
         _overlayRenderer?.GetTabBarSnapshot() ?? TabBarSnapshot.Unavailable;
 
-    /// <summary>Sélectionne un onglet depuis l'hôte (et applique la couche correspondante).</summary>
-    public void SetActiveTabFromHost(int tabId) => _overlayRenderer?.SetActiveTabFromHost(tabId);
+    /// <summary>Clic du joueur sur un onglet de la barre (et applique la couche correspondante).</summary>
+    public void SetActiveTabFromHost(int tabId) => _overlayRenderer?.HandleTabClickFromHost(tabId);
 
     /// <summary>Instantané du panneau ville pour une vue portée par l'hôte.</summary>
     public CityPanelSnapshot GetCityPanelSnapshot() =>

@@ -469,6 +469,28 @@ public sealed class OverlayRenderer : IGameRenderer
     }
 
     /// <summary>
+    /// Clic du joueur sur un onglet de la barre. Distinct de <see cref="SetActiveTabFromHost"/>, que
+    /// le jeu s'appelle aussi à lui-même pour resynchroniser l'onglet affiché (voir
+    /// GameScreen.HandleLoadGame) : seul un clic doit pouvoir ouvrir la modale ci-dessous.
+    ///
+    /// Ascension demandée, race pas encore choisie (voir IsAscensionPending) : l'île du cycle
+    /// précédent est déjà détruite (voir RequestAscension), l'onglet Surface n'a donc rien à
+    /// montrer — TabBarRenderer.Update le renverrait aussitôt sur Ascension, et le clic resterait
+    /// sans effet visible. Il vaut ici « repartir sur une nouvelle île » : confirmation avant de
+    /// générer la partie, ou avertissement s'il manque le choix de race.
+    /// </summary>
+    public void HandleTabClickFromHost(int tabId)
+    {
+        if (tabId == TabBarRenderer.TabIsland && IsAscensionPending)
+        {
+            _ascensionRenderer.OpenSurfaceEntryPopup();
+            return;
+        }
+
+        SetActiveTabFromHost(tabId);
+    }
+
+    /// <summary>
     /// Ce qui reste de l'ancien arbitrage manuel des clics. Il énumérait autrefois chaque
     /// composant de l'overlay Skia, une liste maintenue à la main dont l'oubli d'un élément
     /// laissait passer les clics jusqu'à la carte. L'arbre visuel d'Avalonia s'en charge

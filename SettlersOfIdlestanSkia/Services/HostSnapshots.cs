@@ -774,6 +774,14 @@ public sealed record ModalPopupSnapshot(
     /// valide. Portee par l'onglet Ascension, meme forme que les precedentes.
     public const string IdPermanentBuildingConfirm = "permanentBuildingConfirm";
 
+    /// Avertissement affiche quand le joueur clique sur l'onglet Surface pendant qu'une Ascension
+    /// attend son choix de race, sans race selectionnee. Portee par l'onglet Ascension.
+    public const string IdAscensionRaceRequired = "ascensionRaceRequired";
+
+    /// Confirmation du depart sur une nouvelle ile avec la race selectionnee, meme declencheur que
+    /// la precedente. Portee par l'onglet Ascension.
+    public const string IdAscensionRaceConfirm = "ascensionRaceConfirm";
+
     /// Cle conventionnelle de la croix de fermeture, commune a toutes les modales.
     public const string KeyClose = "__close__";
 }
