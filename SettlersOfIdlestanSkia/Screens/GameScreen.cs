@@ -600,6 +600,21 @@ public sealed class GameScreen : IDisposable
             ? _overlayRenderer?.GetResourceTooltip(resource)
             : null;
 
+    /// <summary>
+    /// Vrai quand le joueur ne doit pas pouvoir relancer l'horloge : pendant le choix de race d'une
+    /// Ascension (voir AscensionController.IsAscensionPending), il n'existe plus aucune île à
+    /// simuler — RequestAscension a détruit le PrestigeState et le WorldState avec.
+    ///
+    /// <para>La barre du haut, bouton lecture compris, reste volontairement affichée pendant cette
+    /// attente (voir AscensionPendingTopBarVisibilityTests) : sans ce verrou, un appui sur lecture
+    /// fait tourner l'horloge pour rien — le temps réel écoulé est consommé au lieu d'être versé
+    /// dans la banque hors-ligne, et au-delà de x1 la banque elle-même se vide. En pause forcée, ce
+    /// temps s'accumule au contraire dans OfflineBankTicks (voir GameClock.Advance) et attend la
+    /// nouvelle île.</para>
+    /// </summary>
+    private bool IsTimeControlLocked =>
+        _gameControllerService.MainGameController.AscensionController.IsAscensionPending;
+
     /// <summary>Instantané de l'état du temps pour un contrôle porté par l'hôte.</summary>
     public TimeControlSnapshot GetTimeControlSnapshot()
     {
@@ -610,7 +625,8 @@ public sealed class GameScreen : IDisposable
             IsAvailable: true,
             IsPaused: clock.SpeedMultiplier == 0,
             ActiveSpeed: clock.ActiveSpeed,
-            OfflineBankTicks: clock.OfflineBankTicks);
+            OfflineBankTicks: clock.OfflineBankTicks,
+            IsLocked: IsTimeControlLocked);
     }
 
     /// <summary>Instantané du saut de temps en cours, pour la popup de progression de l'hôte.</summary>
@@ -632,14 +648,18 @@ public sealed class GameScreen : IDisposable
     public void ToggledPauseFromHost()
     {
         var clock = _gameControllerService.CurrentGameState?.Clock;
-        if (clock == null) return;
+        if (clock == null || IsTimeControlLocked) return;
         if (clock.SpeedMultiplier == 0) clock.Resume();
         else clock.Pause();
     }
 
     /// <summary>Change la vitesse de jeu, pour un contrôle de temps porté par l'hôte.</summary>
-    public void SetGameSpeedFromHost(int multiplier) =>
+    public void SetGameSpeedFromHost(int multiplier)
+    {
+        // SetSpeed sort aussi de pause : verrouillé au même titre que le bouton lecture.
+        if (IsTimeControlLocked) return;
         _gameControllerService.CurrentGameState?.Clock?.SetSpeed(multiplier);
+    }
 
     /// <summary>Zoom avant, pour un contrôle de zoom porté par l'hôte plutôt que par l'overlay Skia.</summary>
     public void ZoomIn() => _cameraService.SetZoom(_cameraService.ZoomLevel * ZoomStep);
@@ -983,10 +1003,11 @@ public sealed class GameScreen : IDisposable
         if (key == "F12" && allowDebugMode) DebugExportScreenshotRaw();
     }
 
+    /// <summary>Raccourci clavier (espace) — même verrou que le bouton de la barre du haut.</summary>
     private void TogglePause()
     {
         var clock = _gameControllerService.CurrentGameState?.Clock;
-        if (clock == null) return;
+        if (clock == null || IsTimeControlLocked) return;
         if (clock.SpeedMultiplier == 0) clock.Resume();
         else clock.Pause();
     }

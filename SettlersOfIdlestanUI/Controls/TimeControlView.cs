@@ -65,23 +65,21 @@ public sealed class TimeControlView : UserControl
         Styles.Add(BuildPausePulse());
         toggle.Click += (_, _) => _viewModel.TogglePause();
 
-        // L'etat de pause est repousse par sondage (Refresh), pas par evenement du runtime :
-        // on suit donc le ViewModel, seul endroit ou le changement est deja detecte. Le faire
-        // ici et non dans le Click couvre aussi les pauses venues d'ailleurs (raccourci,
-        // reprise de partie), qui laissaient l'infobulle a l'envers.
-        ApplyPausedState(toggle, localize, localizeFormat);
-        _viewModel.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName is null or nameof(TimeControlViewModel.IsPaused))
-                ApplyPausedState(toggle, localize, localizeFormat);
-        };
-
         var speed = CreateSquareButton();
         speed.Bind(ContentProperty, new Binding(nameof(TimeControlViewModel.ActiveSpeed)) { StringFormat = "x{0}" });
         speed.Flyout = BuildSpeedFlyout();
         ToolTip.SetTip(speed, localize("timecontrol_speed_tooltip"));
 
-        Content = new StackPanel
+        // Pause forcee (choix de race d'une Ascension) : les deux boutons sont desactives plutot
+        // que masques, pour que la banque a leur gauche reste lisible et qu'on voie le temps
+        // continuer de s'y accumuler. Le clic est de toute facon deja refuse par le ViewModel et
+        // par GameScreen — ceci n'est que la moitie visible du verrou.
+        toggle.Bind(IsEnabledProperty, new Binding(nameof(TimeControlViewModel.IsUnlocked)));
+        speed.Bind(IsEnabledProperty, new Binding(nameof(TimeControlViewModel.IsUnlocked)));
+
+        // Un controle desactive ne recoit plus le pointeur : c'est le conteneur qui doit porter
+        // l'infobulle expliquant le verrou, sinon le joueur voit deux boutons grises sans raison.
+        var row = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 3,
@@ -89,20 +87,39 @@ public sealed class TimeControlView : UserControl
             Children = { bank, toggle, speed },
         };
 
+        // L'etat de pause est repousse par sondage (Refresh), pas par evenement du runtime :
+        // on suit donc le ViewModel, seul endroit ou le changement est deja detecte. Le faire
+        // ici et non dans le Click couvre aussi les pauses venues d'ailleurs (raccourci,
+        // reprise de partie), qui laissaient l'infobulle a l'envers.
+        ApplyPausedState(toggle, row, localize, localizeFormat);
+        _viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is null or nameof(TimeControlViewModel.IsPaused) or nameof(TimeControlViewModel.IsLocked))
+                ApplyPausedState(toggle, row, localize, localizeFormat);
+        };
+
+        Content = row;
+
         Bind(IsVisibleProperty, new Binding(nameof(TimeControlViewModel.IsAvailable)));
     }
 
     /// <summary>
     /// Repercute l'etat de pause sur le bouton : classe du fond pulsant, et infobulle qui —
-    /// elle — annonce l'ACTION, complement de l'icone qui montre l'etat.
+    /// elle — annonce l'ACTION, complement de l'icone qui montre l'etat. En pause forcee
+    /// (<see cref="TimeControlViewModel.IsLocked"/>), l'infobulle passe sur le conteneur : les
+    /// boutons desactives ne recoivent plus le pointeur, et il n'y a plus d'action a annoncer —
+    /// seulement une raison a donner.
     /// </summary>
-    private void ApplyPausedState(Button toggle, Func<string, string> localize,
+    private void ApplyPausedState(Button toggle, Control container, Func<string, string> localize,
                                   Func<string, object[], string> localizeFormat)
     {
         toggle.Classes.Set(PausedClass, _viewModel.IsPaused);
-        ToolTip.SetTip(toggle, _viewModel.IsPaused
-            ? localizeFormat("timecontrol_toggle_play_tooltip", [_viewModel.ActiveSpeed])
-            : localize("timecontrol_toggle_pause_tooltip"));
+
+        ToolTip.SetTip(container, _viewModel.IsLocked ? localize("timecontrol_locked_ascension_tooltip") : null);
+        ToolTip.SetTip(toggle, _viewModel.IsLocked ? null
+            : _viewModel.IsPaused
+                ? localizeFormat("timecontrol_toggle_play_tooltip", [_viewModel.ActiveSpeed])
+                : localize("timecontrol_toggle_pause_tooltip"));
     }
 
     /// <summary>

@@ -14,6 +14,7 @@ public sealed class TimeControlViewModel : ViewModelBase
 
     private bool _isAvailable;
     private bool _isPaused;
+    private bool _isLocked;
     private int _activeSpeed = 1;
     private string _bankLabel = "";
 
@@ -23,6 +24,21 @@ public sealed class TimeControlViewModel : ViewModelBase
     public bool IsAvailable { get => _isAvailable; private set => SetProperty(ref _isAvailable, value); }
 
     public bool IsPaused { get => _isPaused; private set => SetProperty(ref _isPaused, value); }
+
+    /// <summary>
+    /// Vrai quand la partie est en pause forcee et que le joueur ne peut pas la relancer : pendant
+    /// le choix de race d'une Ascension, il n'y a plus d'ile a simuler. Les boutons lecture et
+    /// vitesse sont alors desactives ; la banque, elle, continue de grossir sous les yeux du
+    /// joueur. Voir GameScreen.IsTimeControlLocked.
+    /// </summary>
+    public bool IsLocked
+    {
+        get => _isLocked;
+        private set { if (SetProperty(ref _isLocked, value)) RaisePropertyChanged(nameof(IsUnlocked)); }
+    }
+
+    /// Inverse de <see cref="IsLocked"/>, pour lier directement IsEnabled sans convertisseur.
+    public bool IsUnlocked => !_isLocked;
 
     public int ActiveSpeed { get => _activeSpeed; private set => SetProperty(ref _activeSpeed, value); }
 
@@ -38,16 +54,19 @@ public sealed class TimeControlViewModel : ViewModelBase
         ActiveSpeed = snapshot.ActiveSpeed;
         BankLabel = FormatBankTime(snapshot.OfflineBankTicks / 100.0);
         IsPaused = snapshot.IsPaused;
+        IsLocked = snapshot.IsLocked;
     }
 
     public void TogglePause()
     {
+        if (IsLocked) return;
         _host.TogglePause();
         Refresh();
     }
 
     public void SetSpeed(int multiplier)
     {
+        if (IsLocked) return;
         _host.SetGameSpeed(multiplier);
         Refresh();
     }

@@ -431,6 +431,7 @@
   "timecontrol_toggle_pause_tooltip": "Pause (×0)",
   "timecontrol_toggle_play_tooltip": "Resume (×{0})",
   "timecontrol_speed_tooltip": "Game speed\nClick to choose ×1, ×3, ×5 or ×10",
+  "timecontrol_locked_ascension_tooltip": "Paused while you choose your race\nNo island to run: the time that passes goes into the bank and waits for you on the new island.",
   "tooltip_harvest_header": "Harvest:",
   "tooltip_harvest_manual": "Manual:",
   "tooltip_harvest_auto": "Auto:",

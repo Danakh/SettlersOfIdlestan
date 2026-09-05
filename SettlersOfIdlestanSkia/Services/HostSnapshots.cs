@@ -11,11 +11,18 @@ namespace SettlersOfIdlestanSkia.Services;
 /// Ce sont des records : la comparaison structurelle permet aux vues de ne se rafraichir que
 /// lorsque l'etat a reellement change, plutot qu'a chaque tick de synchronisation.
 /// </summary>
+/// <param name="IsLocked">
+/// Vrai quand le joueur ne peut pas relancer l'horloge : pour l'instant, uniquement pendant le
+/// choix de race d'une Ascension (voir GameScreen.IsTimeControlLocked). La partie reste alors en
+/// pause de force, donc le temps reel ecoule s'accumule dans OfflineBankTicks — que le controle
+/// continue d'afficher, croissant, pendant toute l'attente.
+/// </param>
 public sealed record TimeControlSnapshot(
     bool IsAvailable,
     bool IsPaused,
     int ActiveSpeed,
-    long OfflineBankTicks)
+    long OfflineBankTicks,
+    bool IsLocked = false)
 {
     /// Etat neutre : pas de partie en cours (ecran titre, ou partie non encore chargee).
     public static readonly TimeControlSnapshot Unavailable = new(false, false, 1, 0);

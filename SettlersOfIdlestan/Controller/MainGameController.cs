@@ -485,6 +485,29 @@ namespace SettlersOfIdlestan.Controller
             // jetable) et le dernier câblage doit gagner, sans abonnement cumulé ni fuite.
             GameLog.OnFirstOccurrence = ReportRuntimeError;
 
+            // Plus aucune île active (entre RequestAscension et ConfirmAscensionRace) : tout le
+            // câblage ci-dessous est sous `if (WorldState != null)` et ne recâble donc rien : chaque
+            // contrôleur d'île resterait abonné à l'horloge avec, en main, le WorldState que
+            // l'Ascension vient de détruire — et se remettrait à le simuler dès que le joueur
+            // relance l'horloge depuis l'écran d'Ascension. On coupe le tick à la source ; tous les
+            // abonnements sont recréés plus bas dès qu'une île existe à nouveau (et
+            // AscensionController, seul contrôleur câblé sans île, se réabonne juste après).
+            // Voir GameClock.ClearAdvancedSubscribers.
+            //
+            // La mise en pause qui l'accompagne n'est pas cosmétique : sans île, un tick ne
+            // simulerait plus rien mais brûlerait quand même le temps réel écoulé (et, au-delà de
+            // x1, la banque hors-ligne avec). Horloge en pause, GameClock.Advance verse au
+            // contraire ce temps dans OfflineBankTicks — le joueur retrouve intact, au premier tick
+            // de sa nouvelle île, tout le temps passé à choisir sa race. RequestAscension met déjà
+            // en pause juste après cet appel ; ce qui se joue ici, c'est le rechargement d'une
+            // sauvegarde faite pendant l'attente, où SetGameFromSave vient d'appeler Clock.Start()
+            // parce que la partie ne tournait pas en pause au moment de la sauvegarde.
+            if (WorldState == null)
+            {
+                Clock?.ClearAdvancedSubscribers();
+                Clock?.Pause();
+            }
+
             // Câblé inconditionnellement, même sans île active : c'est ce contrôleur qui expose
             // IsAscensionPending à toute l'UI (TabBarRenderer, OverlayRenderer...). Entre
             // RequestAscension et ConfirmAscensionRace, GodState.PrestigeState (et donc WorldState)

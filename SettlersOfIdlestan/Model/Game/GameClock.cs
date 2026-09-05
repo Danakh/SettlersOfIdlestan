@@ -82,6 +82,30 @@ namespace SettlersOfIdlestan.Model.Game
             return targets;
         }
 
+        /// <summary>
+        /// Détache tous les abonnés de <see cref="Advanced"/> : plus aucun tick n'est exécuté tant
+        /// que personne ne se réabonne. Point d'entrée unique de
+        /// <c>MainGameController.InitializeControllersForCurrentIsland</c> quand plus aucune île
+        /// n'est active — c'est-à-dire entre <c>AscensionController.RequestAscension</c> (qui
+        /// détruit le PrestigeState et donc le WorldState) et <c>ConfirmAscensionRace</c>.
+        ///
+        /// <para>Sans ce détachement, chaque contrôleur d'île garde son abonnement <b>et</b> son
+        /// WorldState sur l'île qui vient d'être détruite : le bloc de câblage de
+        /// InitializeControllersForCurrentIsland est sous un <c>if (WorldState != null)</c>, donc
+        /// l'appel qui suit RequestAscension ne recâble rien du tout. Il suffit alors que le joueur
+        /// relance l'horloge depuis l'écran d'Ascension (la barre du haut, bouton lecture compris,
+        /// reste visible pendant le choix de race) pour que l'île abandonnée continue de tourner —
+        /// récolte, monstres, recherche, monuments. Bug vécu : une Purification d'Os Divins
+        /// terminée sur cette île fantôme recréditait une essence divine juste après la remise à
+        /// zéro par l'Ascension (0 → 1 dès l'appui sur lecture).</para>
+        ///
+        /// <para>Aucun abonnement n'est perdu pour de bon : tous sont recréés par
+        /// InitializeControllersForCurrentIsland dès qu'une île existe à nouveau, et
+        /// AscensionController — le seul contrôleur câblé même sans île — se réabonne dans le même
+        /// appel, juste après.</para>
+        /// </summary>
+        internal void ClearAdvancedSubscribers() => Advanced = null;
+
         // ── constructeurs ────────────────────────────────────────────────────
 
         public GameClock()
