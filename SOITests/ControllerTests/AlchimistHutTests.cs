@@ -79,6 +79,115 @@ namespace SOITests.ControllerTests
             Assert.False(hut.HasBuildPrerequisites(city, state));
         }
 
+        // ── Prérequis « Caverne aux Champignons » (Sanctuaire de l'Araignée) ─
+        //
+        // La règle ne regarde que le terrain et le modificateur, jamais la couche : la carte de test
+        // reste donc celle des autres tests, une de ses tuiles passée en Caverne aux Champignons.
+
+        private static (WorldState state, City city) CreateMushroomCaveSetup()
+        {
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Plain),
+                new(NE,     TerrainType.MushroomCave),
+                new(East,   TerrainType.Plain),
+                new(NE11,   TerrainType.Plain),
+            };
+            var map = new IslandMap(tiles);
+            var civ = new Civilization { Index = 0 };
+            var vertex = Vertex.Create(NE, East, NE11);
+            var city = new City(vertex) { CivilizationIndex = 0 };
+            civ.AddCity(city);
+            city.AddBuilding(new TownHall { Level = 20 });
+            civ.RecalculateStorageCapacity();
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            return (state, city);
+        }
+
+        private static void BuildSpiderShrine(City city, Civilization civ)
+        {
+            var shrine = new SpiderShrine { Level = 1 };
+            city.AddBuilding(shrine);
+            civ.RegisterUniqueBuildingInCache(shrine);
+            civ.RebuildUniqueBuildingsModifiers();
+        }
+
+        [Fact]
+        public void HasBuildPrerequisites_MushroomCaveWithoutSpiderShrine_ReturnsFalse()
+        {
+            var (state, city) = CreateMushroomCaveSetup();
+
+            var hut = new AlchimistHut();
+
+            Assert.False(hut.HasBuildPrerequisites(city, state));
+            Assert.Equal("tooltip_requires_fairy_circle", hut.GetMissingPrerequisiteKey(city, state));
+        }
+
+        [Fact]
+        public void HasBuildPrerequisites_MushroomCaveWithSpiderShrine_ReturnsTrue()
+        {
+            var (state, city) = CreateMushroomCaveSetup();
+            BuildSpiderShrine(city, state.PlayerCivilization);
+
+            var hut = new AlchimistHut();
+
+            Assert.True(hut.HasBuildPrerequisites(city, state));
+            Assert.Null(hut.GetMissingPrerequisiteKey(city, state));
+            // Constructible, mais prévenue : aucun cristal ne viendra d'une Caverne aux Champignons.
+            Assert.Equal("tooltip_alchimist_hut_no_crystal_harvest", hut.GetBuildWarningKey(city, state));
+        }
+
+        [Fact]
+        public void HasBuildPrerequisites_SpiderShrineButNoMushroomCaveNorFairyCircle_ReturnsFalse()
+        {
+            var (state, city) = CreateSetup();
+            BuildSpiderShrine(city, state.PlayerCivilization);
+
+            var hut = new AlchimistHut();
+
+            Assert.False(hut.HasBuildPrerequisites(city, state));
+            Assert.Equal("tooltip_requires_fairy_circle_or_mushroom_cave", hut.GetMissingPrerequisiteKey(city, state));
+        }
+
+        [Fact]
+        public void GetBuildWarningKey_AdjacentFairyCircle_NoWarning()
+        {
+            var (state, city) = CreateMushroomCaveSetup();
+            BuildSpiderShrine(city, state.PlayerCivilization);
+            state.AddFeature(new FairyCircle(East) { Found = true });
+
+            var hut = new AlchimistHut();
+
+            Assert.Null(hut.GetBuildWarningKey(city, state));
+        }
+
+        [Fact]
+        public void MushroomCaveHut_HarvestsNoCrystalsButStillProducesPotions()
+        {
+            var (state, city) = CreateMushroomCaveSetup();
+            var civ = state.PlayerCivilization;
+            BuildSpiderShrine(city, civ);
+            civ.Resources[Resource.Glass] = 10;
+            civ.Resources[Resource.Crystal] = 10;
+            city.AddBuilding(new AlchimistHut { Level = 1 });
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
+            }));
+            var clock = new GameClock();
+            clock.Start();
+            new HarvestController(state, clock);
+
+            // Sentinel: prime LastPotionProductionTick (coldStartOnZero).
+            clock.SimulateAdvance(1);
+
+            clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks);
+
+            Assert.True(civ.GetResourceQuantity(Resource.HealingPotion) >= 1);
+            // Seul le Cristal consommé par la potion a bougé : la Caverne aux Champignons n'en donne aucun.
+            Assert.Equal(10 - AlchimistHut.CrystalInputPerPotion, civ.GetResourceQuantity(Resource.Crystal));
+        }
+
         // ── Récolte de cristaux (alignée sur les bâtiments de production) ───
 
         [Fact]

@@ -12,8 +12,12 @@ namespace SettlersOfIdlestan.Model.Buildings;
 /// (MONSTER_DAMAGE_REDUCTION_ON_CITIES, voir MonsterController.ApplyMonsterAttack), en réduisant de
 /// 1 niveau le malus effectif de la Corruption sur la récolte (CORRUPTION_LEVEL_REDUCTION, comme la
 /// recherche Résistance à la Corruption), en accélérant de 25% la production de Nourriture des
-/// Fermes fongiques sur les Cavernes aux Champignons et en augmentant de 1 les dégâts d'attaque de
-/// l'Aventurier. Souterrain uniquement, comme la Guilde des Aventuriers. Niveau max par défaut 0 :
+/// Fermes fongiques sur les Cavernes aux Champignons, en augmentant de 1 les dégâts d'attaque de
+/// l'Aventurier et en ouvrant la construction des Huttes d'Alchimie au bord des Cavernes aux
+/// Champignons (UNLOCK_ALCHIMIST_HUT_MUSHROOM_CAVE) : elles n'y récoltent aucun cristal — seuls les
+/// Cercles de Fées en donnent — mais y produisent des Potions de Soin. La hutte reste par ailleurs
+/// verrouillée tant que le vertex de prestige Hutte d'Alchimie n'en relève pas le niveau maximum.
+/// Souterrain uniquement, comme la Guilde des Aventuriers. Niveau max par défaut 0 :
 /// constructible uniquement quand la race Elfes noirs fournit son BUILDING_MAX_LEVEL +1.
 /// </summary>
 public class SpiderShrine : Building, IUniqueBuilding
@@ -47,5 +51,6 @@ public class SpiderShrine : Building, IUniqueBuilding
         yield return new Modifier(ECategory.CORRUPTION_LEVEL_REDUCTION, EType.ADDITIVE, 1);
         yield return new Modifier(ECategory.HARVEST_SPEED, nameof(BuildingType.MushroomFarm), EType.ADDITIVE, 0.25);
         yield return new Modifier(ECategory.ADVENTURER_ATTACK_DAMAGE_BONUS, EType.ADDITIVE, 1);
+        yield return new Modifier(ECategory.UNLOCK_ALCHIMIST_HUT_MUSHROOM_CAVE, EType.ADDITIVE, 1);
     }
 }

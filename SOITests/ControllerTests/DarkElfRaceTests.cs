@@ -343,4 +343,14 @@ public class DarkElfRaceTests
         var modifiers = shrine.GetUniqueBuildingModifiers().ToList();
         Assert.Contains(modifiers, m => m.Category == ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES && m.Value == 1);
     }
+
+    [Fact]
+    public void SpiderShrine_UnlocksAlchimistHutsNextToMushroomCaves()
+    {
+        var shrine = (SpiderShrine)BuildingFactory.Create(BuildingType.SpiderShrine)!;
+        shrine.Level = 1;
+
+        Assert.Contains(shrine.GetUniqueBuildingModifiers(),
+            m => m.Category == ECategory.UNLOCK_ALCHIMIST_HUT_MUSHROOM_CAVE);
+    }
 }

@@ -240,6 +240,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             VOLCANO_DAMAGE_REDUCTION,
             /// <summary>Flags que les Scieries peuvent récolter du Bois sur les Cavernes aux Champignons adjacentes (à vitesse réduite, voir Sawmill.GetAutomaticHarvestTerrainSpeedMultiplier). SubCategory unused.</summary>
             UNLOCK_SAWMILL_MUSHROOM_HARVEST,
+            /// <summary>Flags que les Huttes d'Alchimie peuvent aussi être bâties au bord d'une Caverne aux Champignons, faute de Cercle de Fées (voir AlchimistHut.HasBuildPrerequisites, Sanctuaire de l'Araignée). Elles n'y récoltent aucun cristal — les cristaux viennent des Cercles de Fées — mais y produisent des Potions de Soin. SubCategory unused.</summary>
+            UNLOCK_ALCHIMIST_HUT_MUSHROOM_CAVE,
             /// <summary>Bonus (ou malus) additif de prestige propre à la race choisie à l'Ascension, distinct de PRESTIGE_GAIN (recherches + arbre de Prestige). Base = 0.0 ; -0.25 = -25% (Gobelins).</summary>
             PRESTIGE_GAIN_RACE,
             /// <summary>Dégâts par seconde infligés automatiquement à tout monstre présent sur l'un des 3 hexes adjacents à une ville possédant un Temple (niveau ≥ 1). Base = 0. Accordé par le rituel Lumière des Profondeurs.</summary>
