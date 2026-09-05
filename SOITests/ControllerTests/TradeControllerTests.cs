@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Controller.Island.Production;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Buildings;
 using SOITests.TestUtilities;
@@ -305,7 +306,7 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void TryAutoBuyOnGoldOverflow_BuysScarcestBasicResource()
+        public void TryAutoBuyOnGoldOverflow_BuysScarcestResource_DownToKeepThreshold()
         {
             WorldState state = IslandTestFactory.CreateSevenHexIslandState();
             var civ = state.Civilizations[0];
@@ -317,12 +318,70 @@ namespace SOITests.ControllerTests
             civ.AddResource(Resource.Brick, 2);
             // Food and Stone are left at 0 — Food is scarcest (first in BasicResources order).
 
+            int keepThreshold = maxGold * state.AutomationSettings.AutoBuyGoldKeepPercent / 100;
+            int expected = maxGold + 1 - keepThreshold;
+
             var controller = new TradeController(state);
             bool bought = controller.TryAutoBuyOnGoldOverflow(0);
 
             Assert.True(bought);
-            Assert.Equal(maxGold - 1, civ.GetResourceQuantity(Resource.Gold));
-            Assert.Equal(1, civ.GetResourceQuantity(Resource.Food));
+            // Tout l'excédent est dépensé en un seul achat, pas une unité par appel.
+            Assert.Equal(maxGold - expected, civ.GetResourceQuantity(Resource.Gold));
+            Assert.Equal(expected, civ.GetResourceQuantity(Resource.Food));
+        }
+
+        [Fact]
+        public void TryAutoBuyOnGoldOverflow_BuysNonBasicResource_WhenScarcest()
+        {
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            civ.Cities[0].AddBuilding(new Market());
+            civ.SetStorageCapacityCache(1000, 1000);
+
+            // Toutes les ressources de base au plafond : seul le Minerai reste rare, et il n'était
+            // jamais acheté tant que l'Achat Automatique se limitait à ResourceUtils.BasicResources.
+            foreach (var basic in ResourceUtils.BasicResources)
+                civ.AddResource(basic, civ.GetResourceMaxQuantity(basic));
+
+            int maxGold = civ.GetResourceMaxQuantity(Resource.Gold);
+            civ.AddResource(Resource.Gold, maxGold);
+
+            var controller = new TradeController(state);
+            int keepThreshold = maxGold * state.AutomationSettings.AutoBuyGoldKeepPercent / 100;
+            int expected = (maxGold + 1 - keepThreshold) / controller.GetBuyCost(0, Resource.Ore);
+
+            bool bought = controller.TryAutoBuyOnGoldOverflow(0);
+
+            Assert.True(bought);
+            Assert.True(expected > 0);
+            Assert.Equal(expected, civ.GetResourceQuantity(Resource.Ore));
+        }
+
+        [Fact]
+        public void TryAutoTradeOnOverflow_SellsEnoughToOffsetIncomingProduction()
+        {
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+            var city = civ.Cities[0];
+            city.AddBuilding(new Market { Level = 4 });
+            civ.AddCustomAggregator(new FlatModifierProvider(
+                new Modifier(ECategory.UNLOCK_AUTO_MARKET_TRADE, EType.ADDITIVE, 1),
+                new Modifier(ECategory.UNLOCK_INTERMEDIATE_TRADE, EType.ADDITIVE, 1)));
+            // Après AddCustomAggregator : tout changement de modificateurs relance
+            // RecalculateStorageCapacity, qui écraserait ces valeurs injectées.
+            civ.SetStorageCapacityCache(1000, 1000);
+
+            civ.AddResource(Resource.Ore, 1000); // au plafond, donc au-dessus du seuil de vente
+
+            var trader = new ProductionOverflowTrader();
+            trader.Initialize(state, new TradeController(state));
+
+            trader.TryAutoTradeOnOverflow(civ, city, Resource.Ore, 25);
+
+            // Une passe de Minerai vaut une seule unité : vendre une passe fixe (l'ancien
+            // comportement) ne pouvait pas compenser les 25 unités sur le point d'être ajoutées,
+            // et le stock restait collé au plafond.
+            Assert.Equal(975, civ.GetResourceQuantity(Resource.Ore));
         }
 
         [Fact]
@@ -353,13 +412,17 @@ namespace SOITests.ControllerTests
             civ.AddResource(Resource.Gold, maxGold);
             civ.AddResource(Resource.Wood, 5);
 
+            int keepThreshold = maxGold * state.AutomationSettings.AutoBuyGoldKeepPercent / 100;
+            int freed = maxGold + 1 - keepThreshold;
+
             var controller = new TradeController(state);
             bool result = controller.SellResource(0, Resource.Wood);
 
             Assert.True(result);
-            // Achat Automatique a libéré 1 or (achat de Food) juste avant que la vente n'en rapporte 1.
-            Assert.Equal(maxGold, civ.GetResourceQuantity(Resource.Gold));
-            Assert.Equal(1, civ.GetResourceQuantity(Resource.Food));
+            // Achat Automatique a libéré tout l'excédent au-dessus de la part conservée (achat de
+            // Food) juste avant que la vente ne rapporte 1 or.
+            Assert.Equal(maxGold - freed + 1, civ.GetResourceQuantity(Resource.Gold));
+            Assert.Equal(freed, civ.GetResourceQuantity(Resource.Food));
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Wood));
         }
 

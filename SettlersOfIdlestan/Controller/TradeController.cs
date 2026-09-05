@@ -203,9 +203,24 @@ namespace SettlersOfIdlestan.Controller
         }
 
         /// <summary>
-        /// Si <paramref name="incomingGold"/> ferait dépasser le stockage d'or, achète une unité de la
-        /// ressource de base la plus rare avec l'or excédentaire pour ne pas le gâcher (Achat Automatique).
-        /// Retourne vrai si un achat a eu lieu.
+        /// Ressources candidates à l'Achat Automatique, dans l'ordre de priorité en cas d'égalité de
+        /// rareté. Même ensemble que l'onglet d'achat manuel du popup de commerce (voir
+        /// <c>TradePopupRenderer.GetBuyableResources</c>) : tout sauf l'Or lui-même et les consommables
+        /// fabriqués (armes, armures, potions), qui ne s'achètent pas au marché. Les ressources à
+        /// découvrir sont filtrées à l'exécution par <see cref="IsResourceDiscovered"/>.
+        /// </summary>
+        private static readonly Resource[] AutoBuyCandidates =
+            ResourceUtils.NonConsumableResources.Where(r => r != Resource.Gold).ToArray();
+
+        /// <summary>
+        /// Si <paramref name="incomingGold"/> ferait passer le stock d'or au-dessus de la part conservée
+        /// (<see cref="AutomationSettings.AutoBuyGoldKeepPercent"/>), dépense tout l'excédent en un seul
+        /// achat sur la ressource la plus rare, pour ne pas le gâcher (Achat Automatique). Retourne vrai
+        /// si un achat a eu lieu.
+        ///
+        /// <para>Dépenser l'excédent d'un coup plutôt qu'une unité par appel est nécessaire pour que le
+        /// seuil tienne : en fin de partie, l'or entre par centaines de Marchés à chaque tick, une unité
+        /// achetée par événement ne compense rien et l'or dérive jusqu'au plafond, seuil ou pas.</para>
         /// </summary>
         public bool TryAutoBuyOnGoldOverflow(int civilizationIndex, int incomingGold = 1)
         {
@@ -215,14 +230,63 @@ namespace SettlersOfIdlestan.Controller
 
             int maxGold = civ.GetResourceMaxQuantity(Resource.Gold);
             int keepThreshold = maxGold * _state.AutomationSettings.AutoBuyGoldKeepPercent / 100;
-            if (civ.GetResourceQuantity(Resource.Gold) + incomingGold <= keepThreshold) return false;
+            int gold = civ.GetResourceQuantity(Resource.Gold);
+            int excess = gold + incomingGold - keepThreshold;
+            if (excess <= 0) return false;
 
-            var resource = ResourceUtils.BasicResources.OrderBy(r => civ.GetResourceQuantity(r)).First();
-            if (!CanBuyResource(civilizationIndex, resource)) return false;
+            // Balayage sans LINQ ni tri : cette méthode est appelée par ville productrice et par tick
+            // (voir MarketGoldProductionEngine), et le test d'excédent ci-dessus n'écarte que les cas
+            // où l'or est sous le seuil. La rareté se mesure en part du plafond, pas en valeur absolue :
+            // depuis que l'achat couvre toutes les ressources et plus seulement les ressources de base,
+            // les candidates n'ont plus le même plafond (basique vs avancé) et comparer les quantités
+            // brutes ferait systématiquement gagner la catégorie au plus petit plafond. Restreint aux
+            // ressources de base, l'ordre est identique à celui d'avant (plafond commun).
+            Resource target = Resource.Gold;
+            int quantity = 0;
+            double rarest = double.MaxValue;
+            for (int i = 0; i < AutoBuyCandidates.Length; i++)
+            {
+                var candidate = AutoBuyCandidates[i];
+                if (!IsResourceDiscovered(civ, candidate)) continue;
 
-            BuyResource(civilizationIndex, resource);
+                int max = civ.GetResourceMaxQuantity(candidate);
+                if (max <= 0) continue;
+                int stock = civ.GetResourceQuantity(candidate);
+                double fillRatio = (double)stock / max;
+                if (fillRatio >= rarest) continue;
+
+                // Ne jamais entamer la part conservée : une ressource dont l'unité coûte plus que
+                // l'excédent disponible n'est simplement pas achetable ce tour-ci, et laisse la place
+                // à la suivante.
+                int unitCost = GetBuyCost(civilizationIndex, candidate);
+                int affordable = Math.Min(excess / unitCost, gold / unitCost);
+                int room = max - stock;
+                int candidateQuantity = Math.Min(affordable, room);
+                if (candidateQuantity <= 0) continue;
+
+                rarest = fillRatio;
+                target = candidate;
+                quantity = candidateQuantity;
+            }
+
+            if (quantity <= 0) return false;
+            if (!CanBuyResource(civilizationIndex, target, quantity)) return false;
+
+            BuyResource(civilizationIndex, target, quantity);
             return true;
         }
+
+        /// <summary>
+        /// Vrai si la ressource est échangeable pour cette civilisation : les ressources de
+        /// <see cref="ResourceUtils.DiscoverableResources"/> exigent le vertex de prestige correspondant
+        /// (<c>UNLOCK_RESOURCE</c>), les autres sont toujours disponibles. Même règle que
+        /// <c>PrestigeState.IsResourceDiscovered</c>, réécrite ici pour ne pas faire remonter l'état de
+        /// prestige jusqu'au contrôleur de commerce — elle ne lit de toute façon que les modificateurs
+        /// de la civilisation.
+        /// </summary>
+        private static bool IsResourceDiscovered(Civilization civ, Resource resource) =>
+            !ResourceUtils.DiscoverableResources.Contains(resource)
+            || civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_RESOURCE, resource.ToString());
 
         public int GetMaxSeaportLevel(int civilizationIndex)
         {

@@ -53,7 +53,7 @@ internal sealed class SmelterProductionEngine
                     if (steelFull)
                     {
                         if (!ProductionOverflowTrader.IsAutoMarketTradeUnlocked(civ, city, Resource.Steel)) break;
-                        _trader!.TryAutoTradeOnOverflow(civ, city, Resource.Steel);
+                        _trader!.TryAutoTradeOnOverflow(civ, city, Resource.Steel, steelOutput);
                         if (civ.GetResourceQuantity(Resource.Steel) >= civ.GetResourceMaxQuantity(Resource.Steel)) break;
                     }
 
@@ -70,11 +70,12 @@ internal sealed class SmelterProductionEngine
 
                     civ.RemoveResource(Resource.Ore,  oreInput);
                     civ.RemoveResource(Resource.Wood, Smelter.WoodInputPerCycle);
-                    for (int s = 0; s < steelOutput; s++)
-                    {
-                        _trader!.TryAutoTradeOnOverflow(civ, city, Resource.Steel);
-                        civ.AddResource(Resource.Steel, 1);
-                    }
+                    // Une seule vente et un seul ajout pour tout le cycle : l'ajout unité par unité
+                    // était équivalent (AddResource plafonne de la même façon), et la vente doit
+                    // désormais connaître la quantité produite pour la compenser (voir
+                    // ProductionOverflowTrader.TryAutoTradeOnOverflow).
+                    _trader!.TryAutoTradeOnOverflow(civ, city, Resource.Steel, steelOutput);
+                    civ.AddResource(Resource.Steel, steelOutput);
                 }
             }
         }

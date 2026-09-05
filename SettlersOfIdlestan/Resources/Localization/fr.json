@@ -395,7 +395,7 @@
   "prestige_tooltip_unlocks_war_herald": "Débloque l'action War Herald (renforts coordonnés vers une ville alliée)",
   "prestige_tooltip_volcano_damage_reduction": "dégâts d'éruption volcanique",
   "prestige_tooltip_unlocks_auto_market_trade": "Vend automatiquement le surplus de ressources dans les villes avec un Marché niv.4+",
-  "prestige_tooltip_unlocks_auto_buy_trade": "Achète automatiquement la ressource de base la plus rare avec l'or excédentaire dans les villes avec un Marché niv.4+",
+  "prestige_tooltip_unlocks_auto_buy_trade": "Achète automatiquement la ressource la plus rare avec l'or excédentaire dans les villes avec un Marché niv.4+",
   "prestige_tooltip_unlocks_market_specialization": "Toutes les ressources de base se vendent au taux de 4:1",
   "prestige_tooltip_unlocks_intermediate_trade": "Débloque la vente de Minerai, de Verre et d'Acier au marché (1/5 du prix d'achat)",
   "prestige_tooltip_unlocks_contested_harvest": "Débloque la récolte sur les Territoires Contestés (à demi-vitesse)",

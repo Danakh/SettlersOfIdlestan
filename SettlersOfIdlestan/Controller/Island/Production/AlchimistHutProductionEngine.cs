@@ -107,8 +107,9 @@ internal sealed class AlchimistHutProductionEngine
                     .Count(f => f.Found);
                 if (circleCount <= 0) continue;
 
-                _trader!.TryAutoTradeOnOverflow(civ, city, Resource.Crystal);
-                civ.AddResource(Resource.Crystal, circleCount * FairyCircle.CrystalsPerCycle * (int)cycles);
+                int crystals = circleCount * FairyCircle.CrystalsPerCycle * (int)cycles;
+                _trader!.TryAutoTradeOnOverflow(civ, city, Resource.Crystal, crystals);
+                civ.AddResource(Resource.Crystal, crystals);
             }
         }
     }

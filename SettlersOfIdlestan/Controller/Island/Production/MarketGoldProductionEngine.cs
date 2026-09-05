@@ -11,11 +11,16 @@ namespace SettlersOfIdlestan.Controller.Island.Production;
 internal sealed class MarketGoldProductionEngine
 {
     private WorldState? _state;
+    private ProductionOverflowTrader? _trader;
 
     /// <summary>Relayé par <c>HarvestController.OnRandomResourceGenerated</c> pour l'animation de la ville.</summary>
     public event EventHandler<MarketGenerationEventArgs>? ResourceGenerated;
 
-    internal void Initialize(WorldState? state) => _state = state;
+    internal void Initialize(WorldState? state, ProductionOverflowTrader trader)
+    {
+        _state = state;
+        _trader = trader;
+    }
 
     internal void Tick(long currentTick)
     {
@@ -36,6 +41,11 @@ internal sealed class MarketGoldProductionEngine
                 market.LastGoldGenerationTick = lastTick;
                 if (cycles <= 0) continue;
 
+                // L'or produit ici est la source d'or dominante en fin de partie (une passe par
+                // Marché et par tick) : sans cette tentative d'achat, la part d'or conservée
+                // (AutoBuyGoldKeepPercent) n'était consultée que sur le bonus d'or des Mines et sur
+                // le débordement d'une vente, et le stock dérivait librement au-dessus du seuil.
+                _trader!.TryAutoBuyOnGoldOverflow(civ, city, (int)cycles);
                 civ.AddResource(Resource.Gold, (int)cycles);
                 for (long c = 0; c < cycles; c++)
                     ResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, Resource.Gold, city.Position));

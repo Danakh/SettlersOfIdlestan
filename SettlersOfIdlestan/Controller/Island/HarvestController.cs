@@ -136,7 +136,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             _overflowTrader.Initialize(state, tradeController);
             _seaportEngine.Initialize(state, _prng, _overflowTrader);
-            _marketGoldEngine.Initialize(state);
+            _marketGoldEngine.Initialize(state, _overflowTrader);
             _smelterEngine.Initialize(state, _overflowTrader);
             _passiveEngine.Initialize(state, clock);
             _smithEngine.Initialize(state, _prng);
@@ -317,7 +317,7 @@ namespace SettlersOfIdlestan.Controller.Island
                         // lieu de la boucle ci-dessous. Sur une grosse sauvegarde, l'écrasante majorité
                         // des entrées de production n'a aucun de ces bonus actif ; rejouer cycle par
                         // cycle pour rien y dominait le temps d'un saut de temps (voir TickCooldown).
-                        _overflowTrader.TryAutoTradeOnOverflow(civ, city, resource);
+                        _overflowTrader.TryAutoTradeOnOverflow(civ, city, resource, (int)cycles);
                         civ.AddResource(resource, (int)cycles);
                         rs[resource] += (int)cycles;
                         continue;
@@ -348,15 +348,17 @@ namespace SettlersOfIdlestan.Controller.Island
                         if (goldBonus) totalGoldGrants += multiplier;
                     }
 
-                    _overflowTrader.TryAutoTradeOnOverflow(civ, city, resource);
+                    // Un seul appel, dimensionné sur la production de l'entrée : le doublon qui
+                    // encadrait l'ajout compensait une vente à passe fixe trop petite pour la
+                    // production, ce que la quantité passée règle à la source.
+                    _overflowTrader.TryAutoTradeOnOverflow(civ, city, resource, (int)totalUnits);
                     civ.AddResource(resource, (int)totalUnits);
                     rs[resource] += (int)totalUnits;
-                    _overflowTrader.TryAutoTradeOnOverflow(civ, city, resource);
 
                     if (totalGoldGrants > 0)
                     {
-                        _overflowTrader.TryAutoBuyOnGoldOverflow(civ, city);
                         int goldToAdd = (int)(totalGoldGrants * goldAmount);
+                        _overflowTrader.TryAutoBuyOnGoldOverflow(civ, city, goldToAdd);
                         civ.AddResource(Resource.Gold, goldToAdd);
                         rs[Resource.Gold] += goldToAdd;
                     }
