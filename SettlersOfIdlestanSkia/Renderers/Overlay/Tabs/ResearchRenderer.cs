@@ -231,6 +231,8 @@ public sealed class ResearchRenderer : IGameRenderer
                 var lines = new List<string> { _localization.Get(hoveredTech.DescKey) };
                 string? bonusLine = FormatRepeatableBonusTooltip(hoveredTech, ctrl.GetRepeatCount(hoveredTech.Id));
                 if (bonusLine != null) lines.Add(bonusLine);
+                string? divineBonesLine = FormatDivineBonesBonusTooltip(hoveredTech);
+                if (divineBonesLine != null) lines.Add(divineBonesLine);
                 TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, lines.ToArray(), _tooltipFont, uiScale: _lastUiScale);
             }
         }
@@ -391,6 +393,32 @@ public sealed class ResearchRenderer : IGameRenderer
 
         string percent = (total * 100).ToString("0.#");
         return _localization.GetFormated("tooltip_research_repeatable_bonus", percent);
+    }
+
+    /// <summary>
+    /// Théologie de l'Ascension : son multiplicateur compose sur le nombre d'Os Divins purifiés
+    /// ce run (voir PrestigeController.GetDivineBonesPrestigeMultiplier), donc la description
+    /// statique ne peut pas donner la valeur réelle — cette ligne l'affiche pour le compte courant.
+    /// Avant que la recherche ne soit acquise l'agrégateur ne porte encore aucun bonus par Os : on
+    /// retombe alors sur la valeur de la définition, pour montrer ce qu'elle rapporterait tout de suite.
+    /// </summary>
+    private string? FormatDivineBonesBonusTooltip(Technology tech)
+    {
+        if (tech.Id != TechnologyId.TheologieDeLAscension) return null;
+
+        var prestige = _gameControllerService.MainGameController.PrestigeController;
+        double perBone = prestige.GetPrestigeGainPerPurifiedDivineBone();
+        if (perBone <= 0)
+        {
+            foreach (var mod in tech.Modifiers)
+                if (mod.Category == Modifier.ECategory.PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE)
+                    perBone += mod.Value;
+        }
+        if (perBone <= 0) return null;
+
+        int count = prestige.GetPurifiedDivineBonesCount();
+        double multiplier = Math.Pow(1 + perBone, count);
+        return _localization.GetFormated("tooltip_research_divine_bones_bonus", count, multiplier.ToString("0.##"));
     }
 
     // ─── Input handling ──────────────────────────────────────────────────────
