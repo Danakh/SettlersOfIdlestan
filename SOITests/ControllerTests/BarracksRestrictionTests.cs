@@ -290,4 +290,37 @@ public class BarracksRestrictionTests
         Assert.True(city.Soldiers > 2,
             $"Sans restriction, la Caserne et l'Arsenal auraient dû produire au-delà du quota gratuit (soldiers={city.Soldiers}).");
     }
+
+    [Fact]
+    public void Restriction_ZeroFreeQuota_IsIgnored_BarracksKeepProducing()
+    {
+        // Quota gratuit à 0 : restreindre à 0 soldat n'est pas une restriction mais un arrêt total,
+        // et l'écran d'automatisation masque la case tant que le quota est nul — le réglage resté
+        // coché d'une partie précédente (il survit à la Prestige et à l'Ascension via
+        // GodState.AutomationSettings, contrairement aux vertex qui donnent le quota) bloquait alors
+        // toute production sans que le joueur puisse le décocher.
+        var (state, clock, surfaceCity, underworldCity) = TwoLayerSetup(freePerCity: 0);
+        state.AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer[IslandMap.SurfaceLayer] = true;
+        state.AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer[LayerState.UnderworldZ] = true;
+
+        for (int i = 0; i < Cycles; i++)
+            clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
+
+        Assert.Equal(Cycles, surfaceCity.Soldiers);
+        Assert.Equal(Cycles, underworldCity.Soldiers);
+    }
+
+    [Fact]
+    public void Restriction_ZeroFreeQuota_IsIgnored_ArsenalKeepsProducing()
+    {
+        // Même règle pour l'Arsenal — voir SoldierProductionEngine.IsRestrictedToFreeQuota.
+        var (state, clock, city) = BarracksAndArsenalSetup(freePerCity: 0);
+        state.AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer[IslandMap.SurfaceLayer] = true;
+
+        for (int i = 0; i < Cycles; i++)
+            clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
+
+        Assert.True(city.Soldiers > 2,
+            $"Avec un quota gratuit nul, la restriction doit être ignorée et la production continuer (soldiers={city.Soldiers}).");
+    }
 }

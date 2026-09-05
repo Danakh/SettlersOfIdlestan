@@ -154,6 +154,11 @@ public class AutomationSettings
     /// (Modifier.ECategory.SOLDIER_FOOD_FREE_PER_CITY), même quand ils sont actifs — voir
     /// SoldierProductionEngine.ProduceSoldiers et ProduceArsenalSoldiers. Un Arsenal désactivé reste
     /// une exception à part : il ne produit jamais, restriction ou non (voir ProduceArsenalSoldiers).
+    /// Ignoré quand le quota vaut 0 (voir SoldierProductionEngine.IsRestrictedToFreeQuota) : la
+    /// restriction deviendrait un arrêt complet de la production alors que l'écran d'automatisation
+    /// masque la case dans ce cas, donc sans moyen de la lever. Le cas se produit après une Prestige
+    /// ou une Ascension, qui reprennent les vertex donnant le quota mais pas ce réglage, porté par
+    /// GodState.AutomationSettings.
     /// Un layer non présent dans le dictionnaire équivaut à false. Réglage par layer non épinglable à
     /// l'écran de civilisation (pas de clé PinKeyXxx, voir AutomationRenderer / PlayerCivilizationPanelRenderer).
     /// Nom JSON conservé (RestrictBarracksToFreeSoldiersByLayer) pour la compatibilité des sauvegardes

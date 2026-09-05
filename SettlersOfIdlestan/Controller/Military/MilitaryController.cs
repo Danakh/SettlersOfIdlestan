@@ -175,8 +175,8 @@ public class MilitaryController
             var barracks = city.FindBuilding(BuildingType.Barracks) is { } b2 && b2.Level >= SoldierProductionEngine.SoldierProductionMinLevel ? b2 : null;
             if (barracks == null) continue;
 
-            bool restrictedToFreeSoldiers = civ.Index == _state!.PlayerCivilization.Index
-                && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
+            bool restrictedToFreeSoldiers = SoldierProductionEngine.IsRestrictedToFreeQuota(
+                _state!, city, civ.Index == _state!.PlayerCivilization.Index, freePerCity);
             if ((barracks.ActivationStatus != ActivationStatus.ACTIVE || restrictedToFreeSoldiers) && city.Soldiers >= freePerCity) continue;
 
             total += civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
@@ -223,8 +223,8 @@ public class MilitaryController
             var arsenal = city.FindBuilding<Arsenal>(BuildingType.Arsenal) is { Level: >= 1 } ars ? ars : null;
             if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
-            bool restrictedToFreeSoldiers = civ.Index == _state!.PlayerCivilization.Index
-                && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
+            bool restrictedToFreeSoldiers = SoldierProductionEngine.IsRestrictedToFreeQuota(
+                _state!, city, civ.Index == _state!.PlayerCivilization.Index, freePerCity);
             if (restrictedToFreeSoldiers && city.Soldiers >= freePerCity) continue;
 
             total += Arsenal.SteelInputPerCycle * civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;

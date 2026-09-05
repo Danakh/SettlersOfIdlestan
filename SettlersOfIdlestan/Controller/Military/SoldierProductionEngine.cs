@@ -30,6 +30,28 @@ internal class SoldierProductionEngine
         => vertex.MaxSoldiers + (_state!.GetCivilization(vertex.CivilizationIndex)?.CityMaxSoldiersBonus ?? 0);
 
     /// <summary>
+    /// Vrai si la production de soldats de <paramref name="city"/> est bridée au quota de soldats
+    /// nourris gratuitement (AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer).
+    /// <para>
+    /// Le réglage est ignoré quand <paramref name="freePerCity"/> vaut 0 : à 0 il ne bride pas la
+    /// production, il l'arrête entièrement — et l'écran d'automatisation masque justement la case
+    /// tant que le quota est nul (voir AutomationRenderer), donc le joueur ne peut alors ni la voir
+    /// ni la décocher. Le cas se produit vraiment : le quota vient des vertex de prestige Légion
+    /// d'Acier / Rations Stratégiques, remis à zéro par une Prestige ou une Ascension, alors que le
+    /// réglage vit dans GodState.AutomationSettings et survit aux deux — les Casernes cessaient de
+    /// produire sans cause visible ni moyen de la lever.
+    /// </para>
+    /// Point de lecture unique de la restriction, partagé avec les estimations de consommation de
+    /// <see cref="MilitaryController.GetSoldierProductionOreRate"/> et
+    /// <see cref="MilitaryController.GetArsenalProductionSteelRate"/>, qui doivent refléter
+    /// exactement les mêmes conditions que la production elle-même.
+    /// </summary>
+    internal static bool IsRestrictedToFreeQuota(WorldState state, City city, bool isPlayer, int freePerCity)
+        => freePerCity > 0
+           && isPlayer
+           && state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
+
+    /// <summary>
     /// Seules les villes produisent des soldats (Caserne requise) — une Flotte de Guerre n'a pas de
     /// bâtiment (voir WarFleet) et ne peut donc en produire ; elle ne reçoit des soldats que par renfort.
     /// </summary>
@@ -72,8 +94,7 @@ internal class SoldierProductionEngine
                 var barracks = city.FindBuilding(BuildingType.Barracks) is { } b && b.Level >= SoldierProductionMinLevel ? b : null;
                 if (barracks == null) continue;
 
-                bool restrictedToFreeSoldiers = isPlayer
-                    && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
+                bool restrictedToFreeSoldiers = IsRestrictedToFreeQuota(_state, city, isPlayer, freePerCity);
 
                 // Rejoué cycle par cycle : la place disponible et le stock de Minerai peuvent
                 // s'épuiser en cours de route.
@@ -152,8 +173,7 @@ internal class SoldierProductionEngine
                 var arsenal = city.FindBuilding<Arsenal>(BuildingType.Arsenal) is { Level: >= 1 } ars ? ars : null;
                 if (arsenal == null || arsenal.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
-                bool restrictedToFreeSoldiers = isPlayer
-                    && _state.AutomationSettings.IsRestrictSoldierProductionToFreeSoldiersActive(city.Position.Z);
+                bool restrictedToFreeSoldiers = IsRestrictedToFreeQuota(_state, city, isPlayer, freePerCity);
 
                 // Rejoué cycle par cycle : la place disponible et le stock d'Acier peuvent s'épuiser
                 // en cours de route.
