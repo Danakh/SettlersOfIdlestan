@@ -914,8 +914,12 @@ public class AscensionController : IModifierProvider
     /// <summary>
     /// Fait décroître le compteur d'usages d'un pouvoir divin ciblé — donc son coût de moitié (voir
     /// <see cref="TargetedPowerCost"/>) — chaque fois qu'un temps de recharge complet
-    /// (<see cref="TargetedPowerCostDecayTicks"/>) s'est écoulé depuis la dernière utilisation ou la
-    /// dernière décroissance. Renvoie vrai si l'état a changé.
+    /// (<see cref="TargetedPowerCostDecayTicks"/>) s'est écoulé depuis l'armement de la recharge ou
+    /// la dernière décroissance. Renvoie vrai si l'état a changé.
+    ///
+    /// <para>L'échéance n'est armée que lorsqu'aucune ne court déjà (voir
+    /// <see cref="RegisterTargetedPowerUse"/>) : réutiliser le pouvoir ne repousse pas la
+    /// décroissance en cours.</para>
     ///
     /// <para>Le coût redescend jusqu'à 1 (1 usage compté) et pas plus bas : la gratuité du premier
     /// usage ne se regagne jamais en attendant, elle ne revient qu'au prestige (voir
@@ -988,12 +992,18 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Enregistre une utilisation d'un pouvoir divin ciblé : incrémente son compteur d'usages (donc
-    /// double son coût) et réarme son temps de recharge à partir de maintenant.
+    /// double son coût) et arme son temps de recharge s'il ne l'était pas déjà.
+    ///
+    /// <para>Seule la première utilisation qui rend le pouvoir payant (celle qui porte le compteur à
+    /// 2) démarre le décompte : les utilisations suivantes s'ajoutent au compteur sans repousser
+    /// l'échéance en cours. Réarmer à chaque usage revenait à repousser indéfiniment la
+    /// décroissance en enchaînant les lancements.</para>
     /// </summary>
     private void RegisterTargetedPowerUse(ref int uses, ref long nextDecayTick)
     {
         uses++;
-        nextDecayTick = uses > 1 ? (_clock?.CurrentTick ?? 0) + TargetedPowerCostDecayTicks : 0;
+        if (uses <= 1) nextDecayTick = 0;
+        else if (nextDecayTick <= 0) nextDecayTick = (_clock?.CurrentTick ?? 0) + TargetedPowerCostDecayTicks;
     }
 
     /// <summary>

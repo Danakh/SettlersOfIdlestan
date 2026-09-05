@@ -1703,6 +1703,36 @@ public class AscensionControllerTests
         Assert.Equal(4, ascension.GetFistOfGodCost());
     }
 
+    /// <summary>
+    /// Seul le premier lancement payant arme le temps de recharge : réutiliser le pouvoir ensuite
+    /// augmente le coût mais ne repousse pas l'échéance en cours, sinon enchaîner les lancements
+    /// suffirait à empêcher toute décroissance.
+    /// </summary>
+    [Fact]
+    public void TargetedPowerCooldown_LaterUseDoesNotPushBackTheRunningCooldown()
+    {
+        var clock = new GameClock();
+        var (state, _, _, ascension, _) = CreateTestSetup(godPoints: 100, prestigePoints: 100, clock: clock);
+        UnlockFistOfGod(ascension);
+        AddDominion(state, Center);
+
+        // Deuxième usage : c'est lui qui arme la recharge.
+        Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.True(ascension.ApplyFistOfGod(Center));
+
+        long half = AscensionController.TargetedPowerCostDecayTicks / 2;
+        clock.SimulateAdvance(half, chunkTicks: half);
+        Assert.Equal(half, ascension.GetFistOfGodCostDecayRemainingTicks());
+
+        // Troisième usage à mi-parcours : le coût double, l'échéance ne bouge pas.
+        Assert.True(ascension.ApplyFistOfGod(Center));
+        Assert.Equal(4, ascension.GetFistOfGodCost());
+        Assert.Equal(half, ascension.GetFistOfGodCostDecayRemainingTicks());
+
+        clock.SimulateAdvance(half, chunkTicks: half);
+        Assert.Equal(2, ascension.GetFistOfGodCost());
+    }
+
     [Fact]
     public void GetFistOfGodCostDecayRemainingTicks_CountsDownFromAFullCooldown()
     {
