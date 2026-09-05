@@ -303,6 +303,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             DOMINION_LAYER_PENALTY_REDUCTION,
             /// <summary>Bonus de vitesse de la Fonderie par niveau de Dominion sur les 3 hexs de sa ville. Base = 0.0 ; s'ajoute au multiplicateur SMELTER_SPEED après multiplication par la somme des niveaux de Dominion autour de la ville — même calcul que DOMINION_DEFENSE_REGEN_PER_LEVEL (voir HarvestController.GetEffectiveSmelterCooldown). SubCategory unused. Accordé par le Creuset du Dominion.</summary>
             DOMINION_SMELTER_SPEED_PER_LEVEL,
+            /// <summary>Flags que la relocalisation d'une ville ne coûte plus aucune ressource (voir CityBuilderController.RelocationCost). SubCategory unused. Accordé par le jalon d'Ascension Exode Divin (AscensionMilestoneId.FreeRelocation).</summary>
+            FREE_RELOCATION,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

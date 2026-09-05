@@ -314,6 +314,30 @@ public class RaceSystemTests
         Assert.True(playerCiv.ModifierAggregator.HasModifier(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN, nameof(TerrainType.Forest)));
     }
 
+    /// <summary>
+    /// Orcs : le raid n'est pas un modifier de race mais le vertex de prestige Entraînement de Siège,
+    /// offert à chaque Ascension (RaceDefinition.FreePrestigeVertices) — c'est ce qui le fait
+    /// apparaître acquis sur la carte de prestige au lieu d'un déblocage invisible.
+    /// </summary>
+    [Fact]
+    public void PerformAscension_AsOrc_GrantsTheSiegeTrainingVertexAndUnlocksRaid()
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        var godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = 5;
+        UnlockFirstRow(controller.AscensionController);
+
+        controller.PerformAscension(RaceId.Orc);
+
+        Assert.Contains(PrestigeMap.SiegeTrainingVertex, controller.CurrentMainState.PrestigeState!.PurchasedVertices);
+        var playerCiv = controller.CurrentMainState.CurrentWorldState!.PlayerCivilization;
+        Assert.True(playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_RAID));
+        // Le raid vient désormais du vertex, plus de la race elle-même.
+        Assert.DoesNotContain(RaceDefinitions.Get(RaceId.Orc).Modifiers, m => m.Category == ECategory.UNLOCK_RAID);
+    }
+
     [Fact]
     public void PerformAscension_NonSelectableRace_Throws()
     {

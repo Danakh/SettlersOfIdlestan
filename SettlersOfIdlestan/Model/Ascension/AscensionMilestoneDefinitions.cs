@@ -32,6 +32,10 @@ public static class AscensionMilestoneDefinitions
         new AscensionMilestoneDefinition(AscensionMilestoneId.ResearchProduction,
             "ascension_milestone_research_name", "ascension_milestone_research_desc", "ascension_milestone_research_requirement",
             RequiredAscendedRaceCount: 2),
+
+        new AscensionMilestoneDefinition(AscensionMilestoneId.FreeRelocation,
+            "ascension_milestone_relocation_name", "ascension_milestone_relocation_desc", "ascension_milestone_relocation_requirement",
+            RequiredAscendedRaceCount: 3),
     };
 
     public static AscensionMilestoneDefinition? Get(AscensionMilestoneId id)

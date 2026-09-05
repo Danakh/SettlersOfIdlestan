@@ -1961,6 +1961,60 @@ public class AscensionControllerTests
         Assert.Equal(0, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
     }
 
+    // ── Jalon Exode Divin (AscensionMilestoneId.FreeRelocation) ─────────────────────────────
+
+    [Fact]
+    public void PerformAscension_WithFreeRelocationMilestone_GrantsTheRelocationVertex()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        UnlockRaceSelection(godState);
+        // 2 races déjà ascensionnées + celle de l'Ascension déclenchée ici (voir
+        // CreditAscensionPointsAndArchiveCycle) = les 3 races différentes exigées par le jalon.
+        godState.AscensionState.AscensionsPerformed = 2;
+        godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Dwarf);
+
+        controller.PerformAscension();
+
+        Assert.Contains(SettlersOfIdlestan.Model.Prestige.PrestigeMap.PrestigeMap.OuterHarborVertex, controller.CurrentMainState!.PrestigeState!.PurchasedVertices);
+    }
+
+    [Fact]
+    public void PerformAscension_WithoutFreeRelocationMilestone_DoesNotGrantTheRelocationVertex()
+    {
+        var controller = CreateAscendableGame(out var godState);
+        UnlockRaceSelection(godState);
+        godState.AscensionState.AscensionsPerformed = 2;
+        godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
+
+        controller.PerformAscension();
+
+        Assert.DoesNotContain(SettlersOfIdlestan.Model.Prestige.PrestigeMap.PrestigeMap.OuterHarborVertex, controller.CurrentMainState!.PrestigeState!.PurchasedVertices);
+    }
+
+    [Fact]
+    public void GetModifiers_FreeRelocationMilestone_GrantsTheFreeRelocationFlag()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(ascensionsPerformed: 3);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Dwarf);
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.FREE_RELOCATION);
+
+        godState.AscensionState.AscendedRaces.Add(RaceId.Orc);
+
+        Assert.Contains(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.FREE_RELOCATION);
+    }
+
+    /// <summary>Débloque le choix de race (voir AscensionController.IsRaceSelectionUnlocked), sans
+    /// lequel aucun vertex de prestige n'est offert à l'Ascension — voir GrantFreePrestigeVertices.</summary>
+    private static void UnlockRaceSelection(GodState godState)
+    {
+        godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.Faith);
+        foreach (var power in RaceDefinitions.Get(RaceId.Elf).RequiredPowers)
+            godState.AscensionState.UnlockedPowers.Add(power);
+    }
+
     /// <summary>Partie complète prête à ascensionner (essence divine et points divins fournis).</summary>
     private static MainGameController CreateAscendableGame(out GodState godState)
     {

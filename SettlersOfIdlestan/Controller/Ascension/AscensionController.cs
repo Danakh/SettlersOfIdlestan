@@ -758,7 +758,9 @@ public class AscensionController : IModifierProvider
     /// terrain de départ de la race ne produit pas (ex. la brique des Nains). S'y ajoutent les
     /// vertex propres à la race choisie (RaceDefinition.FreePrestigeVertices), eux aussi sans
     /// contrainte de contiguïté : les Elfes noirs partent ainsi avec Culture Fongique, seule source
-    /// de nourriture viable pour un départ souterrain.
+    /// de nourriture viable pour un départ souterrain. S'y ajoute enfin le vertex Relocalisation
+    /// (PrestigeMap.OuterHarborVertex) une fois le jalon Exode Divin débloqué
+    /// (AscensionMilestoneId.FreeRelocation).
     /// </summary>
     private void GrantFreePrestigeVertices(PrestigeState prestigeState, RaceId race)
     {
@@ -776,6 +778,10 @@ public class AscensionController : IModifierProvider
         foreach (var vertex in RaceDefinitions.Get(race).FreePrestigeVertices)
             if (!prestigeState.PurchasedVertices.Contains(vertex))
                 prestigeState.PurchasedVertices.Add(vertex);
+
+        if (IsMilestoneUnlocked(AscensionMilestoneId.FreeRelocation)
+            && !prestigeState.PurchasedVertices.Contains(Model.Prestige.PrestigeMap.PrestigeMap.OuterHarborVertex))
+            prestigeState.PurchasedVertices.Add(Model.Prestige.PrestigeMap.PrestigeMap.OuterHarborVertex);
     }
 
     public IEnumerable<Modifier> GetModifiers()
@@ -831,6 +837,13 @@ public class AscensionController : IModifierProvider
         // Civilization.RESEARCH_PRODUCTION_SPEED.
         if (IsMilestoneUnlocked(AscensionMilestoneId.ResearchProduction))
             yield return new Modifier(Modifier.ECategory.RESEARCH_PRODUCTION_SPEED, Modifier.EType.ADDITIVE, 1.0);
+
+        // Jalon Exode Divin (AscensionMilestoneId.FreeRelocation) : relocaliser une ville ne coûte
+        // plus rien — simple drapeau, voir CityBuilderController.RelocationCost. Le déblocage de
+        // l'action elle-même reste porté par le vertex de prestige Relocalisation, offert à chaque
+        // Ascension par ce même jalon (voir GrantFreePrestigeVertices).
+        if (IsMilestoneUnlocked(AscensionMilestoneId.FreeRelocation))
+            yield return new Modifier(Modifier.ECategory.FREE_RELOCATION, Modifier.EType.ADDITIVE, 1.0);
 
         // Bonus/malus de la race jouée pendant ce cycle (voir RaceDefinitions).
         foreach (var modifier in RaceDefinitions.Get(SelectedRace).Modifiers)

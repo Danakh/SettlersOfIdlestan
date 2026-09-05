@@ -130,9 +130,12 @@ public static class RaceDefinitions
             requiredPowers: new[] { AscensionPowerId.HandOfGod, AscensionPowerId.MemoryOfGod, AscensionPowerId.DivineMagic }),
 
         // Orcs : pillards sans terrain de prédilection — tout misé sur l'attaque et le raid plutôt
-        // que sur l'économie ou la recherche. UNLOCK_RAID offert gratuitement (normalement un vertex
-        // de prestige mi-parcours) ; en échange, recherche ralentie et Bibliothèque/Laboratoire
-        // plafonnent 1 niveau plus bas.
+        // que sur l'économie ou la recherche. Le raid est offert par le vertex de prestige
+        // Entraînement de Siège (mi-parcours), versé gratuitement à chaque Ascension comme la Culture
+        // Fongique des Elfes noirs (voir freePrestigeVertices ci-dessous) plutôt que par un modifier
+        // UNLOCK_RAID de la race : c'est ce qui le fait apparaître acquis sur la carte de prestige,
+        // et il y sert de point d'appui pour la contiguïté. En échange, recherche ralentie et
+        // Bibliothèque/Laboratoire plafonnent 1 niveau plus bas.
         new RaceDefinition(RaceId.Orc, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.SkullPit,
@@ -141,14 +144,14 @@ public static class RaceDefinitions
                 new Modifier(ECategory.CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 3),
                 new Modifier(ECategory.ATTACK_SPEED, EType.ADDITIVE, 0.5),
                 new Modifier(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1),
-                new Modifier(ECategory.UNLOCK_RAID, EType.ADDITIVE, 1),
                 new Modifier(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, -0.25),
                 new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Library), EType.ADDITIVE, -1),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Laboratory), EType.ADDITIVE, -1),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.SkullPit), EType.ADDITIVE, 1),
             },
-            requiredPowers: new[] { AscensionPowerId.HandOfGod, AscensionPowerId.ArmOfGod, AscensionPowerId.DivineConstruction }),
+            requiredPowers: new[] { AscensionPowerId.HandOfGod, AscensionPowerId.ArmOfGod, AscensionPowerId.DivineConstruction },
+            freePrestigeVertices: new[] { PrestigeMap.SiegeTrainingVertex }),
 
         // Géants : l'inverse des gobelins — villes à distance 4 minimum (rares), mais bâtiments
         // standards à niveau max +2 et récolte accélérée. Déblocage : Œil de Dieu (partagé avec les

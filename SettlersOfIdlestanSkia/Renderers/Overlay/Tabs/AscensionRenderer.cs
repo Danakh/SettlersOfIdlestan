@@ -43,7 +43,7 @@ public sealed class AscensionRenderer : IDisposable
     private const int   BuildingCardColumns = 4;
     private const float BuildingCardHeight  = 64f;
     // Cartes de jalon (voir DrawMilestonesTab) : une par ligne (contrairement aux grilles ci-dessus),
-    // assez hautes pour une description sur 2 lignes — seulement 3 jalons aujourd'hui, jamais besoin
+    // assez hautes pour une description sur 2 lignes — seulement 4 jalons aujourd'hui, jamais besoin
     // de défilement dédié.
     private const float MilestoneCardHeight = 80f;
     // Cartes de race (voir DrawRacesTab) : nom + un court texte d'ambiance de 2-3 lignes
@@ -849,7 +849,7 @@ public sealed class AscensionRenderer : IDisposable
     /// <summary>
     /// Liste des jalons d'Ascension (voir AscensionMilestoneDefinitions/AscensionController.
     /// IsMilestoneUnlocked) : une carte par jalon, empilées verticalement — jamais assez nombreuses
-    /// (3 aujourd'hui) pour justifier un viewport défilant comme DrawPermanentBuildingTab.
+    /// (4 aujourd'hui) pour justifier un viewport défilant comme DrawPermanentBuildingTab.
     /// </summary>
     private void DrawMilestonesTab(SKCanvas canvas, float x, float y, float contentWidth, AscensionController ascension)
     {

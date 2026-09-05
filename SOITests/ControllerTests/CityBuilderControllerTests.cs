@@ -279,8 +279,8 @@ public class CityBuilderControllerTests
         var city = new City(v1) { CivilizationIndex = 0 };
         civ.AddCity(city);
         civ.SetStorageCapacityCache(1000, 1000);
-        civ.AddResource(Resource.Gold, CityBuilderController.RelocationCost()[Resource.Gold]);
-        civ.AddResource(Resource.Food, CityBuilderController.RelocationCost()[Resource.Food]);
+        civ.AddResource(Resource.Gold, CityBuilderController.RelocationCost(civ)[Resource.Gold]);
+        civ.AddResource(Resource.Food, CityBuilderController.RelocationCost(civ)[Resource.Food]);
 
         // h4 is only adjacent to vMiddle (and v2) on this ribbon, not v1 — so the trove is unclaimed
         // until the city relocates onto a vertex touching h4.
@@ -293,8 +293,30 @@ public class CityBuilderControllerTests
 
         Assert.True(relocated);
         Assert.DoesNotContain(state.GetFeaturesAt(H(1, 1)), f => f is TreasureTrove);
-        Assert.Equal(goldBefore - CityBuilderController.RelocationCost()[Resource.Gold] + 100, civ.GetResourceQuantity(Resource.Gold));
+        Assert.Equal(goldBefore - CityBuilderController.RelocationCost(civ)[Resource.Gold] + 100, civ.GetResourceQuantity(Resource.Gold));
         Assert.Equal(1, state.RunRecord.TreasuresTroveClaimed);
+    }
+
+    // ── Jalon Exode Divin : relocalisation gratuite (ECategory.FREE_RELOCATION) ──
+
+    [Fact]
+    public void RelocateCity_WithFreeRelocationModifier_CostsNothing()
+    {
+        var (state, civ, v1, vMiddle, _) = RibbonIsland();
+        var city = new City(v1) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.ModifierAggregator.Register(new FlatModifierProvider(
+            new Modifier(ECategory.FREE_RELOCATION, EType.ADDITIVE, 1)));
+
+        // Aucune ressource versée : sans le jalon, la relocalisation coûterait 100 Or et 100 Nourriture.
+        Assert.Empty(CityBuilderController.RelocationCost(civ));
+
+        var relocated = Controller(state).RelocateCity(city, vMiddle);
+
+        Assert.True(relocated);
+        Assert.Equal(vMiddle, city.Position);
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Gold));
+        Assert.Equal(0, civ.GetResourceQuantity(Resource.Food));
     }
 
     // ── NewCityBuildingCostFor : surcharge par nombre de villes existantes ──

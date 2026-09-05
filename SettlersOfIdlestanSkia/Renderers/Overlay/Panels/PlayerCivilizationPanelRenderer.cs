@@ -721,8 +721,18 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     {
         var civ = _gameControllerService.PlayerCivilization;
         if (civ == null) return false;
-        try { return civ.CanPayResourceCost(CityBuilderController.RelocationCost()); }
+        try { return civ.CanPayResourceCost(CityBuilderController.RelocationCost(civ)); }
         catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(CanAffordRelocation), ex); return false; }
+    }
+
+    /// <summary>Jalon Exode Divin (AscensionMilestoneId.FreeRelocation) : la relocalisation ne coûte
+    /// plus rien, l'infobulle ne doit donc plus annoncer de prix.</summary>
+    private bool IsRelocationFree()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return civ.ModifierAggregator.HasModifier(ECategory.FREE_RELOCATION); }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsRelocationFree), ex); return false; }
     }
 
     private static bool HasBuilt<T>(Civilization civ) where T : Building
@@ -864,7 +874,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
         if (RelocationVisible)
             actions.Add(SimpleAction(CivPanelSnapshot.KeyRelocation, "relocation_action_short",
-                RelocationEnabled, "tooltip_relocation", "tooltip_relocation_insufficient_resources"));
+                RelocationEnabled, IsRelocationFree() ? "tooltip_relocation_free" : "tooltip_relocation",
+                "tooltip_relocation_insufficient_resources"));
 
         if (WalkOfGodVisible)
         {

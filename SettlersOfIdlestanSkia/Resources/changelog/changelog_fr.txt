@@ -4,6 +4,7 @@ Le changelog n'est pas activement mis à jour pour le moment.
 ---
 
 v0.21
+• Nouveau jalon d'Ascension Exode Divin : le vertex de prestige Relocalisation est offert à chaque Ascension, et relocaliser une ville ne coûte plus rien
 
 ---
 

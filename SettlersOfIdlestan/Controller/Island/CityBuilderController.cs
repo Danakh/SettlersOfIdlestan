@@ -636,11 +636,22 @@ namespace SettlersOfIdlestan.Controller.Island
                 .ToList();
         }
 
-        public static ResourceSet RelocationCost() => new()
+        /// <summary>
+        /// Coût d'une relocalisation de ville. Gratuit (ResourceSet vide) pour une civilisation
+        /// portant <see cref="ECategory.FREE_RELOCATION"/> — accordé par le jalon d'Ascension Exode
+        /// Divin (AscensionMilestoneId.FreeRelocation).
+        /// </summary>
+        public static ResourceSet RelocationCost(Civilization civ)
         {
-            { Resource.Gold, 100 },
-            { Resource.Food, 100 },
-        };
+            if (civ.ModifierAggregator.HasModifier(ECategory.FREE_RELOCATION))
+                return new ResourceSet();
+
+            return new ResourceSet
+            {
+                { Resource.Gold, 100 },
+                { Resource.Food, 100 },
+            };
+        }
 
         /// <summary>
         /// Moves a city to a new vertex, paying <see cref="RelocationCost"/>. Returns false if the destination
@@ -656,7 +667,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!GetRelocationTargets(city).Any(v => v.Equals(destination)))
                 return false;
 
-            var cost = RelocationCost();
+            var cost = RelocationCost(civ);
             if (!civ.CanPayResourceCost(cost))
                 return false;
 

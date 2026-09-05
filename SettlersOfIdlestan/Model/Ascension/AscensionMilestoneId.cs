@@ -14,5 +14,6 @@ public enum AscensionMilestoneId
 {
     PermanentUniqueBuildings,
     PrestigiousAscension,
-    ResearchProduction
+    ResearchProduction,
+    FreeRelocation
 }

@@ -241,8 +241,14 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         _visibleVertices.Clear();
         foreach (var v in map.Vertices)
         {
+            // Un vertex déjà acheté est toujours visible, même isolé : les vertex offerts sans
+            // contrainte de contiguïté (vertex racial, Relocalisation du jalon Exode Divin — voir
+            // AscensionController.GrantFreePrestigeVertices) n'ont aucun voisin acheté, et la seule
+            // règle de proximité ci-dessous les laissait invisibles alors même que leurs hexs, eux,
+            // apparaissaient.
             if (fullMap
                 || v.Coord.Equals(PrestigeMap.CentralVertex)
+                || state.PurchasedVertices.Contains(v.Coord)
                 || map.GetNeighbors(v.Coord).Any(n =>
                     state.PurchasedVertices.Contains(n.Coord)
                     && SharedHexes(v.Coord, n.Coord).Any(h => _visibleHexes.Contains(h))))

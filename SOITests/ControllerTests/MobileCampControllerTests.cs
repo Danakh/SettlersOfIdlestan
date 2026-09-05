@@ -295,8 +295,8 @@ public class MobileCampControllerTests
         var (cityController, campController) = Controllers(state);
         cityController.OnCityRelocated += (_, e) => campController.DestroyCampsNear(e.Position, e.CivilizationIndex);
         civ.SetStorageCapacityCache(1000, 1000);
-        civ.AddResource(Resource.Gold, CityBuilderController.RelocationCost()[Resource.Gold]);
-        civ.AddResource(Resource.Food, CityBuilderController.RelocationCost()[Resource.Food]);
+        civ.AddResource(Resource.Gold, CityBuilderController.RelocationCost(civ)[Resource.Gold]);
+        civ.AddResource(Resource.Food, CityBuilderController.RelocationCost(civ)[Resource.Food]);
 
         // v2 hosts both camps and stays untouched by the move itself — vMiddle is the relocation
         // target, one edge away from v2, i.e. within MobileCampController.CityProximityDestroyDistance.
