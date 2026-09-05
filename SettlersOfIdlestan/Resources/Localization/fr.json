@@ -1542,7 +1542,7 @@
   "building_ziggurat_name": "Ziggourat",
   "building_ziggurat_desc": "Bâtiment racial des Humains. Double le bonus de vitesse de récolte du Dominion.",
   "building_hearttree_name": "Arbre-Cœur",
-  "building_hearttree_desc": "Bâtiment racial des Elfes.\n► +25% de vitesse de recherche\n► Génère du Bois passivement\n► Relie par la Forêt vos villes toutes deux adjacentes à une case Forêt sur le même plan : le renfort entre elles ignore alors la portée normale, quelle que soit la distance",
+  "building_hearttree_desc": "Bâtiment racial des Elfes.\n► +25% de vitesse de recherche\n► Génère du Bois passivement\n► Relie par la Forêt vos villes toutes deux adjacentes à une case Forêt sur le même plan : le renfort entre elles ignore alors la portée normale et ne nécessite aucune route, quelle que soit la distance",
   "building_runicforge_name": "Forge Runique",
   "building_runicforge_desc": "Bâtiment racial des Nains.\n► +15% de chance de double récolte des Forges\n► +10% de chance d'or des Mines\n► +1 Acier par cycle de Fonderie\n► +10 PV max de l'Aventurier",
   "building_greatburrow_name": "Grand Terrier",

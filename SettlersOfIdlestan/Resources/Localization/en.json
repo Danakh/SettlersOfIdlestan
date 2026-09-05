@@ -1542,7 +1542,7 @@
   "building_ziggurat_name": "Ziggurat",
   "building_ziggurat_desc": "Human racial building. Doubles the Dominion harvest speed bonus.",
   "building_hearttree_name": "Heart Tree",
-  "building_hearttree_desc": "Elven racial building.\n► +25% research speed\n► Passively generates Wood\n► Links your cities through the Forest when both are adjacent to a Forest tile on the same layer: reinforcement between them then ignores the normal range, regardless of distance",
+  "building_hearttree_desc": "Elven racial building.\n► +25% research speed\n► Passively generates Wood\n► Links your cities through the Forest when both are adjacent to a Forest tile on the same layer: reinforcement between them then ignores the normal range and needs no road, regardless of distance",
   "building_runicforge_name": "Runic Forge",
   "building_runicforge_desc": "Dwarven racial building.\n► +15% Forge double-harvest chance\n► +10% Mine gold chance\n► +1 Steel per Smelter cycle\n► +10 Adventurer max HP",
   "building_greatburrow_name": "Great Burrow",

@@ -68,11 +68,11 @@ internal class ReinforcementEngine
 
     /// <summary>
     /// Vrai si l'Arbre-Cœur relie ces deux villes par la Forêt (UNLOCK_FOREST_REINFORCEMENT_LINK) :
-    /// deux villes de la civilisation, sur le même plan, toutes deux adjacentes à une case Forêt, et
-    /// reliées par une route — sans limite de longueur, contrairement à REINFORCEMENT_RANGE. Seule la
-    /// portée est ignorée, pas le réseau routier : deux villes forestières sans route entre elles ne
-    /// sont toujours pas éligibles. Un renfort emprunté sur ce lien est en plus instantané (voir
-    /// ResolveReinforcements) — pas de soldat en transit ni d'animation sur la carte.
+    /// deux villes de la civilisation, sur le même plan, toutes deux adjacentes à une case Forêt.
+    /// La Forêt <b>est</b> le chemin : ni la portée (REINFORCEMENT_RANGE) ni le réseau routier
+    /// n'entrent en compte, deux villes forestières sans aucune route entre elles sont éligibles.
+    /// Un renfort emprunté sur ce lien est en plus instantané (voir ResolveReinforcements) — pas de
+    /// soldat en transit ni d'animation sur la carte.
     /// </summary>
     internal bool HasUnlimitedRangeReinforcementLink(Civilization civ, IMilitaryVertex source, IMilitaryVertex target)
     {
@@ -82,12 +82,8 @@ internal class ReinforcementEngine
 
         var map = _state?.GetMapForZ(source.Position.Z);
         if (map == null) return false;
-        if (!map.VertexHasTerrainType(source.Position, TerrainType.Forest) ||
-            !map.VertexHasTerrainType(target.Position, TerrainType.Forest))
-            return false;
-
-        var adj = GetAdjacency(civ, source.Position.Z);
-        return RoadPathfinder.HasPathInGraph(adj, source.Position, target.Position);
+        return map.VertexHasTerrainType(source.Position, TerrainType.Forest)
+            && map.VertexHasTerrainType(target.Position, TerrainType.Forest);
     }
 
     /// <summary>
@@ -146,15 +142,11 @@ internal class ReinforcementEngine
 
                 if (!vertexByPos.TryGetValue(sourceVertex.FlowTarget, out var targetVertex) || targetVertex == sourceVertex) continue;
 
-                var adj = GetAdjacency(civ, sourceVertex.Position.Z);
-
                 // Lien forestier de l'Arbre-Cœur : renfort magique instantané, sans soldat en transit
-                // ni animation sur la carte — seule la connectivité routière compte, pas la portée.
+                // ni animation sur la carte — ni portée ni route requises, la Forêt est le chemin.
                 bool forestLinked = HasUnlimitedRangeReinforcementLink(civ, sourceVertex, targetVertex);
                 if (forestLinked)
                 {
-                    if (!RoadPathfinder.HasPathInGraph(adj, sourceVertex.Position, targetVertex.Position)) continue;
-
                     int effectiveForestTarget = targetVertex.Soldiers + targetVertex.IncomingSoldiers.Count;
                     if (effectiveForestTarget >= _productionEngine!.GetMaximumSoldierCapacity(targetVertex)) continue;
 
@@ -164,6 +156,7 @@ internal class ReinforcementEngine
                     continue;
                 }
 
+                var adj = GetAdjacency(civ, sourceVertex.Position.Z);
                 var roadPath = RoadPathfinder.FindPathInGraph(adj, sourceVertex.Position, targetVertex.Position, range);
                 if (roadPath == null) continue;
 
@@ -307,10 +300,11 @@ internal class ReinforcementEngine
         if (tCap == 0 || effectiveFriendly * 2 > tCap) return false;
         if (friendly.Soldiers + 2 >= source.Soldiers) return false;
 
-        if (friendly.Position.EdgeDistanceTo(source.Position) <= range)
-            return reachable.Contains(friendly.Position);
+        if (friendly.Position.EdgeDistanceTo(source.Position) <= range && reachable.Contains(friendly.Position))
+            return true;
 
-        // Hors de portée normale : encore éligible si l'Arbre-Cœur relie ces deux villes par la Forêt.
+        // Hors de portée normale, ou sans route jusqu'ici : encore éligible si l'Arbre-Cœur relie
+        // ces deux villes par la Forêt.
         return HasUnlimitedRangeReinforcementLink(civ, source, friendly);
     }
 

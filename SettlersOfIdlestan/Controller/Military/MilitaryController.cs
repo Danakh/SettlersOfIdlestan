@@ -318,7 +318,7 @@ public class MilitaryController
     public int ReinforcementRange(Civilization civ)
         => _reinforcementEngine.ReinforcementRange(civ);
 
-    /// <summary>Vrai si l'Arbre-Cœur relie ces deux villes par la Forêt, ignorant la portée normale de renfort — voir ReinforcementEngine.HasUnlimitedRangeReinforcementLink.</summary>
+    /// <summary>Vrai si l'Arbre-Cœur relie ces deux villes par la Forêt, ignorant la portée normale de renfort et le réseau routier — voir ReinforcementEngine.HasUnlimitedRangeReinforcementLink.</summary>
     public bool HasUnlimitedRangeReinforcementLink(Civilization civ, IMilitaryVertex source, IMilitaryVertex target)
         => _reinforcementEngine.HasUnlimitedRangeReinforcementLink(civ, source, target);
 

@@ -11,8 +11,8 @@ namespace SOITests.MilitaryTests;
 
 /// <summary>
 /// Arbre-Cœur : relie par la Forêt deux villes du joueur toutes deux adjacentes à une case Forêt et
-/// sur le même plan, ignorant la portée normale de renfort (REINFORCEMENT_RANGE) tant qu'une route
-/// les relie (voir ReinforcementEngine.HasUnlimitedRangeReinforcementLink).
+/// sur le même plan, ignorant la portée normale de renfort (REINFORCEMENT_RANGE) et le réseau
+/// routier — la Forêt est le chemin (voir ReinforcementEngine.HasUnlimitedRangeReinforcementLink).
 ///
 /// Géométrie (civ 0) — chaîne de 7 vertex, 6 segments de route (> REINFORCEMENT_RANGE par défaut = 5) :
 ///   Source — Vertex(0,0 / 0,1 / 1,0), hex (0,0) = Forêt
@@ -138,15 +138,16 @@ public class HeartTreeForestReinforcementTests
     }
 
     [Fact]
-    public void Reinforcement_StillBlocked_WithHeartTree_WhenNoRoadConnectsForestCities()
+    public void Reinforcement_Allowed_WithHeartTree_WhenNoRoadConnectsForestCities()
     {
-        // Le lien forestier ignore la portée, pas le réseau routier : sans route, toujours bloqué.
+        // Le lien forestier ne passe pas par les routes : sans aucune route entre les deux villes,
+        // le renfort part quand même, et instantanément.
         var (clock, _, source, target) = Setup(withHeartTree: true, sourceForest: true, targetForest: true, withRoad: false);
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
 
-        Assert.Equal(5, source.Soldiers);
-        Assert.Equal(0, target.Soldiers);
+        Assert.Equal(4, source.Soldiers);
+        Assert.Equal(1, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
     }
 }
