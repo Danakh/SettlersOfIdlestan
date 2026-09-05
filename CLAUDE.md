@@ -26,13 +26,17 @@ dotnet test SOITests --filter "FullyQualifiedName~HarvestControllerTests"
 | Project | Role |
 |---|---|
 | `SettlersOfIdlestan` | Core model + controller library — no UI |
-| `SettlersOfIdlestanSkia` | Hex map rendering (SkiaSharp) + game loop |
-| `SettlersOfIdlestanUI` | Avalonia overlay — controls, view models, `GameRuntimeHost` |
+| `SettlersOfIdlestanSkia` | Hex map rendering (SkiaSharp) + per-frame work (`Screens/GameScreen.cs`) |
+| `SettlersOfIdlestanUI` | Avalonia overlay — controls, view models, `GameRuntimeHost`, frame loop (`Controls/GameRuntimeControl.cs`) |
 | `SettlersOfIdlestanAvalonia.Desktop` | Desktop head (Windows/Linux/macOS, Steam) |
 | `SettlersOfIdlestanAvalonia.Browser` | WebAssembly head |
 | `SettlersOfIdlestanAvalonia.iOS` | iOS head |
 | `SOITests` | xUnit tests — model and controllers |
 | `SOIUITests` | xUnit v3 + Avalonia.Headless — overlay tests |
+| `SOIBench` | Outils de mesure de perf (tick, allocations, rendu, saut de temps) — **voir `SOIBench/CLAUDE.md`** |
+| `SOIStrategyTester` | Autoplay headless, équilibrage et manches scriptées — **voir `SOIStrategyTester/CLAUDE.md`** |
+| `SOICapsuleGenerator` | Génération des visuels de capsule Steam |
+| `SOITrailerGenerator` | Génération de la bande-annonce — hors solution (`.slnx`), à builder à part |
 
 **UI split.** The hex map is still drawn in SkiaSharp inside an Avalonia control; everything
 laid over it (top bar, panels, popups, title screen) is made of real Avalonia controls. Click
@@ -109,7 +113,8 @@ new(TechnologyId.MyTechnology,
     }),
 ```
 
-**Modifier categories:** `HARVEST_SPEED`, `RESEARCH_PRODUCTION_SPEED` (point generation), `RESEARCH_INVESTMENT_SPEED` (consumption into active research), `BUILDING_MAX_LEVEL` (SubCategory = BuildingType name), `BUILDING_PRODUCTION`, `STORAGE_CAPACITY_BASIC/ADVANCED`, `TRADE_GOLD_PACKAGES`, `FORGE_DOUBLE_PROD_BONUS`, `MINE_GOLD_CHANCE_PERCENT`, `STARTING_CITY_BUILDING` / `NEW_CITY_BUILDING` (SubCategory = BuildingType), `CITY_DEFENSE`, `RESEARCH_COST_REDUCTION`, `UNLOCK_RESEARCH` (SubCategory = TechnologyId name).  
+**Modifier categories:** liste complète et à jour dans `Model/GameplayModifier/Modifier.cs` — chaque valeur de `ECategory` y porte son commentaire XML (sens, base, usage de `SubCategory`). **Toujours lire cette source plutôt que de recopier une liste ici** : l'énumération compte plus de 130 valeurs, tout extrait figé se périme.  
+Les plus courantes : `HARVEST_SPEED`, `RESEARCH_PRODUCTION_SPEED` (génération de points), `RESEARCH_INVESTMENT_SPEED` (consommation dans la recherche active), `BUILDING_MAX_LEVEL` (SubCategory = nom de BuildingType), `BUILDING_PRODUCTION`, `STORAGE_CAPACITY_BASIC/ADVANCED`, `TRADE_GOLD_PACKAGES`, `FORGE_DOUBLE_HARVEST_BONUS`, `MINE_GOLD_CHANCE_PERCENT`, `STARTING_CITY_BUILDING` / `NEW_CITY_BUILDING` (SubCategory = BuildingType), `CITY_DEFENSE`, `RESEARCH_COST_REDUCTION`, `UNLOCK_RESEARCH` (SubCategory = nom de TechnologyId).  
 **Modifier types:** `ADDITIVE`, `MULTIPLICATIVE`, `REPLACER`.
 
 ### 3. Localization — `fr.json` + `en.json`
