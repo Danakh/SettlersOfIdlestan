@@ -309,6 +309,9 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[]
             {
                 new(ECategory.GUILD_AUTOMATION_SPEED_PER_CITY, EType.ADDITIVE, 0.1),
+                // Les avant-postes fondent des villes, qui accélèrent à leur tour toutes les guildes :
+                // un taux par ville bien plus faible que celui des bâtiments (2% contre 10%).
+                new(ECategory.GUILD_AUTOMATION_OUTPOST_SPEED_PER_CITY, EType.ADDITIVE, 0.02),
             },
             tier: 6, line: 5),
 

@@ -982,7 +982,7 @@
   "tech_advanced_trading_posts_name": "Advanced Trading Posts",
   "tech_advanced_trading_posts_desc": "Unlocks selling Ore, Glass and Steel at the market, at 1/5 of their purchase price",
   "tech_advanced_guilds_name": "Advanced Guilds",
-  "tech_advanced_guilds_desc": "Increases the automatic building construction speed of guilds by 10% per city in the empire",
+  "tech_advanced_guilds_desc": "Increases the automatic building construction speed of guilds by 10% per city in the empire, and the Builders' Guild outpost speed by 2% per city",
   "tech_grand_temple_construction_name": "Grand Temple",
   "tech_grand_temple_construction_desc": "Unlocks the Grand Temple, a unique building that automates Temple construction and adds a 0.5% prestige bonus per Temple built in the civilization",
   "tech_automation_preset_name": "Automation Presets",

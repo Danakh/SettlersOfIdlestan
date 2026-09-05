@@ -982,7 +982,7 @@
   "tech_advanced_trading_posts_name": "Comptoirs Avancés",
   "tech_advanced_trading_posts_desc": "Débloque la vente de Minerai, de Verre et d'Acier au marché, au prix de 1/5 de leur coût d'achat",
   "tech_advanced_guilds_name": "Guildes Avancées",
-  "tech_advanced_guilds_desc": "Augmente la vitesse de construction automatique des bâtiments par les guildes de 10% par ville de l'empire",
+  "tech_advanced_guilds_desc": "Augmente la vitesse de construction automatique des bâtiments par les guildes de 10% par ville de l'empire, et celle des avant-postes de la Guilde des bâtisseurs de 2% par ville",
   "tech_grand_temple_construction_name": "Grand Temple",
   "tech_grand_temple_construction_desc": "Débloque la construction du Grand Temple, un bâtiment unique qui automatise la construction des Temples et ajoute 0,5% de bonus de prestige par Temple construit dans la civilisation",
   "tech_automation_preset_name": "Préréglages d'automatisation",

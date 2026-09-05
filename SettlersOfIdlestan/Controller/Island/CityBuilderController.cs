@@ -147,8 +147,16 @@ namespace SettlersOfIdlestan.Controller.Island
                 return;
             }
 
+            // Accélération par ville, comme les routes (RoadController.PerformBuildersGuildConstruction)
+            // et les bâtiments (BuildingController.TickGuildAutomation), mais sur sa propre catégorie :
+            // le taux par ville est bien plus faible ici (voir GUILD_AUTOMATION_OUTPOST_SPEED_PER_CITY).
+            double outpostSpeedBonus = civ.ModifierAggregator.ApplyModifiers(ECategory.GUILD_AUTOMATION_OUTPOST_SPEED_PER_CITY, "", 0.0) * civ.Cities.Count;
+            long effectiveCooldown = outpostSpeedBonus > 0
+                ? Math.Max(1L, (long)(AutoOutpostBuildCooldownTicks / (1.0 + outpostSpeedBonus)))
+                : AutoOutpostBuildCooldownTicks;
+
             long lastTick = guild.LastOutpostBuildTick;
-            long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, AutoOutpostBuildCooldownTicks);
+            long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, effectiveCooldown);
             guild.LastOutpostBuildTick = lastTick;
             if (cycles <= 0) return;
 
