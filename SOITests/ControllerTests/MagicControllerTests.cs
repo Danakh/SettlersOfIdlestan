@@ -228,7 +228,7 @@ namespace SOITests.ControllerTests
 
             controller.LaunchRitual(RitualId.Growth);
             Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
-            Assert.True(controller.GetActiveRitual(RitualId.Growth)!.IsAutomated);
+            Assert.True(controller.IsRitualAutomated(RitualId.Growth));
 
             Assert.False(controller.CanIncreaseRitualPower(RitualId.Growth));
             Assert.False(controller.IncreaseRitualPower(RitualId.Growth));
@@ -249,7 +249,7 @@ namespace SOITests.ControllerTests
 
             Assert.False(controller.IsDivineRitualsActive);
             Assert.False(controller.SetRitualAutomated(RitualId.Growth, true));
-            Assert.False(controller.GetActiveRitual(RitualId.Growth)!.IsAutomated);
+            Assert.False(controller.IsRitualAutomated(RitualId.Growth));
         }
 
         [Fact]
@@ -268,20 +268,38 @@ namespace SOITests.ControllerTests
 
             var active = controller.GetActiveRitual(RitualId.Growth);
             Assert.NotNull(active);
-            Assert.True(active!.IsAutomated);
+            Assert.True(controller.IsRitualAutomated(RitualId.Growth));
             Assert.Equal(40, civ.GetResourceQuantity(Resource.Crystal)); // coût de lancement payé (10)
         }
 
         [Fact]
-        public void SetRitualAutomated_FailsToLaunchWithoutCrystals()
+        public void SetRitualAutomated_StaysArmedWhenLaunchFailsForLackOfCrystals()
         {
+            // Sans cristaux, cocher "auto" ne peut pas lancer le rituel — mais l'automatisation doit
+            // rester armée : c'est elle qui le lancera quand les cristaux reviendront.
             var (state, _, controller) = CreateSetup(CreateDivineRitualsGodState());
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             AddMageTower(state);
 
-            Assert.False(controller.SetRitualAutomated(RitualId.Growth, true));
+            Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
+            Assert.True(controller.IsRitualAutomated(RitualId.Growth));
             Assert.Null(controller.GetActiveRitual(RitualId.Growth));
+        }
+
+        [Fact]
+        public void StopRitual_DisarmsAutomation()
+        {
+            // Arrêter le rituel à la main désarme l'automatisation, sinon elle le relancerait aussitôt.
+            var (state, _, controller) = CreateSetup(CreateDivineRitualsGodState());
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state);
+            civ.AddResource(Resource.Crystal, 50);
+
+            Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
+            Assert.True(controller.StopRitual(RitualId.Growth));
+            Assert.False(controller.IsRitualAutomated(RitualId.Growth));
         }
 
         [Fact]
@@ -403,6 +421,45 @@ namespace SOITests.ControllerTests
                 chunkTicks: MagicController.RitualAutomationIntervalTicks);
 
             Assert.True(controller.GetActiveRitual(RitualId.Growth)!.Power > 1);
+        }
+
+        [Fact]
+        public void ProcessRitualPowerAutomation_LaunchesArmedRitualOnceCrystalsAllowIt()
+        {
+            // Automatisation armée sur un rituel jamais lancé, sans un seul cristal en réserve : dès que
+            // la production a payé le lancement, l'automatisation doit le lancer d'elle-même.
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.PlayerCivilization;
+            civ.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
+            civ.Cities[0].AddBuilding(new AlchimistHut { Level = 1 });
+            state.AddFeature(new FairyCircle(new HexCoord(0, 0, IslandMap.SurfaceLayer)) { Found = true });
+            UnlockMagic(civ, RitualId.Growth);
+            GrantCrystalStorage(civ, 100000);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.HARVEST_SPEED, BuildingTypeNames.Of(BuildingType.AlchimistHut), EType.MULTIPLICATIVE, 99.0),
+                new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 9), // budget = 10
+            }));
+
+            var clock = new GameClock();
+            clock.Start();
+            var harvestController = new HarvestController(state, clock);
+            var controller = new MagicController();
+            controller.Initialize(state, clock, new GamePRNG(42),
+                new CityBuilderController(state), new BuildingController(state), harvestController: harvestController,
+                godState: CreateDivineRitualsGodState());
+
+            clock.SimulateAdvance(1, chunkTicks: 1); // amorce le suivi (coldStartOnZero)
+
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
+            Assert.Null(controller.GetActiveRitual(RitualId.Growth));
+
+            clock.SimulateAdvance(MagicController.RitualAutomationIntervalTicks * 30,
+                chunkTicks: MagicController.RitualAutomationIntervalTicks);
+
+            Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
+            Assert.True(controller.IsRitualAutomated(RitualId.Growth));
         }
 
         // ── Entretien & effondrement ─────────────────────────────────────────

@@ -14,8 +14,11 @@ public class ActiveRitual
     public long LastUpkeepTick { get; set; }
 
     /// <summary>
-    /// Vrai si la puissance de ce rituel est ajustée automatiquement (voir
-    /// <c>MagicController.ProcessRitualPowerAutomation</c>) plutôt que par les boutons -/+.
+    /// [Legacy v0.21] Ancien emplacement du drapeau d'automatisation, remplacé par
+    /// <see cref="MagicState.AutomatedRituals"/> : l'automatisation doit survivre à l'arrêt du rituel
+    /// (plus de cristaux), donc elle ne peut pas être portée par le rituel actif. Lue une seule fois au
+    /// chargement d'une sauvegarde antérieure (<c>MagicController.MigrateLegacyAutomationFlags</c>),
+    /// jamais écrite ailleurs.
     /// </summary>
     public bool IsAutomated { get; set; }
 
@@ -37,6 +40,15 @@ public class ActiveRitual
 public class MagicState
 {
     public List<ActiveRitual> ActiveRituals { get; set; } = new();
+
+    /// <summary>
+    /// Rituels dont la puissance est ajustée automatiquement (case à cocher "auto", pouvoir divin
+    /// Rituels Divins — voir <c>MagicController.SetRitualAutomated</c> et
+    /// <c>MagicController.ProcessRitualPowerAutomation</c>). Indépendant de
+    /// <see cref="ActiveRituals"/> à dessein : un rituel automatisé qui s'arrête faute de cristaux
+    /// reste armé et sera relancé dès que le gain net de cristaux le permettra.
+    /// </summary>
+    public List<RitualId> AutomatedRituals { get; set; } = new();
 
     /// <summary>
     /// Crans d'épuisement accumulés par sort : chaque lancement réussi en ajoute un, le cooldown de

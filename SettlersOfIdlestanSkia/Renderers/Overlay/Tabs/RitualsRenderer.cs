@@ -146,7 +146,7 @@ public sealed class RitualsRenderer : IDisposable
                 IsButtonEnabled: isActive || magic.CanLaunchRitual(def.Id),
                 Power: active?.Power ?? 0,
                 CanIncreasePower: isActive && magic.CanIncreaseRitualPower(def.Id),
-                IsAutomated: active?.IsAutomated ?? false,
+                IsAutomated: magic.IsRitualAutomated(def.Id),
                 CanAutomate: magic.IsDivineRitualsActive,
                 AutoLabel: _localization.Get("ritual_auto_label"),
                 AutoTooltip: _localization.Get("ritual_auto_tooltip")));

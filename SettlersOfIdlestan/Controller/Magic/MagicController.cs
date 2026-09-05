@@ -87,6 +87,8 @@ namespace SettlersOfIdlestan.Controller.Magic
             _lastTempleDamageTick = clock?.CurrentTick ?? 0;
             _lastRitualAutomationTick = clock?.CurrentTick ?? 0;
 
+            MigrateLegacyAutomationFlags();
+
             if (_state != null && _state.Civilizations.Count > 0)
             {
                 _provider = new MagicModifierProvider(_state.Magic);
@@ -183,7 +185,7 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// occupée par l'automatisation.
         /// </summary>
         public int UsedPowerByNonAutomatedRituals
-            => _state?.Magic.ActiveRituals.Where(r => !r.IsAutomated).Sum(r => r.Power) ?? 0;
+            => _state?.Magic.ActiveRituals.Where(r => !IsRitualAutomated(r.Id)).Sum(r => r.Power) ?? 0;
 
         /// <summary>Clé de source pour l'entretien en cristaux des rituels actifs.</summary>
         public const string RitualUpkeepSourceKey = "tooltip_source_ritual_upkeep";
@@ -290,11 +292,14 @@ namespace SettlersOfIdlestan.Controller.Magic
             return true;
         }
 
+        /// <summary>Arrête un rituel à la demande du joueur : désarme aussi son automatisation, sans quoi
+        /// <see cref="ProcessRitualPowerAutomation"/> le relancerait aussitôt.</summary>
         public bool StopRitual(RitualId id)
         {
             var active = GetActiveRitual(id);
             if (active == null) return false;
             _state!.Magic.ActiveRituals.Remove(active);
+            _state.Magic.AutomatedRituals.Remove(id);
             NotifyRitualsChanged();
             return true;
         }
@@ -316,7 +321,7 @@ namespace SettlersOfIdlestan.Controller.Magic
         {
             var civ = GetPlayerCiv();
             var active = GetActiveRitual(id);
-            if (civ == null || active == null || active.IsAutomated) return false;
+            if (civ == null || active == null || IsRitualAutomated(id)) return false;
             if (UsedPowerByNonAutomatedRituals + 1 > TotalPowerBudget) return false;
             return civ.GetResourceQuantity(Resource.Crystal) >= GetPowerIncreaseCost(id);
         }
@@ -337,7 +342,7 @@ namespace SettlersOfIdlestan.Controller.Magic
         public bool DecreaseRitualPower(RitualId id)
         {
             var active = GetActiveRitual(id);
-            if (active == null || active.IsAutomated) return false;
+            if (active == null || IsRitualAutomated(id)) return false;
             if (active.Power <= 1) return StopRitual(id);
             active.Power--;
             NotifyRitualsChanged();
@@ -350,28 +355,55 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// </summary>
         public bool IsDivineRitualsActive => _godState?.AscensionState.IsDivineRitualsActive == true;
 
+        /// <summary>Vrai si l'automatisation est armée sur ce rituel, qu'il soit actuellement actif ou non.</summary>
+        public bool IsRitualAutomated(RitualId id) => _state?.Magic.AutomatedRituals.Contains(id) == true;
+
         /// <summary>
-        /// Active ou désactive l'ajustement automatique de puissance d'un rituel (case à cocher "auto"
+        /// Arme ou désarme l'ajustement automatique de puissance d'un rituel (case à cocher "auto"
         /// sous les boutons -/+, voir <see cref="ProcessRitualPowerAutomation"/>) — débloquée par le
         /// pouvoir divin Rituels Divins (<see cref="IsDivineRitualsActive"/>), visible dès lors même sur
-        /// un rituel pas encore lancé : l'activer le lance alors au passage, aux mêmes conditions que
-        /// <see cref="LaunchRitual"/> (cristaux, budget, nombre de rituels actifs simultanés).
+        /// un rituel pas encore lancé : l'activer le lance au passage si les conditions de
+        /// <see cref="LaunchRitual"/> sont réunies (cristaux, budget, nombre de rituels simultanés).
+        /// Si elles ne le sont pas, l'automatisation reste armée malgré tout et le rituel sera lancé par
+        /// <see cref="ProcessRitualPowerAutomation"/> dès que les cristaux le permettront : décocher la
+        /// case parce que le lancement a échoué serait le contraire de ce qu'on attend d'une automatisation.
         /// </summary>
         public bool SetRitualAutomated(RitualId id, bool automated)
         {
-            if (!IsDivineRitualsActive) return false;
+            if (!IsDivineRitualsActive || _state == null) return false;
+            if (automated && !IsRitualKnown(id)) return false;
 
-            var active = GetActiveRitual(id);
-            if (active == null)
+            bool changed;
+            if (automated)
             {
-                if (!automated || !LaunchRitual(id)) return false;
-                active = GetActiveRitual(id)!;
+                changed = !_state.Magic.AutomatedRituals.Contains(id);
+                if (changed) _state.Magic.AutomatedRituals.Add(id);
+                if (GetActiveRitual(id) == null && CanLaunchRitual(id)) changed |= LaunchRitual(id);
+            }
+            else
+            {
+                changed = _state.Magic.AutomatedRituals.Remove(id);
             }
 
-            if (active.IsAutomated == automated) return true;
-            active.IsAutomated = automated;
-            NotifyRitualsChanged();
+            if (changed) NotifyRitualsChanged();
             return true;
+        }
+
+        /// <summary>
+        /// [Legacy v0.21] Reprend le drapeau <see cref="ActiveRitual.IsAutomated"/> des sauvegardes
+        /// antérieures dans <see cref="MagicState.AutomatedRituals"/>, qui le remplace. Appelée à chaque
+        /// <see cref="Initialize"/> : sans état hérité, elle ne fait rien.
+        /// </summary>
+        private void MigrateLegacyAutomationFlags()
+        {
+            if (_state == null) return;
+            foreach (var active in _state.Magic.ActiveRituals)
+            {
+                if (!active.IsAutomated) continue;
+                active.IsAutomated = false;
+                if (!_state.Magic.AutomatedRituals.Contains(active.Id))
+                    _state.Magic.AutomatedRituals.Add(active.Id);
+            }
         }
 
         /// <summary>
@@ -388,7 +420,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             while (UsedPower > TotalPowerBudget)
             {
                 var automated = _state.Magic.ActiveRituals
-                    .Where(r => r.IsAutomated)
+                    .Where(r => IsRitualAutomated(r.Id))
                     .OrderByDescending(r => r.Power)
                     .FirstOrDefault();
                 if (automated == null) break;
@@ -781,7 +813,9 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// négatif, réduit d'1 point le rituel automatisé le plus puissant (l'arrêtant s'il n'a plus que
         /// la puissance 1) ; sinon augmente d'1 point le rituel automatisé le moins puissant, mais
         /// seulement si la puissance totale reste dans le budget ET si le supplément d'entretien qui en
-        /// résulte laisse le gain net strictement positif. Au plus un ajustement par seconde : on laisse
+        /// résulte laisse le gain net strictement positif. Un rituel armé mais pas encore lancé compte
+        /// comme une puissance 0 : il est donc servi en premier, et son lancement obéit aux mêmes règles
+        /// que n'importe quelle montée en puissance. Au plus un ajustement par seconde : on laisse
         /// le tick suivant réévaluer la situation plutôt que de converger d'un coup, comme demandé.
         /// </summary>
         private void ProcessRitualPowerAutomation()
@@ -793,7 +827,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             _lastRitualAutomationTick = lastTick;
             if (cycles <= 0) return;
             if (!IsDivineRitualsActive) return;
-            if (!_state.Magic.ActiveRituals.Any(r => r.IsAutomated)) return;
+            if (_state.Magic.AutomatedRituals.Count == 0) return;
 
             bool changed = false;
             for (long i = 0; i < cycles; i++)
@@ -804,13 +838,19 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         private bool AdjustAutomatedRitualPowerOnce()
         {
-            var automatedRituals = _state!.Magic.ActiveRituals.Where(r => r.IsAutomated).ToList();
-            if (automatedRituals.Count == 0) return false;
+            var automatedIds = _state!.Magic.AutomatedRituals;
+            if (automatedIds.Count == 0) return false;
 
             double net = GetNetCrystalPerSecond();
             if (net < 0)
             {
-                var toReduce = automatedRituals.OrderByDescending(r => r.Power).First();
+                var toReduce = _state.Magic.ActiveRituals
+                    .Where(r => IsRitualAutomated(r.Id))
+                    .OrderByDescending(r => r.Power)
+                    .FirstOrDefault();
+                if (toReduce == null) return false;
+
+                // Le rituel arrêté reste armé : l'automatisation le relancera quand les cristaux reviendront.
                 if (toReduce.Power > 1) toReduce.Power--;
                 else _state.Magic.ActiveRituals.Remove(toReduce);
                 return true;
@@ -821,16 +861,26 @@ namespace SettlersOfIdlestan.Controller.Magic
             var civ = GetPlayerCiv();
             if (civ == null) return false;
 
-            foreach (var active in automatedRituals.OrderBy(r => r.Power))
+            foreach (var id in automatedIds.OrderBy(i => GetActiveRitual(i)?.Power ?? 0).ToList())
             {
-                var def = RitualDefinitions.Get(active.Id);
+                var def = RitualDefinitions.Get(id);
                 if (def == null) continue;
 
-                double upkeepIncreasePerSecond = (GetUpkeepCost(def, active.Power + 1) - GetUpkeepCost(def, active.Power))
+                var active = GetActiveRitual(id);
+                int power = active?.Power ?? 0;
+
+                double upkeepIncreasePerSecond = (GetUpkeepCost(def, power + 1) - GetUpkeepCost(def, power))
                     / (UpkeepIntervalTicks / 100.0);
                 if (net - upkeepIncreasePerSecond <= 0) continue;
 
-                int cost = GetPowerIncreaseCost(active.Id);
+                if (active == null)
+                {
+                    if (!CanLaunchRitual(id)) continue;
+                    LaunchRitual(id);
+                    return true;
+                }
+
+                int cost = GetPowerIncreaseCost(id);
                 if (civ.GetResourceQuantity(Resource.Crystal) < cost) continue;
 
                 civ.RemoveResource(Resource.Crystal, cost);
