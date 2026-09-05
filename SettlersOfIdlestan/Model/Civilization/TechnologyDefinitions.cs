@@ -770,7 +770,7 @@ public static class TechnologyDefinitions
                 new(ECategory.DIVINE_BONES_COST_REDUCTION, EType.ADDITIVE, 0.15),
                 new(ECategory.DIVINE_ESSENCE_KEPT_ON_PRESTIGE, EType.ADDITIVE, 1),
             },
-            tier: 10, line: 4),
+            tier: 10, line: 3),
 
         // Un tier au-dessus de Reliquaire Sacré, dont elle dépend (avec Acier Abyssal) : conserve une
         // seconde essence divine lors du prestige.
@@ -789,7 +789,7 @@ public static class TechnologyDefinitions
             cost: 418750000,
             prerequisites: new[] { TechnologyId.ReliquaireSacre },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_NECROPOLIS, EType.ADDITIVE, 1) },
-            tier: 11, line: 4),
+            tier: 11, line: 3),
 
         // Les routes du Vide déjà bâties ne comptent que pour deux tiers dans le coût exponentiel de
         // la suivante : 1M × 4^n devient 1M × 4^(2n/3) (voir RoadController.GetVoidRouteResearchCost).
@@ -797,9 +797,9 @@ public static class TechnologyDefinitions
         new(TechnologyId.CartographieDuVide,
             "tech_cartographie_du_vide_name", "tech_cartographie_du_vide_desc",
             cost: 418750000,
-            prerequisites: new[] { TechnologyId.ReliquaireSacre },
+            prerequisites: new[] { TechnologyId.VoidCompass },
             modifiers: new Modifier[] { new(ECategory.VOID_ROUTE_COST_REDUCTION, EType.ADDITIVE, 1) },
-            tier: 11, line: 3),
+            tier: 11, line: 4),
 
         // === Branche de la Théocratie (tiers 12-13 depuis la baisse de 2 tiers) ===
         // Recherches du Dominion : cachées tant que le pouvoir divin Foi n'est pas débloqué

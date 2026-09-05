@@ -1100,8 +1100,11 @@ namespace SettlersOfIdlestan.Controller.Island
         /// n étant le nombre de routes du Vide déjà construites par la civilisation et m le
         /// multiplicateur exponentiel (3 par défaut, abaissé jusqu'à 2 par l'Observatoire — voir
         /// <see cref="Observatory.GetVoidRouteCostMultiplierForLevel"/>).
+        /// <paramref name="alreadyBuilt"/> est un <c>double</c> : Cartographie du Vide n'en garde
+        /// que les deux tiers, et cette fraction doit rester à l'exposant sans être arrondie (voir
+        /// <see cref="GetVoidRouteResearchCostFor"/>).
         /// </summary>
-        public static long GetVoidRouteResearchCost(int alreadyBuilt, double multiplier = Observatory.BaseVoidRouteCostMultiplier)
+        public static long GetVoidRouteResearchCost(double alreadyBuilt, double multiplier = Observatory.BaseVoidRouteCostMultiplier)
         {
             if (alreadyBuilt <= 0) return VoidRouteBaseResearchCost;
             double cost = VoidRouteBaseResearchCost * Math.Pow(multiplier, alreadyBuilt);
@@ -1162,13 +1165,14 @@ namespace SettlersOfIdlestan.Controller.Island
         /// par le sort Pont du Vide (<see cref="Road.BuiltBySpell"/>) ne comptent pas dans l'exposant :
         /// le sort ne doit pas renchérir les routes du Vide classiques. Avec Cartographie du Vide
         /// (VOID_ROUTE_COST_REDUCTION), les routes déjà bâties (hors sort) ne comptent que pour deux
-        /// tiers (arrondi en faveur du joueur) dans l'exposant de <see cref="GetVoidRouteResearchCost"/> ;
-        /// l'Observatoire, lui, abaisse le multiplicateur lui-même (voir
-        /// <see cref="GetVoidRouteCostMultiplier"/>).
+        /// tiers dans l'exposant de <see cref="GetVoidRouteResearchCost"/> — fraction laissée telle
+        /// quelle : l'arrondir avant de l'élever en puissance faisait des paliers de trois routes au
+        /// même prix, puis un saut au cube du multiplicateur. L'Observatoire, lui, abaisse le
+        /// multiplicateur lui-même (voir <see cref="GetVoidRouteCostMultiplier"/>).
         /// </summary>
         private long GetVoidRouteResearchCostFor(Civilization civ)
         {
-            int alreadyBuilt = civ.Roads.Count(r => !r.BuiltBySpell && IsEdgeBetweenVoidHexes(r.Position));
+            double alreadyBuilt = civ.Roads.Count(r => !r.BuiltBySpell && IsEdgeBetweenVoidHexes(r.Position));
             if (civ.ModifierAggregator.HasModifier(Modifier.ECategory.VOID_ROUTE_COST_REDUCTION))
                 alreadyBuilt = alreadyBuilt * 2 / 3;
             return GetVoidRouteResearchCost(alreadyBuilt, GetVoidRouteCostMultiplier());
