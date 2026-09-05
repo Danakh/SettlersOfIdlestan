@@ -1031,7 +1031,7 @@
   "tech_necropole_divine_name": "Nécropole Divine",
   "tech_necropole_divine_desc": "Débloque la Nécropole, un monument bâti sur des Os Divins non purifiés.\n► La construction consume les ossements et sacrifie l'essence divine qu'ils recelaient\n► Chaque niveau augmente de 10% les points divins obtenus lors de l'Ascension",
   "tech_liturgie_funeraire_name": "Liturgie Funéraire",
-  "tech_liturgie_funeraire_desc": "Le chant des morts rend les rites de Purification moins onéreux à mesure qu'ils se répètent.\n► Le coût de Purification des Os Divins augmente 20% moins vite avec chaque essence divine déjà collectée\n► La première Purification d'un cycle garde son prix : ce sont les suivantes qui s'allègent",
+  "tech_liturgie_funeraire_desc": "Le chant des morts rend les rites de Purification moins onéreux à mesure qu'ils se répètent.\n► Le coût de Purification des Os Divins augmente 10% moins vite avec chaque essence divine déjà collectée\n► La première Purification d'un cycle garde son prix : ce sont les suivantes qui s'allègent",
   "tech_coeur_de_la_terre_name": "Cœur de la Terre",
   "tech_coeur_de_la_terre_desc": "Vos mineurs entendent battre le cœur du monde : +50% de vitesse de récolte des Mines.",
   "tech_creuset_du_dominion_name": "Creuset du Dominion",
