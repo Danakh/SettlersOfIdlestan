@@ -163,6 +163,10 @@ public sealed class AscensionRenderer : IDisposable
     /// DrawMilestonesTab).</summary>
     private enum InnerTab { Races, Powers, PermanentBuilding, Milestones }
     private InnerTab _activeInnerTab = InnerTab.Powers;
+    /// <summary>Temps total de la frame courante (GameRenderContext.TotalTime), capté par
+    /// RenderAscensionPage — sert à la pulsation de l'onglet Bâtiment permanent (voir
+    /// DrawInnerTabButton), les méthodes de dessin ne recevant pas le contexte.</summary>
+    private float _totalTime;
     private SKRect _tabRacesRect             = SKRect.Empty;
     private SKRect _tabPowersRect            = SKRect.Empty;
     private SKRect _tabPermanentBuildingRect = SKRect.Empty;
@@ -212,6 +216,9 @@ public sealed class AscensionRenderer : IDisposable
     private readonly SKPaint _metPrereqPaint    = new() { Color = new SKColor(90, 200, 110), IsAntialias = true };
     private readonly SKPaint _confirmPaint      = new() { Color = new SKColor(140, 40, 40), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _confirmHoverPaint = new() { Color = new SKColor(180, 50, 50), Style = SKPaintStyle.Fill, IsAntialias = true };
+    // Onglet interne qui réclame l'attention (voir DrawInnerTabButton) : même orange que la
+    // pulsation des onglets du haut (voir TabButton dans TabBarView), alpha modulé à chaque image.
+    private readonly SKPaint _tabGlowPaint      = new() { Color = new SKColor(160, 100, 10), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _scrollTrackPaint  = new() { Color = new SKColor(50, 50, 65, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _scrollThumbPaint  = new() { Color = new SKColor(130, 130, 165, 210), Style = SKPaintStyle.Fill, IsAntialias = true };
 
@@ -307,6 +314,7 @@ public sealed class AscensionRenderer : IDisposable
         if (_disposed) return;
         if (context.GameState is not MainGameState mgs) return;
 
+        _totalTime = context.TotalTime;
         _powerHexes.Clear();
         _branchEnds.Clear();
         _permanentBuildingRects.Clear();
@@ -424,7 +432,7 @@ public sealed class AscensionRenderer : IDisposable
         // DrawRacesTab), lui, reste disponible même sans jamais rien à y choisir : il sert aussi de
         // simple consultation des races une fois l'Ascension refermée.
         float tabY = ascendSectionY + AscendButtonHeight + 16f;
-        DrawInnerTabBar(canvas, x, tabY, contentWidth);
+        DrawInnerTabBar(canvas, x, tabY, contentWidth, ascension);
         float mapTop = tabY + InnerTabHeight + Padding;
 
         if (_activeInnerTab == InnerTab.Races)
@@ -666,7 +674,7 @@ public sealed class AscensionRenderer : IDisposable
         _pendingRaceCardRects.Add((race.Id, rect, clickable));
     }
 
-    private void DrawInnerTabBar(SKCanvas canvas, float x, float y, float contentWidth)
+    private void DrawInnerTabBar(SKCanvas canvas, float x, float y, float contentWidth, AscensionController ascension)
     {
         float centerX = x + contentWidth / 2f;
         float gap = 8f;
@@ -681,12 +689,28 @@ public sealed class AscensionRenderer : IDisposable
         DrawInnerTabButton(canvas, _tabRacesRect, "ascension_tab_races", _activeInnerTab == InnerTab.Races);
         DrawInnerTabButton(canvas, _tabPowersRect, "ascension_tab_powers", _activeInnerTab == InnerTab.Powers);
         DrawInnerTabButton(canvas, _tabMilestonesRect, "ascension_tab_milestones", _activeInnerTab == InnerTab.Milestones);
-        DrawInnerTabButton(canvas, _tabPermanentBuildingRect, "ascension_tab_permanent_building", _activeInnerTab == InnerTab.PermanentBuilding);
+        // Emplacement de bâtiment unique permanent encore libre : l'onglet pulse tant que le joueur
+        // n'a pas fait son choix — le même signal que l'onglet Ascension du haut (voir
+        // TabBarRenderer.HasFreePermanentUniqueBuildingSlots), qui l'a amené jusqu'ici.
+        bool buildingGlowing = ascension.PermanentUniqueBuildings.Count < ascension.PermanentUniqueBuildingSlots;
+        DrawInnerTabButton(canvas, _tabPermanentBuildingRect, "ascension_tab_permanent_building", _activeInnerTab == InnerTab.PermanentBuilding, buildingGlowing);
     }
 
-    private void DrawInnerTabButton(SKCanvas canvas, SKRect rect, string labelKey, bool active)
+    private void DrawInnerTabButton(SKCanvas canvas, SKRect rect, string labelKey, bool active, bool glowing = false)
     {
-        canvas.DrawRoundRect(rect, 5, 5, active ? _cardActivePaint : _cardPaint);
+        if (!active && glowing)
+        {
+            // Sinusoïde d'une seconde, comme la pulsation des onglets du haut (voir TabButton) :
+            // l'alpha du fond orange oscille entre 128 et 255 plutôt que l'opacité du bouton, le
+            // dessin Skia n'ayant pas de couche d'opacité à animer.
+            float t = (float)((Math.Sin(_totalTime * Math.PI * 2.0) + 1.0) / 2.0);
+            _tabGlowPaint.Color = _tabGlowPaint.Color.WithAlpha((byte)(128 + 127 * t));
+            canvas.DrawRoundRect(rect, 5, 5, _tabGlowPaint);
+        }
+        else
+        {
+            canvas.DrawRoundRect(rect, 5, 5, active ? _cardActivePaint : _cardPaint);
+        }
         canvas.DrawRoundRect(rect, 5, 5, active ? _cardActiveBorder : _cardBorderPaint);
         SkiaTextUtils.DrawText(canvas, _localization.Get(labelKey), rect.MidX, rect.MidY + 4f, SKTextAlign.Center, _buttonFont, _buttonTextPaint);
     }
@@ -1400,6 +1424,7 @@ public sealed class AscensionRenderer : IDisposable
         _disabledPaint.Dispose();
         _confirmPaint.Dispose();
         _confirmHoverPaint.Dispose();
+        _tabGlowPaint.Dispose();
         _scrollTrackPaint.Dispose();
         _scrollThumbPaint.Dispose();
         _buttonBorderPaint.Dispose();

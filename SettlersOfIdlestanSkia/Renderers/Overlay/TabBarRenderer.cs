@@ -53,6 +53,7 @@ public sealed class TabBarRenderer : IDisposable
     private bool _researchGlowing;
     private bool _lastResearchIdleWithPoints;
     private bool _underworldGlowing;
+    private bool _ascensionGlowing;
 
     /// True when the tab bar has at least two tabs and is being drawn.
     public bool IsVisible { get; private set; }
@@ -92,6 +93,7 @@ public sealed class TabBarRenderer : IDisposable
         _hasAutomationTab = !ascensionPending && HasAnyAutomation();
         _hasRitualsTab    = !ascensionPending && IsMagicUnlocked();
         _hasAscensionTab  = HasGodPoints(context);
+        _ascensionGlowing = _hasAscensionTab && HasFreePermanentUniqueBuildingSlots();
         _hasUnderworldTab = !ascensionPending && IsLayerAccessible(LayerState.UnderworldZ);
         _underworldGlowing = _hasUnderworldTab && !(_gameControllerService.CurrentWorldState?.HasVisitedUnderworld ?? true);
         _hasAbyssTab      = !ascensionPending && IsLayerAccessible(LayerState.AbyssZ);
@@ -219,7 +221,8 @@ public sealed class TabBarRenderer : IDisposable
             bool glowing = (_prestigeGlowing  && tabId == TabPrestige)
                         || (_researchGlowing  && tabId == TabResearch)
                         || (_hasNewEvent      && tabId == TabEvents)
-                        || (_underworldGlowing && tabId == TabUnderworld);
+                        || (_underworldGlowing && tabId == TabUnderworld)
+                        || (_ascensionGlowing && tabId == TabAscension);
 
             tabs.Add(new TabSnapshot(tabId, GetTabLabel(tabId), tabId == _activeTab, glowing));
         }
@@ -246,6 +249,22 @@ public sealed class TabBarRenderer : IDisposable
         // DivineBonesController) : l'onglet apparaît dès qu'on en détient une, ou dès la première
         // Ascension (points divins gagnés), même si l'essence courante est retombée à zéro depuis.
         return mgs.GodState.DivineEssence > 0 || mgs.GodState.TotalGodPointsEarned > 0;
+    }
+
+    /// <summary>
+    /// Emplacements de bâtiment unique permanent encore libres (voir
+    /// AscensionController.PermanentUniqueBuildingSlots) : contrairement au prestige et à la
+    /// recherche, aucune latche « jusqu'à consultation » ici — le choix est gratuit et l'onglet
+    /// pulse tant que le joueur laisse un emplacement inutilisé, ce qui ne coûte rien à corriger.
+    /// </summary>
+    private bool HasFreePermanentUniqueBuildingSlots()
+    {
+        try
+        {
+            var ascension = _gameControllerService.MainGameController.AscensionController;
+            return ascension.PermanentUniqueBuildings.Count < ascension.PermanentUniqueBuildingSlots;
+        }
+        catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(HasFreePermanentUniqueBuildingSlots), ex); return false; }
     }
 
     /// <summary>
