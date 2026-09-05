@@ -111,17 +111,23 @@ public class DivineBones : Monument
     /// </summary>
     public int GetCorruptionCap() => Math.Max(1, CorruptionCapMultiplier * CorruptionLevel);
 
-    /// <summary>(niveau de corruption + 2) ^ (1 + N / 2), N = nombre d'essences divines détenues depuis la dernière Ascension.</summary>
-    public static long GetCostMultiplier(int corruptionLevel, int essenceAlreadyCollected)
+    /// <summary>
+    /// (niveau de corruption + 2) ^ (1 + N / 2 × (1 - scalingReduction)), N = nombre d'essences
+    /// divines détenues depuis la dernière Ascension. <paramref name="scalingReduction"/>
+    /// (ECategory.DIVINE_BONES_SCALING_REDUCTION, voir Liturgie Funéraire) n'allège que le terme en
+    /// N : la première Purification d'un cycle coûte toujours exactement le même prix.
+    /// </summary>
+    public static long GetCostMultiplier(int corruptionLevel, int essenceAlreadyCollected, double scalingReduction = 0.0)
     {
-        double multiplier = Math.Pow(corruptionLevel + 2, 1.0 + essenceAlreadyCollected / 2.0);
+        double scaling = essenceAlreadyCollected / 2.0 * (1.0 - Math.Clamp(scalingReduction, 0.0, 1.0));
+        double multiplier = Math.Pow(corruptionLevel + 2, 1.0 + scaling);
         return (long)Math.Min(multiplier, 1e15);
     }
 
-    /// <summary>Coût en Cristal, Mithril et Acier, après DivineBonesCostReduction de la civilisation (hex de prestige Ossuaire).</summary>
+    /// <summary>Coût en Cristal, Mithril et Acier, après DivineBonesScalingReduction (croissance du coût) puis DivineBonesCostReduction (coût final) de la civilisation.</summary>
     public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)
     {
-        long multiplier = GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected);
+        long multiplier = GetCostMultiplier(CorruptionLevel, EssenceAlreadyCollected, playerCiv.DivineBonesScalingReduction);
         return new()
         {
             { Resource.Crystal, (int)Math.Min(int.MaxValue, ApplyCostReduction(BaseCrystalCost * multiplier, playerCiv)) },

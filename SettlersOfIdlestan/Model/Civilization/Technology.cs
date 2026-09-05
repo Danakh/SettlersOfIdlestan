@@ -181,6 +181,9 @@ public enum TechnologyId
     // Suite du Reliquaire Sacré : débloque la Nécropole, monument bâti sur des Os Divins non purifiés
     // (qu'il consomme) dont chaque niveau augmente de 10% les points divins gagnés à l'Ascension.
     NecropoleDivine,
+    // Suite de la Nécropole Divine : le coût de Purification des Os Divins croît 20% moins vite avec
+    // le nombre d'essences divines déjà collectées (voir ECategory.DIVINE_BONES_SCALING_REDUCTION).
+    LiturgieFuneraire,
     // Branche de la Théocratie (tiers 14-15) — recherches du Dominion, visibles uniquement une fois
     // le pouvoir divin Foi débloqué (RequiresDominionUnlock, voir ResearchController).
     DogmeDeLEmprise,

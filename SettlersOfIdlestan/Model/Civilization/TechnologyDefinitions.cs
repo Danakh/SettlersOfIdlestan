@@ -791,6 +791,18 @@ public static class TechnologyDefinitions
             modifiers: new Modifier[] { new(ECategory.UNLOCK_NECROPOLIS, EType.ADDITIVE, 1) },
             tier: 11, line: 3),
 
+        // Suite de la Nécropole Divine : le coût de Purification des Os Divins croît 20% moins vite
+        // avec le nombre d'essences divines déjà collectées depuis la dernière Ascension — l'exposant
+        // 1 + N/2 devient 1 + N/2 × 0,8 (voir DivineBones.GetCostMultiplier). La première
+        // Purification d'un cycle garde donc exactement le même prix ; ce sont les dernières, celles
+        // qui bloquent la montée jusqu'au plafond d'essence, qui s'allègent.
+        new(TechnologyId.LiturgieFuneraire,
+            "tech_liturgie_funeraire_name", "tech_liturgie_funeraire_desc",
+            cost: 1687500000,
+            prerequisites: new[] { TechnologyId.NecropoleDivine },
+            modifiers: new Modifier[] { new(ECategory.DIVINE_BONES_SCALING_REDUCTION, EType.ADDITIVE, 0.2) },
+            tier: 12, line: 3),
+
         // Les routes du Vide déjà bâties ne comptent que pour deux tiers dans le coût exponentiel de
         // la suivante : 1M × 4^n devient 1M × 4^(2n/3) (voir RoadController.GetVoidRouteResearchCost).
         // Baissée de 2 tiers (coût / 16).

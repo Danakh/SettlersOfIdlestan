@@ -636,6 +636,16 @@ public class Civilization
     public double DivineBonesCostReduction => ModifierAggregator.ApplyModifiers(ECategory.DIVINE_BONES_COST_REDUCTION, "", 0.0);
 
     /// <summary>
+    /// Divine Bones Purification cost *scaling* reduction fraction (0.0 = no reduction, 0.2 = the
+    /// cost grows 20% slower per divine essence already collected). Unlike
+    /// <see cref="DivineBonesCostReduction"/>, which scales the final cost down, this one flattens
+    /// the exponent itself (see DivineBones.GetCostMultiplier) and therefore does nothing on the
+    /// first Purification of a cycle.
+    /// </summary>
+    [JsonIgnore]
+    public double DivineBonesScalingReduction => ModifierAggregator.ApplyModifiers(ECategory.DIVINE_BONES_SCALING_REDUCTION, "", 0.0);
+
+    /// <summary>
     /// Monument investment cost reduction fraction (0.0 = no reduction, 0.25 = 25% cheaper). Applies
     /// to all Monuments (Wonder, DeepestMine, CorruptionSpire, AbyssGate, Necropolis, Observatory,
     /// PandemoniumGate, GreatLighthouse, DivineBones), on top of any Monument-specific reduction.
