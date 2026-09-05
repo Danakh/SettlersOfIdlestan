@@ -8,7 +8,8 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// <summary>
 /// Spire de Corruption — Monument de l'Inframonde, plaçable uniquement sur une Source de Corruption
 /// (voir <see cref="CorruptionSource"/>). Sa raison d'être est de détruire cette Source : achever sa
-/// construction la supprime définitivement et convertit son niveau en bonus de prestige permanent
+/// construction la supprime définitivement et accorde, tant que la Spire reste sur l'île, un bonus de
+/// prestige de 2 × le niveau de corruption du monde — le niveau qu'avait justement la Source
 /// (voir CorruptionSpireController.OnInvestmentCycleCompleted et
 /// PrestigeController.GetCorruptionClearBonusMultiplier). Construite par investissement progressif
 /// comme tout Monument, mais d'un seul palier : une fois bâtie elle n'a plus rien à recevoir, son

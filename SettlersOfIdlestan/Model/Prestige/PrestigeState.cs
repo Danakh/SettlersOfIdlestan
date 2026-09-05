@@ -94,19 +94,13 @@ public class PrestigeState
 
     public TechnologyTree TechnologyTree { get; set; } = new();
 
-    /// <summary>Niveau de corruption de l'Inframonde. Augmente la sévérité et la chance des zones corrompues. Démarre à 1.</summary>
-    public int CurrentCorruptionLevel { get; set; } = 1;
-
     /// <summary>
-    /// Niveau le plus élevé jamais atteint par une Source de Corruption détruite (voir
-    /// IslandFeatures.CorruptionSource.CorruptionLevel) : construire une Spire de Corruption sur une
-    /// Source la supprime et enregistre son niveau ici. Seul CorruptionSpireController.
-    /// RecordCorruptionSourceDestroyed y écrit ; nettoyer une zone de Corruption au Temple ou au
-    /// Dominion n'y change plus rien (cela n'alimente plus que RunRecord.MaxCorruptionLevelCleared,
-    /// dédié à l'éligibilité de la Faille des Abysses). Alimente
-    /// PrestigeController.GetCorruptionClearBonusMultiplier. Démarre à 0 (aucun bonus).
+    /// Niveau de corruption de l'Inframonde. Augmente la sévérité et la chance des zones corrompues.
+    /// Démarre à 1, ne monte que par Prestige Corrompu (PrestigeController.PerformPrestige) et reste
+    /// donc figé pendant toute la vie d'une île : c'est ce qui permet de dériver le bonus de prestige
+    /// de la Spire au lieu de le mémoriser (voir PrestigeController.GetCorruptionClearBonusMultiplier).
     /// </summary>
-    public int MaxCorruptionLevelCleared { get; set; } = 0;
+    public int CurrentCorruptionLevel { get; set; } = 1;
 
     /// <summary>Niveau de corruption qui déborde en surface une fois <see cref="CurrentCorruptionLevel"/> au-delà de 3.</summary>
     [System.Text.Json.Serialization.JsonIgnore]

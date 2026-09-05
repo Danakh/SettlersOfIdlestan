@@ -19,10 +19,8 @@ namespace SOITests.ControllerTests
     /// Abysses. L'éligibilité (IsAbyssGateEligible) se base sur RunRecord.MaxCorruptionLevelCleared
     /// — le meilleur nettoyage de Corruption réalisé sur l'île courante, n'importe où sur la carte et
     /// par n'importe quel mécanisme (Temple, débordement, annulation par le Dominion, décroissance de
-    /// monument) — et non sur la corruption courante ou passée du seul hex de la Spire, ni sur le
-    /// record global de la partie (PrestigeState.MaxCorruptionLevelCleared, réservé au bonus de
-    /// prestige) : une Faille ouverte lors d'un run précédent ne dispense pas du nettoyage sur la
-    /// nouvelle île. Voir CorruptionControllerTests pour un scénario de bout en bout mettant à jour ce
+    /// monument) — et non sur la corruption courante ou passée du seul hex de la Spire : une Faille
+    /// ouverte lors d'un run précédent ne dispense pas du nettoyage sur la nouvelle île. Voir CorruptionControllerTests pour un scénario de bout en bout mettant à jour ce
     /// record via annulation avec le Dominion sur un hex distinct de celui de la Spire.
     /// </summary>
     public class AbyssGateControllerTests
@@ -31,8 +29,8 @@ namespace SOITests.ControllerTests
 
         private const int TownHallLevel = 20;
 
-        private static (WorldState state, GameClock clock, CorruptionSpireController spireController, AbyssGateController gateController, PrestigeState prestigeState) CreateSetup(
-            int maxCorruptionLevelCleared = 0, int lifetimeCorruptionLevelCleared = 0, GodState? godState = null)
+        private static (WorldState state, GameClock clock, CorruptionSpireController spireController, AbyssGateController gateController) CreateSetup(
+            int maxCorruptionLevelCleared = 0, GodState? godState = null)
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
@@ -54,15 +52,13 @@ namespace SOITests.ControllerTests
 
             // Record du run (île courante) : c'est lui, et lui seul, qui conditionne l'éligibilité.
             state.RunRecord.MaxCorruptionLevelCleared = maxCorruptionLevelCleared;
-            // Record global de la partie : ne sert qu'au bonus de prestige, jamais à l'éligibilité.
-            var prestigeState = new PrestigeState { MaxCorruptionLevelCleared = lifetimeCorruptionLevelCleared };
 
             var spireController = new CorruptionSpireController();
             spireController.Initialize(state, clock);
             var gateController = new AbyssGateController();
             gateController.Initialize(state, clock, godState: godState);
 
-            return (state, clock, spireController, gateController, prestigeState);
+            return (state, clock, spireController, gateController);
         }
 
         private static void BuildSpireInstantly(WorldState state, CorruptionSpire spire)
@@ -76,14 +72,14 @@ namespace SOITests.ControllerTests
         [Fact]
         public void IsAbyssGateEligible_FalseWithoutSpire()
         {
-            var (_, _, _, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
+            var (_, _, _, gateController) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
             Assert.False(gateController.IsAbyssGateEligible());
         }
 
         [Fact]
         public void IsAbyssGateEligible_FalseWhenSpireNotBuilt()
         {
-            var (_, _, spireController, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
+            var (_, _, spireController, gateController) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
             spireController.PlaceCorruptionSpire(UnderworldHex);
 
             Assert.False(gateController.IsAbyssGateEligible());
@@ -92,7 +88,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void IsAbyssGateEligible_FalseWhenCleanupRecordBelowThreshold()
         {
-            var (state, _, spireController, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel - 1);
+            var (state, _, spireController, gateController) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel - 1);
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
             BuildSpireInstantly(state, spire);
 
@@ -102,7 +98,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void IsAbyssGateEligible_TrueWhenCleanupRecordAtThreshold()
         {
-            var (state, _, spireController, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
+            var (state, _, spireController, gateController) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
             BuildSpireInstantly(state, spire);
 
@@ -116,7 +112,7 @@ namespace SOITests.ControllerTests
             // CreateSetup) et ne l'a jamais dépassé — seul un nettoyage ailleurs sur la carte (simulé
             // ici directement via RunRecord ; voir CorruptionControllerTests pour le scénario
             // complet via annulation avec le Dominion) suffit à rendre la Spire éligible.
-            var (state, _, spireController, gateController, _) = CreateSetup();
+            var (state, _, spireController, gateController) = CreateSetup();
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
             BuildSpireInstantly(state, spire);
             Assert.False(gateController.IsAbyssGateEligible());
@@ -127,25 +123,9 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void IsAbyssGateEligible_FalseWhenOnlyLifetimeRecordAtThreshold()
-        {
-            // Run suivant une partie où une Faille a déjà été ouverte : le record global de la partie
-            // reste au-dessus du seuil, mais rien n'a encore été nettoyé sur cette île — la Faille doit
-            // être re-méritée, pas offerte par l'historique.
-            var (state, _, spireController, gateController, _) = CreateSetup(
-                maxCorruptionLevelCleared: 0,
-                lifetimeCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel * 2);
-            var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
-            BuildSpireInstantly(state, spire);
-
-            Assert.False(gateController.IsAbyssGateEligible());
-            Assert.Null(gateController.PlaceAbyssGate());
-        }
-
-        [Fact]
         public void PlaceAbyssGate_ReplacesSpireOnSameHex()
         {
-            var (state, _, spireController, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
+            var (state, _, spireController, gateController) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
             BuildSpireInstantly(state, spire);
 
@@ -162,7 +142,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void PlaceAbyssGate_ReturnsNullWhenNotEligible()
         {
-            var (_, _, spireController, gateController, _) = CreateSetup();
+            var (_, _, spireController, gateController) = CreateSetup();
             spireController.PlaceCorruptionSpire(UnderworldHex);
 
             Assert.Null(gateController.PlaceAbyssGate());
@@ -171,7 +151,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Investment_CompletingAllResources_BuildsAbyssGate()
         {
-            var (state, clock, spireController, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
+            var (state, clock, spireController, gateController) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
             BuildSpireInstantly(state, spire);
             var gate = gateController.PlaceAbyssGate()!;
@@ -193,7 +173,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Investment_CompletingAllResources_OpensAbyss()
         {
-            var (state, clock, spireController, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
+            var (state, clock, spireController, gateController) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
             BuildSpireInstantly(state, spire);
             var gate = gateController.PlaceAbyssGate()!;
@@ -230,7 +210,7 @@ namespace SOITests.ControllerTests
         {
             var godState = new GodState();
             godState.AscensionState.SelectedRace = RaceId.Mermaid;
-            var (state, clock, spireController, gateController, _) = CreateSetup(
+            var (state, clock, spireController, gateController) = CreateSetup(
                 maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel, godState: godState);
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
             BuildSpireInstantly(state, spire);
@@ -262,7 +242,7 @@ namespace SOITests.ControllerTests
             // CityBuilderController.BuildCity — il doit malgré tout recevoir les bâtiments offerts par
             // les modifiers NEW_CITY_BUILDING actifs (ex. Tour de Guet via WatchtowerConstruction),
             // au même titre que tout autre nouvel avant-poste.
-            var (state, clock, spireController, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
+            var (state, clock, spireController, gateController) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
             state.PlayerCivilization.TechnologyTree.CompleteResearch(TechnologyId.WatchtowerConstruction);
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
             BuildSpireInstantly(state, spire);
@@ -284,7 +264,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Abyss_NotOpened_WhileGateNotBuilt()
         {
-            var (state, clock, spireController, gateController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
+            var (state, clock, spireController, gateController) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
             BuildSpireInstantly(state, spire);
             gateController.PlaceAbyssGate();
@@ -297,7 +277,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void CorruptionSpireController_RaisesAbyssGateEligibleToast_WhenSpireFinishesAndCleanupRecordAlreadyAtThreshold()
         {
-            var (state, clock, spireController, _, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
+            var (state, clock, spireController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel);
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
 
             var cost = CorruptionSpire.GetSpireCost();
@@ -314,26 +294,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void CorruptionSpireController_DoesNotRaiseAbyssGateEligibleToast_WhenCleanupRecordBelowThreshold()
         {
-            var (state, clock, spireController, _, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel - 1);
-            var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
-
-            var cost = CorruptionSpire.GetSpireCost();
-            foreach (var kvp in cost)
-                spire.InvestedResources[kvp.Key] = kvp.Value;
-            spire.InvestmentEnabled.Add(Resource.Stone);
-
-            clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks);
-
-            Assert.True(spire.Built);
-            Assert.DoesNotContain(state.EventLog.Entries, e => e.Type == GameEventType.AbyssGateEligible);
-        }
-
-        [Fact]
-        public void CorruptionSpireController_DoesNotRaiseAbyssGateEligibleToast_WhenOnlyLifetimeRecordAtThreshold()
-        {
-            var (state, clock, spireController, _, _) = CreateSetup(
-                maxCorruptionLevelCleared: 0,
-                lifetimeCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel * 2);
+            var (state, clock, spireController, _) = CreateSetup(maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel - 1);
             var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
 
             var cost = CorruptionSpire.GetSpireCost();

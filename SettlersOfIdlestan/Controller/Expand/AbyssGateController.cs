@@ -68,8 +68,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// une corruption "en cours" précisément parce que la Spire bâtie réduit systématiquement la
         /// corruption sur son propre hex (voir CorruptionController.ProcessMonumentCorruptionDecay) —
         /// une condition sur le niveau courant de cet hex précis se démentirait presque aussitôt vérifiée.
-        /// Volontairement basé sur le <b>record du run</b> et non sur le record global de la partie
-        /// (<see cref="PrestigeState.MaxCorruptionLevelCleared"/>, qui ne sert qu'au bonus de prestige) :
+        /// Volontairement basé sur le <b>record du run</b>, remis à zéro à chaque prestige :
         /// une première ouverture ne doit pas rendre les suivantes gratuites — chaque nouvelle île exige
         /// à nouveau un nettoyage de niveau <see cref="AbyssGate.RequiredCorruptionLevel"/> ou plus.
         /// </summary>

@@ -30,10 +30,9 @@ namespace SOITests.ControllerTests
             }));
 
         private static (WorldState state, GameClock clock, CorruptionSpireController controller) CreateSetup()
-            => CreateSetupWithPrestigeState(new PrestigeState(), sourceLevel: 1);
+            => CreateSetupWithSourceLevel(sourceLevel: 1);
 
-        private static (WorldState state, GameClock clock, CorruptionSpireController controller) CreateSetupWithPrestigeState(
-            PrestigeState prestigeState, int sourceLevel)
+        private static (WorldState state, GameClock clock, CorruptionSpireController controller) CreateSetupWithSourceLevel(int sourceLevel)
         {
             var state = IslandTestFactory.CreateSevenHexIslandState();
             state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
@@ -54,7 +53,7 @@ namespace SOITests.ControllerTests
             clock.Start();
 
             var controller = new CorruptionSpireController();
-            controller.Initialize(state, clock, prestigeState: prestigeState);
+            controller.Initialize(state, clock);
 
             return (state, clock, controller);
         }
@@ -268,13 +267,18 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
-        public void Investment_CompletingAllResources_RecordsDestroyedSourceLevelAsPrestigeBonus()
+        public void Investment_CompletingAllResources_GrantsTheCorruptionClearPrestigeBonus()
         {
-            // Le bonus de prestige de nettoyage ne dépend plus que du niveau de la Source détruite
-            // (voir PrestigeController.GetCorruptionClearBonusMultiplier).
-            var prestigeState = new PrestigeState();
-            var (_, clock, controller) = CreateSetupWithPrestigeState(prestigeState, sourceLevel: 3);
+            // Le bonus de prestige de nettoyage est dérivé de la présence d'une Spire bâtie et du
+            // niveau de corruption du monde — la Spire n'enregistre rien (voir
+            // PrestigeController.GetCorruptionClearBonusMultiplier).
+            var prestigeState = new PrestigeState { CurrentCorruptionLevel = 3 };
+            var (state, clock, controller) = CreateSetupWithSourceLevel(sourceLevel: 3);
             var spire = controller.PlaceCorruptionSpire(UnderworldHex)!;
+
+            var prestigeController = new PrestigeController();
+            prestigeController.Initialize(state.PlayerCivilization, state, prestigeState: prestigeState);
+            Assert.Equal(1, prestigeController.GetCorruptionClearBonusMultiplier());
 
             foreach (var kvp in CorruptionSpire.GetSpireCost())
             {
@@ -285,15 +289,16 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks);
 
             Assert.True(spire.Built);
-            Assert.Equal(3, prestigeState.MaxCorruptionLevelCleared);
+            Assert.Equal(6, prestigeController.GetCorruptionClearBonusMultiplier()); // 2 × 3
         }
 
         [Fact]
-        public void Investment_CompletingAllResources_KeepsTheBestSourceLevelEverDestroyed()
+        public void DestroyCorruptionSpire_DropsTheCorruptionClearPrestigeBonus()
         {
-            // Record global de la partie : une Source plus faible que le record ne le fait pas baisser.
-            var prestigeState = new PrestigeState { MaxCorruptionLevelCleared = 5 };
-            var (_, clock, controller) = CreateSetupWithPrestigeState(prestigeState, sourceLevel: 2);
+            // Le bonus n'est pas mémorisé : détruire la Spire pour la reposer ailleurs le fait
+            // retomber à ×1 jusqu'à ce qu'une nouvelle Spire soit achevée.
+            var prestigeState = new PrestigeState { CurrentCorruptionLevel = 3 };
+            var (state, clock, controller) = CreateSetupWithSourceLevel(sourceLevel: 3);
             var spire = controller.PlaceCorruptionSpire(UnderworldHex)!;
 
             foreach (var kvp in CorruptionSpire.GetSpireCost())
@@ -301,11 +306,15 @@ namespace SOITests.ControllerTests
                 spire.InvestedResources[kvp.Key] = kvp.Value;
                 spire.InvestmentEnabled.Add(kvp.Key);
             }
-
             clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks);
-
             Assert.True(spire.Built);
-            Assert.Equal(5, prestigeState.MaxCorruptionLevelCleared);
+
+            var prestigeController = new PrestigeController();
+            prestigeController.Initialize(state.PlayerCivilization, state, prestigeState: prestigeState);
+            Assert.Equal(6, prestigeController.GetCorruptionClearBonusMultiplier());
+
+            Assert.True(controller.DestroyCorruptionSpire());
+            Assert.Equal(1, prestigeController.GetCorruptionClearBonusMultiplier());
         }
 
         [Fact]

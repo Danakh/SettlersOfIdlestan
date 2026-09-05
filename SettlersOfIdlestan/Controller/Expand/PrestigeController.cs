@@ -262,18 +262,21 @@ namespace SettlersOfIdlestan.Controller.Expand
             return CorruptedPrestigeStep.NoSourceYet;
         }
 
-        public int GetMaxCorruptionLevelCleared() => _prestigeState?.MaxCorruptionLevelCleared ?? 0;
-
         /// <summary>
-        /// Bonus de prestige lié au nettoyage de la Corruption : 2 × le niveau de la plus haute Source
-        /// de Corruption jamais détruite (voir PrestigeState.MaxCorruptionLevelCleared), au minimum ×1.
-        /// Une Source n'est détruite que par l'achèvement d'une Spire de Corruption posée dessus (voir
-        /// CorruptionSpireController.OnInvestmentCycleCompleted) : c'est là tout l'intérêt de la Spire,
-        /// dont le niveau n'est par ailleurs pas améliorable. Dissiper une zone de Corruption au Temple
-        /// ou au Dominion ne donne plus ce bonus — cela ne sert plus qu'à ouvrir la Faille des Abysses.
+        /// Bonus de prestige lié à la Corruption : 2 × le niveau de corruption du monde tant qu'une
+        /// Spire de Corruption — ou la Faille des Abysses qui lui succède — est bâtie sur l'île
+        /// courante (voir <see cref="HasCorruptionSpireBuilt"/>), ×1 sinon.
+        /// Dérivé plutôt que mémorisé : une Source de Corruption naît toujours au niveau de corruption
+        /// du monde (AutoExtendController.TrySpawnUnderworldDenizen), lui-même figé pour toute la vie
+        /// de l'île, donc « niveau de la Source détruite ici » et « niveau de corruption » sont le même
+        /// nombre — un record persistant n'apportait rien et survivait à tort au prestige. Le bonus est
+        /// donc perdu avec l'île, comme la Spire elle-même, et à re-mériter sur chaque nouvelle île
+        /// (y compris après avoir détruit la Spire pour la reposer ailleurs).
+        /// Dissiper une zone de Corruption au Temple ou au Dominion ne donne pas ce bonus — cela ne
+        /// sert qu'à ouvrir la Faille des Abysses (RunRecord.MaxCorruptionLevelCleared).
         /// </summary>
         public int GetCorruptionClearBonusMultiplier()
-            => Math.Max(1, 2 * GetMaxCorruptionLevelCleared());
+            => HasCorruptionSpireBuilt() ? Math.Max(1, 2 * GetCorruptionLevel()) : 1;
 
         public int GetCorruptionLevel() => _prestigeState?.CurrentCorruptionLevel ?? 1;
 

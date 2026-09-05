@@ -17,9 +17,9 @@ namespace SettlersOfIdlestan.Controller.Expand
     /// Corruption (voir <see cref="CorruptionSource"/>), débloquée une fois la Faille des Abysses
     /// entièrement ouverte (3/3 : Faille des Abysses + Porte Planaire + Rituel de l'Éclipse Noire).
     /// Construite par investissement progressif comme tout Monument, en un seul palier : achever sa
-    /// construction (Built = true) détruit la Source sur son hex et convertit le niveau de celle-ci en
-    /// bonus de prestige permanent (PrestigeState.MaxCorruptionLevelCleared, lu par
-    /// PrestigeController.GetCorruptionClearBonusMultiplier). Une fois bâtie, la Spire n'a plus rien à
+    /// construction (Built = true) détruit la Source sur son hex et accorde, tant que la Spire reste
+    /// en place sur l'île, un bonus de prestige de 2 × le niveau de corruption du monde (dérivé, rien
+    /// n'est mémorisé — voir PrestigeController.GetCorruptionClearBonusMultiplier). Une fois bâtie, la Spire n'a plus rien à
     /// recevoir — son niveau n'est plus améliorable — et se contente de réduire la corruption dans son
     /// rayon fixe (voir <see cref="CorruptionSpire.DecayRadius"/>).
     /// </summary>
@@ -33,16 +33,10 @@ namespace SettlersOfIdlestan.Controller.Expand
         public event EventHandler<int>? OnCorruptionSpireBuilt;
         public event EventHandler? OnCorruptionSpireDestroyed;
 
-        private PrestigeState? _prestigeState;
-
         internal CorruptionSpireController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null,
-            PrestigeState? prestigeState = null)
-        {
-            _prestigeState = prestigeState;
-            InitializeCore(state, clock, harvestController);
-        }
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null)
+            => InitializeCore(state, clock, harvestController);
 
         /// <summary>
         /// La Spire n'a qu'un seul palier : une fois bâtie, elle n'a plus rien à recevoir (son niveau
@@ -51,8 +45,10 @@ namespace SettlersOfIdlestan.Controller.Expand
         protected override bool IsInvestmentComplete(CorruptionSpire spire) => spire.Built;
 
         /// <summary>
-        /// Construction achevée : la Source de Corruption sous la Spire est détruite et son niveau
-        /// devient le bonus de prestige (voir <see cref="RecordCorruptionSourceDestroyed"/>). Comme
+        /// Construction achevée : la Source de Corruption sous la Spire est détruite, ce qui active le
+        /// bonus de prestige de nettoyage tant que la Spire reste sur l'île (voir
+        /// PrestigeController.GetCorruptionClearBonusMultiplier — dérivé du niveau de corruption du
+        /// monde, rien n'est enregistré ici). Comme
         /// pour la Faille des Abysses, l'investissement reste affiché à 100% — InvestedResources est
         /// conservé, seul le prélèvement automatique est coupé.
         /// </summary>
@@ -68,8 +64,6 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (source != null)
                 _state.RemoveFeature(source);
 
-            RecordCorruptionSourceDestroyed(sourceLevel);
-
             _state.EventLog.Add(GameEventType.CorruptionSpireBuilt, toast: true);
             OnCorruptionSpireBuilt?.Invoke(this, sourceLevel);
 
@@ -79,22 +73,6 @@ namespace SettlersOfIdlestan.Controller.Expand
             // est désormais disponible depuis le panneau de la Spire (voir AbyssGateController.IsAbyssGateEligible).
             if (_state.RunRecord.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel)
                 _state.EventLog.Add(GameEventType.AbyssGateEligible, toast: true);
-        }
-
-        /// <summary>
-        /// Enregistre le niveau de la Source détruite dans le record global de la partie
-        /// (PrestigeState.MaxCorruptionLevelCleared, jamais remis à zéro) : c'est désormais la seule
-        /// alimentation du bonus de prestige de nettoyage (voir
-        /// PrestigeController.GetCorruptionClearBonusMultiplier). Une zone de Corruption dissipée par
-        /// le Temple ou le Dominion ne compte plus pour ce bonus — elle ne compte plus que pour
-        /// l'éligibilité de la Faille des Abysses (RunRecord.MaxCorruptionLevelCleared, voir
-        /// CorruptionController.ReduceLevel).
-        /// </summary>
-        private void RecordCorruptionSourceDestroyed(int sourceLevel)
-        {
-            if (_prestigeState == null) return;
-            if (sourceLevel > _prestigeState.MaxCorruptionLevelCleared)
-                _prestigeState.MaxCorruptionLevelCleared = sourceLevel;
         }
 
         public bool HasCorruptionSpireUnlocked(Civilization playerCiv)
@@ -161,11 +139,12 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         /// <summary>
         /// Détruit la Spire de Corruption existante, ce qui libère <see cref="CanPlaceCorruptionSpire"/>
-        /// et permet d'en replacer une ailleurs, sur une autre Source de Corruption — le seul intérêt
-        /// d'une nouvelle Spire étant d'aller détruire une Source de niveau supérieur. C'est une
-        /// reconstruction, pas un déplacement : les ressources déjà investies sont perdues. Le bonus de
-        /// prestige déjà acquis, lui, reste acquis : il est enregistré dans PrestigeState, pas porté
-        /// par la Spire. Retourne false s'il n'y a aucune Spire (une Faille des Abysses n'est jamais
+        /// et permet d'en replacer une ailleurs, sur une autre Source de Corruption — pour déplacer le
+        /// rayon de décroissance, toutes les Sources d'une même île valant le même niveau. C'est une
+        /// reconstruction, pas un déplacement : les ressources déjà investies sont perdues, et le bonus
+        /// de prestige de nettoyage tombe à ×1 jusqu'à ce que la nouvelle Spire soit achevée — il est
+        /// dérivé de la présence d'une Spire bâtie, pas mémorisé (voir
+        /// PrestigeController.GetCorruptionClearBonusMultiplier). Retourne false s'il n'y a aucune Spire (une Faille des Abysses n'est jamais
         /// détruisible : elle a consommé la Spire et ouvre l'Abysse — voir AbyssGateController.PlaceAbyssGate).
         /// </summary>
         public bool DestroyCorruptionSpire()

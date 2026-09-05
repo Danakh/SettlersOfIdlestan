@@ -32,9 +32,9 @@ public class RunRecord
     /// Niveau de pointe le plus élevé d'une zone de Corruption entièrement nettoyée <b>sur cette île</b>
     /// (Level ramené à 0), par la Spire de Corruption/la Faille des Abysses ou par le Dominion
     /// (Temple, débordement). Conditionne l'ouverture de la Faille des Abysses — voir
-    /// AbyssGateController.IsAbyssGateEligible. Distinct de PrestigeState.MaxCorruptionLevelCleared,
-    /// qui est le record global de la partie (bonus de prestige) et ne se réinitialise jamais : la
-    /// Faille doit être re-méritée à chaque run, alors que le bonus de prestige reste acquis.
+    /// AbyssGateController.IsAbyssGateEligible : elle doit être re-méritée à chaque run. Sans rapport
+    /// avec le bonus de prestige de nettoyage, qui ne dépend que de la présence d'une Spire bâtie
+    /// (voir PrestigeController.GetCorruptionClearBonusMultiplier).
     /// </summary>
     public int MaxCorruptionLevelCleared { get; set; }
 

@@ -666,10 +666,6 @@ public class CorruptionControllerTests
 
         Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
         Assert.Equal(5, state.RunRecord.MaxCorruptionLevelCleared);
-        // Nettoyer une zone n'alimente plus le bonus de prestige : celui-ci ne vient plus que de la
-        // destruction d'une Source de Corruption par une Spire (voir
-        // CorruptionSpireController.RecordCorruptionSourceDestroyed).
-        Assert.Equal(0, prestigeState.MaxCorruptionLevelCleared);
     }
 
     [Fact]
@@ -827,9 +823,7 @@ public class CorruptionControllerTests
     [Fact]
     public void ReduceLevel_ClearingCorruptionViaDominionAnnulation_MakesAbyssGateEligible_OnUnrelatedHex()
     {
-        // AbyssGateController.IsAbyssGateEligible se base sur RunRecord.MaxCorruptionLevelCleared
-        // (le record global PrestigeState.MaxCorruptionLevelCleared, réservé au bonus de prestige,
-        // n'est lui alimenté que par la destruction d'une Source de Corruption par une Spire), ici
+        // AbyssGateController.IsAbyssGateEligible se base sur RunRecord.MaxCorruptionLevelCleared, ici
         // alimenté par annulation mutuelle avec le Dominion (pas par
         // Temple ni par la décroissance de la Spire) et sur un hex qui n'a AUCUN rapport avec celui de
         // la Spire — l'éligibilité doit être vraie quel que soit l'hex nettoyé et quel que soit le
@@ -856,7 +850,6 @@ public class CorruptionControllerTests
 
         Assert.Empty(state.GetFeaturesAt(a).OfType<Corruption>());
         Assert.True(state.RunRecord.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel);
-        Assert.Equal(0, prestigeState.MaxCorruptionLevelCleared);
         Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.AbyssGateEligible && e.Toast);
 
         var gateController = new AbyssGateController();

@@ -470,9 +470,9 @@ public class CorruptionController
             // zéro à chaque prestige, peu importe quel hex ni quel mécanisme l'a nettoyée. Il ne sert
             // qu'à conditionner l'ouverture de la Faille des Abysses (voir
             // AbyssGateController.IsAbyssGateEligible) : le bonus de prestige de nettoyage, lui, ne
-            // dépend plus d'une zone dissipée mais de la destruction d'une Source de Corruption par une
-            // Spire (voir CorruptionSpireController.RecordCorruptionSourceDestroyed, seul écrivain de
-            // PrestigeState.MaxCorruptionLevelCleared). Si ce nettoyage vient de faire franchir au
+            // dépend pas d'une zone dissipée mais de la présence d'une Spire de Corruption bâtie sur
+            // l'île (voir PrestigeController.GetCorruptionClearBonusMultiplier, qui ne mémorise rien).
+            // Si ce nettoyage vient de faire franchir au
             // record du run le seuil requis, prévient le joueur qu'une Spire déjà bâtie peut évoluer.
             if (feature is Corruption cleared)
             {

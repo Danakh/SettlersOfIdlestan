@@ -12,7 +12,7 @@ public class Corruption : IslandFeature
 
     /// <summary>
     /// Niveau le plus élevé jamais atteint par cette zone. Sert à mesurer "le niveau nettoyé" quand
-    /// elle est totalement dissipée (Level atteint 0) — voir PrestigeState.MaxCorruptionLevelCleared
+    /// elle est totalement dissipée (Level atteint 0) — voir RunRecord.MaxCorruptionLevelCleared
     /// et CorruptionController.ReduceLevel. Level ne redescend qu'un point à la fois, donc une zone
     /// n'est jamais "nettoyée" qu'à partir du niveau 1 ; c'est le pic, pas le niveau final, qui compte.
     /// </summary>

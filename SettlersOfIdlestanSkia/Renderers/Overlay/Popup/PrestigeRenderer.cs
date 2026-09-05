@@ -107,11 +107,14 @@ public sealed class PrestigeRenderer : PopupRendererBase
                 $"+{greatLighthouseBonus * 100:0}%", false, tooltip));
         }
 
-        int maxCorruptionCleared = controller.GetMaxCorruptionLevelCleared();
-        if (maxCorruptionCleared > 0)
+        // Spire de Corruption : le bonus n'existe que tant qu'une Spire (ou la Faille qui lui succede)
+        // est batie sur l'ile courante, et vaut alors 2 x le niveau de corruption du monde — soit le
+        // niveau de la Source qu'elle a detruite.
+        int corruptionClearMultiplier = controller.GetCorruptionClearBonusMultiplier();
+        if (corruptionClearMultiplier > 1)
             rows.Add(new PrestigeRowSnapshot(
-                _localization.GetFormated("prestige_corruption_spire_bonus", maxCorruptionCleared),
-                $"×{controller.GetCorruptionClearBonusMultiplier()}", false,
+                _localization.GetFormated("prestige_corruption_spire_bonus", controller.GetCorruptionLevel()),
+                $"×{corruptionClearMultiplier}", false,
                 [_localization.Get("prestige_tooltip_corruption_spire_bonus")]));
 
         // Theologie de l'Ascension : multiplicateur compose, affiche comme la Spire et la Merveille.
