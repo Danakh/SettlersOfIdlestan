@@ -689,8 +689,8 @@ public static class TechnologyDefinitions
             },
             tier: 10, line: 10),
 
-        // Suite directe de la Magie du Vide : débloque le sort Pont du Vide, qui bâtit la route du Vide
-        // ciblée. Contrairement aux routes du Vide classiques,
+        // Jonction de la Magie du Vide et de l'Édification Arcanique : débloque le sort Pont du Vide,
+        // qui bâtit la route du Vide ciblée. Contrairement aux routes du Vide classiques,
         // il ne consomme pas de points de recherche — le prix est en cristaux, doublé par cran
         // d'épuisement à chaque lancement, un cran retiré toutes les 864 000 ticks (voir
         // SpellDefinition.CostMultiplierPerCast/CooldownTicks). Montée d'un tier
@@ -699,9 +699,9 @@ public static class TechnologyDefinitions
         new(TechnologyId.PontDuVide,
             "tech_pont_du_vide_name", "tech_pont_du_vide_desc",
             cost: 1687500000,
-            prerequisites: new[] { TechnologyId.MagieDuVide },
+            prerequisites: new[] { TechnologyId.MagieDuVide, TechnologyId.ArcaneEdification },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_SPELL, "VoidBridge", EType.ADDITIVE, 1) },
-            tier: 12, line: 10),
+            tier: 12, line: 11),
 
         // Seconde suite de la Magie du Vide : débloque l'Observatoire, monument bâti sur une Montagne
         // de la surface. Chaque niveau abaisse le multiplicateur exponentiel du coût en points de
@@ -711,7 +711,7 @@ public static class TechnologyDefinitions
             cost: 418750000,
             prerequisites: new[] { TechnologyId.MagieDuVide },
             modifiers: new Modifier[] { new(ECategory.UNLOCK_OBSERVATORY, EType.ADDITIVE, 1) },
-            tier: 11, line: 11),
+            tier: 11, line: 10),
 
         // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.CoeurDeLaTerre,
