@@ -81,6 +81,7 @@ public sealed class RitualsRenderer : IDisposable
                     ? $"+{(int)(total * 100)}% {_localization.Get("prestige_tooltip_harvest_speed")}"
                     : $"+{(int)(total * 100)}% {_localization.Get($"building_{mod.SubCategory.ToLower()}_name")} {_localization.Get("prestige_tooltip_harvest_speed")}",
                 Modifier.ECategory.HARVEST_PRODUCTION_BONUS => $"+{(int)total}% {_localization.Get("ritual_tooltip_double_chance")}",
+                Modifier.ECategory.PRODUCTION_BUILDING_SPEED => $"+{(int)(total * 100)}% {_localization.Get("ritual_tooltip_production_building_speed")}",
                 Modifier.ECategory.CITY_MAX_SOLDIERS_BONUS => $"+{(int)total} {_localization.Get("prestige_tooltip_city_max_soldiers")}",
                 Modifier.ECategory.UNIT_PRODUCTION_SPEED => $"+{(int)(total * 100)}% {_localization.Get("prestige_tooltip_unit_speed")}",
                 Modifier.ECategory.CITY_DEFENSE => $"+{(int)total} {_localization.Get("prestige_tooltip_city_defense")}",

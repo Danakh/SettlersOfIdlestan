@@ -15,12 +15,13 @@ public static class RitualDefinitions
                 new(ECategory.HARVEST_SPEED, EType.MULTIPLICATIVE, 0.10),
             }),
 
-        // Production — chance de doubler les récoltes automatiques
+        // Production — chance de doubler les récoltes automatiques et vitesse des bâtiments de transformation
         new(RitualId.ArdentForge,
             baseLaunchCost: 10, baseUpkeepCost: 2,
             modifiersPerPower: new Modifier[]
             {
-                new(ECategory.HARVEST_PRODUCTION_BONUS, EType.ADDITIVE, 10),
+                new(ECategory.HARVEST_PRODUCTION_BONUS, EType.ADDITIVE, 5),
+                new(ECategory.PRODUCTION_BUILDING_SPEED, EType.MULTIPLICATIVE, 0.05),
             }),
 
         // Militaire — capacité de soldats et vitesse de production

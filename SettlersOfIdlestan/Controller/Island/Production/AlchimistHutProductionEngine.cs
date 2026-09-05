@@ -40,7 +40,7 @@ internal sealed class AlchimistHutProductionEngine
                 var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { Level: >= 1 } h1 ? h1 : null;
                 if (hut == null || hut.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
-                long interval = HarvestController.GetAlchimistHutPotionInterval(hut.Level);
+                long interval = HarvestController.GetAlchimistHutPotionInterval(civ, hut.Level);
                 // coldStartOnZero: true — une Hutte d'Alchimie tout juste construite/promue en cours de
                 // partie déjà avancée ne doit pas rattraper tout l'écoulé depuis le tick 0 (voir
                 // SoldierProductionEngine.ProduceSoldiers).

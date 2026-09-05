@@ -286,21 +286,21 @@ public class CityBuildingService
     public long GetWeaponSmithEffectiveCooldown(int? atLevel = null)
     {
         var smith = SelectedCity?.Buildings.OfType<WeaponSmith>().FirstOrDefault();
-        return HarvestController.GetWeaponSmithInterval(atLevel ?? smith?.Level ?? 1);
+        return HarvestController.GetWeaponSmithInterval(SelectedCivilization, atLevel ?? smith?.Level ?? 1);
     }
 
     /// <summary>Cooldown effectif de production de la Forge d'Armures de la ville sélectionnée.</summary>
     public long GetArmorSmithEffectiveCooldown(int? atLevel = null)
     {
         var smith = SelectedCity?.Buildings.OfType<ArmorSmith>().FirstOrDefault();
-        return HarvestController.GetArmorSmithInterval(atLevel ?? smith?.Level ?? 1);
+        return HarvestController.GetArmorSmithInterval(SelectedCivilization, atLevel ?? smith?.Level ?? 1);
     }
 
     /// <summary>Cooldown effectif de production de Potions de Soin de la Hutte d'Alchimie de la ville sélectionnée.</summary>
     public long GetAlchimistHutPotionCooldown(int? atLevel = null)
     {
         var hut = SelectedCity?.Buildings.OfType<AlchimistHut>().FirstOrDefault();
-        return HarvestController.GetAlchimistHutPotionInterval(atLevel ?? hut?.Level ?? 1);
+        return HarvestController.GetAlchimistHutPotionInterval(SelectedCivilization, atLevel ?? hut?.Level ?? 1);
     }
 
     /// <summary>Multiplicateur de vitesse de récolte auto pour ce bâtiment (modificateurs civ inclus).</summary>

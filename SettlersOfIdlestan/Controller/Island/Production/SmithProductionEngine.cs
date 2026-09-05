@@ -40,7 +40,7 @@ internal sealed class SmithProductionEngine
                 var smith = city.FindBuilding<WeaponSmith>(BuildingType.WeaponSmith);
                 if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
-                long cooldown = HarvestController.GetWeaponSmithInterval(smith.Level);
+                long cooldown = HarvestController.GetWeaponSmithInterval(civ, smith.Level);
                 // coldStartOnZero: true — une Forge d'Armes tout juste construite/promue en cours de
                 // partie déjà avancée ne doit pas rattraper tout l'écoulé depuis le tick 0 (voir
                 // SoldierProductionEngine.ProduceSoldiers).
@@ -83,7 +83,7 @@ internal sealed class SmithProductionEngine
                 var smith = city.FindBuilding<ArmorSmith>(BuildingType.ArmorSmith);
                 if (smith == null || smith.Level < 1 || smith.ActivationStatus != ActivationStatus.ACTIVE) continue;
 
-                long cooldown = HarvestController.GetArmorSmithInterval(smith.Level);
+                long cooldown = HarvestController.GetArmorSmithInterval(civ, smith.Level);
                 // coldStartOnZero: true — même garde-fou que TickWeaponSmiths ci-dessus.
                 long lastTick = smith.LastProductionTick;
                 long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, cooldown, coldStartOnZero: true);

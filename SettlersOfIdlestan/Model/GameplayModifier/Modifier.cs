@@ -96,6 +96,11 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             SMELTER_SPEED,
             /// <summary>Bonus (négatif) appliqué au coût en minerai du cycle de la Fonderie. Base = Smelter.OreInputPerCycle.</summary>
             SMELTER_ORE_INPUT,
+            /// <summary>Multiplicateur de vitesse des bâtiments transformant des ressources en biens manufacturés :
+            /// Fonderie (acier) et productions de consommables — Forge d'Armes, Forge d'Armures, Potions de la Hutte
+            /// d'Alchimie. Base = 1.0; +0.05 = +5%. Pour la Fonderie il se cumule multiplicativement avec SMELTER_SPEED
+            /// (voir HarvestController.GetProductionBuildingSpeed). SubCategory unused. Accordé par le rituel Forge Ardente.</summary>
+            PRODUCTION_BUILDING_SPEED,
             /// <summary>Obsolète — plus utilisé depuis l'introduction des consommables. Conservé pour compatibilité des sauvegardes.</summary>
             STEEL_WEAPONS_SOLDIER_COUNT,
             /// <summary>Flags que les Forges peuvent produire des ArmureAcier (consommable) ; chaque armure consommée donne 50 % de chance de sauver un soldat.</summary>
