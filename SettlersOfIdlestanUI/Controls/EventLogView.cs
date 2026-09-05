@@ -96,8 +96,13 @@ public sealed class EventLogView : UserControl
         {
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-            // Colonne centree et bornee, comme le rendu Skia.
-            Content = new Border { MaxWidth = 720, HorizontalAlignment = HorizontalAlignment.Center, Child = stack },
+            // Colonne centree de largeur fixe : Stretch + MaxWidth, et non Center, pour que le
+            // cadre ne se retrecisse pas sur son contenu. Avec Center, la page Reglages (des cases
+            // a cocher courtes) mesurait bien moins large que la liste du journal, et le cadre
+            // changeait de taille d'un onglet a l'autre. Stretch prend toute la largeur offerte,
+            // MaxWidth la borne a 720, et Avalonia recentre l'element ainsi bride — donc largeur
+            // constante partout, sauf sur une fenetre plus etroite que 720 ou la colonne suit.
+            Content = new Border { MaxWidth = 720, HorizontalAlignment = HorizontalAlignment.Stretch, Child = stack },
             Padding = new Thickness(20),
         };
 
