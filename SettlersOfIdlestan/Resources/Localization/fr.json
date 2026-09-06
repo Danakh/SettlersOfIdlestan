@@ -1680,7 +1680,7 @@
   "spell_arcaneedification_name": "Édification Arcanique",
   "spell_arcaneedification_desc": "Sort ciblé : fait apparaître une ville sur n'importe quel emplacement libre desservi par une de vos routes, en ignorant toutes les restrictions de placement (distance aux autres villes, restrictions raciales de terrain). La ville arrive avec Hôtel de ville niveau 3, tous les bâtiments disponibles niveau 2 construits gratuitement, et défense/garnison au maximum.",
   "spell_voidbridge_name": "Pont du Vide",
-  "spell_voidbridge_desc": "Sort ciblé : bâtit gratuitement une route du Vide, entre deux hexagones de Vide, sans consommer de points de recherche.",
+  "spell_voidbridge_desc": "Sort ciblé : bâtit gratuitement une route du Vide, entre deux hexagones de Vide et adjacente à une ville ou une route de votre civilisation, sans consommer de points de recherche.",
   "spell_exhaustion_desc": "Le coût double à chaque lancement. Épuisement actuel : {0} (coût actuel ×{1}).",
   "spell_cooldown_tooltip": "Prochain retrait d'un cran d'épuisement dans {0} (cooldown : {1}).",
   "spell_charges_tooltip": "Charges de lancement : {0}/{1}. Lancer le sort avec une charge disponible la consomme sans accumuler d'épuisement.",

@@ -732,10 +732,11 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         /// <summary>
         /// Routes du Vide ciblables par le Pont du Vide sur le calque actuellement affiché : arêtes séparant
-        /// deux hexagones de Vide, tous deux visibles pour le joueur, et pas déjà occupées par une route de
-        /// la civilisation — sinon le sort n'aurait rien à bâtir. La visibilité suffit à borner la portée :
-        /// les routes révèlent les trois hexagones de chacune de leurs extrémités, donc chaque lancement
-        /// rend ciblables les arêtes atteintes, de proche en proche.
+        /// deux hexagones de Vide, tous deux visibles pour le joueur, pas déjà occupées par une route de
+        /// la civilisation — sinon le sort n'aurait rien à bâtir — et raccordées au réseau, c'est-à-dire
+        /// partageant un vertex avec une ville ou une route de la civilisation. Le sort étend donc le
+        /// réseau de proche en proche comme une construction de route normale, au lieu de pouvoir se poser
+        /// n'importe où dans le Vide déjà révélé.
         /// </summary>
         public List<Edge> GetVoidBridgeTargets()
         {
@@ -747,8 +748,16 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (!_state.Visibility.GetForZ(currentLayer).TryGetValue(civ.Index, out var visibleMap)) return result;
 
             var ownRoads = new HashSet<Edge>();
+            var networkVertices = new HashSet<Vertex>();
             foreach (var road in civ.Roads)
-                if (road.Position.Z == currentLayer) ownRoads.Add(road.Position);
+            {
+                if (road.Position.Z != currentLayer) continue;
+                ownRoads.Add(road.Position);
+                foreach (var vertex in road.Position.GetVertices())
+                    networkVertices.Add(vertex);
+            }
+            foreach (var city in civ.Cities)
+                if (city.Position.Z == currentLayer) networkVertices.Add(city.Position);
 
             var seen = new HashSet<Edge>();
             foreach (var tile in visibleMap.Tiles.Values)
@@ -760,11 +769,23 @@ namespace SettlersOfIdlestan.Controller.Magic
                     var edge = tile.Coord.Edge(direction);
                     if (!seen.Add(edge)) continue;
                     if (ownRoads.Contains(edge)) continue;
+                    if (!IsConnectedToNetwork(edge, networkVertices)) continue;
                     if (!_roadController.IsVoidBridgeEdge(edge, visibleMap)) continue;
                     result.Add(edge);
                 }
             }
             return result;
+        }
+
+        /// <summary>
+        /// Vrai si l'arête touche une ville ou une route de la civilisation, dont les vertex ont été
+        /// relevés par <see cref="GetVoidBridgeTargets"/>.
+        /// </summary>
+        private static bool IsConnectedToNetwork(Edge edge, HashSet<Vertex> networkVertices)
+        {
+            foreach (var vertex in edge.GetVertices())
+                if (networkVertices.Contains(vertex)) return true;
+            return false;
         }
 
         /// <summary>

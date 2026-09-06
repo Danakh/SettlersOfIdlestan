@@ -1680,7 +1680,7 @@
   "spell_arcaneedification_name": "Arcane Edification",
   "spell_arcaneedification_desc": "Targeted spell: makes a city appear on any free location reached by one of your roads, ignoring every placement restriction (distance to other cities, racial terrain requirements). The city arrives with a level 3 Town Hall, every available building built for free at level 2, and defense/garrison at maximum.",
   "spell_voidbridge_name": "Void Bridge",
-  "spell_voidbridge_desc": "Targeted spell: builds for free one void road, between two Void hexes, without spending any research points.",
+  "spell_voidbridge_desc": "Targeted spell: builds for free one void road, between two Void hexes and adjacent to a city or a road of your civilization, without spending any research points.",
   "spell_exhaustion_desc": "The cost doubles with every cast. Current exhaustion: {0} (current cost ×{1}).",
   "spell_cooldown_tooltip": "Next exhaustion stack removed in {0} (cooldown: {1}).",
   "spell_charges_tooltip": "Launch charges: {0}/{1}. Casting with a charge available consumes it without accumulating exhaustion.",

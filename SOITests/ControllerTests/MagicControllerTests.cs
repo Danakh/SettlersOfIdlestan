@@ -1285,6 +1285,9 @@ namespace SOITests.ControllerTests
         private static readonly HexCoord VoidEastHex = new(1, 0, IslandMap.SurfaceLayer);
         /// <summary>Troisième hexagone du second vertex de l'arête du Vide — révélé par la route qui l'emprunte.</summary>
         private static readonly HexCoord VoidSouthEastHex = new(1, -1, IslandMap.SurfaceLayer);
+        /// <summary>Paire d'hexagones à l'opposé de la ville : leur arête commune ne touche ni ville ni route.</summary>
+        private static readonly HexCoord VoidWestHex = new(-1, 0, IslandMap.SurfaceLayer);
+        private static readonly HexCoord VoidNorthWestHex = new(-1, 1, IslandMap.SurfaceLayer);
 
         /// <summary>
         /// Île de test dont deux hexagones voisins du vertex de la ville sont du Vide : l'arête qui les
@@ -1328,6 +1331,24 @@ namespace SOITests.ControllerTests
             state.NotifyTerrainChanged();
 
             Assert.DoesNotContain(controller.GetVoidBridgeTargets(), e => e.Equals(voidEdge));
+        }
+
+        [Fact]
+        public void GetVoidBridgeTargets_IgnoresEdgeNotAdjacentToACityOrARoad()
+        {
+            var (state, controller, voidEdge) = CreateVoidSetup();
+
+            // Tour de Guet : la ville voit à 2 hexagones, donc les deux hexagones de l'Ouest sont
+            // visibles sans qu'aucune ville ni route ne touche l'arête qui les sépare.
+            state.PlayerCivilization.Cities[0].AddBuilding(new Watchtower { Level = 1 });
+            state.CurrentViewedMap.GetTile(VoidWestHex)!.TerrainType = TerrainType.Void;
+            state.CurrentViewedMap.GetTile(VoidNorthWestHex)!.TerrainType = TerrainType.Void;
+            state.NotifyTerrainChanged();
+            state.Visibility.Recalculate();
+
+            var targets = controller.GetVoidBridgeTargets();
+            Assert.Contains(targets, e => e.Equals(voidEdge));
+            Assert.DoesNotContain(targets, e => e.Equals(Edge.Create(VoidWestHex, VoidNorthWestHex)));
         }
 
         [Fact]
