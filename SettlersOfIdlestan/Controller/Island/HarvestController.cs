@@ -972,7 +972,12 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { Level: >= 1 } h1 ? h1 : null;
                 if (hut != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION) && hut.ActivationStatus == ActivationStatus.ACTIVE)
-                    AddSourceRate(result, Resource.HealingPotion, BuildingSourceKey(BuildingType.AlchimistHut), 100.0 / GetAlchimistHutPotionInterval(civ, hut.Level));
+                {
+                    // Même rendement par cycle que AlchimistHutProductionEngine.TickPotions (Alchimie Avancée).
+                    int potionsPerCycle = Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.HEALING_POTION_PER_CYCLE, "", 1));
+                    AddSourceRate(result, Resource.HealingPotion, BuildingSourceKey(BuildingType.AlchimistHut),
+                        potionsPerCycle * 100.0 / GetAlchimistHutPotionInterval(civ, hut.Level));
+                }
             }
 
             double alchimistHutCrystalRate = GetAlchimistHutCrystalRatePerSecond(civilizationIndex);

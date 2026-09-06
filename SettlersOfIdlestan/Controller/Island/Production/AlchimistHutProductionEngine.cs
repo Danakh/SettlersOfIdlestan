@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
@@ -32,6 +33,10 @@ internal sealed class AlchimistHutProductionEngine
         foreach (var civ in _state.Civilizations)
         {
             if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION)) continue;
+
+            // Potions rendues par cycle : 1 de base, doublé par le vertex de prestige Alchimie Avancée.
+            // Les entrées (Verre, Cristal) ne suivent pas — le vertex augmente le rendement, pas le débit.
+            int potionsPerCycle = Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.HEALING_POTION_PER_CYCLE, "", 1));
 
             var cities = civ.GetCitiesWith(BuildingType.AlchimistHut);
             for (int i = 0; i < cities.Count; i++)
@@ -68,7 +73,7 @@ internal sealed class AlchimistHutProductionEngine
 
                     civ.RemoveResource(Resource.Glass, AlchimistHut.GlassInputPerPotion);
                     civ.RemoveResource(Resource.Crystal, AlchimistHut.CrystalInputPerPotion);
-                    civ.AddResource(Resource.HealingPotion, 1);
+                    civ.AddResource(Resource.HealingPotion, potionsPerCycle);
                 }
             }
         }

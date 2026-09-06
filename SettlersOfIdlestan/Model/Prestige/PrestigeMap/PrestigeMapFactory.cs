@@ -626,19 +626,23 @@ public static class PrestigeMapFactory
                 PrestigeMap.AdvancedAlchemyVertex,
                 "prestige_vertex_advanced_alchemy",
                 cost: Cost(PrestigeMap.AdvancedAlchemyVertex),
-                modifiers: Array.Empty<Modifier>()
+                // Rendement doublé à consommation inchangée : 2 Potions de Soin pour le même Verre et
+                // le même Cristal (voir AlchimistHutProductionEngine.TickPotions).
+                modifiers: new Modifier[] { new(ECategory.HEALING_POTION_PER_CYCLE, EType.ADDITIVE, 1) }
             ),
             new(
                 PrestigeMap.EclecticResearchVertex,
                 "prestige_vertex_eclectic_research",
                 cost: Cost(PrestigeMap.EclecticResearchVertex),
-                modifiers: Array.Empty<Modifier>()
+                // +N²% de recherche pour N bâtiments uniques (construits ou permanents) : le carré est
+                // calculé à la lecture, voir Civilization.ResearchProductionSpeed.
+                modifiers: new Modifier[] { new(ECategory.RESEARCH_SPEED_PER_UNIQUE_BUILDING_SQUARED, EType.ADDITIVE, 0.01) }
             ),
             new(
                 PrestigeMap.DefenseSpireVertex,
                 "prestige_vertex_defense_spire",
                 cost: Cost(PrestigeMap.DefenseSpireVertex),
-                modifiers: Array.Empty<Modifier>()
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "DefenseSpire", EType.ADDITIVE, 1) }
             ),
             // Connaissance du Terrain (profondeurs)
             new(
@@ -855,7 +859,9 @@ public static class PrestigeMapFactory
                 PrestigeMap.AbyssalPowerCoord,
                 "prestige_hex_abyssal_power",
                 adjacentVertices: Adjacent(PrestigeMap.AbyssalPowerCoord),
-                perVertexModifiers: Array.Empty<Modifier>(),
+                // +1 point de puissance de rituel par vertex acheté, ajouté au budget final (donc
+                // directement un rituel de puissance 1 de plus), et non un pourcentage de la base.
+                perVertexModifiers: new Modifier[] { new(ECategory.RITUAL_FLAT_POWER, EType.ADDITIVE, 1) },
                 domain: PrestigeHexDomain.Explore
             ),
             new(

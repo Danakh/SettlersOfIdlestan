@@ -77,6 +77,7 @@ public class MilitaryController
     private readonly CityAttackEngine _cityAttackEngine = new();
     private readonly ReinforcementEngine _reinforcementEngine = new();
     private readonly RaidEngine _raidEngine = new();
+    private readonly DefenseSpireEngine _defenseSpireEngine = new();
 
     // ── Constantes publiques ─────────────────────────────────────────────────
 
@@ -104,6 +105,13 @@ public class MilitaryController
     // ── Events publics ───────────────────────────────────────────────────────
 
     public event EventHandler<SoldierAttackEventArgs>? SoldierAttackedMonster;
+
+    /// <summary>
+    /// Tir d'une Spire de Défense sur un monstre. Distinct de <see cref="SoldierAttackedMonster"/>
+    /// uniquement pour le rendu : la spire lance une boule de feu (celle du volcan) là où les soldats
+    /// affichent l'icône d'attaque — voir MonsterRenderer.
+    /// </summary>
+    public event EventHandler<SoldierAttackEventArgs>? DefenseSpireAttackedMonster;
     public event EventHandler<CityAttackEventArgs>? SoldierAttackedCity;
     public event EventHandler<CityBuildingDestroyedEventArgs>? CityBuildingDestroyed;
     public event EventHandler<ReinforcementEventArgs>? ReinforcementSent;
@@ -334,6 +342,7 @@ public class MilitaryController
 
         _productionEngine.Initialize(state);
         _monsterCombatEngine.Initialize(state, prng);
+        _defenseSpireEngine.Initialize(state);
         _cityAttackEngine.Initialize(state, cityBuilderController, warFleetController, mobileCampController, prng);
         _reinforcementEngine.Initialize(state, _productionEngine);
         _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine, _productionEngine);
@@ -370,6 +379,8 @@ public class MilitaryController
         _monsterCombatEngine.ResolveRangedAttacks(currentTick,
             args => SoldierAttackedMonster?.Invoke(this, args),
             args => ConsumableConsumed?.Invoke(this, args));
+        _defenseSpireEngine.ResolveSpireAttacks(currentTick,
+            args => DefenseSpireAttackedMonster?.Invoke(this, args));
         ResolveDefenseRegen(currentTick);
         _cityAttackEngine.ResolveCityAttacks(currentTick,
             args => SoldierAttackedCity?.Invoke(this, args),

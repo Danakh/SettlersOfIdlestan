@@ -289,6 +289,37 @@ namespace SOITests.ControllerTests
             Assert.Equal(10 - AlchimistHut.CrystalInputPerPotion, civ.GetResourceQuantity(Resource.Crystal));
         }
 
+        /// <summary>
+        /// Alchimie Avancée (HEALING_POTION_PER_CYCLE) : le rendement double, les entrées ne bougent pas.
+        /// C'est tout l'intérêt du vertex — sans quoi il ne ferait qu'avancer la même consommation.
+        /// </summary>
+        [Fact]
+        public void HealingPotion_AvecAlchimieAvancee_ProduitDeuxPotionsPourLesMemesEntrees()
+        {
+            var (state, city) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            civ.Resources[Resource.Glass] = 10;
+            civ.Resources[Resource.Crystal] = 10;
+            city.AddBuilding(new AlchimistHut { Level = 1 });
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
+                new Modifier(ECategory.HEALING_POTION_PER_CYCLE, EType.ADDITIVE, 1),
+            }));
+            var clock = new GameClock();
+            clock.Start();
+            new HarvestController(state, clock);
+
+            // Sentinel: prime LastPotionProductionTick (coldStartOnZero).
+            clock.SimulateAdvance(1);
+
+            clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks);
+
+            Assert.Equal(2, civ.GetResourceQuantity(Resource.HealingPotion));
+            Assert.Equal(10 - AlchimistHut.GlassInputPerPotion, civ.GetResourceQuantity(Resource.Glass));
+            Assert.Equal(10 - AlchimistHut.CrystalInputPerPotion, civ.GetResourceQuantity(Resource.Crystal));
+        }
+
         [Fact]
         public void HealingPotion_NoModifier_ProducesNothing()
         {

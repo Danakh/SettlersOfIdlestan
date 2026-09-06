@@ -70,6 +70,7 @@ public static class BuildingFactory
         [BuildingType.GrandTemple] = () => new GrandTemple(),
         [BuildingType.ArcaneTower] = () => new ArcaneTower(),
         [BuildingType.SpiderShrine] = () => new SpiderShrine(),
+        [BuildingType.DefenseSpire] = () => new DefenseSpire(),
     };
 
     /// <summary>

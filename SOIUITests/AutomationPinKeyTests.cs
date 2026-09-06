@@ -47,7 +47,7 @@ public class AutomationPinKeyTests
 
     private static bool IsBuildingPinKey(string pinKey) => pinKey is
         "Barracks" or "Arsenal" or "Laboratory" or "Smelter" or
-        "WeaponSmith" or "ArmorSmith" or "AlchimistHut";
+        "WeaponSmith" or "ArmorSmith" or "AlchimistHut" or "DefenseSpire";
 
     /// Contrairement a AutomationPinLocalizationRoots, PinKeyCategories doit couvrir aussi les
     /// cles de batiment (Barracks...) : le panneau civilisation en a besoin pour styler leur

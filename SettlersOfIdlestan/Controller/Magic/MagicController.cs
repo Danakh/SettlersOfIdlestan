@@ -158,6 +158,10 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// <summary>
         /// Budget de puissance exact avant arrondi : base 1, +10 % par niveau cumulé de Tour de Mages,
         /// puis bonus additifs de prestige (Archimage, Lignes Telluriques, ...).
+        ///
+        /// <para>RITUAL_FLAT_POWER (hex de prestige Puissance Abyssale) s'ajoute en dernier, hors du
+        /// calcul relatif à la base : c'est un nombre de points de puissance, pas une part de la base,
+        /// et il doit le rester si RITUAL_TOTAL_POWER devenait un jour un vrai multiplicateur.</para>
         /// </summary>
         public double TotalPowerBudgetExact
         {
@@ -166,7 +170,8 @@ namespace SettlersOfIdlestan.Controller.Magic
                 var civ = GetPlayerCiv();
                 if (civ == null || !IsMagicUnlocked()) return 0;
                 double towerBonus = MageTowerTotalLevel * MageTowerPowerBonusPerLevel;
-                return civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_TOTAL_POWER, "", 1.0 + towerBonus);
+                double budget = civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_TOTAL_POWER, "", 1.0 + towerBonus);
+                return budget + civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_FLAT_POWER, "", 0.0);
             }
         }
 

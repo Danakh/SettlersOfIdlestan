@@ -116,6 +116,29 @@ namespace SOITests.ControllerTests
             Assert.True(controller.CanLaunchRitual(RitualId.Growth));
         }
 
+        /// <summary>
+        /// Hex de prestige Puissance Abyssale (RITUAL_FLAT_POWER) : +1 point de puissance par vertex,
+        /// ajouté au budget final. Contrairement à RITUAL_TOTAL_POWER, ce n'est pas une part de la base :
+        /// le test le vérifie en présence des deux, pour que le jour où RITUAL_TOTAL_POWER deviendrait un
+        /// vrai multiplicateur, ce bonus reste bien un nombre de rituels et non un pourcentage.
+        /// </summary>
+        [Fact]
+        public void TotalPowerBudget_RitualFlatPower_SAjouteApresLeBonusRelatif()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.5),
+                new(ECategory.RITUAL_FLAT_POWER, EType.ADDITIVE, 3),
+            }));
+
+            // 1 (base) + 0.5 (relatif) + 3 (fixe) = 4.5, arrondi à l'inférieur.
+            Assert.Equal(4.5, controller.TotalPowerBudgetExact, 5);
+            Assert.Equal(4, controller.TotalPowerBudget);
+        }
+
         [Fact]
         public void LaunchRitual_FailsWithoutCrystals()
         {

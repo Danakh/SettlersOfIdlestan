@@ -150,4 +150,33 @@ public class UniqueBuildingBonusTests
 
         Assert.Equal(0.15, civ.ModifierAggregator.ApplyModifiers(ECategory.TRADE_RATIO_BONUS, "", 0.0));
     }
+
+    /// <summary>
+    /// Recherche Éclectique (RESEARCH_SPEED_PER_UNIQUE_BUILDING_SQUARED) : +N²% de recherche pour N
+    /// bâtiments uniques. Le carré est recalculé à chaque lecture — c'est tout l'intérêt du vertex, et
+    /// la raison pour laquelle le modificateur ne porte qu'un coefficient.
+    /// </summary>
+    [Fact]
+    public void RechercheEclectique_BonusEstLeCarreDuNombreDeBatimentsUniques()
+    {
+        var (_, city, civ) = CreateSetup();
+        civ.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(ECategory.RESEARCH_SPEED_PER_UNIQUE_BUILDING_SQUARED, EType.ADDITIVE, 0.01),
+        }));
+
+        // Aucun bâtiment unique : le vertex acheté ne donne encore rien.
+        Assert.Equal(0, civ.UniqueBuildingCount);
+        Assert.Equal(1.0, civ.ResearchProductionSpeed, precision: 5);
+
+        BuildUnique(city, civ, new BlastFurnace { Level = 1 });
+        Assert.Equal(1, civ.UniqueBuildingCount);
+        Assert.Equal(1.01, civ.ResearchProductionSpeed, precision: 5);
+
+        // 3 bâtiments uniques → +9 %, pas +3 %. HeartTree apporte en plus son propre +25 % de recherche.
+        BuildUnique(city, civ, new HeartTree { Level = 1 });
+        BuildUnique(city, civ, new ThroneOfWinds { Level = 1 });
+        Assert.Equal(3, civ.UniqueBuildingCount);
+        Assert.Equal(1.25 + 0.09, civ.ResearchProductionSpeed, precision: 5);
+    }
 }

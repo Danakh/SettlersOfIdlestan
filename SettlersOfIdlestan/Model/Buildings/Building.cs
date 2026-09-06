@@ -243,6 +243,13 @@ public enum BuildingType
     /// cessent eux aussi d'attaquer les villes.
     /// </summary>
     SpiderShrine,
+    /// <summary>
+    /// Spire de Défense - Bâtiment magique. Frappe automatiquement une fois par seconde un monstre
+    /// situé à 2 hexs ou moins de la ville, pour 1 Cristal et 1 dégât ignorant l'armure. Activable
+    /// individuellement, et en bloc depuis l'écran d'automatisation. Débloquée par le vertex de
+    /// prestige Spire de Défense.
+    /// </summary>
+    DefenseSpire,
 }
 
 /// <summary>

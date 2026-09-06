@@ -490,6 +490,15 @@ public class Civilization
         => _uniqueBuildingCache.TryGetValue(type, out var building) ? building : null;
 
     /// <summary>
+    /// Nombre de bâtiments uniques détenus par la civilisation : ceux bâtis dans ses villes comme ceux
+    /// accordés en permanence par l'Ascension, sans doublon (voir <see cref="RebuildUniqueBuildingCache"/>,
+    /// qui tient le dictionnaire sous-jacent à jour à chaque changement de bâtiment). Lu par
+    /// <see cref="ResearchProductionSpeed"/> pour le vertex Recherche Éclectique.
+    /// </summary>
+    [JsonIgnore]
+    public int UniqueBuildingCount => _uniqueBuildingCache.Count;
+
+    /// <summary>
     /// Vrai si ce type de bâtiment unique est accordé en permanence par l'Ascension (voir
     /// <see cref="_ascensionGrantedUniqueBuildings"/>) — il ne vit dans aucune ville, donc
     /// n'apparaîtra jamais comme "bâti ailleurs" : l'UI doit l'afficher différemment (badge
@@ -609,6 +618,8 @@ public class Civilization
     /// Research point production speed multiplier (Library/Laboratory generation). 1.0 = normal speed.
     /// Inclut le bonus par Tour de Mages (RESEARCH_SPEED_PER_MAGE_TOWER, ex. Distillation Magique), agrégé
     /// puis multiplié par le nombre de Tours de Mages construites (niveau ≥ 1), avant les autres modificateurs.
+    /// S'y ajoute, sur la même base, le bonus au carré du nombre de bâtiments uniques
+    /// (RESEARCH_SPEED_PER_UNIQUE_BUILDING_SQUARED, vertex Recherche Éclectique).
     /// </summary>
     [JsonIgnore]
     public double ResearchProductionSpeed
@@ -619,7 +630,14 @@ public class Civilization
             int mageTowerCount = perMageTower > 0
                 ? _cities.Sum(c => c.Buildings.Count(b => b.Type == BuildingType.MageTower && b.Level >= 1))
                 : 0;
-            return ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "", 1.0 + perMageTower * mageTowerCount);
+
+            // Le carré est calculé ici, sur le compte courant : la valeur du modificateur n'est que le
+            // coefficient (0.01 = +N²%), le nombre de bâtiments uniques changeant en cours de partie.
+            double perUniqueSquared = ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_SPEED_PER_UNIQUE_BUILDING_SQUARED, "", 0.0);
+            int uniqueCount = perUniqueSquared > 0 ? UniqueBuildingCount : 0;
+
+            return ModifierAggregator.ApplyModifiers(ECategory.RESEARCH_PRODUCTION_SPEED, "",
+                1.0 + perMageTower * mageTowerCount + perUniqueSquared * uniqueCount * uniqueCount);
         }
     }
 

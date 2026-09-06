@@ -22,6 +22,9 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     private const float AttackParticleDuration = 0.5f;
     private const float AttackParticleIconSize = 16f;
 
+    /// <summary>Taille de la boule de feu d'une Spire de Défense — celle du volcan (voir VolcanoRenderer).</summary>
+    private const float FireballParticleIconSize = 20f;
+
     private sealed class MonsterVisual
     {
         public HexCoord ModelPosition = new(0, 0, IslandMap.SurfaceLayer);
@@ -44,6 +47,9 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         public SKPoint From;
         public SKPoint To;
         public float Progress;
+
+        /// <summary>Vrai pour un tir de Spire de Défense : boule de feu du volcan au lieu de l'icône d'attaque.</summary>
+        public bool IsFireball;
     }
 
     private readonly Dictionary<MonsterFeature, MonsterVisual> _monsterVisuals = new();
@@ -51,8 +57,10 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     private readonly ResourceManager _resourceManager;
     private readonly Dictionary<Resource, SKSvg?> _resourceIcons = new();
     private SKSvg? _attackSvg;
+    private SKSvg? _fireballSvg;
     private SKPaint? _resourceFlyPaint;
     private SKPaint? _attackParticlePaint;
+    private SKPaint? _fireballPaint;
     private bool _disposed;
 
     public MonsterRenderer(ResourceManager resourceManager)
@@ -71,6 +79,8 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         _resourceFlyPaint = new SKPaint { Color = SKColors.White };
         _attackParticlePaint = new SKPaint { IsAntialias = true };
         _attackSvg = _resourceManager.LoadImage("Resources.icons.military.attack.svg");
+        _fireballPaint = new SKPaint { IsAntialias = true };
+        _fireballSvg = _resourceManager.LoadImage("Resources.icons.features.fireball.svg");
     }
 
     public void Connect(
@@ -79,7 +89,12 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         Func<bool> isPrestigeTransitionPending,
         Func<bool> isIslandTabActive)
     {
-        militaryController.SoldierAttackedMonster += (_, args) =>
+        militaryController.SoldierAttackedMonster += (_, args) => OnAttackedMonster(args, isFireball: false);
+        // La Spire de Défense part du même endroit (le vertex de la ville) mais lance la boule de feu
+        // du volcan : deux événements, un seul chemin de filtrage.
+        militaryController.DefenseSpireAttackedMonster += (_, args) => OnAttackedMonster(args, isFireball: true);
+
+        void OnAttackedMonster(SoldierAttackEventArgs args, bool isFireball)
         {
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
@@ -87,8 +102,8 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             if (worldState == null) return;
             if (args.CityVertex.Z != worldState.CurrentViewedLayer) return;
             if (!IsSourceOrDestinationVisible(worldState, args.CityVertex, args.MonsterPosition)) return;
-            EmitAttackParticle(args.CityVertex, args.MonsterPosition);
-        };
+            EmitAttackParticle(args.CityVertex, args.MonsterPosition, isFireball);
+        }
     }
 
     private static bool IsSourceOrDestinationVisible(WorldState worldState, Vertex source, HexCoord target)
@@ -101,11 +116,17 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         return false;
     }
 
-    private void EmitAttackParticle(Vertex cityVertex, HexCoord targetPosition)
+    private void EmitAttackParticle(Vertex cityVertex, HexCoord targetPosition, bool isFireball)
     {
         var from = VertexToIsland(cityVertex);
         var (bx, by) = AxialToIsland(targetPosition.Q, targetPosition.R);
-        _attackParticles.Add(new AttackParticle { From = from, To = new SKPoint(bx, by), Progress = 0f });
+        _attackParticles.Add(new AttackParticle
+        {
+            From = from,
+            To = new SKPoint(bx, by),
+            Progress = 0f,
+            IsFireball = isFireball,
+        });
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -216,7 +237,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             }
         }
 
-        // Attack particles (soldiers → monster)
+        // Attack particles (soldiers → monster, et boules de feu des Spires de Défense)
         for (int i = _attackParticles.Count - 1; i >= 0; i--)
         {
             var p = _attackParticles[i];
@@ -224,7 +245,8 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             float t = Smoothstep(p.Progress);
             var pos2 = Lerp(p.From, p.To, t);
             float alpha = p.Progress < 0.7f ? 1f : (1f - p.Progress) / 0.3f;
-            DrawAttackParticle(canvas, pos2, alpha);
+            if (p.IsFireball) DrawFireballParticle(canvas, pos2, alpha);
+            else DrawAttackParticle(canvas, pos2, alpha);
             if (p.Progress >= 1f)
                 _attackParticles.RemoveAt(i);
         }
@@ -291,6 +313,32 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         canvas.Restore();
     }
 
+    /// <summary>
+    /// Boule de feu d'une Spire de Défense. Rendu repris tel quel de VolcanoRenderer.DrawFireball :
+    /// teinte blanche sans filtre de couleur, pour que le SVG garde ses propres teintes de flamme —
+    /// contrairement à l'icône d'attaque des soldats, recolorée en orange.
+    /// </summary>
+    private void DrawFireballParticle(SKCanvas canvas, SKPoint center, float alpha)
+    {
+        var picture = _fireballSvg?.Picture;
+        if (picture == null || _fireballPaint == null) return;
+
+        byte alphaB = (byte)(Math.Clamp(alpha, 0f, 1f) * 255);
+        _fireballPaint.Color = SKColors.White.WithAlpha(alphaB);
+        _fireballPaint.ColorFilter = null;
+
+        float naturalSize = Math.Max(picture.CullRect.Width, picture.CullRect.Height);
+        float scale = naturalSize > 0f ? FireballParticleIconSize / naturalSize : 1f;
+
+        canvas.Save();
+        canvas.Translate(center.X - FireballParticleIconSize / 2f, center.Y - FireballParticleIconSize / 2f);
+        canvas.Scale(scale);
+        canvas.SaveLayer(new SKRect(0, 0, naturalSize, naturalSize), _fireballPaint);
+        canvas.DrawPicture(picture);
+        canvas.Restore();
+        canvas.Restore();
+    }
+
     private void DrawResourceIcon(SKCanvas canvas, SKPoint center, Resource resource, float alpha)
     {
         if (!_resourceIcons.TryGetValue(resource, out var svg) || svg?.Picture == null) return;
@@ -326,10 +374,13 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     {
         if (_disposed) return;
         _attackSvg = null;
+        _fireballSvg = null;
         _resourceFlyPaint?.Dispose();
         _resourceFlyPaint = null;
         _attackParticlePaint?.Dispose();
         _attackParticlePaint = null;
+        _fireballPaint?.Dispose();
+        _fireballPaint = null;
         _disposed = true;
     }
 }

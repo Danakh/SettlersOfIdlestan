@@ -355,6 +355,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyWeaponSmith:   if (civ != null) ToggleAll<WeaponSmith>(civ); break;
             case AutomationRenderer.PinKeyArmorSmith:    if (civ != null) ToggleAll<ArmorSmith>(civ);  break;
             case AutomationRenderer.PinKeyAlchimistHut:  if (civ != null) ToggleAll<AlchimistHut>(civ); break;
+            case AutomationRenderer.PinKeyDefenseSpire:  if (civ != null) ToggleAll<DefenseSpire>(civ); break;
             case AutomationRenderer.PinKeyTownHall:      if (settings != null) settings.TownHallAutomationEnabled = !settings.TownHallAutomationEnabled;                   break;
             case AutomationRenderer.PinKeyGrandTemple:   if (settings != null) settings.TempleAutomationEnabled = !settings.TempleAutomationEnabled;                       break;
             case AutomationRenderer.PinKeyMithrilMine:   if (settings != null) settings.MithrilMineBuildingAutomationEnabled = !settings.MithrilMineBuildingAutomationEnabled;   break;
@@ -440,7 +441,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private static bool IsKeyShowable(string key,
         SettlersOfIdlestan.Model.IslandMap.WorldState? worldState,
         bool hasBarracks, bool hasArsenal, bool hasLabs, bool hasSmelters,
-        bool hasWeaponSmiths, bool hasArmorSmiths, bool hasAlchimistHuts,
+        bool hasWeaponSmiths, bool hasArmorSmiths, bool hasAlchimistHuts, bool hasDefenseSpires,
         IReadOnlyDictionary<string, bool> structuralUnlocks, int freePerCitySoldierQuota)
     {
         if (worldState == null) return false;
@@ -454,6 +455,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeyWeaponSmith  => hasWeaponSmiths,
             AutomationRenderer.PinKeyArmorSmith   => hasArmorSmiths,
             AutomationRenderer.PinKeyAlchimistHut => hasAlchimistHuts,
+            AutomationRenderer.PinKeyDefenseSpire => hasDefenseSpires,
             AutomationRenderer.PinKeyRestrictSoldierProduction or
             AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld or
             AutomationRenderer.PinKeyRestrictSoldierProductionAbyss or
@@ -481,6 +483,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyWeaponSmith:  return (AreAllActiveNullable<WeaponSmith>(civ),  "building_weaponsmith_name",  "tooltip_toggle_weaponsmith");
             case AutomationRenderer.PinKeyArmorSmith:   return (AreAllActiveNullable<ArmorSmith>(civ),   "building_armorsmith_name",   "tooltip_toggle_armorsmith");
             case AutomationRenderer.PinKeyAlchimistHut: return (AreAllActiveNullable<AlchimistHut>(civ), "building_alchimisthut_name", "tooltip_toggle_alchimisthut");
+            case AutomationRenderer.PinKeyDefenseSpire: return (AreAllActiveNullable<DefenseSpire>(civ), "building_defensespire_name", "tooltip_toggle_defensespire");
         }
 
         var settings = worldState?.AutomationSettings;
@@ -956,6 +959,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool hasWeaponSmiths  = HasBuilt<WeaponSmith>(civ);
         bool hasArmorSmiths   = HasBuilt<ArmorSmith>(civ);
         bool hasAlchimistHuts = HasBuilt<AlchimistHut>(civ);
+        bool hasDefenseSpires = HasBuilt<DefenseSpire>(civ);
 
         // Meme table que l'onglet Automatisation (AutomationRenderer.ComputeStructuralUnlocks) :
         // une bascule epinglee dont le deblocage a ete perdu (guilde retombee sous le niveau
@@ -967,7 +971,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         foreach (var key in pinned)
         {
             if (!IsKeyShowable(key, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters,
-                    hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts, structuralUnlocks, freePerCitySoldierQuota))
+                    hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts, hasDefenseSpires, structuralUnlocks, freePerCitySoldierQuota))
                 continue;
 
             var (value, nameKey, tooltipKey) = ResolvePinnedToggle(key, civ, worldState);

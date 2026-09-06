@@ -129,6 +129,11 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             RITUAL_MAX_COUNT,
             /// <summary>Multiplicateur du budget de puissance des rituels. Base = 1.0; +0.05 = +5%.</summary>
             RITUAL_TOTAL_POWER,
+            /// <summary>Points de puissance de rituel ajoutés au budget <b>après</b> RITUAL_TOTAL_POWER, sans
+            /// passer par la base 1.0 : +1 = un rituel de puissance 1 de plus, quel que soit le reste du calcul
+            /// (voir MagicController.TotalPowerBudgetExact). Base = 0.0. Accordé par l'hex de prestige Puissance
+            /// Abyssale, à raison de +1 par vertex adjacent acheté.</summary>
+            RITUAL_FLAT_POWER,
             /// <summary>Fraction de réduction du coût d'entretien des rituels (0.2 = -20%).</summary>
             RITUAL_UPKEEP_REDUCTION,
             /// <summary>Fraction de réduction du scaling du coût des rituels (lancement et entretien) : la formule
@@ -163,6 +168,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             SOLDIER_FOOD_FREE_PER_CITY,
             /// <summary>Flags que la Hutte d'Alchimie peut produire des Potions de Soin (consommable) ; chaque potion consommée donne 50 % de chance de sauver un soldat.</summary>
             UNLOCK_HEALING_POTION,
+            /// <summary>Potions de Soin produites par cycle et par Hutte d'Alchimie, à consommation d'entrées
+            /// inchangée (voir AlchimistHutProductionEngine.TickPotions). Base = 1 ; ADDITIVE +1 = 2 potions par
+            /// cycle pour le même Verre et le même Cristal. SubCategory unused.</summary>
+            HEALING_POTION_PER_CYCLE,
             /// <summary>SubCategory = SpellId name. Signale que le sort instantané est connu (débloqué par recherche).</summary>
             UNLOCK_SPELL,
             /// <summary>Fraction de réduction du coût en cristaux d'un sort. SubCategory = SpellId name (vide = s'applique à tous les sorts) (0.25 = -25%).</summary>
@@ -257,6 +266,11 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_ARSENAL_PRODUCTION,
             /// <summary>Bonus additif de vitesse de recherche par Tour de Mages construite (niveau ≥ 1) dans la civilisation. Base = 0.0 ; agrégé puis multiplié par le nombre de Tours de Mages (voir Civilization.ResearchProductionSpeed). 0.05 = +5% par tour.</summary>
             RESEARCH_SPEED_PER_MAGE_TOWER,
+            /// <summary>Bonus additif de vitesse de recherche par <b>carré</b> du nombre de bâtiments uniques
+            /// détenus par la civilisation — construits en ville ou accordés en permanence par l'Ascension (voir
+            /// Civilization.UniqueBuildingCount et ResearchProductionSpeed). Base = 0.0 ; 0.01 donne donc +N²%
+            /// pour N bâtiments uniques (5 → +25 %, 10 → +100 %). SubCategory unused.</summary>
+            RESEARCH_SPEED_PER_UNIQUE_BUILDING_SQUARED,
             /// <summary>Génération passive de Cristal par cycle (voir HarvestController.PassiveCrystalGenerationIntervalTicks), par Laboratoire construit (niveau ≥ 1) dans la civilisation. Base = 0.0 ; agrégé puis multiplié par le nombre de Laboratoires, avec report du reste fractionnaire d'un cycle à l'autre (voir HarvestController.PerformLaboratoryCrystalGeneration). 0.1 = +0.1 cristal par cycle et par laboratoire.</summary>
             CRYSTAL_GENERATION_PER_LABORATORY,
             /// <summary>Chance (en %) de produire une Arme ou une Armure en Acier supplémentaire lorsque la Forge d'Armes/d'Armures en produit une (voir HarvestController.PerformWeaponSmithProductions / PerformArmorSmithProductions). Base = 0. SubCategory unused.</summary>

@@ -773,6 +773,8 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_ABYSS               => localization.Get("prestige_tooltip_unlocks_abyss"),
         Modifier.ECategory.RITUAL_MAX_COUNT           => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_ritual_max_count")}",
         Modifier.ECategory.RITUAL_TOTAL_POWER         => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_ritual_total_power")}",
+        // Points de puissance, pas un pourcentage de la base : affiché tel quel (voir RITUAL_FLAT_POWER).
+        Modifier.ECategory.RITUAL_FLAT_POWER          => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_ritual_flat_power")}",
         Modifier.ECategory.RITUAL_UPKEEP_REDUCTION    => $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_ritual_upkeep")}",
         Modifier.ECategory.MAGIC_FEATURE_COUNT        => mod.SubCategory == "FairyCircle"
             ? localization.Get("prestige_tooltip_magic_feature_fairycircle")
@@ -836,6 +838,11 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.TEMPLE_MONSTER_DAMAGE_PER_SECOND  => $"+{(int)mod.Value} {localization.Get("prestige_tooltip_temple_monster_damage")}",
         Modifier.ECategory.UNLOCK_ARSENAL_PRODUCTION         => localization.Get("prestige_tooltip_unlocks_arsenal_production"),
         Modifier.ECategory.RESEARCH_SPEED_PER_MAGE_TOWER     => $"+{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_research_speed_per_mage_tower")}",
+        // Le pourcentage dépend du nombre de bâtiments uniques au carré : la valeur du modificateur
+        // n'est qu'un coefficient, l'infobulle décrit donc la règle plutôt qu'un nombre.
+        Modifier.ECategory.RESEARCH_SPEED_PER_UNIQUE_BUILDING_SQUARED
+                                                             => localization.Get("prestige_tooltip_research_speed_per_unique_building_squared"),
+        Modifier.ECategory.HEALING_POTION_PER_CYCLE          => localization.Get("prestige_tooltip_healing_potion_per_cycle"),
         Modifier.ECategory.CRYSTAL_GENERATION_PER_LABORATORY => $"+{mod.Value:0.#} {localization.Get("prestige_tooltip_crystal_generation_per_laboratory")}",
         Modifier.ECategory.SMITH_DOUBLE_PROD_CHANCE_PERCENT  => $"+{(int)mod.Value}% {localization.Get("prestige_tooltip_smith_double_prod_chance")}",
         Modifier.ECategory.AUTO_CAMP_ON_CONQUEST             => localization.Get("prestige_tooltip_auto_camp_on_conquest"),
