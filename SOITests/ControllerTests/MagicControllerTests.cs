@@ -117,10 +117,31 @@ namespace SOITests.ControllerTests
         }
 
         /// <summary>
+        /// RITUAL_TOTAL_POWER est un multiplicateur du budget, tours comprises : +50 % sur une base de
+        /// 1 + 10 × 0,1 = 2 donne 3, et non 2,5 comme lorsque le bonus s'ajoutait en points bruts.
+        /// </summary>
+        [Fact]
+        public void TotalPowerBudget_RitualTotalPower_MultiplieAussiLesPointsDesToursDeMages()
+        {
+            var (state, _, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state, level: 10); // base = 1 + 10 × 10% = 2
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 0.5),
+            }));
+
+            Assert.Equal(1.5, controller.RelativePowerMultiplier, 5);
+            Assert.Equal(3.0, controller.TotalPowerBudgetExact, 5);
+            Assert.Equal(3, controller.TotalPowerBudget);
+        }
+
+        /// <summary>
         /// Hex de prestige Puissance Abyssale (RITUAL_FLAT_POWER) : +1 point de puissance par vertex,
         /// ajouté au budget final. Contrairement à RITUAL_TOTAL_POWER, ce n'est pas une part de la base :
-        /// le test le vérifie en présence des deux, pour que le jour où RITUAL_TOTAL_POWER deviendrait un
-        /// vrai multiplicateur, ce bonus reste bien un nombre de rituels et non un pourcentage.
+        /// le test le vérifie en présence des deux, pour que ce bonus reste un nombre de points de
+        /// puissance et ne passe jamais par le multiplicateur.
         /// </summary>
         [Fact]
         public void TotalPowerBudget_RitualFlatPower_SAjouteApresLeBonusRelatif()

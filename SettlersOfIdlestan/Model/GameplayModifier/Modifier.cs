@@ -127,7 +127,9 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_RITUAL,
             /// <summary>Rituels actifs simultanés supplémentaires (base = nombre de Tours de Mages).</summary>
             RITUAL_MAX_COUNT,
-            /// <summary>Multiplicateur du budget de puissance des rituels. Base = 1.0; +0.05 = +5%.</summary>
+            /// <summary>Multiplicateur du budget de puissance des rituels, appliqué à la base 1.0 augmentée
+            /// des points des Tours de Mages (voir MagicController.TotalPowerBudgetExact). Base = 1.0;
+            /// +0.05 = +5%.</summary>
             RITUAL_TOTAL_POWER,
             /// <summary>Points de puissance de rituel ajoutés au budget <b>après</b> RITUAL_TOTAL_POWER, sans
             /// passer par la base 1.0 : +1 = un rituel de puissance 1 de plus, quel que soit le reste du calcul

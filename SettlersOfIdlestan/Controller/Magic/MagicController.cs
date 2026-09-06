@@ -156,12 +156,18 @@ namespace SettlersOfIdlestan.Controller.Magic
         }
 
         /// <summary>
-        /// Budget de puissance exact avant arrondi : base 1, +10 % par niveau cumulé de Tour de Mages,
-        /// puis bonus additifs de prestige (Archimage, Lignes Telluriques, ...).
+        /// Budget de puissance exact avant arrondi : base 1 + 0,1 point par niveau cumulé de Tour de
+        /// Mages, le tout multiplié par <see cref="RelativePowerMultiplier"/> (bonus RITUAL_TOTAL_POWER
+        /// de prestige, recherche et Ascension), puis augmenté de <see cref="FlatPowerBonus"/>.
+        ///
+        /// <para>RITUAL_TOTAL_POWER est un vrai multiplicateur : ses bonus s'appliquent aussi aux points
+        /// apportés par les Tours de Mages, et non seulement à la base 1. Ils étaient auparavant ajoutés
+        /// en points bruts au même niveau que les tours, ce qui rendait la branche magie de plus en plus
+        /// marginale à mesure que les tours montaient en niveau.</para>
         ///
         /// <para>RITUAL_FLAT_POWER (hex de prestige Puissance Abyssale) s'ajoute en dernier, hors du
         /// calcul relatif à la base : c'est un nombre de points de puissance, pas une part de la base,
-        /// et il doit le rester si RITUAL_TOTAL_POWER devenait un jour un vrai multiplicateur.</para>
+        /// et il ne doit donc pas passer par le multiplicateur.</para>
         /// </summary>
         public double TotalPowerBudgetExact
         {
@@ -170,8 +176,22 @@ namespace SettlersOfIdlestan.Controller.Magic
                 var civ = GetPlayerCiv();
                 if (civ == null || !IsMagicUnlocked()) return 0;
                 double towerBonus = MageTowerTotalLevel * MageTowerPowerBonusPerLevel;
-                double budget = civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_TOTAL_POWER, "", 1.0 + towerBonus);
-                return budget + FlatPowerBonus;
+                return (1.0 + towerBonus) * RelativePowerMultiplier + FlatPowerBonus;
+            }
+        }
+
+        /// <summary>
+        /// Multiplicateur relatif appliqué à la base (1 + points des Tours de Mages) : 1,0 sans aucun
+        /// bonus, 1,25 avec un RITUAL_TOTAL_POWER additif de 0,25. Exposé à part pour que l'infobulle
+        /// puisse afficher ce pourcentage sans le recalculer à l'envers depuis le total.
+        /// </summary>
+        public double RelativePowerMultiplier
+        {
+            get
+            {
+                var civ = GetPlayerCiv();
+                if (civ == null || !IsMagicUnlocked()) return 1.0;
+                return civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_TOTAL_POWER, "", 1.0);
             }
         }
 

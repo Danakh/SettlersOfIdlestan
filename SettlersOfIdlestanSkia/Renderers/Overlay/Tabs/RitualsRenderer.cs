@@ -33,17 +33,28 @@ public sealed class RitualsRenderer : IDisposable
     private string[] BuildPowerTooltipLines(SettlersOfIdlestan.Controller.Magic.MagicController magic)
     {
         var lines = new List<string>();
-        double towerBonusPercent = magic.MageTowerTotalLevel
-            * SettlersOfIdlestan.Controller.Magic.MagicController.MageTowerPowerBonusPerLevel * 100.0;
-        lines.Add(_localization.GetFormated("rituals_power_tooltip_towers", $"{towerBonusPercent:0.#}"));
+
+        // Les lignes suivent l'ordre du calcul de TotalPowerBudgetExact : base 1, points additifs des
+        // Tours de Mages, multiplicateur des autres bonus, puis puissance fixe. Les tours sont affichées
+        // en points (+0,1 par niveau) et non en pourcentage : c'est un modificateur additif sur la base,
+        // que le multiplicateur reprend ensuite.
+        lines.Add(_localization.GetFormated("rituals_power_tooltip_base", "1"));
+
+        double towerBonus = magic.MageTowerTotalLevel
+            * SettlersOfIdlestan.Controller.Magic.MagicController.MageTowerPowerBonusPerLevel;
+        if (Math.Abs(towerBonus) > 0.01)
+            lines.Add(_localization.GetFormated("rituals_power_tooltip_towers", $"{towerBonus:0.#}"));
 
         double totalExact = magic.TotalPowerBudgetExact;
 
+        // Les « autres bonus » (RITUAL_TOTAL_POWER) multiplient la base tours comprises : le pourcentage
+        // est lu directement sur le multiplicateur, et non déduit du total — l'en déduire supposerait
+        // qu'ils s'ajoutent en points bruts, ce qui n'est plus le cas.
         // La puissance fixe (RITUAL_FLAT_POWER) est un nombre de points, pas un pourcentage de la base :
         // la laisser dans le pourcentage « autres bonus » ajoutait 100 % par point plat, ce qui rendait
         // la ligne illisible. Elle est donc retirée du pourcentage et affichée sur sa propre ligne.
         double flat = magic.FlatPowerBonus;
-        double otherPercent = (totalExact - flat - 1.0 - towerBonusPercent / 100.0) * 100.0;
+        double otherPercent = (magic.RelativePowerMultiplier - 1.0) * 100.0;
         if (Math.Abs(otherPercent) > 0.01)
             lines.Add(_localization.GetFormated("rituals_power_tooltip_other", $"{otherPercent:0.#}"));
         if (Math.Abs(flat) > 0.01)
