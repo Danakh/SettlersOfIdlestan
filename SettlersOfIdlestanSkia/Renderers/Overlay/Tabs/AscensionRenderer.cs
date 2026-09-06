@@ -188,6 +188,18 @@ public sealed class AscensionRenderer : IDisposable
     private SKRect _buildingScrollTrackRect = SKRect.Empty;
     private SKRect _buildingScrollThumbRect = SKRect.Empty;
 
+    // Défilement de la liste des jalons (voir DrawMilestonesTab) : même mécanique que la grille de
+    // bâtiments permanents ci-dessus — la pile de cartes dépasse la hauteur visible dès que les
+    // descriptions s'allongent.
+    private float _milestoneTabScrollOffsetPx  = 0f;
+    private float _milestoneTabTotalContentH   = 0f;
+    private SKRect _milestoneTabViewportRect   = SKRect.Empty;
+    private bool _isDraggingMilestoneScrollbar;
+    private float _milestoneScrollDragStartY;
+    private float _milestoneScrollDragStartOffset;
+    private SKRect _milestoneScrollTrackRect = SKRect.Empty;
+    private SKRect _milestoneScrollThumbRect = SKRect.Empty;
+
     private readonly SKPaint _bgPaint           = new() { Color = new SKColor(18, 18, 24, 240), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardPaint         = new() { Color = new SKColor(30, 30, 40, 220), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _cardLockedPaint   = new() { Color = new SKColor(22, 22, 28, 200), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -328,6 +340,9 @@ public sealed class AscensionRenderer : IDisposable
         _buildingTabViewportRect = SKRect.Empty;
         _buildingScrollTrackRect = SKRect.Empty;
         _buildingScrollThumbRect = SKRect.Empty;
+        _milestoneTabViewportRect = SKRect.Empty;
+        _milestoneScrollTrackRect = SKRect.Empty;
+        _milestoneScrollThumbRect = SKRect.Empty;
         _pendingRaceCardRects.Clear();
         _pendingConfirmRect = SKRect.Empty;
         _hoveredRaceCardRect = SKRect.Empty;
@@ -852,8 +867,9 @@ public sealed class AscensionRenderer : IDisposable
 
     /// <summary>
     /// Liste des jalons d'Ascension (voir AscensionMilestoneDefinitions/AscensionController.
-    /// IsMilestoneUnlocked) : une carte par jalon, empilées verticalement — jamais assez nombreuses
-    /// (4 aujourd'hui) pour justifier un viewport défilant comme DrawPermanentBuildingTab.
+    /// IsMilestoneUnlocked) : une carte par jalon, empilées verticalement dans un viewport défilant —
+    /// même mécanique que DrawPermanentBuildingTab, la pile dépassant la hauteur visible dès que les
+    /// descriptions s'allongent (les derniers jalons étaient sinon inatteignables).
     /// </summary>
     private void DrawMilestonesTab(SKCanvas canvas, float x, float y, float contentWidth, AscensionController ascension)
     {
@@ -862,11 +878,30 @@ public sealed class AscensionRenderer : IDisposable
         // Voir DrawPermanentBuildingTab : la première ligne d'un bloc ne peut pas partir exactement
         // au bord haut sans que son ascendante soit tranchée.
         float noteTop = y + _descFont.Size;
-        DrawCenteredTextLayout(canvas, noteLayout, x + contentWidth / 2f, noteTop, _descFont, _mutedPaint);
 
         float cardTop = noteTop + noteLayout.Lines.Count * _descFont.Spacing + 16f;
         float cardGap = 12f;
         int raceCount = ascension.AscendedRaces.Count;
+
+        float contentBottom = cardTop;
+        for (int i = 0; i < AscensionMilestoneDefinitions.All.Count; i++)
+            contentBottom += GetMilestoneCardHeight(AscensionMilestoneDefinitions.All[i], contentWidth) + cardGap;
+
+        _milestoneTabViewportRect = new SKRect(0, y, _canvasSize.Width, _canvasSize.Height);
+        _milestoneTabTotalContentH = contentBottom - y;
+        float maxScroll = Math.Max(0f, _milestoneTabTotalContentH - _milestoneTabViewportRect.Height);
+        _milestoneTabScrollOffsetPx = Math.Clamp(_milestoneTabScrollOffsetPx, 0f, maxScroll);
+        bool needsScroll = _milestoneTabTotalContentH > _milestoneTabViewportRect.Height + 1f;
+
+        canvas.Save();
+        canvas.ClipRect(_milestoneTabViewportRect);
+        canvas.Translate(0, -_milestoneTabScrollOffsetPx);
+
+        DrawCenteredTextLayout(canvas, noteLayout, x + contentWidth / 2f, noteTop, _descFont, _mutedPaint);
+
+        // Comparaisons de survol en espace contenu (avant défilement) : voir DrawPermanentBuildingTab.
+        var savedHover = _hoverPosition;
+        _hoverPosition = new SKPoint(savedHover.X, savedHover.Y + _milestoneTabScrollOffsetPx);
 
         float cardY = cardTop;
         for (int i = 0; i < AscensionMilestoneDefinitions.All.Count; i++)
@@ -876,6 +911,30 @@ public sealed class AscensionRenderer : IDisposable
             DrawMilestoneCard(canvas, x, cardY, contentWidth, cardHeight, def, ascension, raceCount);
             cardY += cardHeight + cardGap;
         }
+
+        _hoverPosition = savedHover;
+
+        canvas.Restore();
+
+        if (needsScroll)
+            DrawMilestoneTabScrollbar(canvas, y, _milestoneTabViewportRect.Height);
+    }
+
+    private void DrawMilestoneTabScrollbar(SKCanvas canvas, float trackTop, float trackH)
+    {
+        const float scrollW = 6f;
+        const float scrollMargin = 4f;
+        float trackX = _canvasSize.Width - scrollW - scrollMargin;
+
+        _milestoneScrollTrackRect = new SKRect(trackX, trackTop, trackX + scrollW, trackTop + trackH);
+        canvas.DrawRoundRect(_milestoneScrollTrackRect, 3, 3, _scrollTrackPaint);
+
+        float thumbRatio = _milestoneTabViewportRect.Height / _milestoneTabTotalContentH;
+        float thumbH = Math.Max(24f, thumbRatio * trackH);
+        float maxScroll = Math.Max(1f, _milestoneTabTotalContentH - _milestoneTabViewportRect.Height);
+        float thumbTop = trackTop + (_milestoneTabScrollOffsetPx / maxScroll) * (trackH - thumbH);
+        _milestoneScrollThumbRect = new SKRect(trackX, thumbTop, trackX + scrollW, thumbTop + thumbH);
+        canvas.DrawRoundRect(_milestoneScrollThumbRect, 3, 3, _scrollThumbPaint);
     }
 
     /// <summary>Hauteur d'une carte de jalon : de quoi loger toute sa description sous l'en-tête
@@ -920,7 +979,9 @@ public sealed class AscensionRenderer : IDisposable
             var lines = unlocked
                 ? new[] { _localization.Get(def.NameKey), "", _localization.Get(def.DescKey) }
                 : new[] { _localization.Get(def.NameKey), "", _localization.Get(def.DescKey), "", _localization.Get(def.RequirementKey) };
-            _tooltipRenderer.SetTooltipLines(lines, new SKPoint(rect.Right, rect.Top));
+            // rect est en espace contenu (voir DrawMilestonesTab) : l'ancre du tooltip, elle, se
+            // donne en espace écran.
+            _tooltipRenderer.SetTooltipLines(lines, new SKPoint(rect.Right, rect.Top - _milestoneTabScrollOffsetPx));
         }
     }
 
@@ -1101,6 +1162,16 @@ public sealed class AscensionRenderer : IDisposable
             return;
         }
 
+        if (_isDraggingMilestoneScrollbar)
+        {
+            float dragDy     = position.Y - _milestoneScrollDragStartY;
+            float thumbRange = _milestoneScrollTrackRect.Height - _milestoneScrollThumbRect.Height;
+            float maxScroll  = Math.Max(0f, _milestoneTabTotalContentH - _milestoneTabViewportRect.Height);
+            float scrollPerPx = thumbRange > 0 ? maxScroll / thumbRange : 0;
+            _milestoneTabScrollOffsetPx = Math.Clamp(_milestoneScrollDragStartOffset + dragDy * scrollPerPx, 0f, maxScroll);
+            return;
+        }
+
         if (_isDraggingPendingRaceScrollbar)
         {
             float dragDy     = position.Y - _pendingRaceScrollDragStartY;
@@ -1135,6 +1206,7 @@ public sealed class AscensionRenderer : IDisposable
     {
         _isDraggingBuildingScrollbar = false;
         _isDraggingPendingRaceScrollbar = false;
+        _isDraggingMilestoneScrollbar = false;
 
         bool wasPanning = _isPanning;
         bool pressedOnMap = _pointerDown;
@@ -1176,8 +1248,14 @@ public sealed class AscensionRenderer : IDisposable
             return;
         }
 
-        // Sur l'onglet Jalons, rien à faire défiler ni à zoomer (voir DrawMilestonesTab).
-        if (_activeInnerTab == InnerTab.Milestones) return;
+        // Sur l'onglet Jalons, la molette fait défiler la liste des jalons : aucune carte à zoomer
+        // tant que cet onglet est affiché (voir DrawMilestonesTab).
+        if (_activeInnerTab == InnerTab.Milestones)
+        {
+            if (!_milestoneTabViewportRect.IsEmpty && _milestoneTabViewportRect.Contains(e.Center.X, e.Center.Y))
+                ScrollMilestonesTab(e.ZoomDelta > 0 ? -60f : 60f);
+            return;
+        }
 
         if (!IsMapInteractive(e.Center)) return;
         ApplyZoom(e.ZoomDelta > 0 ? ZoomStep : 1f / ZoomStep, e.Center);
@@ -1187,6 +1265,12 @@ public sealed class AscensionRenderer : IDisposable
     {
         float maxScroll = Math.Max(0f, _buildingTabTotalContentH - _buildingTabViewportRect.Height);
         _buildingTabScrollOffsetPx = Math.Clamp(_buildingTabScrollOffsetPx + deltaPx, 0f, maxScroll);
+    }
+
+    private void ScrollMilestonesTab(float deltaPx)
+    {
+        float maxScroll = Math.Max(0f, _milestoneTabTotalContentH - _milestoneTabViewportRect.Height);
+        _milestoneTabScrollOffsetPx = Math.Clamp(_milestoneTabScrollOffsetPx + deltaPx, 0f, maxScroll);
     }
 
     private void ScrollRacesTab(float deltaPx)
@@ -1373,6 +1457,21 @@ public sealed class AscensionRenderer : IDisposable
                 _pendingSelectedRace = raceId;
                 return true;
             }
+        }
+
+        if (!_milestoneScrollThumbRect.IsEmpty && _milestoneScrollThumbRect.Contains(position.X, position.Y))
+        {
+            _isDraggingMilestoneScrollbar   = true;
+            _milestoneScrollDragStartY      = position.Y;
+            _milestoneScrollDragStartOffset = _milestoneTabScrollOffsetPx;
+            return true;
+        }
+        if (!_milestoneScrollTrackRect.IsEmpty && _milestoneScrollTrackRect.Contains(position.X, position.Y))
+        {
+            float relY      = position.Y - _milestoneScrollTrackRect.Top;
+            float maxScroll = Math.Max(0f, _milestoneTabTotalContentH - _milestoneTabViewportRect.Height);
+            _milestoneTabScrollOffsetPx = Math.Clamp(relY / _milestoneScrollTrackRect.Height * maxScroll, 0f, maxScroll);
+            return true;
         }
 
         if (!_buildingScrollThumbRect.IsEmpty && _buildingScrollThumbRect.Contains(position.X, position.Y))

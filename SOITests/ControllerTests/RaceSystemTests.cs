@@ -367,9 +367,9 @@ public class RaceSystemTests
         // joueur — ne doit donc pas débloquer la Ziggourat via AscendedRaces.
         Assert.DoesNotContain(RaceId.Human, godState.AscensionState.AscendedRaces);
         Assert.Equal(5, godState.GodPoints);
-        // Le vertex central est offert par le premier jalon (Héritage Ancestral), débloqué par
-        // l'Ascension qui vient d'avoir lieu — sans Foi, rien d'autre n'est offert.
-        Assert.Equal(new[] { PrestigeMap.CentralVertex }, controller.CurrentMainState.PrestigeState!.PurchasedVertices);
+        // Les quatre premiers vertex (rang 1) sont offerts par le premier jalon (Héritage
+        // Ancestral), débloqué par l'Ascension qui vient d'avoir lieu — sans Foi, rien d'autre.
+        Assert.Equal(VerticesUpToRank(1), controller.CurrentMainState.PrestigeState!.PurchasedVertices);
     }
 
     /// <summary>
@@ -441,7 +441,7 @@ public class RaceSystemTests
             .ToList();
 
     [Fact]
-    public void PerformAscension_FirstMilestoneOnly_GrantsTheCentralPrestigeVertexOnly()
+    public void PerformAscension_FirstMilestoneOnly_GrantsTheFourFirstPrestigeVertices()
     {
         var controller = new MainGameController();
         controller.CreateNewGame();
@@ -450,16 +450,22 @@ public class RaceSystemTests
         godState.DivineEssence = 5;
         Assert.True(controller.AscensionController.PurchasePower(AscensionPowerId.Faith));
 
-        // Première Ascension : seul le jalon Héritage Ancestral est débloqué, soit le rang 0.
+        // Première Ascension : seul le jalon Héritage Ancestral est débloqué, soit le rang 1 — les
+        // quatre premiers vertex de la carte (le central et ses trois voisins).
         controller.PerformAscension();
 
         var purchased = controller.CurrentMainState.PrestigeState!.PurchasedVertices;
-        Assert.Contains(PrestigeMap.CentralVertex, purchased);
-        Assert.Single(purchased);
+        Assert.Equal(4, VerticesUpToRank(1).Count);
+        foreach (var vertex in VerticesUpToRank(1))
+            Assert.Contains(vertex, purchased);
+        Assert.Equal(4, purchased.Count);
+        // Les vertex nommés des jalons suivants restent payants.
+        Assert.DoesNotContain(PrestigeMap.AppliedResearchVertex, purchased);
+        Assert.DoesNotContain(PrestigeMap.MilitaryStrategyVertex, purchased);
     }
 
     [Fact]
-    public void PerformAscension_WithPrestigiousAscensionMilestone_GrantsRank1Free()
+    public void PerformAscension_WithPrestigiousAscensionMilestone_GrantsAppliedResearchAndMilitaryStrategy()
     {
         var controller = new MainGameController();
         controller.CreateNewGame();
@@ -475,12 +481,11 @@ public class RaceSystemTests
 
         var prestigeState = controller.CurrentMainState.PrestigeState!;
         var purchased = prestigeState.PurchasedVertices;
-        Assert.Contains(PrestigeMap.CentralVertex, purchased);
-        var neighbors = PrestigeMapController.DefaultMap.GetNeighbors(PrestigeMap.CentralVertex);
-        Assert.Equal(3, neighbors.Count);
-        foreach (var neighbor in neighbors)
-            Assert.Contains(neighbor.Coord, purchased);
-        Assert.Equal(4, purchased.Count);
+        foreach (var vertex in VerticesUpToRank(1))
+            Assert.Contains(vertex, purchased);
+        Assert.Contains(PrestigeMap.AppliedResearchVertex, purchased);
+        Assert.Contains(PrestigeMap.MilitaryStrategyVertex, purchased);
+        Assert.Equal(VerticesUpToRank(1).Count + 2, purchased.Count);
         // Gratuit : les points de prestige versés par le jalon Ascension Prestigieuse sont tous
         // encore disponibles, aucun n'a été dépensé pour ces vertex.
         Assert.Equal(godState.TotalGodPointsEarned, prestigeState.PrestigePoints);
@@ -490,8 +495,33 @@ public class RaceSystemTests
         Assert.Contains(startingCity.Buildings, b => b.Type == BuildingType.Market);
     }
 
+    /// <summary>Le même jalon offre tout le bas de l'arbre de recherche — voir
+    /// AscensionController.FreeMilestoneResearchMaxTier.</summary>
     [Fact]
-    public void PerformAscension_WithResearchProductionMilestone_GrantsRank2Free()
+    public void PerformAscension_WithPrestigiousAscensionMilestone_CompletesEveryResearchUpToTier3()
+    {
+        var controller = new MainGameController();
+        controller.CreateNewGame();
+        var godState = controller.CurrentMainState!.GodState;
+        godState.GodPoints = 100;
+        godState.DivineEssence = 5;
+        UnlockFirstRow(controller.AscensionController);
+        godState.AscensionState.AscensionsPerformed = 1;
+
+        controller.PerformAscension(RaceId.Dwarf);
+
+        var tree = controller.CurrentMainState.PrestigeState!.TechnologyTree;
+        foreach (var tech in TechnologyDefinitions.All)
+        {
+            if (tech.Tier <= AscensionController.FreeMilestoneResearchMaxTier)
+                Assert.True(tree.IsCompleted(tech.Id), $"{tech.Id} (tier {tech.Tier}) devrait être offerte");
+            else
+                Assert.False(tree.IsCompleted(tech.Id), $"{tech.Id} (tier {tech.Tier}) ne devrait pas l'être");
+        }
+    }
+
+    [Fact]
+    public void PerformAscension_WithResearchProductionMilestone_GrantsTheDeepestMine()
     {
         var controller = new MainGameController();
         controller.CreateNewGame();
@@ -506,15 +536,15 @@ public class RaceSystemTests
         controller.PerformAscension(RaceId.Dwarf);
 
         var purchased = controller.CurrentMainState.PrestigeState!.PurchasedVertices;
-        Assert.Equal(VerticesUpToRank(2).Count, purchased.Count);
-        foreach (var vertex in VerticesUpToRank(2))
-            Assert.Contains(vertex, purchased);
-        // Rang 3 : encore payant.
-        Assert.DoesNotContain(PrestigeMap.TraderGuildVertex, purchased);
+        Assert.Contains(PrestigeMap.DeepestMineVertex, purchased);
+        Assert.Equal(VerticesUpToRank(1).Count + 3, purchased.Count);
+        // Les portes des Abysses attendent le jalon suivant.
+        Assert.DoesNotContain(PrestigeMap.AbyssRiftVertex, purchased);
+        Assert.DoesNotContain(PrestigeMap.OuterHarborVertex, purchased);
     }
 
     [Fact]
-    public void PerformAscension_WithFreeRelocationMilestone_GrantsRank3Free()
+    public void PerformAscension_WithFreeRelocationMilestone_GrantsRelocationAndTheThreeAbyssGates()
     {
         var controller = new MainGameController();
         controller.CreateNewGame();
@@ -530,13 +560,14 @@ public class RaceSystemTests
         controller.PerformAscension(RaceId.Dwarf);
 
         var purchased = controller.CurrentMainState.PrestigeState!.PurchasedVertices;
-        foreach (var vertex in VerticesUpToRank(3))
-            Assert.Contains(vertex, purchased);
-        // Relocalisation est de rang 4 : offert en plus par ce même jalon.
         Assert.Contains(PrestigeMap.OuterHarborVertex, purchased);
-        Assert.Equal(VerticesUpToRank(3).Count + 1, purchased.Count);
-        // Les portes des branches profondes (rang 4) restent payantes.
-        Assert.DoesNotContain(PrestigeMap.DeepestMineVertex, purchased);
+        Assert.Contains(PrestigeMap.PlanarGateVertex, purchased);
+        Assert.Contains(PrestigeMap.AbyssRiftVertex, purchased);
+        Assert.Contains(PrestigeMap.DarkEclipseRitualVertex, purchased);
+        // Rang 1 + Recherche appliquée + Stratégie militaire + Mine Profonde + Relocalisation + 3 portes.
+        Assert.Equal(VerticesUpToRank(1).Count + 7, purchased.Count);
+        // Le reste du rang 2 reste payant : les jalons n'offrent plus de rang entier.
+        Assert.DoesNotContain(PrestigeMap.TraderGuildVertex, purchased);
         Assert.DoesNotContain(PrestigeMap.SteelSecretVertex, purchased);
     }
 

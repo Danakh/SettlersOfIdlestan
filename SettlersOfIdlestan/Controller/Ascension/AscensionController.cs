@@ -697,6 +697,7 @@ public class AscensionController : IModifierProvider
 
         godState.PrestigeState = new PrestigeState(worldState);
         GrantFreePrestigeVertices(godState.PrestigeState, chosenRace);
+        GrantFreeMilestoneResearch(godState.PrestigeState.TechnologyTree);
 
         // Magie Divine : chaque nouveau cycle recrédite 1 charge de lancement par sort — voir
         // Model.Magic.MagicState.GrantInitialSpellCharges.
@@ -761,18 +762,14 @@ public class AscensionController : IModifierProvider
     /// <summary>
     /// Rang maximal des vertex de prestige offerts au début de chaque cycle d'Ascension, ou -1 tant
     /// qu'aucun jalon n'est débloqué. Le rang est la distance en arêtes au vertex central, la même
-    /// mesure que celle qui fixe le coût d'un vertex (voir PrestigeMap.DefaultCost) : un rang par
-    /// jalon, dans l'ordre de AscensionMilestoneDefinitions — Héritage Ancestral offre le rang 0
-    /// (le vertex central, « Recherche »), Ascension Prestigieuse le rang 1 (Caserne, Port &amp;
-    /// Marché, Laboratoire), Ferveur Studieuse le rang 2 et Exode Divin le rang 3. Chaque jalon
-    /// englobe les précédents : les rangs sont cumulatifs, pas exclusifs.
+    /// mesure que celle qui fixe le coût d'un vertex (voir PrestigeMap.DefaultCost). Seul Héritage
+    /// Ancestral, le premier jalon, offre des vertex par rang : le rang 1, soit les quatre premiers
+    /// vertex de la carte — le central (« Recherche ») et ses trois voisins (Caserne, Port &amp;
+    /// Marché, Laboratoire). Les jalons suivants n'élargissent plus ce rayon : ils offrent des vertex
+    /// nommés, choisis pour ce qu'ils débloquent (voir <see cref="GrantFreePrestigeVertices"/>).
     /// </summary>
     public int FreePrestigeVertexRank =>
-        IsMilestoneUnlocked(AscensionMilestoneId.FreeRelocation)           ?  3 :
-        IsMilestoneUnlocked(AscensionMilestoneId.ResearchProduction)       ?  2 :
-        IsMilestoneUnlocked(AscensionMilestoneId.PrestigiousAscension)     ?  1 :
-        IsMilestoneUnlocked(AscensionMilestoneId.PermanentUniqueBuildings) ?  0 :
-                                                                             -1;
+        IsMilestoneUnlocked(AscensionMilestoneId.PermanentUniqueBuildings) ?  1 : -1;
 
     /// <summary>
     /// Nombre d'îles du début de l'archipel sautées au démarrage d'un nouveau cycle d'Ascension :
@@ -794,15 +791,24 @@ public class AscensionController : IModifierProvider
 
     /// <summary>
     /// Vertex de la carte de prestige offerts (ajoutés à PurchasedVertices sans coût) au début de
-    /// chaque cycle d'Ascension : tous ceux jusqu'au rang débloqué par les jalons (voir
+    /// chaque cycle d'Ascension. Héritage Ancestral ouvre le premier anneau (voir
     /// <see cref="FreePrestigeVertexRank"/>) — le Port &amp; Marché du rang 1 garantit par exemple un
     /// Marché de départ, qui permet d'acheter la ressource que le terrain de départ de la race ne
-    /// produit pas (ex. la brique des Nains). S'y ajoutent les vertex propres à la race choisie
-    /// (RaceDefinition.FreePrestigeVertices), eux aussi sans contrainte de contiguïté : les Elfes
-    /// noirs partent ainsi avec Culture Fongique, seule source de nourriture viable pour un départ
-    /// souterrain. S'y ajoute enfin le vertex Relocalisation (PrestigeMap.OuterHarborVertex, de rang
-    /// 4 donc hors des rangs offerts) une fois le jalon Exode Divin débloqué
-    /// (AscensionMilestoneId.FreeRelocation).
+    /// produit pas (ex. la brique des Nains). Les jalons suivants n'offrent plus un rang entier mais
+    /// des vertex nommés, choisis pour la porte qu'ils ouvrent :
+    /// <list type="bullet">
+    /// <item>Ascension Prestigieuse : Recherche appliquée et Stratégie militaire, les deux vertex
+    /// qui lèvent l'UNLOCK_RESEARCH d'Artisanat et de Discipline militaire — les racines des
+    /// recherches offertes par le même jalon (voir <see cref="GrantFreeMilestoneResearch"/>).</item>
+    /// <item>Ferveur Studieuse : Mine Profonde, la porte de l'Inframonde.</item>
+    /// <item>Exode Divin : Relocalisation (PrestigeMap.OuterHarborVertex, qui débloque l'action que
+    /// ce même jalon rend gratuite), plus les trois vertex UNLOCK_ABYSS — Porte Planaire, Faille des
+    /// Abysses et Rituel de l'Éclipse Noire — dont la réunion ouvre l'Abysse (voir
+    /// CorruptionSpireController.AbyssUnlockThreshold).</item>
+    /// </list>
+    /// S'y ajoutent les vertex propres à la race choisie (RaceDefinition.FreePrestigeVertices), eux
+    /// aussi sans contrainte de contiguïté : les Elfes noirs partent ainsi avec Culture Fongique,
+    /// seule source de nourriture viable pour un départ souterrain.
     /// </summary>
     private void GrantFreePrestigeVertices(PrestigeState prestigeState, RaceId race)
     {
@@ -821,12 +827,58 @@ public class AscensionController : IModifierProvider
                     Grant(vertex.Coord);
         }
 
+        if (IsMilestoneUnlocked(AscensionMilestoneId.PrestigiousAscension))
+        {
+            Grant(Model.Prestige.PrestigeMap.PrestigeMap.AppliedResearchVertex);
+            Grant(Model.Prestige.PrestigeMap.PrestigeMap.MilitaryStrategyVertex);
+        }
+
+        if (IsMilestoneUnlocked(AscensionMilestoneId.ResearchProduction))
+            Grant(Model.Prestige.PrestigeMap.PrestigeMap.DeepestMineVertex);
+
         if (IsRaceSelectionUnlocked)
             foreach (var vertex in RaceDefinitions.Get(race).FreePrestigeVertices)
                 Grant(vertex);
 
         if (IsMilestoneUnlocked(AscensionMilestoneId.FreeRelocation))
+        {
             Grant(Model.Prestige.PrestigeMap.PrestigeMap.OuterHarborVertex);
+            Grant(Model.Prestige.PrestigeMap.PrestigeMap.PlanarGateVertex);
+            Grant(Model.Prestige.PrestigeMap.PrestigeMap.AbyssRiftVertex);
+            Grant(Model.Prestige.PrestigeMap.PrestigeMap.DarkEclipseRitualVertex);
+        }
+    }
+
+    /// <summary>
+    /// Palier de recherche (Technology.Tier) entièrement offert par le jalon Ascension Prestigieuse :
+    /// toute recherche de ce tier ou moins démarre chaque cycle déjà complétée.
+    /// </summary>
+    public const int FreeMilestoneResearchMaxTier = 3;
+
+    /// <summary>
+    /// Complète d'office, au début de chaque cycle d'Ascension, toutes les recherches de tier
+    /// <see cref="FreeMilestoneResearchMaxTier"/> ou moins dès que le jalon Ascension Prestigieuse
+    /// est débloqué : le cycle ne rejoue plus le début d'arbre, dont les îles sautées (voir
+    /// <see cref="AscensionSkippedIslandCount"/>) ne laissent de toute façon plus le temps. Les
+    /// prérequis ne sont pas exigés — comme pour les kits raciaux (voir
+    /// PrestigeMapController.ApplyStartingResearch), ils ne gardent que le <em>lancement</em> d'une
+    /// recherche, pas sa complétion. Une recherche répétable ainsi offerte compte pour une
+    /// complétion ; Mémoire de Dieu, appliquée après, la remonte ensuite à son meilleur palier.
+    /// </summary>
+    private void GrantFreeMilestoneResearch(TechnologyTree tree)
+    {
+        if (!IsMilestoneUnlocked(AscensionMilestoneId.PrestigiousAscension)) return;
+
+        bool granted = false;
+        foreach (var tech in TechnologyDefinitions.All)
+        {
+            if (tech.Tier > FreeMilestoneResearchMaxTier || tree.IsCompleted(tech.Id)) continue;
+            tree.CompleteResearch(tech.Id);
+            granted = true;
+        }
+
+        if (granted)
+            tree.RebuildModifiers();
     }
 
     public IEnumerable<Modifier> GetModifiers()
