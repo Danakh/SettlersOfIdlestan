@@ -174,6 +174,9 @@ public sealed class RitualsView : UserControl
         return stack;
     }
 
+    // IsEnabled autant que Background : griser le fond ne suffit pas, un bouton reste cliquable
+    // tant qu'il est actif. Un sort trop cher partait ainsi en selection de cible pour n'echouer
+    // qu'apres le clic sur la cible, sans aucun message.
     private static Button ActionButton(string labelPath, string enabledPath, IBrush enabledBrush)
     {
         var button = new Button
@@ -190,6 +193,7 @@ public sealed class RitualsView : UserControl
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
             [!ContentProperty] = new Binding(labelPath),
+            [!IsEnabledProperty] = new Binding(enabledPath),
             [!BackgroundProperty] = new Binding(enabledPath)
             {
                 Converter = new FuncValueConverter<bool, IBrush>(e => e ? enabledBrush : Disabled),

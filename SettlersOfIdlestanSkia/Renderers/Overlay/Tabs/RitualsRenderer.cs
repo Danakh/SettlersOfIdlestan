@@ -241,6 +241,10 @@ public sealed class RitualsRenderer : IDisposable
         var def = SpellDefinitions.Get(id);
         if (def == null) return;
 
+        // Garde côté action, comme les pouvoirs du panneau civilisation : sans elle, un sort ciblé
+        // trop cher entrait quand même en sélection de cible et n'échouait qu'au clic sur la cible.
+        if (!magic.CanCastSpell(id)) return;
+
         if (def.TargetKind == SpellTargetKind.AllyCity)
         {
             if (_targetSelectionService == null) return;
