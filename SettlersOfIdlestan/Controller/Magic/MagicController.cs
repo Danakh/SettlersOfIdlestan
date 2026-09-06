@@ -306,14 +306,29 @@ namespace SettlersOfIdlestan.Controller.Magic
         public int GetLaunchCost(RitualDefinition def, int power)
             => (int)Math.Ceiling(def.BaseLaunchCost * Math.Pow(power, GetRitualCostExponent()));
 
-        /// <summary>Coût d'entretien par cycle : base × puissance², réduit par RITUAL_UPKEEP_REDUCTION et
-        /// RITUAL_COST_SCALING_REDUCTION.</summary>
+        /// <summary>
+        /// Nombre de points de puissance au bout desquels la composante exponentielle de l'entretien
+        /// double le coût. Ne s'applique qu'à l'entretien, pas au coût de lancement.
+        /// </summary>
+        public const int UpkeepDoublingPowerStep = 10;
+
+        /// <summary>
+        /// Facteur exponentiel de l'entretien : ×2 tous les <see cref="UpkeepDoublingPowerStep"/> points
+        /// de puissance, au-dessus de la progression quadratique. Vaut 1 à puissance 1, pour que le coût
+        /// de base d'un rituel reste exactement <see cref="RitualDefinition.BaseUpkeepCost"/>.
+        /// </summary>
+        private static double GetUpkeepExponentialFactor(int power)
+            => Math.Pow(2.0, (power - 1) / (double)UpkeepDoublingPowerStep);
+
+        /// <summary>Coût d'entretien par cycle : base × puissance² × 2^((puissance−1)/10), réduit par
+        /// RITUAL_UPKEEP_REDUCTION et RITUAL_COST_SCALING_REDUCTION.</summary>
         public int GetUpkeepCost(RitualDefinition def, int power)
         {
             double reduction = GetPlayerCiv()?.ModifierAggregator
                 .ApplyModifiers(ECategory.RITUAL_UPKEEP_REDUCTION, "", 0.0) ?? 0.0;
             reduction = Math.Clamp(reduction, 0.0, 0.9);
-            return (int)Math.Ceiling(def.BaseUpkeepCost * Math.Pow(power, GetRitualCostExponent()) * (1.0 - reduction));
+            return (int)Math.Ceiling(def.BaseUpkeepCost * Math.Pow(power, GetRitualCostExponent())
+                * GetUpkeepExponentialFactor(power) * (1.0 - reduction));
         }
 
         // ── Lancement / arrêt / puissance ─────────────────────────────────────

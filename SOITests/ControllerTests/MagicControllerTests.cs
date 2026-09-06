@@ -666,8 +666,8 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(MagicController.UpkeepIntervalTicks);
 
-            // Entretien : base 5 × 1² = 5 cristaux par cycle
-            Assert.Equal(45, civ.GetResourceQuantity(Resource.Crystal));
+            // Entretien : base 2 × 1² × 2^0 = 2 cristaux par cycle
+            Assert.Equal(48, civ.GetResourceQuantity(Resource.Crystal));
             Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
         }
 
@@ -726,8 +726,8 @@ namespace SOITests.ControllerTests
             AddMageTower(state);
 
             var def = RitualDefinitions.Get(RitualId.MartialBlessing)!;
-            // Base 10 × 1² × (1 − 0.5) = 5
-            Assert.Equal(5, controller.GetUpkeepCost(def, 1));
+            // Base 4 × 1² × 2^0 × (1 − 0.5) = 2
+            Assert.Equal(2, controller.GetUpkeepCost(def, 1));
         }
 
         [Fact]
@@ -753,9 +753,37 @@ namespace SOITests.ControllerTests
             int reducedLaunchCost = controller.GetLaunchCost(def, 2);
             int reducedUpkeepCost = controller.GetUpkeepCost(def, 2);
             Assert.True(reducedLaunchCost < def.BaseLaunchCost * 4);
-            Assert.True(reducedUpkeepCost < def.BaseUpkeepCost * 4);
             Assert.Equal((int)Math.Ceiling(def.BaseLaunchCost * Math.Pow(2, 1.6)), reducedLaunchCost);
-            Assert.Equal((int)Math.Ceiling(def.BaseUpkeepCost * Math.Pow(2, 1.6)), reducedUpkeepCost);
+
+            // L'entretien porte en plus le facteur exponentiel 2^((p−1)/10), qui n'est pas touché par
+            // la réduction de scaling.
+            Assert.Equal((int)Math.Ceiling(def.BaseUpkeepCost * Math.Pow(2, 1.6) * Math.Pow(2, 0.1)), reducedUpkeepCost);
+        }
+
+        /// <summary>
+        /// L'entretien double tous les 10 points de puissance, au-dessus de la progression quadratique :
+        /// à puissance 11, il vaut 2 × (base × 11²) et non base × 11².
+        /// </summary>
+        [Fact]
+        public void Upkeep_DoublesEveryTenPowerPoints()
+        {
+            var (state, _, controller) = CreateSetup();
+            UnlockMagic(state.PlayerCivilization, RitualId.Growth);
+            var def = RitualDefinitions.Get(RitualId.Growth)!;
+
+            // Puissance 1 : facteur 2^0 = 1, le coût de base est inchangé.
+            Assert.Equal(def.BaseUpkeepCost, controller.GetUpkeepCost(def, 1));
+
+            for (int power = 1; power <= 21; power += 10)
+            {
+                int quadraticOnly = def.BaseUpkeepCost * power * power;
+                double doublings = (power - 1) / (double)MagicController.UpkeepDoublingPowerStep;
+                Assert.Equal((int)Math.Ceiling(quadraticOnly * Math.Pow(2, doublings)),
+                    controller.GetUpkeepCost(def, power));
+            }
+
+            // Le coût de lancement, lui, reste purement quadratique.
+            Assert.Equal(def.BaseLaunchCost * 11 * 11, controller.GetLaunchCost(def, 11));
         }
 
         // ── Cercles de Fées ───────────────────────────────────────────────────
