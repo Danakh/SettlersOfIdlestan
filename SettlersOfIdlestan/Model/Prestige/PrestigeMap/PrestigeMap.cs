@@ -33,6 +33,12 @@ public class PrestigeMap
     public static readonly HexCoord AbyssChasmCoord   = new(-1, -2, 0);
     public static readonly HexCoord OssuaryCoord      = new(-1,  4, 0);
     public static readonly HexCoord AbyssVoidCoord    = new(-2,  4, 0);
+    // ── Prolongements des Abysses — un hex par branche, au-delà des vertex les plus chers.
+    // Chacun n'apporte que 3 nouveaux vertex : deux à 20M (un par vertex adjacent existant) et,
+    // au coin opposé, l'unique vertex à 100M de la branche.
+    public static readonly HexCoord PlanarConquestCoord   = new( 5, -2, 0);   // Conquête Planaire (militaire)
+    public static readonly HexCoord AbyssalPowerCoord     = new(-2,  5, 0);   // Puissance Abyssale (magie)
+    public static readonly HexCoord TerrainKnowledgeCoord = new(-2, -2, 0);   // Connaissance du Terrain (profondeurs)
 
     // ── Prestige vertices (HexGrid Vertex objects) ────────────────────────────
     // Layout: pointy-top, R=60, Central vertex at screen center.
@@ -127,6 +133,22 @@ public class PrestigeMap
     public static readonly Vertex PaleMistVertex        = Vertex.Create(new(-2,  4, 0), new(-3,  5, 0), new(-2,  5, 0));
     public static readonly Vertex SilentHollowVertex    = Vertex.Create(new(-2,  4, 0), new(-2,  3, 0), new(-3,  4, 0));
 
+    // ── Prolongements des Abysses — autour des trois hexs ci-dessus. Les deux premiers vertex de
+    // chaque groupe sont adjacents à un vertex existant de la branche (20M) ; le troisième occupe
+    // le coin opposé de l'hex et n'est atteignable qu'après eux (100M, terminus de la branche).
+    // Conquête Planaire (5,-2) — militaire
+    public static readonly Vertex MobileLogisticsVertex    = Vertex.Create(new( 5, -2, 0), new( 5, -1, 0), new( 6, -2, 0));
+    public static readonly Vertex PunitiveExpeditionVertex = Vertex.Create(new( 5, -2, 0), new( 5, -3, 0), new( 6, -3, 0));
+    public static readonly Vertex PhalanxVertex            = Vertex.Create(new( 5, -2, 0), new( 6, -3, 0), new( 6, -2, 0));
+    // Puissance Abyssale (-2,5) — magie
+    public static readonly Vertex AdvancedAlchemyVertex    = Vertex.Create(new(-2,  5, 0), new(-3,  5, 0), new(-3,  6, 0));
+    public static readonly Vertex EclecticResearchVertex   = Vertex.Create(new(-2,  5, 0), new(-2,  6, 0), new(-1,  5, 0));
+    public static readonly Vertex DefenseSpireVertex       = Vertex.Create(new(-2,  5, 0), new(-3,  6, 0), new(-2,  6, 0));
+    // Connaissance du Terrain (-2,-2) — profondeurs
+    public static readonly Vertex MithrilGreatForgeVertex  = Vertex.Create(new(-2, -2, 0), new(-1, -3, 0), new(-2, -3, 0));
+    public static readonly Vertex ExpeditionGearVertex     = Vertex.Create(new(-2, -2, 0), new(-3, -2, 0), new(-3, -1, 0));
+    public static readonly Vertex SteelTitanVertex         = Vertex.Create(new(-2, -2, 0), new(-2, -3, 0), new(-3, -2, 0));
+
     public IReadOnlyList<PrestigeVertex> Vertices { get; }
     public IReadOnlyList<PrestigeHex> Hexes { get; }
 
@@ -148,7 +170,10 @@ public class PrestigeMap
 
     public static int DefaultCost(int distanceFromCenter)
     {
-        int[] costPerDistance = new int[] { 10, 25, 100, 400, 2000, 10000, 40000, 200000, 1000000 };
+        // Les trois derniers paliers ne suivent plus la progression ×5/×10 : les vertex de
+        // distance 9 sont redescendus de 10M à 4M pour rester atteignables, ceux de distance 10
+        // (les prolongements des Abysses) coûtent 20M, et le terminus de chaque branche 100M.
+        int[] costPerDistance = new int[] { 10, 25, 100, 400, 2000, 10000, 40000, 200000, 1000000, 4000000, 20000000, 100000000 };
         int len = costPerDistance.Length;
         return distanceFromCenter < len
             ? costPerDistance[distanceFromCenter]

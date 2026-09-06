@@ -600,6 +600,65 @@ public static class PrestigeMapFactory
                 cost: Cost(PrestigeMap.SilentHollowVertex),
                 modifiers: new Modifier[] { new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, 1) }
             ),
+            // ── Prolongements des Abysses — pouvoirs à définir. Deux vertex à 20M par branche,
+            // puis le terminus à 100M au coin opposé du nouvel hex.
+            // Conquête Planaire (militaire)
+            new(
+                PrestigeMap.MobileLogisticsVertex,
+                "prestige_vertex_mobile_logistics",
+                cost: Cost(PrestigeMap.MobileLogisticsVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
+            new(
+                PrestigeMap.PunitiveExpeditionVertex,
+                "prestige_vertex_punitive_expedition",
+                cost: Cost(PrestigeMap.PunitiveExpeditionVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
+            new(
+                PrestigeMap.PhalanxVertex,
+                "prestige_vertex_phalanx",
+                cost: Cost(PrestigeMap.PhalanxVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
+            // Puissance Abyssale (magie)
+            new(
+                PrestigeMap.AdvancedAlchemyVertex,
+                "prestige_vertex_advanced_alchemy",
+                cost: Cost(PrestigeMap.AdvancedAlchemyVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
+            new(
+                PrestigeMap.EclecticResearchVertex,
+                "prestige_vertex_eclectic_research",
+                cost: Cost(PrestigeMap.EclecticResearchVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
+            new(
+                PrestigeMap.DefenseSpireVertex,
+                "prestige_vertex_defense_spire",
+                cost: Cost(PrestigeMap.DefenseSpireVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
+            // Connaissance du Terrain (profondeurs)
+            new(
+                PrestigeMap.MithrilGreatForgeVertex,
+                "prestige_vertex_mithril_great_forge",
+                cost: Cost(PrestigeMap.MithrilGreatForgeVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
+            new(
+                PrestigeMap.ExpeditionGearVertex,
+                "prestige_vertex_expedition_gear",
+                cost: Cost(PrestigeMap.ExpeditionGearVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
+            new(
+                PrestigeMap.SteelTitanVertex,
+                "prestige_vertex_steel_titan",
+                cost: Cost(PrestigeMap.SteelTitanVertex),
+                modifiers: Array.Empty<Modifier>()
+            ),
         };
 
         IReadOnlyList<Vertex> Adjacent(HexCoord hex)
@@ -781,6 +840,30 @@ public static class PrestigeMapFactory
                 adjacentVertices: Adjacent(PrestigeMap.AbyssVoidCoord),
                 perVertexModifiers: new Modifier[] { new(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, 0.1) },
                 domain: PrestigeHexDomain.Exploit
+            ),
+            // ── Prolongements des Abysses — un hex par branche, au-delà des vertex les plus chers.
+            // perVertexModifiers à définir. Pas de requiresDominionUnlock : ils n'apparaissent de
+            // toute façon qu'une fois un vertex adjacent acheté, donc bien après la Faille.
+            new(
+                PrestigeMap.PlanarConquestCoord,
+                "prestige_hex_planar_conquest",
+                adjacentVertices: Adjacent(PrestigeMap.PlanarConquestCoord),
+                perVertexModifiers: Array.Empty<Modifier>(),
+                domain: PrestigeHexDomain.Exterminate
+            ),
+            new(
+                PrestigeMap.AbyssalPowerCoord,
+                "prestige_hex_abyssal_power",
+                adjacentVertices: Adjacent(PrestigeMap.AbyssalPowerCoord),
+                perVertexModifiers: Array.Empty<Modifier>(),
+                domain: PrestigeHexDomain.Explore
+            ),
+            new(
+                PrestigeMap.TerrainKnowledgeCoord,
+                "prestige_hex_terrain_knowledge",
+                adjacentVertices: Adjacent(PrestigeMap.TerrainKnowledgeCoord),
+                perVertexModifiers: Array.Empty<Modifier>(),
+                domain: PrestigeHexDomain.Explore
             ),
         };
 
