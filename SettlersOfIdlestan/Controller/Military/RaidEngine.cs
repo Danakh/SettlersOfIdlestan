@@ -31,7 +31,6 @@ internal class RaidEngine
     private const long RaidCheckIntervalTicks = 100L;
     private long _lastRaidCheckTick = 0;
 
-    private const long AutoVendettaIntervalTicks = 100L;
     private long _lastPlayerAutoVendettaTick = 0;
 
     internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, ReinforcementEngine reinforcementEngine, MonsterCombatEngine monsterCombatEngine, SoldierProductionEngine productionEngine)
@@ -123,12 +122,13 @@ internal class RaidEngine
         ApplyRaidFlows(civ, targetCityVertex);
 
         // Vendetta : un raid manuel du joueur sur une ville ennemie met à jour la civilisation ciblée
-        // par les raids automatiques (voir ResolvePlayerAutoVendetta ci-dessous).
+        // par les raids automatiques sur le layer de cette ville (voir ResolvePlayerAutoVendetta
+        // ci-dessous) — les cibles des autres layers ne sont pas touchées.
         if (civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_VENDETTA))
         {
             var targetCiv = _state.Civilizations.FirstOrDefault(c => c.MilitaryVertices.Any(v => v.Position.Equals(targetCityVertex)));
             if (targetCiv != null)
-                _state.AutomationSettings.VendettaTargetCivIndex = targetCiv.Index;
+                _state.AutomationSettings.VendettaTargetCivIndexByLayer[targetCityVertex.Z] = targetCiv.Index;
         }
 
         var nearestCities = civ.Cities
@@ -249,15 +249,16 @@ internal class RaidEngine
     /// Arrête un Raid actif à la demande explicite du joueur (bouton Raid recliqué en cours de raid)
     /// ou lorsque l'automatisation Vendetta est activée/désactivée. Contrairement à un arrêt
     /// automatique (cible détruite/hors de vue, upkeep impayé — voir Update/StopRaid), réinitialise
-    /// aussi <see cref="AutomationSettings.VendettaTargetCivIndex"/> : après une interruption
+    /// aussi <see cref="AutomationSettings.VendettaTargetCivIndexByLayer"/> : après une interruption
     /// volontaire, Vendetta ne doit pas reprendre automatiquement le même combat mais attendre un
-    /// nouveau déclencheur (nouveau raid manuel ou attaque subie).
+    /// nouveau déclencheur (nouveau raid manuel ou attaque subie). Toutes les cibles sont oubliées, pas
+    /// seulement celle du layer du raid interrompu : sans quoi arrêter un raid enchaînerait aussitôt
+    /// sur la guerre d'un autre layer, alors que le joueur vient justement de demander l'arrêt.
     /// </summary>
     internal void CancelRaid(Civilization civ)
     {
         StopRaid(civ);
-        if (_state != null)
-            _state.AutomationSettings.VendettaTargetCivIndex = null;
+        _state?.AutomationSettings.VendettaTargetCivIndexByLayer.Clear();
     }
 
     internal void StopRaid(Civilization civ)
@@ -289,52 +290,81 @@ internal class RaidEngine
     }
 
     /// <summary>
-    /// Recherche Vendetta : tant qu'une civilisation est ciblée (voir <see cref="AutomationSettings.VendettaTargetCivIndex"/>,
-    /// mis à jour par StartRaid et CityAttackEngine.ResolveCityAttacks) et qu'aucun Raid n'est en cours,
-    /// relance automatiquement un Raid classique (mêmes upkeep et relais de renfort — voir StartRaid/
-    /// ApplyRaidFlows) sur la ville la plus proche de cette civilisation, sans intervention du joueur.
+    /// Recherche Vendetta : tant qu'une civilisation est ciblée sur au moins un layer (voir
+    /// <see cref="AutomationSettings.VendettaTargetCivIndexByLayer"/>, mis à jour par StartRaid et
+    /// CityAttackEngine.ResolveCityAttacks) et qu'aucun Raid n'est en cours, relance automatiquement un
+    /// Raid classique (mêmes upkeep et relais de renfort — voir StartRaid/ApplyRaidFlows) sur la ville
+    /// la plus proche de cette civilisation, sans intervention du joueur.
     /// Un seul Raid actif à la fois : tant que celui-ci n'est pas terminé (cible détruite, hors de vue
-    /// ou upkeep impayé — voir Update/StopRaid), Vendetta n'en déclenche pas un second.
+    /// ou upkeep impayé — voir Update/StopRaid), Vendetta n'en déclenche pas un second. Les guerres des
+    /// différents layers avancent donc chacune leur tour, le layer le moins profond d'abord (surface,
+    /// puis Inframonde, puis Abysse...) : la cible d'un layer n'est abandonnée que lorsqu'elle n'y a
+    /// plus aucun emplacement militaire, et Vendetta ne passe au layer suivant que le temps que la
+    /// cible du layer courant redevienne atteignable (hors de vue, plus aucun emplacement à nous sur
+    /// ce layer).
     /// </summary>
     internal void ResolvePlayerAutoVendetta(long currentTick)
     {
         if (_state == null || _cityAttackEngine == null) return;
         if (!_state.AutomationSettings.IsMilitaryVendettaAutomationActive) return;
         if (IsRaidActive()) return;
-        if (currentTick - _lastPlayerAutoVendettaTick < AutoVendettaIntervalTicks) return;
+        var targetsByLayer = _state.AutomationSettings.VendettaTargetCivIndexByLayer;
+        if (targetsByLayer.Count == 0) return;
+        if (currentTick - _lastPlayerAutoVendettaTick < MilitaryController.AutoVendettaIntervalTicks) return;
         _lastPlayerAutoVendettaTick = currentTick;
 
         var playerCiv = _state.PlayerCivilization;
         if (!playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_VENDETTA)) return;
 
-        int? targetCivIndex = _state.AutomationSettings.VendettaTargetCivIndex;
-        if (targetCivIndex == null) return;
-        if (!_state.Civilizations.Any(c => c.Index == targetCivIndex))
+        foreach (int layerZ in targetsByLayer.Keys.OrderBy(z => z).ToList())
         {
-            _state.AutomationSettings.VendettaTargetCivIndex = null;
+            int targetCivIndex = targetsByLayer[layerZ];
+            var targetCiv = _state.GetCivilization(targetCivIndex);
+
+            // La cible d'un layer est tenue pour morte — et la guerre de ce layer terminée — dès qu'elle
+            // n'y a plus d'emplacement militaire, même si elle survit ailleurs : le layer suivant prend
+            // alors le relais.
+            if (targetCiv == null || !HasMilitaryVertexOnLayer(targetCiv, layerZ))
+            {
+                targetsByLayer.Remove(layerZ);
+                continue;
+            }
+
+            // Cherche la ville ennemie de la civilisation ciblée la plus proche de n'importe lequel de nos
+            // emplacements de ce layer, sans limite de portée (contrairement à un Raid manuel classique,
+            // la cible n'est ici jamais choisie par le joueur).
+            var targetCivIndices = new[] { targetCivIndex };
+            IMilitaryVertex? nearestEnemy = null;
+            int nearestDist = int.MaxValue;
+            var playerVertices = playerCiv.MilitaryVertices;
+            for (int i = 0; i < playerVertices.Count; i++)
+            {
+                var vertex = playerVertices[i];
+                if (vertex.Position.Z != layerZ) continue;
+                var enemy = _cityAttackEngine.FindNearbyEnemyCity(vertex, targetCivIndices, maxRange: int.MaxValue);
+                if (enemy == null) continue;
+                int dist = vertex.Position.EdgeDistanceTo(enemy.Position);
+                if (dist < nearestDist)
+                {
+                    nearestDist = dist;
+                    nearestEnemy = enemy;
+                }
+            }
+            // Cible encore vivante mais injoignable pour l'instant (brouillard de guerre, aucune ville à
+            // nous sur ce layer) : on garde la cible et on tente la guerre du layer suivant.
+            if (nearestEnemy == null) continue;
+
+            StartRaid(playerCiv, nearestEnemy.Position);
             return;
         }
+    }
 
-        // Cherche la ville ennemie de la civilisation ciblée la plus proche de n'importe lequel de nos
-        // emplacements, sans limite de portée (contrairement à un Raid manuel classique, la cible n'est
-        // ici jamais choisie par le joueur).
-        var targetCivIndices = new[] { targetCivIndex.Value };
-        IMilitaryVertex? nearestEnemy = null;
-        int nearestDist = int.MaxValue;
-        foreach (var vertex in playerCiv.MilitaryVertices)
-        {
-            var enemy = _cityAttackEngine.FindNearbyEnemyCity(vertex, targetCivIndices, maxRange: int.MaxValue);
-            if (enemy == null) continue;
-            int dist = vertex.Position.EdgeDistanceTo(enemy.Position);
-            if (dist < nearestDist)
-            {
-                nearestDist = dist;
-                nearestEnemy = enemy;
-            }
-        }
-        if (nearestEnemy == null) return;
-
-        StartRaid(playerCiv, nearestEnemy.Position);
+    private static bool HasMilitaryVertexOnLayer(Civilization civ, int layerZ)
+    {
+        var vertices = civ.MilitaryVertices;
+        for (int i = 0; i < vertices.Count; i++)
+            if (vertices[i].Position.Z == layerZ) return true;
+        return false;
     }
 
     internal void Update(long currentTick)

@@ -202,7 +202,7 @@
   "automation_preset_cap_suffix": "(preset {0})",
   "automation_military_vendetta_name": "Vendetta",
   "automation_military_vendetta_desc": "Automatically raids the civilization that last attacked you or that you last raided",
-  "automation_military_vendetta_note": "Only one civilization targeted at a time; the target updates automatically.",
+  "automation_military_vendetta_note": "One targeted civilization per plane (Surface, Underworld, Abyss...); raids keep going until every target is wiped out, starting with the shallowest plane.",
   "automation_military_vendetta_locked": "Requires Vendetta",
   "automation_monument_investment_name": "Monument Investment",
   "automation_monument_investment_desc": "Automatically starts and continues investing in Monuments (Wonder, etc.)",

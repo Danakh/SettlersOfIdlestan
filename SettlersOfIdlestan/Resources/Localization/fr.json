@@ -202,7 +202,7 @@
   "automation_preset_cap_suffix": "(preset {0})",
   "automation_military_vendetta_name": "Vendetta",
   "automation_military_vendetta_desc": "Lance des raids automatiques sur la civilisation qui vous a attaqué ou que vous avez raidée en dernier",
-  "automation_military_vendetta_note": "Une seule civilisation ciblée à la fois ; la cible change automatiquement.",
+  "automation_military_vendetta_note": "Une civilisation ciblée par plan (Surface, Inframonde, Abysses...) ; les raids s'enchaînent jusqu'à ce que toutes les cibles soient éliminées, en commençant par le plan le moins profond.",
   "automation_military_vendetta_locked": "Nécessite Vendetta",
   "automation_monument_investment_name": "Investissement des Monuments",
   "automation_monument_investment_desc": "Démarre et poursuit automatiquement l'investissement des Monuments (Merveille, etc.)",

@@ -155,11 +155,12 @@ internal class CityAttackEngine
                 onSoldierAttackedCity(new CityAttackEventArgs(attackerVertex.Position, targetVertex.Position, path, engaged));
 
                 // Vendetta : une civilisation qui attaque le joueur devient la cible des raids automatiques
-                // (voir RaidEngine.ResolvePlayerAutoVendetta).
+                // sur le layer où elle a frappé (voir RaidEngine.ResolvePlayerAutoVendetta) — les guerres
+                // déjà en cours sur les autres layers gardent leur propre cible.
                 if (targetVertex.CivilizationIndex == playerCiv.Index && attackerCiv.Index != playerCiv.Index
                     && playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_VENDETTA))
                 {
-                    _state.AutomationSettings.VendettaTargetCivIndex = attackerCiv.Index;
+                    _state.AutomationSettings.VendettaTargetCivIndexByLayer[targetVertex.Position.Z] = attackerCiv.Index;
                 }
 
                 if (destroyed && destroyedPositions.Add(targetVertex.Position))

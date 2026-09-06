@@ -212,12 +212,17 @@ public class AutomationSettings
     public Vertex? WarHeraldTargetVertex { get; set; } = null;
 
     /// <summary>
-    /// Index de la civilisation actuellement ciblée par la recherche Vendetta (raids automatiques).
-    /// Une seule civilisation à la fois ; mis à jour après un raid manuel du joueur sur une ville
-    /// ennemie ou lorsqu'une civilisation attaque le joueur (voir RaidEngine.StartRaid et
-    /// CityAttackEngine.ResolveCityAttacks). Null si aucune cible valide.
+    /// Index de la civilisation ciblée par la recherche Vendetta (raids automatiques), <b>une par
+    /// layer</b> (clé = Z du layer : 0 = surface, LayerState.UnderworldZ, LayerState.AbyssZ...).
+    /// Chaque entrée est posée par un raid manuel du joueur sur une ville ennemie de ce layer ou par
+    /// une civilisation qui l'attaque sur ce layer (voir RaidEngine.StartRaid et
+    /// CityAttackEngine.ResolveCityAttacks), et n'est retirée que lorsque la civilisation ciblée n'a
+    /// plus d'emplacement militaire sur ce layer (voir RaidEngine.ResolvePlayerAutoVendetta) ou que le
+    /// joueur interrompt volontairement un raid (voir RaidEngine.CancelRaid). Les guerres des
+    /// différents layers se poursuivent donc en parallèle, un raid à la fois, layer le moins profond
+    /// d'abord.
     /// </summary>
-    public int? VendettaTargetCivIndex { get; set; } = null;
+    public Dictionary<int, int> VendettaTargetCivIndexByLayer { get; set; } = new();
 
     /// <summary>
     /// Réinitialise l'état lié à l'île en cours (cible de raid, Héraut de Guerre, Vendetta) : à
@@ -236,7 +241,7 @@ public class AutomationSettings
         RaidTargetHex = null;
         RaidCurrentUpkeep = 0;
         WarHeraldTargetVertex = null;
-        VendettaTargetCivIndex = null;
+        VendettaTargetCivIndexByLayer.Clear();
     }
 
     /// <summary>
@@ -275,6 +280,6 @@ public class AutomationSettings
         RaidTargetHex = legacy.RaidTargetHex;
         RaidCurrentUpkeep = legacy.RaidCurrentUpkeep;
         WarHeraldTargetVertex = legacy.WarHeraldTargetVertex;
-        VendettaTargetCivIndex = legacy.VendettaTargetCivIndex;
+        VendettaTargetCivIndexByLayer = new Dictionary<int, int>(legacy.VendettaTargetCivIndexByLayer);
     }
 }

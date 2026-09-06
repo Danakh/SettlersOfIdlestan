@@ -360,5 +360,113 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks / 2);
             Assert.Equal(1, city.Soldiers);
         }
+
+        // ── Vendetta — une cible par plan ─────────────────────────────────────
+
+        private static HexCoord UnderworldCenter => new(0, 0, LayerState.UnderworldZ);
+        private static HexCoord UnderworldNE     => new(0, 1, LayerState.UnderworldZ);
+        private static HexCoord UnderworldEast   => new(1, 0, LayerState.UnderworldZ);
+        private static HexCoord UnderworldNE11   => new(1, 1, LayerState.UnderworldZ);
+
+        /// <summary>
+        /// Le joueur (civ 0) tient une ville sur la surface et un avant-poste dans l'Inframonde ; une
+        /// civilisation ennemie distincte occupe le vertex voisin de chacun d'eux (civ 1 en surface,
+        /// civ 2 dans l'Inframonde). Vendetta est débloquée et activée, avec une cible déjà posée sur
+        /// chaque plan.
+        /// </summary>
+        private static (WorldState state, GameClock clock, Vertex surfaceEnemy, Vertex underworldEnemy)
+            CreateVendettaSetup()
+        {
+            var surfaceTiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Plain),
+                new(NE,     TerrainType.Plain),
+                new(East,   TerrainType.Plain),
+                new(NE11,   TerrainType.Plain),
+            };
+
+            var playerCiv = new Civilization { Index = 0 };
+            playerCiv.Resources[Resource.Gold] = 9999;
+            playerCiv.AddCity(new City(Vertex.Create(NE, East, NE11)) { CivilizationIndex = 0 });
+            playerCiv.AddCity(new City(Vertex.Create(UnderworldNE, UnderworldEast, UnderworldNE11)) { CivilizationIndex = 0 });
+            playerCiv.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(Modifier.ECategory.UNLOCK_VENDETTA, Modifier.EType.ADDITIVE, 1),
+            }));
+
+            var surfaceEnemy = Vertex.Create(Center, NE, East);
+            var surfaceEnemyCiv = new Civilization { Index = 1 };
+            surfaceEnemyCiv.AddCity(new City(surfaceEnemy) { CivilizationIndex = 1 });
+
+            var underworldEnemy = Vertex.Create(UnderworldCenter, UnderworldNE, UnderworldEast);
+            var underworldEnemyCiv = new Civilization { Index = 2 };
+            underworldEnemyCiv.AddCity(new City(underworldEnemy) { CivilizationIndex = 2 });
+
+            var state = new WorldState(new IslandMap(surfaceTiles),
+                new List<Civilization> { playerCiv, surfaceEnemyCiv, underworldEnemyCiv },
+                AtlasController.InvalidIslandId);
+            var underworldTiles = new List<HexTile>
+            {
+                new(UnderworldCenter, TerrainType.Plain),
+                new(UnderworldNE,     TerrainType.Plain),
+                new(UnderworldEast,   TerrainType.Plain),
+                new(UnderworldNE11,   TerrainType.Plain),
+            };
+            state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(underworldTiles, LayerState.UnderworldZ)));
+
+            state.AutomationSettings.MilitaryVendettaAutomationEnabled = true;
+            // Inframonde inséré en premier à dessein : la priorité doit venir de la profondeur du plan,
+            // pas de l'ordre d'insertion dans le dictionnaire.
+            state.AutomationSettings.VendettaTargetCivIndexByLayer[LayerState.UnderworldZ] = 2;
+            state.AutomationSettings.VendettaTargetCivIndexByLayer[IslandMap.SurfaceLayer] = 1;
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MilitaryController();
+            controller.Initialize(state, clock, prng: new GamePRNG());
+            clock.SimulateAdvance(1);
+
+            return (state, clock, surfaceEnemy, underworldEnemy);
+        }
+
+        /// <summary>
+        /// Deux guerres en cours, une par plan : Vendetta traite le plan le moins profond d'abord et
+        /// laisse la cible de l'autre plan intacte.
+        /// </summary>
+        [Fact]
+        public void Vendetta_WithTargetOnTwoLayers_RaidsShallowestLayerFirst()
+        {
+            var (state, clock, surfaceEnemy, _) = CreateVendettaSetup();
+
+            clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
+
+            Assert.Equal(surfaceEnemy, state.AutomationSettings.RaidTargetVertex);
+            Assert.Equal(2, state.AutomationSettings.VendettaTargetCivIndexByLayer.Count);
+        }
+
+        /// <summary>
+        /// Cible du plan le moins profond éliminée : son entrée est oubliée et la guerre se poursuit
+        /// sur le plan suivant, sans nouvelle intervention du joueur.
+        /// </summary>
+        [Fact]
+        public void Vendetta_WhenShallowestTargetIsDead_ContinuesWarOnNextLayer()
+        {
+            var (state, clock, _, underworldEnemy) = CreateVendettaSetup();
+
+            clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
+            Assert.NotNull(state.AutomationSettings.RaidTargetVertex);
+
+            // La civilisation de surface disparaît : le raid en cours s'arrête faute de cible...
+            state.RemoveCivilization(state.GetCivilization(1)!);
+            clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
+            Assert.Null(state.AutomationSettings.RaidTargetVertex);
+
+            // ...et le raid suivant repart tout seul sur la cible de l'Inframonde.
+            clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
+
+            Assert.Equal(underworldEnemy, state.AutomationSettings.RaidTargetVertex);
+            Assert.Equal(new Dictionary<int, int> { [LayerState.UnderworldZ] = 2 },
+                state.AutomationSettings.VendettaTargetCivIndexByLayer);
+        }
     }
 }

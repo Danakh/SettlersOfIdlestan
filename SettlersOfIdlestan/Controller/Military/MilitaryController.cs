@@ -107,6 +107,9 @@ public class MilitaryController
     /// <summary>Intervalle minimum entre deux envois de renforts depuis la même ville.</summary>
     public const long ReinforcementIntervalTicks = 100L;
 
+    /// <summary>Intervalle minimum entre deux relances de raid par la Vendetta (voir RaidEngine.ResolvePlayerAutoVendetta).</summary>
+    public const long AutoVendettaIntervalTicks = 100L;
+
     /// <summary>Intervalle entre deux cycles de consommation de nourriture par les soldats (1 000 ticks = 10 s).</summary>
     public const long SoldierFeedIntervalTicks = 1_000L;
 
