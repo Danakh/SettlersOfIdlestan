@@ -653,19 +653,23 @@ public static class PrestigeMapFactory
                 PrestigeMap.MithrilGreatForgeVertex,
                 "prestige_vertex_mithril_great_forge",
                 cost: Cost(PrestigeMap.MithrilGreatForgeVertex),
-                modifiers: Array.Empty<Modifier>()
+                // Débloque le bâtiment unique du même nom, qui équipe les Aventuriers en échange d'un
+                // flux de Mithril (voir MithrilGreatForgeEngine).
+                modifiers: new Modifier[] { new(ECategory.BUILDING_MAX_LEVEL, "MithrilGreatForge", EType.ADDITIVE, 1) }
             ),
             new(
                 PrestigeMap.ExpeditionGearVertex,
                 "prestige_vertex_expedition_gear",
                 cost: Cost(PrestigeMap.ExpeditionGearVertex),
-                modifiers: Array.Empty<Modifier>()
+                // Sanctuarise les derniers 20% de chaque consommable hors du plan le plus profond
+                // atteint (voir Civilization.CanConsumeConsumable).
+                modifiers: new Modifier[] { new(ECategory.CONSUMABLE_RESERVE_FRACTION, EType.ADDITIVE, 0.2) }
             ),
             new(
                 PrestigeMap.SteelTitanVertex,
                 "prestige_vertex_steel_titan",
                 cost: Cost(PrestigeMap.SteelTitanVertex),
-                modifiers: Array.Empty<Modifier>()
+                modifiers: new Modifier[] { new(ECategory.UNLOCK_STEEL_TITAN, EType.ADDITIVE, 1) }
             ),
         };
 
@@ -874,7 +878,10 @@ public static class PrestigeMapFactory
                 PrestigeMap.TerrainKnowledgeCoord,
                 "prestige_hex_terrain_knowledge",
                 adjacentVertices: Adjacent(PrestigeMap.TerrainKnowledgeCoord),
-                perVertexModifiers: Array.Empty<Modifier>(),
+                // +0.5% de vitesse de récolte par heure passée dans le plan récolté, et par vertex
+                // adjacent acheté. Le compteur d'un plan démarre à sa première ville et repart de zéro
+                // si l'accès est perdu (voir HarvestController.UpdateLayerKnowledge).
+                perVertexModifiers: new Modifier[] { new(ECategory.LAYER_KNOWLEDGE_HARVEST_SPEED_PER_HOUR, EType.ADDITIVE, 0.005) },
                 domain: PrestigeHexDomain.Explore
             ),
         };

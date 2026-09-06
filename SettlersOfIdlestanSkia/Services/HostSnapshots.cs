@@ -855,6 +855,7 @@ public sealed record CivPanelSnapshot(
     public const string KeyNecropolis      = "necropolis";
     public const string KeyDeepestMine     = "deepestMine";
     public const string KeySpire           = "spire";
+    public const string KeySteelTitan      = "steelTitan";
     public const string KeyRaid            = "raid";
     public const string KeyWarHerald       = "warHerald";
     public const string KeyMonumentCycle   = "monumentCycle";

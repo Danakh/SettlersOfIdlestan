@@ -41,6 +41,7 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyArmorSmith    = "ArmorSmith";
     internal const string PinKeyAlchimistHut  = "AlchimistHut";
     internal const string PinKeyDefenseSpire  = "DefenseSpire";
+    internal const string PinKeyMithrilGreatForge = "MithrilGreatForge";
     internal const string PinKeyArcaneTower   = "ArcaneTower";
     internal const string PinKeyRestrictSoldierProduction           = "RestrictSoldierProduction";
     internal const string PinKeyRestrictSoldierProductionUnderworld = "RestrictSoldierProductionUnderworld";
@@ -87,6 +88,7 @@ public sealed class AutomationRenderer : IDisposable
             [PinKeyArmorSmith] = AutomationCategory.Activation,
             [PinKeyAlchimistHut] = AutomationCategory.Activation,
             [PinKeyDefenseSpire] = AutomationCategory.Activation,
+            [PinKeyMithrilGreatForge] = AutomationCategory.Activation,
             [PinKeyRestrictSoldierProduction] = AutomationCategory.Activation,
             [PinKeyRestrictSoldierProductionUnderworld] = AutomationCategory.Activation,
             [PinKeyRestrictSoldierProductionAbyss] = AutomationCategory.Activation,
@@ -313,6 +315,7 @@ public sealed class AutomationRenderer : IDisposable
         BuildingControl<ArmorSmith>(PinKeyArmorSmith, "building_armorsmith_name", "tooltip_toggle_armorsmith");
         BuildingControl<AlchimistHut>(PinKeyAlchimistHut, "building_alchimisthut_name", "tooltip_toggle_alchimisthut");
         BuildingControl<DefenseSpire>(PinKeyDefenseSpire, "building_defensespire_name", "tooltip_toggle_defensespire");
+        BuildingControl<MithrilGreatForge>(PinKeyMithrilGreatForge, "building_mithrilgreatforge_name", "tooltip_toggle_mithrilgreatforge");
 
         if (controls.Count > 0)
             right.Add(new SectionModel("automation_header_controls", controls));
@@ -523,6 +526,7 @@ public sealed class AutomationRenderer : IDisposable
             case PinKeyArmorSmith:   ToggleAll<ArmorSmith>(civ); return;
             case PinKeyAlchimistHut: ToggleAll<AlchimistHut>(civ); return;
             case PinKeyDefenseSpire: ToggleAll<DefenseSpire>(civ); return;
+            case PinKeyMithrilGreatForge: ToggleAll<MithrilGreatForge>(civ); return;
         }
 
         // Restriction de production de soldats : une cle par layer.

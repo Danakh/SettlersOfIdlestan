@@ -88,6 +88,7 @@ public class MilitaryController
     private readonly ReinforcementEngine _reinforcementEngine = new();
     private readonly RaidEngine _raidEngine = new();
     private readonly DefenseSpireEngine _defenseSpireEngine = new();
+    private readonly MithrilGreatForgeEngine _mithrilGreatForgeEngine = new();
 
     // ── Constantes publiques ─────────────────────────────────────────────────
 
@@ -364,6 +365,7 @@ public class MilitaryController
         _productionEngine.Initialize(state);
         _monsterCombatEngine.Initialize(state, prng);
         _defenseSpireEngine.Initialize(state);
+        _mithrilGreatForgeEngine.Initialize(state);
         _cityAttackEngine.Initialize(state, cityBuilderController, warFleetController, mobileCampController, prng);
         _reinforcementEngine.Initialize(state, _productionEngine);
         _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine, _productionEngine);
@@ -385,6 +387,10 @@ public class MilitaryController
         _productionEngine.ProduceSoldiers(currentTick);
         _productionEngine.ProduceArsenalSoldiers(currentTick);
         _productionEngine.ResolveSoldierFeeding(currentTick);
+
+        // Avant toute résolution de combat : c'est ce passage qui décide si les Aventuriers portent
+        // l'équipement de la Grande Forge de Mithril pour ce tick.
+        _mithrilGreatForgeEngine.ResolveForgeUpkeep(currentTick);
 
         // Résolution de combat/décisions de flux militaires : laissées volontairement à une seule
         // passe par événement Advanced (pas de rattrapage par cycles via Model.Game.TickCooldown,

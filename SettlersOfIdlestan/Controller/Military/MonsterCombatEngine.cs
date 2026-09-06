@@ -79,8 +79,11 @@ internal class MonsterCombatEngine
         {
             if (poolArmor ? pooledRaw - pooledReduction >= monster.Hp : monster.Hp <= 0) break;
 
-            // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
-            bool hasSteelWeapon = steelWeaponsUnlocked && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
+            // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire. La réserve
+            // du Matériel d'Expédition (CanConsumeConsumable) la retient hors du plan le plus profond.
+            bool hasSteelWeapon = steelWeaponsUnlocked
+                && civ.CanConsumeConsumable(Resource.SteelWeapon, vertex.Position.Z)
+                && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
             if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
             int rawDamage = soldierDamage + (hasSteelWeapon ? 1 : 0);
             engaged++;

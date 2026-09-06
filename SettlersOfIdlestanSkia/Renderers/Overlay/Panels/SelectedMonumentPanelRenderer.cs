@@ -110,6 +110,10 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                         FormatPercent(Necropolis.GetAscensionGainBonusForLevel(necropolis.Level + 1))), false));
                 break;
             }
+            case SteelTitanSite:
+                lines.Add((_localization.GetFormated("monument_bonus_steel_titan_next",
+                    SettlersOfIdlestan.Model.Monsters.SteelTitan.TitanLevel), false));
+                break;
             case DeepestMine mine:
                 lines.Add(mine.Dug
                     ? (_localization.Get("monument_bonus_deepest_mine_current"), true)
@@ -184,6 +188,16 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         var monument = _monumentService.SelectedInvestable;
         var playerCiv = _gameControllerService.PlayerCivilization;
         if (monument == null || playerCiv == null) return MonumentPanelSnapshot.Hidden;
+
+        // Le monument sélectionné peut disparaître de la carte sous le panneau : le Chantier du Titan
+        // d'Acier s'efface au profit du colosse dès qu'il est couvert (voir SteelTitanController), et
+        // une Marche de Dieu peut effacer les autres. Sans cette garde, le panneau resterait ouvert
+        // sur une feature qui n'existe plus.
+        if (_gameControllerService.CurrentWorldState?.ContainsFeature(monument) == false)
+        {
+            _monumentService.ClearSelectedInvestable();
+            return MonumentPanelSnapshot.Hidden;
+        }
 
         bool wonderMaxed = (monument is Wonder { IsMaxLevel: true })
                         || (monument is GreatLighthouse { IsMaxLevel: true })

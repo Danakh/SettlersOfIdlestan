@@ -51,6 +51,18 @@ public class WorldState : IJsonOnDeserialized
     /// </summary>
     public long StartTick { get; set; } = 0;
 
+    /// <summary>
+    /// Par couche (Z), tick auquel le joueur y a posé sa <b>première</b> ville — l'ancienneté de son
+    /// implantation dans ce plan. Alimente l'hex de prestige Connaissance du Terrain
+    /// (LAYER_KNOWLEDGE_HARVEST_SPEED_PER_HOUR), tenu à jour par
+    /// <see cref="SettlersOfIdlestan.Controller.Island.HarvestController.UpdateLayerKnowledge"/>.
+    ///
+    /// <para>L'entrée disparaît dès que le joueur n'a plus aucune ville sur la couche : reprendre pied
+    /// plus tard y repart donc de zéro, comme demandé. Vit dans le WorldState, donc remis à zéro à
+    /// chaque nouvelle île — prestige et ascension compris.</para>
+    /// </summary>
+    public Dictionary<int, long> LayerFirstCityTicks { get; set; } = new();
+
     private List<SettlersOfIdlestan.Model.Civilization.Civilization> _civilizations;
 
     /// <summary>

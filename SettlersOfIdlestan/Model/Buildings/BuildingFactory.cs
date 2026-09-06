@@ -71,6 +71,7 @@ public static class BuildingFactory
         [BuildingType.ArcaneTower] = () => new ArcaneTower(),
         [BuildingType.SpiderShrine] = () => new SpiderShrine(),
         [BuildingType.DefenseSpire] = () => new DefenseSpire(),
+        [BuildingType.MithrilGreatForge] = () => new MithrilGreatForge(),
     };
 
     /// <summary>

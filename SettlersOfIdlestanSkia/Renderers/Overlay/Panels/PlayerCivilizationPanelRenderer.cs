@@ -100,6 +100,11 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
     private bool SpireVisible => CanPlaceSpire();
     private bool SpireEnabled => SpireVisible && CurrentLayer == LayerState.UnderworldZ;
 
+    // Le Titan d'Acier se fond sur n'importe quelle couche : aucune restriction de calque, contrairement
+    // aux monuments ci-dessus.
+    private bool SteelTitanVisible => CanPlaceSteelTitan();
+    private bool SteelTitanEnabled => SteelTitanVisible;
+
     private bool RelocationVisible => IsRelocationVisible();
     private bool RelocationEnabled => RelocationVisible && CanAffordRelocation();
 
@@ -206,6 +211,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         var spireHexLabels = spireHexes.ToDictionary(hex => hex, _ => sourceLabel);
         _targetSelectionService.EnterHexSelection("spire_select_hex", spireHexes,
             hex => spireController.PlaceCorruptionSpire(hex), TargetSelectionTheme.Friendly, spireHexLabels);
+    }
+
+    private void DoSteelTitan()
+    {
+        if (!SteelTitanEnabled || _targetSelectionService == null) return;
+        _closeAll();
+        var titanController = _gameControllerService.MainGameController.SteelTitanController;
+        _targetSelectionService.EnterHexSelection("steel_titan_select_hex", titanController.GetPlaceableHexes(),
+            hex => titanController.PlaceSteelTitanSite(hex), TargetSelectionTheme.Friendly);
     }
 
     /// <summary>Lance un pillage, ou arrête celui en cours si le bouton est déjà actif.</summary>
@@ -328,6 +342,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         CorruptionSpire => 4,
         AbyssGate => 5,
         Necropolis => 6,
+        SteelTitanSite => 7,
         _ => -1,
     };
 
@@ -356,6 +371,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyArmorSmith:    if (civ != null) ToggleAll<ArmorSmith>(civ);  break;
             case AutomationRenderer.PinKeyAlchimistHut:  if (civ != null) ToggleAll<AlchimistHut>(civ); break;
             case AutomationRenderer.PinKeyDefenseSpire:  if (civ != null) ToggleAll<DefenseSpire>(civ); break;
+            case AutomationRenderer.PinKeyMithrilGreatForge: if (civ != null) ToggleAll<MithrilGreatForge>(civ); break;
             case AutomationRenderer.PinKeyTownHall:      if (settings != null) settings.TownHallAutomationEnabled = !settings.TownHallAutomationEnabled;                   break;
             case AutomationRenderer.PinKeyGrandTemple:   if (settings != null) settings.TempleAutomationEnabled = !settings.TempleAutomationEnabled;                       break;
             case AutomationRenderer.PinKeyMithrilMine:   if (settings != null) settings.MithrilMineBuildingAutomationEnabled = !settings.MithrilMineBuildingAutomationEnabled;   break;
@@ -442,6 +458,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         SettlersOfIdlestan.Model.IslandMap.WorldState? worldState,
         bool hasBarracks, bool hasArsenal, bool hasLabs, bool hasSmelters,
         bool hasWeaponSmiths, bool hasArmorSmiths, bool hasAlchimistHuts, bool hasDefenseSpires,
+        bool hasMithrilGreatForges,
         IReadOnlyDictionary<string, bool> structuralUnlocks, int freePerCitySoldierQuota)
     {
         if (worldState == null) return false;
@@ -456,6 +473,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeyArmorSmith   => hasArmorSmiths,
             AutomationRenderer.PinKeyAlchimistHut => hasAlchimistHuts,
             AutomationRenderer.PinKeyDefenseSpire => hasDefenseSpires,
+            AutomationRenderer.PinKeyMithrilGreatForge => hasMithrilGreatForges,
             AutomationRenderer.PinKeyRestrictSoldierProduction or
             AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld or
             AutomationRenderer.PinKeyRestrictSoldierProductionAbyss or
@@ -484,6 +502,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyArmorSmith:   return (AreAllActiveNullable<ArmorSmith>(civ),   "building_armorsmith_name",   "tooltip_toggle_armorsmith");
             case AutomationRenderer.PinKeyAlchimistHut: return (AreAllActiveNullable<AlchimistHut>(civ), "building_alchimisthut_name", "tooltip_toggle_alchimisthut");
             case AutomationRenderer.PinKeyDefenseSpire: return (AreAllActiveNullable<DefenseSpire>(civ), "building_defensespire_name", "tooltip_toggle_defensespire");
+            case AutomationRenderer.PinKeyMithrilGreatForge: return (AreAllActiveNullable<MithrilGreatForge>(civ), "building_mithrilgreatforge_name", "tooltip_toggle_mithrilgreatforge");
         }
 
         var settings = worldState?.AutomationSettings;
@@ -656,6 +675,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         if (civ == null) return false;
         try { return _gameControllerService.MainGameController.NecropolisController.CanPlaceNecropolis(civ); }
         catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(CanPlaceNecropolis), ex); return false; }
+    }
+
+    private bool CanPlaceSteelTitan()
+    {
+        var civ = _gameControllerService.PlayerCivilization;
+        if (civ == null) return false;
+        try { return _gameControllerService.MainGameController.SteelTitanController.CanPlaceSteelTitan(civ); }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(CanPlaceSteelTitan), ex); return false; }
     }
 
     private bool CanPlaceDeepestMine()
@@ -887,6 +914,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             actions.Add(SimpleAction(CivPanelSnapshot.KeySpire, "spire_action_short",
                 SpireEnabled, "tooltip_spire", "tooltip_spire_underworld_only"));
 
+        if (SteelTitanVisible)
+            actions.Add(SimpleAction(CivPanelSnapshot.KeySteelTitan, "steel_titan_action_short",
+                SteelTitanEnabled, "tooltip_steel_titan", "tooltip_steel_titan"));
+
         if (RelocationVisible)
             actions.Add(SimpleAction(CivPanelSnapshot.KeyRelocation, "relocation_action_short",
                 RelocationEnabled, IsRelocationFree() ? "tooltip_relocation_free" : "tooltip_relocation",
@@ -960,6 +991,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool hasArmorSmiths   = HasBuilt<ArmorSmith>(civ);
         bool hasAlchimistHuts = HasBuilt<AlchimistHut>(civ);
         bool hasDefenseSpires = HasBuilt<DefenseSpire>(civ);
+        bool hasMithrilGreatForges = HasBuilt<MithrilGreatForge>(civ);
 
         // Meme table que l'onglet Automatisation (AutomationRenderer.ComputeStructuralUnlocks) :
         // une bascule epinglee dont le deblocage a ete perdu (guilde retombee sous le niveau
@@ -971,7 +1003,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         foreach (var key in pinned)
         {
             if (!IsKeyShowable(key, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters,
-                    hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts, hasDefenseSpires, structuralUnlocks, freePerCitySoldierQuota))
+                    hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts, hasDefenseSpires,
+                    hasMithrilGreatForges, structuralUnlocks, freePerCitySoldierQuota))
                 continue;
 
             var (value, nameKey, tooltipKey) = ResolvePinnedToggle(key, civ, worldState);
@@ -1033,6 +1066,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case CivPanelSnapshot.KeyNecropolis:      DoNecropolis();      break;
             case CivPanelSnapshot.KeyDeepestMine:     DoDeepestMine();     break;
             case CivPanelSnapshot.KeySpire:           DoSpire();           break;
+            case CivPanelSnapshot.KeySteelTitan:      DoSteelTitan();      break;
             case CivPanelSnapshot.KeyRaid:            DoRaid();            break;
             case CivPanelSnapshot.KeyWarHerald:       DoWarHerald();       break;
             case CivPanelSnapshot.KeyMonumentCycle:   DoCycleMonuments();  break;

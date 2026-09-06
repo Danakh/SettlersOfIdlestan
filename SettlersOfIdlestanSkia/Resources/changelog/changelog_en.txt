@@ -8,6 +8,9 @@ v0.21
 • New Defense Spire magic building: automatically strikes a monster 2 hexes away or less, once per second, for 1 Crystal and 1 damage that ignores armor — without spending soldiers
 • New Divine Commerce Ascension milestone: automatic selling and buying only require a level 1 Market, every city built receives one for free, and every Market produces twice as much gold per cycle
 • New military prestige powers in the Abyss: the Phalanx engages 5 soldiers per attack and only applies a monster's armor once to the whole volley, the Punitive Expedition makes 10% of a garrison strike back the moment a monster attacks it, and Mobile Logistics grants 3 roads to every free Mobile Camp while protecting those that touch it
+• New Steel Titan monument: a foundry site paid in Stone, Ore and Mithril that rises as an allied colossus and hunts monsters at your side
+• New Great Mithril Forge unique building: raised next to a level 2 Mithril Mine, it spends 1 Mithril per second per Adventurer to grant them +1 damage and +1 armor
+• New deep prestige powers: Terrain Knowledge speeds up harvesting by 0.5% per hour spent in each plane, and Expedition Gear reserves 20% of your consumables for the deepest plane reached
 
 ---
 

@@ -224,6 +224,56 @@ public class Civilization
     }
 
     [NonSerialized]
+    private int? _deepestLayerCache;
+
+    /// <summary>
+    /// Couche (Z) la plus profonde où la civilisation possède une ville — son « plan le plus avancé
+    /// atteint ». <see cref="Model.IslandMap.IslandMap.SurfaceLayer"/> quand elle n'a plus aucune ville.
+    ///
+    /// <para>Mémoïsé : lu à chaque consommation de consommable (voir
+    /// <see cref="CanConsumeConsumable"/>), c'est-à-dire à chaque soldat engagé en combat, alors qu'il
+    /// ne change qu'à l'ajout ou au retrait d'une ville — les deux points où
+    /// <see cref="InvalidateVertexCaches"/> passe déjà.</para>
+    /// </summary>
+    [JsonIgnore]
+    public int DeepestLayerReached
+    {
+        get
+        {
+            if (_deepestLayerCache is { } cached) return cached;
+
+            int deepest = Model.IslandMap.IslandMap.SurfaceLayer;
+            for (int i = 0; i < _cities.Count; i++)
+            {
+                int z = _cities[i].Position.Z;
+                if (z > deepest) deepest = z;
+            }
+            _deepestLayerCache = deepest;
+            return deepest;
+        }
+    }
+
+    /// <summary>
+    /// Matériel d'Expédition (CONSUMABLE_RESERVE_FRACTION) : sous la fraction sanctuarisée de son stock
+    /// maximum, un consommable (Arme/Armure en Acier, Potion de Soin) n'est plus dépensable ailleurs
+    /// que dans le plan le plus profond atteint — la réserve est gardée pour l'expédition la plus
+    /// avancée. Sans le vertex acheté, ou pour une ressource qui n'est pas un consommable, la réponse
+    /// est toujours vraie.
+    /// </summary>
+    /// <param name="z">Couche où la dépense aurait lieu (celle de l'emplacement militaire concerné).</param>
+    public bool CanConsumeConsumable(Resource resource, int z)
+    {
+        if (z >= DeepestLayerReached) return true;
+        if (!ResourceUtils.ConsumableResources.Contains(resource)) return true;
+
+        double fraction = ModifierAggregator.ApplyModifiers(ECategory.CONSUMABLE_RESERVE_FRACTION, "", 0.0);
+        if (fraction <= 0) return true;
+
+        // Strictement « à moins de X% » : au seuil exact, la ressource reste utilisable.
+        return GetResourceQuantity(resource) >= (int)(GetResourceMaxQuantity(resource) * fraction);
+    }
+
+    [NonSerialized]
     private Dictionary<HexGrid.HexCoord, List<City>>? _citiesByHexCache;
 
     /// <summary>
@@ -253,7 +303,14 @@ public class Civilization
     /// Invalide l'index <see cref="GetCitiesAdjacentTo"/>. Appelé automatiquement à toute mutation de
     /// la liste des villes ; à appeler explicitement quand une ville change de position.
     /// </summary>
-    public void InvalidateCityPositionCache() => _citiesByHexCache = null;
+    public void InvalidateCityPositionCache()
+    {
+        _citiesByHexCache = null;
+        // La couche la plus profonde se lit elle aussi sur les positions de ville : elle doit tomber
+        // avec elles, y compris sur le chemin de la relocalisation, qui déplace une ville sans muter
+        // la liste (voir CityBuilderController.RelocateCity).
+        _deepestLayerCache = null;
+    }
 
     private Dictionary<HexGrid.HexCoord, List<City>> BuildCitiesByHex()
     {

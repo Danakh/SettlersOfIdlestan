@@ -45,11 +45,17 @@ internal static class SteelArmorEngine
         int arsenalLevel = vertex is City city ? (city.FindBuilding(BuildingType.Arsenal)?.Level ?? 0) : 0;
         int steelArmorSaveChancePercent = Arsenal.ArmorSaveBasePercent + Arsenal.ArmorSavePercentPerLevel * arsenalLevel;
 
+        // Matériel d'Expédition : hors du plan le plus profond atteint, la réserve sanctuarisée de
+        // chaque consommable est intouchable (voir Civilization.CanConsumeConsumable). Réévalué à
+        // chaque perte, le stock baissant au fil de la boucle — la réserve doit arrêter la série dès
+        // qu'elle est atteinte, pas seulement au premier tour.
+        int z = vertex.Position.Z;
+
         int saved = 0;
         for (int i = 0; i < losses; i++)
         {
-            bool steelArmorAvailable = hasSteelArmor && civ.GetResourceQuantity(Resource.SteelArmor) >= 1;
-            bool healingPotionAvailable = hasHealingPotion && civ.GetResourceQuantity(Resource.HealingPotion) >= 1;
+            bool steelArmorAvailable = hasSteelArmor && civ.CanConsumeConsumable(Resource.SteelArmor, z) && civ.GetResourceQuantity(Resource.SteelArmor) >= 1;
+            bool healingPotionAvailable = hasHealingPotion && civ.CanConsumeConsumable(Resource.HealingPotion, z) && civ.GetResourceQuantity(Resource.HealingPotion) >= 1;
             if (!steelArmorAvailable && !healingPotionAvailable) break;
 
             int steelArmorChance = steelArmorAvailable ? steelArmorSaveChancePercent : 0;

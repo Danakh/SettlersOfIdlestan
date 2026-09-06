@@ -134,6 +134,12 @@ namespace SettlersOfIdlestan.Controller.Island
             if (prng != null) _prng = prng;
             _productionCache.Clear();
 
+            // Nouvelle île : l'ancienneté d'implantation et son multiplicateur repartent de zéro, et la
+            // première passe doit avoir lieu dès le tick suivant.
+            _nextLayerKnowledgeTick = 0;
+            _layerKnowledgeMultiplier.Clear();
+            _layerKnowledgeCivIndex = -1;
+
             _overflowTrader.Initialize(state, tradeController);
             _seaportEngine.Initialize(state, _prng, _overflowTrader);
             _marketGoldEngine.Initialize(state, _overflowTrader);
@@ -151,6 +157,10 @@ namespace SettlersOfIdlestan.Controller.Island
             // dans GameLog (voir ProductionStep).
             _steps = new ProductionStep[]
             {
+                // En tête : la récolte qui suit lit le multiplicateur de Connaissance du Terrain que
+                // cette étape vient de rafraîchir. Elle ne consomme pas le PRNG, l'ordre des étapes
+                // suivantes — dont dépend le déterminisme — reste donc inchangé.
+                new("UpdateLayerKnowledge",               UpdateLayerKnowledge),
                 new("PerformAutomaticProductionHarvests", _ => PerformAutomaticProductionHarvests()),
                 new("PerformSeaportGenerations",          _seaportEngine.Tick),
                 new("PerformMarketGoldGenerations",       _marketGoldEngine.Tick),
@@ -195,7 +205,108 @@ namespace SettlersOfIdlestan.Controller.Island
             double multiplier = 1.0;
             for (int i = 0; i < features.Count; i++)
                 multiplier *= features[i].GetHarvestTimeMultiplier(civ);
+
+            // Connaissance du Terrain : bonus propre au plan de l'hexagone, donc appliqué ici plutôt
+            // que dans le HARVEST_SPEED civilisation-wide, qui ne connaît pas la couche récoltée.
+            if (_layerKnowledgeMultiplier.Count > 0 && civ.Index == _layerKnowledgeCivIndex
+                && _layerKnowledgeMultiplier.TryGetValue(hex.Z, out double knowledge))
+                multiplier *= knowledge;
+
             return multiplier;
+        }
+
+        /// <summary>Ticks d'une heure de jeu (1 tick = 0,01 s).</summary>
+        private const long TicksPerHour = 360_000L;
+
+        /// <summary>Intervalle de rafraîchissement de <see cref="UpdateLayerKnowledge"/> : le bonus se
+        /// compte en heures, une passe par seconde suffit largement et évite de balayer les villes du
+        /// joueur — plusieurs centaines en fin de partie — à chaque événement d'horloge.</summary>
+        private const long LayerKnowledgeRefreshIntervalTicks = 100L;
+
+        /// <summary>Prochain tick où <see cref="UpdateLayerKnowledge"/> refera une passe. Exprimé en échéance
+        /// plutôt qu'en « dernier passage » : un dernier passage initialisé à <c>long.MinValue</c> ferait
+        /// déborder la soustraction et repousserait la première passe indéfiniment.</summary>
+        private long _nextLayerKnowledgeTick;
+
+        /// <summary>Multiplicateur de temps de récolte (≤ 1) par couche, dérivé de <see cref="WorldState.LayerFirstCityTicks"/>. Vide tant qu'aucun vertex de Connaissance du Terrain n'est acheté.</summary>
+        private readonly System.Collections.Generic.Dictionary<int, double> _layerKnowledgeMultiplier = new();
+
+        /// <summary>Index de la civilisation à laquelle s'applique <see cref="_layerKnowledgeMultiplier"/> (le joueur, seul porteur des modificateurs de prestige). -1 = aucune.</summary>
+        private int _layerKnowledgeCivIndex = -1;
+
+        /// <summary>Tampon des couches où le joueur a au moins une ville, réutilisé d'un passage à l'autre.</summary>
+        private readonly System.Collections.Generic.HashSet<int> _layerPresenceScratch = new();
+
+        /// <summary>
+        /// Tient à jour l'ancienneté d'implantation du joueur dans chaque plan
+        /// (<see cref="WorldState.LayerFirstCityTicks"/>) et en dérive le multiplicateur de récolte de
+        /// l'hex de prestige Connaissance du Terrain.
+        ///
+        /// <para>La présence est relue depuis les villes plutôt que branchée sur un événement de
+        /// fondation : plusieurs chemins posent une ville sans passer par
+        /// <c>CityBuilderController.BuildCity</c> (avant-poste d'une nouvelle couche, ville conquise,
+        /// relocalisation), et un seul oubli figerait un compteur à jamais. Une entrée disparaît dès
+        /// que la dernière ville d'une couche est perdue : y revenir repart de zéro.</para>
+        /// </summary>
+        private void UpdateLayerKnowledge(long now)
+        {
+            if (_state == null || _state.Civilizations.Count == 0) return;
+            if (now < _nextLayerKnowledgeTick) return;
+            _nextLayerKnowledgeTick = now + LayerKnowledgeRefreshIntervalTicks;
+
+            var playerCiv = _state.PlayerCivilization;
+
+            var present = _layerPresenceScratch;
+            present.Clear();
+            var cities = playerCiv.Cities;
+            for (int i = 0; i < cities.Count; i++)
+                present.Add(cities[i].Position.Z);
+
+            var firstTicks = _state.LayerFirstCityTicks;
+            foreach (int z in present)
+                if (!firstTicks.ContainsKey(z))
+                    firstTicks[z] = now;
+
+            System.Collections.Generic.List<int>? lost = null;
+            foreach (int z in firstTicks.Keys)
+                if (!present.Contains(z))
+                    (lost ??= new System.Collections.Generic.List<int>()).Add(z);
+            if (lost != null)
+                foreach (int z in lost) firstTicks.Remove(z);
+
+            _layerKnowledgeMultiplier.Clear();
+            _layerKnowledgeCivIndex = playerCiv.Index;
+
+            double bonusPerHour = playerCiv.ModifierAggregator.ApplyModifiers(
+                ECategory.LAYER_KNOWLEDGE_HARVEST_SPEED_PER_HOUR, "", 0.0);
+            if (bonusPerHour <= 0) return;
+
+            foreach (var (z, firstTick) in firstTicks)
+            {
+                double hours = Math.Max(0, now - firstTick) / (double)TicksPerHour;
+                double bonus = bonusPerHour * hours;
+                if (bonus <= 0) continue;
+                // Bonus de vitesse → diviseur du temps de récolte, comme HARVEST_SPEED plus haut.
+                _layerKnowledgeMultiplier[z] = 1.0 / (1.0 + bonus);
+            }
+        }
+
+        /// <summary>
+        /// Bonus de vitesse de récolte accordé par la Connaissance du Terrain sur cette couche
+        /// (0.5 = +50%). Exposé pour l'affichage et les tests ; la récolte, elle, passe par le
+        /// multiplicateur mémoïsé de <see cref="GetHexHarvestTimeMultiplier"/>.
+        /// </summary>
+        public double GetLayerKnowledgeSpeedBonus(Civilization civ, int z)
+        {
+            if (_state == null) return 0.0;
+            if (!_state.LayerFirstCityTicks.TryGetValue(z, out long firstTick)) return 0.0;
+
+            double bonusPerHour = civ.ModifierAggregator.ApplyModifiers(
+                ECategory.LAYER_KNOWLEDGE_HARVEST_SPEED_PER_HOUR, "", 0.0);
+            if (bonusPerHour <= 0) return 0.0;
+
+            long now = _clock?.CurrentTick ?? firstTick;
+            return bonusPerHour * (Math.Max(0, now - firstTick) / (double)TicksPerHour);
         }
 
         /// <summary>

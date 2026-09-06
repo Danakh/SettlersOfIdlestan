@@ -37,6 +37,8 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 [JsonDerivedType(typeof(VolcanoFeature), "Volcano")]
 [JsonDerivedType(typeof(DivineBones), "DivineBones")]
 [JsonDerivedType(typeof(Necropolis), "Necropolis")]
+[JsonDerivedType(typeof(SteelTitanSite), "SteelTitanSite")]
+[JsonDerivedType(typeof(SteelTitan), "SteelTitan")]
 [Serializable]
 public abstract class IslandFeature
 {

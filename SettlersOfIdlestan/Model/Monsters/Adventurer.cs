@@ -29,9 +29,20 @@ public class Adventurer : MonsterFeature
     /// <summary>Bonus figé à l'invocation d'après les modifiers de la civilisation propriétaire (Sanctuaire de l'Araignée). Voir MonsterController.UpdateAdventurerSpawns.</summary>
     public int AttackDamageBonus { get; set; }
 
+    /// <summary>
+    /// Équipement fourni par la Grande Forge de Mithril, réévalué à chaque cycle d'entretien plutôt
+    /// que figé à l'invocation : la forge peut être désactivée ou tomber à court de Mithril en cours
+    /// de vie de l'Aventurier (voir MithrilGreatForgeEngine). Persisté pour que le bonus ne disparaisse
+    /// pas entre le chargement d'une sauvegarde et le premier cycle d'entretien.
+    /// </summary>
+    public int MithrilForgeAttackDamageBonus { get; set; }
+
+    /// <inheritdoc cref="MithrilForgeAttackDamageBonus"/>
+    public int MithrilForgeArmorBonus { get; set; }
+
     public override int MaxHp => AdventurerMaxHpBase + AdventurerMaxHpPerLevel * Level + HpBonus;
     public override bool BlocksHarvest => false;
-    public override double Armor => Level - 1;
+    public override double Armor => Level - 1 + MithrilForgeArmorBonus;
 
     public override bool CanMove => true;
     public override long MovementIntervalTicks => 300L;
@@ -42,7 +53,7 @@ public class Adventurer : MonsterFeature
 
     public override int AttackRangeInHexes => 1 + AttackRangeBonus;
     public override long AttackIntervalTicks => 200L;
-    public override int AttackDamage => AdventurerAttackDamageBase + AdventurerAttackDamagePerLevel * Level + AttackDamageBonus;
+    public override int AttackDamage => AdventurerAttackDamageBase + AdventurerAttackDamagePerLevel * Level + AttackDamageBonus + MithrilForgeAttackDamageBonus;
     public override bool AttacksOtherMonsters => true;
 
     public override GameEventType DiscoveredEventType => GameEventType.AdventurerDiscovered;

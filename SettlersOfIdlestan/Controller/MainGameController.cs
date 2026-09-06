@@ -45,6 +45,7 @@ namespace SettlersOfIdlestan.Controller
         public ObservatoryController ObservatoryController { get; private set; }
         public NecropolisController NecropolisController { get; private set; }
         public DeepestMineController DeepestMineController { get; private set; }
+        public SteelTitanController SteelTitanController { get; private set; }
         public SurfaceBreachController SurfaceBreachController { get; private set; }
         public CorruptionSpireController CorruptionSpireController { get; private set; }
         public CorruptionController CorruptionController { get; private set; }
@@ -103,6 +104,7 @@ namespace SettlersOfIdlestan.Controller
             ObservatoryController = new ObservatoryController();
             NecropolisController = new NecropolisController();
             DeepestMineController = new DeepestMineController();
+            SteelTitanController = new SteelTitanController();
             SurfaceBreachController = new SurfaceBreachController();
             CorruptionSpireController = new CorruptionSpireController();
             CorruptionController = new CorruptionController();
@@ -620,6 +622,7 @@ namespace SettlersOfIdlestan.Controller
                 ObservatoryController.Initialize(WorldState, Clock, HarvestController);
                 NecropolisController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
                 DeepestMineController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
+                SteelTitanController.Initialize(WorldState, Clock, HarvestController);
                 SurfaceBreachController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionSpireController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, CurrentMainState?.PrestigeState);

@@ -851,6 +851,12 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.MOBILE_CAMP_FREE_ROADS            => localization.GetFormated("prestige_tooltip_mobile_camp_free_roads", (int)mod.Value),
         Modifier.ECategory.PUNITIVE_EXPEDITION_RATIO         => localization.GetFormated("prestige_tooltip_punitive_expedition", (int)(mod.Value * 100)),
         Modifier.ECategory.SIMULTANEOUS_ATTACK_SOLDIERS      => localization.GetFormated("prestige_tooltip_simultaneous_attack_soldiers", (int)mod.Value),
+        // Le pourcentage effectif dépend du temps passé dans le plan : la valeur du modificateur est
+        // un taux horaire, l'infobulle l'annonce donc comme tel.
+        Modifier.ECategory.LAYER_KNOWLEDGE_HARVEST_SPEED_PER_HOUR
+                                                             => localization.GetFormated("prestige_tooltip_layer_knowledge", $"{mod.Value * 100:0.#}"),
+        Modifier.ECategory.CONSUMABLE_RESERVE_FRACTION       => localization.GetFormated("prestige_tooltip_consumable_reserve", (int)(mod.Value * 100)),
+        Modifier.ECategory.UNLOCK_STEEL_TITAN                => localization.Get("prestige_tooltip_unlocks_steel_titan"),
         _ => $"+{mod.Value}"
     };
 

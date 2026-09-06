@@ -130,8 +130,11 @@ internal class CityAttackEngine
                 bool destroyed = false;
                 for (int s = 0; s < salvoSize && s < attackerVertex.Soldiers && !destroyed; s++)
                 {
-                    // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
+                    // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire. La
+                    // réserve du Matériel d'Expédition (CanConsumeConsumable) la retient hors du plan
+                    // le plus profond atteint.
                     bool hasSteelWeapon = steelWeaponsUnlocked
+                        && attackerCiv.CanConsumeConsumable(Resource.SteelWeapon, attackerVertex.Position.Z)
                         && attackerCiv.GetResourceQuantity(Resource.SteelWeapon) >= 1;
                     if (hasSteelWeapon) attackerCiv.RemoveResource(Resource.SteelWeapon, 1);
                     engaged++;

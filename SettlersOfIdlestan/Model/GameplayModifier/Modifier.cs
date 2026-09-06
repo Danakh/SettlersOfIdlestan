@@ -341,6 +341,23 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             PUNITIVE_EXPEDITION_RATIO,
             /// <summary>Nombre de soldats engagés simultanément dans une même attaque, contre un monstre comme contre une ville (voir MonsterCombatEngine.StrikeMonster, CityAttackEngine). Contre un monstre, la réduction d'armure ne s'applique alors qu'une fois sur les dégâts cumulés de la salve au lieu d'une fois par soldat. Base = 1 ; REPLACER 5 (Phalange). SubCategory unused. Accordé par le vertex de prestige Phalange.</summary>
             SIMULTANEOUS_ATTACK_SOLDIERS,
+            /// <summary>Bonus additif de vitesse de récolte accordé <b>par heure passée dans le plan</b> où se
+            /// trouve l'hexagone récolté — le compteur d'un plan démarre à la première ville que le joueur y
+            /// pose, repart de zéro si l'accès est perdu puis regagné, et à chaque prestige (voir
+            /// WorldState.LayerFirstCityTicks et HarvestController.GetLayerKnowledgeSpeedBonus). Base = 0.0 ;
+            /// 0.005 = +0.5% par heure. Contrairement à HARVEST_SPEED, le bonus dépend donc du plan récolté et
+            /// non seulement de la civilisation. SubCategory unused. Accordé par l'hex de prestige Connaissance
+            /// du Terrain, par vertex adjacent acheté.</summary>
+            LAYER_KNOWLEDGE_HARVEST_SPEED_PER_HOUR,
+            /// <summary>Fraction du stock maximum d'un consommable (Arme/Armure en Acier, Potion de Soin —
+            /// voir ResourceUtils.ConsumableResources) sanctuarisée : sous ce seuil, le consommable ne peut
+            /// plus être dépensé <b>ailleurs que dans le plan le plus profond atteint</b> par la civilisation
+            /// (voir Civilization.CanConsumeConsumable). Base = 0.0 ; 0.2 = les derniers 20% sont réservés à
+            /// l'expédition la plus avancée. SubCategory unused. Accordé par le vertex de prestige Matériel
+            /// d'Expédition.</summary>
+            CONSUMABLE_RESERVE_FRACTION,
+            /// <summary>Flags que le monument Titan d'Acier peut être posé (voir SteelTitanController). SubCategory unused.</summary>
+            UNLOCK_STEEL_TITAN,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

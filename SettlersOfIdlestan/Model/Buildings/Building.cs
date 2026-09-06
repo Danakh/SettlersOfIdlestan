@@ -250,6 +250,13 @@ public enum BuildingType
     /// prestige Spire de Défense.
     /// </summary>
     DefenseSpire,
+    /// <summary>
+    /// Grande Forge de Mithril - Bâtiment unique, constructible uniquement dans une ville disposant
+    /// d'une Mine de Mithril niveau 2. Activable : tant qu'elle est active, elle consomme 1 Mithril
+    /// par seconde et par Aventurier en vie de la civilisation, et leur donne +1 dégât et +1 armure.
+    /// Débloquée par le vertex de prestige Grande Forge de Mithril.
+    /// </summary>
+    MithrilGreatForge,
 }
 
 /// <summary>

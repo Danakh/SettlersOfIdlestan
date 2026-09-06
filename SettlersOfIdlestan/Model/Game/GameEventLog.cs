@@ -127,6 +127,15 @@ public enum GameEventType
     /// Message = clé de localisation nommant la structure perdue (voir AscensionController.ApplyWalkOfGod).
     /// </summary>
     MilitaryVertexLostToTerrain,
+
+    /// <summary>Chantier du Titan d'Acier posé sur la carte — voir SteelTitanController.</summary>
+    SteelTitanPlaced,
+
+    /// <summary>Le Titan d'Acier est achevé : le chantier laisse place au colosse allié.</summary>
+    SteelTitanBuilt,
+
+    /// <summary>Le Titan d'Acier est tombé au combat. Un nouveau chantier peut être posé.</summary>
+    SteelTitanDefeated,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

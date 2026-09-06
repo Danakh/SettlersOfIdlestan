@@ -1304,6 +1304,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_abyss_gate_built_title"),
                 _localizationService.Get("event_abyss_gate_built_body"),
                 NotificationIcon.Achievement),
+            GameEventType.SteelTitanBuilt => (
+                _localizationService.Get("event_steel_titan_built_title"),
+                _localizationService.Get("event_steel_titan_built_body"),
+                NotificationIcon.Achievement),
             GameEventType.TentacleDiscovered => (
                 _localizationService.Get("event_tentacle_discovered_title"),
                 _localizationService.Get("event_tentacle_discovered_body"),
