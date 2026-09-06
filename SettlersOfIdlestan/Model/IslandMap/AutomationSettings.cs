@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Magic;
 using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -118,6 +119,20 @@ public class AutomationSettings
     /// est générée, voir MagicController.ProcessAbundanceAutoCast.</summary>
     public bool AbundanceAutoCastEnabled { get; set; } = false;
     [JsonIgnore] public bool IsAbundanceAutoCastActive => Active(AbundanceAutoCastEnabled);
+
+    /// <summary>
+    /// Rituels dont la puissance est ajustée automatiquement (case à cocher « auto », pouvoir divin
+    /// Rituels Divins — voir <c>MagicController.SetRitualAutomated</c> et
+    /// <c>MagicController.ProcessRitualPowerAutomation</c>). Vit ici, et non dans MagicState, pour la
+    /// même raison que les autres interrupteurs d'automatisation : c'est un réglage du joueur, pas un
+    /// état de la partie en cours, et il doit survivre au prestige comme à l'Ascension. Indépendant de
+    /// MagicState.ActiveRituals à dessein : un rituel automatisé qui s'arrête faute de cristaux — ou
+    /// parce que le run vient d'être réinitialisé — reste armé et sera relancé dès que la recherche et
+    /// les cristaux le permettront (voir <c>MagicController.GetAutomationBalancingCandidates</c>, qui
+    /// ignore un rituel armé mais pas encore débloqué par la civilisation courante).
+    /// Volontairement absent de <see cref="ResetIslandEphemeralState"/>.
+    /// </summary>
+    public List<RitualId> AutomatedRituals { get; set; } = [];
 
     /// <summary>Seuil de stock (en % du max) par ressource à partir duquel la vente automatique du
     /// surplus se déclenche (recherche Marché Automatique, voir HarvestController.TryAutoTradeOnOverflow).

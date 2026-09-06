@@ -326,6 +326,61 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void SetRitualAutomated_SurvivesPrestigeAndAscension()
+        {
+            // La case "auto" est un réglage d'automatisation (porté par GodState.AutomationSettings,
+            // comme tous les interrupteurs de l'écran Automatisation), pas un état du run : après un
+            // prestige ou une Ascension — nouveau WorldState, donc nouveau MagicState vierge — elle
+            // doit rester armée, et l'automatisation relancer le rituel dès qu'il est redébloqué.
+            var godState = CreateDivineRitualsGodState();
+            var (state, _, controller) = CreateSetup(godState);
+            UnlockMagic(state.PlayerCivilization, RitualId.Growth);
+            AddMageTower(state);
+
+            Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
+
+            // Reproduit MainGameController.InitializeControllersForCurrentIsland : la même instance
+            // d'AutomationSettings est recâblée sur l'île fraîchement générée, puis les contrôleurs
+            // sont réinitialisés dessus.
+            var newState = IslandTestFactory.CreateSevenHexIslandState();
+            newState.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
+            newState.AutomationSettings = state.AutomationSettings;
+
+            var newClock = new GameClock();
+            newClock.Start();
+            controller.Initialize(newState, newClock, new GamePRNG(42),
+                new CityBuilderController(newState), new BuildingController(newState), godState: godState);
+
+            Assert.Empty(newState.Magic.ActiveRituals);
+            Assert.True(controller.IsRitualAutomated(RitualId.Growth));
+        }
+
+        [Fact]
+        public void Initialize_MigratesLegacyAutomationFlagsIntoAutomationSettings()
+        {
+            // [Legacy v0.21] Les deux anciens emplacements de l'armement (drapeau porté par le rituel
+            // actif, puis liste dans MagicState) sont repris dans les réglages d'automatisation au
+            // chargement, et vidés au passage.
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            state.PlayerCivilization.Cities[0].AddBuilding(new TownHall { Level = TownHallLevel });
+            state.Magic.AutomatedRituals.Add(RitualId.Growth);
+            state.Magic.ActiveRituals.Add(new ActiveRitual(RitualId.Clairvoyance, 1, 0) { IsAutomated = true });
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MagicController();
+            controller.Initialize(state, clock, new GamePRNG(42),
+                new CityBuilderController(state), new BuildingController(state),
+                godState: CreateDivineRitualsGodState());
+
+            Assert.True(controller.IsRitualAutomated(RitualId.Growth));
+            Assert.True(controller.IsRitualAutomated(RitualId.Clairvoyance));
+            Assert.Equal(2, state.AutomationSettings.AutomatedRituals.Count);
+            Assert.Empty(state.Magic.AutomatedRituals);
+            Assert.False(state.Magic.ActiveRituals[0].IsAutomated);
+        }
+
+        [Fact]
         public void CanIncreaseRitualPower_IgnoresPowerAlreadyUsedByAutomatedRituals()
         {
             // Budget de 3 : un rituel automatisé occupe déjà toute la puissance restante (2), mais le

@@ -192,6 +192,16 @@ namespace SettlersOfIdlestan.Controller.Magic
         public int UsedPowerByNonAutomatedRituals
             => _state?.Magic.ActiveRituals.Where(r => !IsRitualAutomated(r.Id)).Sum(r => r.Power) ?? 0;
 
+        /// <summary>
+        /// Rituels armés pour l'ajustement automatique de puissance (case « auto »). Portés par les
+        /// réglages d'automatisation (GodState.AutomationSettings, cross-prestige ET cross-ascension)
+        /// et non par le <see cref="MagicState"/> du run, comme toutes les autres cases de l'écran
+        /// Automatisation. Retombe sur une liste vide jetable tant qu'aucun WorldState n'est câblé :
+        /// tous les points d'écriture ci-dessous vérifient déjà <c>_state</c> et ne passent donc
+        /// jamais par ce repli.
+        /// </summary>
+        private List<RitualId> AutomatedRituals => _state?.AutomationSettings.AutomatedRituals ?? [];
+
         /// <summary>Clé de source pour l'entretien en cristaux des rituels actifs.</summary>
         public const string RitualUpkeepSourceKey = "tooltip_source_ritual_upkeep";
 
@@ -304,7 +314,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             var active = GetActiveRitual(id);
             if (active == null) return false;
             _state!.Magic.ActiveRituals.Remove(active);
-            _state.Magic.AutomatedRituals.Remove(id);
+            AutomatedRituals.Remove(id);
             NotifyRitualsChanged();
             return true;
         }
@@ -361,7 +371,7 @@ namespace SettlersOfIdlestan.Controller.Magic
         public bool IsDivineRitualsActive => _godState?.AscensionState.IsDivineRitualsActive == true;
 
         /// <summary>Vrai si l'automatisation est armée sur ce rituel, qu'il soit actuellement actif ou non.</summary>
-        public bool IsRitualAutomated(RitualId id) => _state?.Magic.AutomatedRituals.Contains(id) == true;
+        public bool IsRitualAutomated(RitualId id) => AutomatedRituals.Contains(id);
 
         /// <summary>
         /// Arme ou désarme l'ajustement automatique de puissance d'un rituel (case à cocher "auto"
@@ -381,13 +391,13 @@ namespace SettlersOfIdlestan.Controller.Magic
             bool changed;
             if (automated)
             {
-                changed = !_state.Magic.AutomatedRituals.Contains(id);
-                if (changed) _state.Magic.AutomatedRituals.Add(id);
+                changed = !AutomatedRituals.Contains(id);
+                if (changed) AutomatedRituals.Add(id);
                 if (GetActiveRitual(id) == null && CanLaunchRitual(id)) changed |= LaunchRitual(id);
             }
             else
             {
-                changed = _state.Magic.AutomatedRituals.Remove(id);
+                changed = AutomatedRituals.Remove(id);
             }
 
             if (changed) NotifyRitualsChanged();
@@ -395,20 +405,32 @@ namespace SettlersOfIdlestan.Controller.Magic
         }
 
         /// <summary>
-        /// [Legacy v0.21] Reprend le drapeau <see cref="ActiveRitual.IsAutomated"/> des sauvegardes
-        /// antérieures dans <see cref="MagicState.AutomatedRituals"/>, qui le remplace. Appelée à chaque
-        /// <see cref="Initialize"/> : sans état hérité, elle ne fait rien.
+        /// [Legacy v0.21] Reprend dans <see cref="AutomatedRituals"/> (réglages d'automatisation
+        /// cross-prestige) les deux emplacements successifs qu'a connus l'armement de la case « auto »
+        /// dans les sauvegardes antérieures : le drapeau <see cref="ActiveRitual.IsAutomated"/> porté par
+        /// chaque rituel actif, puis <see cref="MagicState.AutomatedRituals"/>. Les deux sources sont
+        /// vidées au passage, si bien que l'appel à chaque <see cref="Initialize"/> — y compris après un
+        /// prestige ou une Ascension, qui repartent d'un <see cref="MagicState"/> vierge — ne fait rien
+        /// dès la seconde fois. Ne repose pas sur un drapeau de migration dans GodState pour cette raison :
+        /// contrairement aux interrupteurs d'automatisation, l'ancien état ne se régénère jamais.
         /// </summary>
         private void MigrateLegacyAutomationFlags()
         {
             if (_state == null) return;
+
+            var armed = _state.AutomationSettings.AutomatedRituals;
+
             foreach (var active in _state.Magic.ActiveRituals)
             {
                 if (!active.IsAutomated) continue;
                 active.IsAutomated = false;
-                if (!_state.Magic.AutomatedRituals.Contains(active.Id))
-                    _state.Magic.AutomatedRituals.Add(active.Id);
+                if (!armed.Contains(active.Id)) armed.Add(active.Id);
             }
+
+            if (_state.Magic.AutomatedRituals.Count == 0) return;
+            foreach (var id in _state.Magic.AutomatedRituals)
+                if (!armed.Contains(id)) armed.Add(id);
+            _state.Magic.AutomatedRituals.Clear();
         }
 
         /// <summary>
@@ -826,7 +848,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             _lastRitualAutomationTick = lastTick;
             if (cycles <= 0) return;
             if (!IsDivineRitualsActive) return;
-            if (_state.Magic.AutomatedRituals.Count == 0) return;
+            if (AutomatedRituals.Count == 0) return;
 
             bool changed = false;
             for (long i = 0; i < cycles; i++)
@@ -837,7 +859,7 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         private bool AdjustAutomatedRitualPowerOnce()
         {
-            if (_state!.Magic.AutomatedRituals.Count == 0) return false;
+            if (AutomatedRituals.Count == 0) return false;
 
             double net = GetNetCrystalPerSecond();
             if (net < 0) return ReduceStrongestAutomatedRitual();
@@ -905,7 +927,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             var result = new List<(RitualId Id, int Power)>();
             bool slotFree = _state!.Magic.ActiveRituals.Count < MaxActiveRituals;
 
-            foreach (var id in _state.Magic.AutomatedRituals)
+            foreach (var id in AutomatedRituals)
             {
                 var active = GetActiveRitual(id);
                 if (active == null && (!slotFree || !IsRitualKnown(id))) continue;

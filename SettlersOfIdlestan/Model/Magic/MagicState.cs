@@ -14,8 +14,9 @@ public class ActiveRitual
     public long LastUpkeepTick { get; set; }
 
     /// <summary>
-    /// [Legacy v0.21] Ancien emplacement du drapeau d'automatisation, remplacé par
-    /// <see cref="MagicState.AutomatedRituals"/> : l'automatisation doit survivre à l'arrêt du rituel
+    /// [Legacy v0.21] Ancien emplacement du drapeau d'automatisation, remplacé depuis par
+    /// <c>AutomationSettings.AutomatedRituals</c> (en passant par <see cref="MagicState.AutomatedRituals"/>) :
+    /// l'automatisation doit survivre à l'arrêt du rituel
     /// (plus de cristaux), donc elle ne peut pas être portée par le rituel actif. Lue une seule fois au
     /// chargement d'une sauvegarde antérieure (<c>MagicController.MigrateLegacyAutomationFlags</c>),
     /// jamais écrite ailleurs.
@@ -42,11 +43,12 @@ public class MagicState
     public List<ActiveRitual> ActiveRituals { get; set; } = new();
 
     /// <summary>
-    /// Rituels dont la puissance est ajustée automatiquement (case à cocher "auto", pouvoir divin
-    /// Rituels Divins — voir <c>MagicController.SetRitualAutomated</c> et
-    /// <c>MagicController.ProcessRitualPowerAutomation</c>). Indépendant de
-    /// <see cref="ActiveRituals"/> à dessein : un rituel automatisé qui s'arrête faute de cristaux
-    /// reste armé et sera relancé dès que le gain net de cristaux le permettra.
+    /// [Legacy v0.21] Ancien emplacement de la liste des rituels automatisés, remplacée par
+    /// <c>AutomationSettings.AutomatedRituals</c> (portée par GodState) : comme les autres
+    /// interrupteurs d'automatisation, la case « auto » doit survivre au prestige et à l'Ascension,
+    /// ce que ce <see cref="MagicState"/> — recréé à chaque run — ne permet pas. Vidée au chargement
+    /// d'une sauvegarde antérieure (<c>MagicController.MigrateLegacyAutomationFlags</c>), jamais
+    /// écrite ailleurs.
     /// </summary>
     public List<RitualId> AutomatedRituals { get; set; } = new();
 
