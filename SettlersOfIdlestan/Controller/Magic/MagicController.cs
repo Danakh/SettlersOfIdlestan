@@ -171,7 +171,23 @@ namespace SettlersOfIdlestan.Controller.Magic
                 if (civ == null || !IsMagicUnlocked()) return 0;
                 double towerBonus = MageTowerTotalLevel * MageTowerPowerBonusPerLevel;
                 double budget = civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_TOTAL_POWER, "", 1.0 + towerBonus);
-                return budget + civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_FLAT_POWER, "", 0.0);
+                return budget + FlatPowerBonus;
+            }
+        }
+
+        /// <summary>
+        /// Part du budget venant de RITUAL_FLAT_POWER seule : des points de puissance entiers ajoutés
+        /// après coup (hex de prestige Puissance Abyssale), et non une part de la base. Exposée à part
+        /// pour que l'infobulle puisse la distinguer des bonus exprimés en pourcentage de la base — les
+        /// mélanger donnait un « autres bonus » gonflé de 100 % par point plat.
+        /// </summary>
+        public double FlatPowerBonus
+        {
+            get
+            {
+                var civ = GetPlayerCiv();
+                if (civ == null || !IsMagicUnlocked()) return 0;
+                return civ.ModifierAggregator.ApplyModifiers(ECategory.RITUAL_FLAT_POWER, "", 0.0);
             }
         }
 

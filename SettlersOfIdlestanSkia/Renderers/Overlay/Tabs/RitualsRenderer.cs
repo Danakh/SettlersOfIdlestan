@@ -38,9 +38,16 @@ public sealed class RitualsRenderer : IDisposable
         lines.Add(_localization.GetFormated("rituals_power_tooltip_towers", $"{towerBonusPercent:0.#}"));
 
         double totalExact = magic.TotalPowerBudgetExact;
-        double otherPercent = (totalExact - 1.0 - towerBonusPercent / 100.0) * 100.0;
+
+        // La puissance fixe (RITUAL_FLAT_POWER) est un nombre de points, pas un pourcentage de la base :
+        // la laisser dans le pourcentage « autres bonus » ajoutait 100 % par point plat, ce qui rendait
+        // la ligne illisible. Elle est donc retirée du pourcentage et affichée sur sa propre ligne.
+        double flat = magic.FlatPowerBonus;
+        double otherPercent = (totalExact - flat - 1.0 - towerBonusPercent / 100.0) * 100.0;
         if (Math.Abs(otherPercent) > 0.01)
             lines.Add(_localization.GetFormated("rituals_power_tooltip_other", $"{otherPercent:0.#}"));
+        if (Math.Abs(flat) > 0.01)
+            lines.Add(_localization.GetFormated("rituals_power_tooltip_flat", $"{flat:0.#}"));
 
         lines.Add(_localization.GetFormated("rituals_power_tooltip_total", $"{totalExact:0.#}"));
         return lines.ToArray();

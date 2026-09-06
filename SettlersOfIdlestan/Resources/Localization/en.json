@@ -1646,6 +1646,7 @@
   "rituals_power_max_label": "Maximum Power {0}",
   "rituals_power_tooltip_towers": "Mage Towers bonus: +{0}%",
   "rituals_power_tooltip_other": "Other bonuses: +{0}%",
+  "rituals_power_tooltip_flat": "Flat power: +{0}",
   "rituals_power_tooltip_total": "Total: {0}",
   "rituals_crystals_label": "Crystals {0} ({1}/s)",
   "rituals_crystals_tooltip_none": "No crystal production or consumption.",

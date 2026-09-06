@@ -1646,6 +1646,7 @@
   "rituals_power_max_label": "Puissance Maximale {0}",
   "rituals_power_tooltip_towers": "Bonus Tour de Mages : +{0}%",
   "rituals_power_tooltip_other": "Autres bonus : +{0}%",
+  "rituals_power_tooltip_flat": "Puissance fixe : +{0}",
   "rituals_power_tooltip_total": "Total : {0}",
   "rituals_crystals_label": "Cristaux {0} ({1}/s)",
   "rituals_crystals_tooltip_none": "Aucune production ni consommation de cristaux.",
