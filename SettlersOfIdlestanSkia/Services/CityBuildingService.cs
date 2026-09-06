@@ -170,15 +170,21 @@ public class CityBuildingService
         return civ == null ? 0 : CorruptionController.GetTempleDominionCap(civ, atLevel ?? temple.Level);
     }
 
-    /// <summary>Bonus de vitesse de récolte par niveau de Dominion (intrinsèque + amplificateur de prestige DOMINION_HARVEST_SPEED_PER_LEVEL, doublé par la Ziggourat), pour la civilisation sélectionnée.</summary>
+    /// <summary>Vrai si le Temple donné produit du Dominion pour la civilisation sélectionnée (voir CorruptionController.ProducesDominion).</summary>
+    public bool IsTempleProducingDominion(Temple temple)
+    {
+        var civ = SelectedCivilization;
+        return civ != null && CorruptionController.ProducesDominion(civ, temple.Level);
+    }
+
+    /// <summary>Bonus de vitesse de récolte par niveau de Dominion (intrinsèque + amplificateur de prestige DOMINION_HARVEST_SPEED_PER_LEVEL, augmenté par DOMINION_HARVEST_SPEED_BONUS — Ziggourat +50%), pour la civilisation sélectionnée.</summary>
     public double GetDominionHarvestBonusPerLevel()
     {
         var civ = SelectedCivilization;
         double amplifier = civ?.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, "", 0.0) ?? 0.0;
         double bonus = SettlersOfIdlestan.Model.IslandFeatures.Dominion.IntrinsicHarvestBonusPerLevel * (1.0 + amplifier);
-        if (civ?.ModifierAggregator.HasModifier(ECategory.DOMINION_HARVEST_SPEED_DOUBLED) ?? false)
-            bonus *= 2.0;
-        return bonus;
+        double buildingAmplifier = civ?.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_HARVEST_SPEED_BONUS, "", 0.0) ?? 0.0;
+        return bonus * (1.0 + buildingAmplifier);
     }
 
     public long GetCurrentTick() => _mainGameController.CurrentMainState?.Clock?.CurrentTick ?? 0;

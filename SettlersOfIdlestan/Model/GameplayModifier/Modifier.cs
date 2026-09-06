@@ -222,6 +222,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             DOMINION_DEFENSE_REGEN_PER_LEVEL,
             /// <summary>Bonus additif au plafond de Dominion que la production d'un Temple peut atteindre, par niveau de Temple (base : 2/niveau, voir CorruptionController.ProcessTempleProduction). Base = 0. Aucune source ne l'accorde actuellement (le Dogme de l'Emprise, qui le portait, allège désormais DOMINION_LAYER_PENALTY_REDUCTION).</summary>
             TEMPLE_DOMINION_CAP,
+            /// <summary>Niveaux fictifs ajoutés à chaque Temple pour sa seule production de Dominion : le Temple produit comme s'il était de Value niveaux de plus (plage productive et plafond par hex, voir CorruptionController.GetTempleDominionLevel). Base = 0 ; Ziggourat +1.</summary>
+            TEMPLE_DOMINION_LEVEL_BONUS,
             /// <summary>Points de pourcentage de chance de débordement supplémentaires par niveau, pour le Dominion uniquement (base : 10%/niveau, voir CorruptionController.ProcessSpread). Base = 0.</summary>
             DOMINION_SPREAD_CHANCE,
             /// <summary>Probabilité (0-1) qu'un Dominion situé sur un hex d'une ville possédant un Temple ne perde pas de niveau lors d'une annulation mutuelle avec la Corruption (la Corruption, elle, perd toujours le sien). Base = 0.0.</summary>
@@ -234,8 +236,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CITY_MIN_DISTANCE,
             /// <summary>Restriction raciale de placement : tout nouveau vertex de ville en surface doit toucher au moins un hex du terrain indiqué. SubCategory = nom du TerrainType (voir CityBuilderController.GetBuildableVertices).</summary>
             CITY_PLACEMENT_REQUIRES_TERRAIN,
-            /// <summary>Flags que le bonus de vitesse de récolte du Dominion (intrinsèque + DOMINION_HARVEST_SPEED_PER_LEVEL) est doublé pour la civilisation (Ziggourat — voir Dominion.GetHarvestTimeMultiplier).</summary>
-            DOMINION_HARVEST_SPEED_DOUBLED,
+            /// <summary>Fraction dont le bonus de vitesse de récolte du Dominion (intrinsèque + DOMINION_HARVEST_SPEED_PER_LEVEL) est augmenté pour la civilisation. Base = 0.0 ; 0.5 = +50% du bonus (Ziggourat — voir Dominion.GetHarvestTimeMultiplier).</summary>
+            DOMINION_HARVEST_SPEED_BONUS,
             /// <summary>Fraction de réduction du coût en ressources des nouvelles villes. Base = 0.0 ; 0.25 = -25% (voir CityBuilderController.NewCityBuildingCostFor).</summary>
             NEW_CITY_COST_REDUCTION,
             /// <summary>Bonus additif de vitesse de construction automatique des bâtiments par les guildes (Artisans, Récolteurs, Marchands, etc.), par ville possédée. Base = 0.0 ; agrégé puis multiplié par le nombre de villes de la civilisation (voir BuildingController.TickGuildAutomation). 0.1 = +10% par ville.</summary>

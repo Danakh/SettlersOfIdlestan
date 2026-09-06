@@ -20,7 +20,9 @@ namespace SettlersOfIdlestan.Controller.Island;
 ///    fois le pouvoir divin Foi débloqué, voir AscensionController.GetModifiers — BUILDING_MAX_LEVEL
 ///    "Temple" +3) cible un hex aléatoire parmi les 3 hexes touchant sa ville : réduit la Corruption
 ///    d'un point si elle y est présente, sinon pose ou augmente le Dominion d'un point (plafonné à
-///    <see cref="TempleDominionCapPerLevel"/> × niveau du Temple).
+///    <see cref="TempleDominionCapPerLevel"/> × niveau effectif du Temple). Le niveau effectif est le
+///    niveau réel augmenté de TEMPLE_DOMINION_LEVEL_BONUS (Ziggourat +1), ce qui abaisse aussi d'autant
+///    le niveau à partir duquel un Temple produit — voir <see cref="ProducesDominion"/>.
 /// 2. <see cref="ProcessSpread"/> — chaque hex de Corruption ou de Dominion (toutes couches confondues)
 ///    a niveau×10% de chance de déborder sur un voisin aléatoire : annulation mutuelle (-1/-1) si ce
 ///    voisin porte le statut opposé, propagation (+1 voisin, source inchangée) si le voisin partage le
@@ -154,7 +156,7 @@ public class CorruptionController
         {
             foreach (var city in civ.Cities)
             {
-                var temple = city.FindBuilding<Temple>(BuildingType.Temple) is { } t0 && t0.Level >= TempleMinDominionLevel && t0.Level <= TempleMaxDominionLevel ? t0 : null;
+                var temple = city.FindBuilding<Temple>(BuildingType.Temple) is { } t0 && ProducesDominion(civ, t0.Level) ? t0 : null;
                 if (temple == null) continue;
 
                 // coldStartOnZero: true — LastDominionProductionTick est persisté à 0 tant que le Temple
@@ -196,8 +198,8 @@ public class CorruptionController
 
     /// <summary>
     /// Action de Temple sur un hex : dissipe un point de Corruption si elle est présente, sinon
-    /// pose ou augmente le Dominion d'un point, plafonné par le niveau du Temple (voir
-    /// TempleDominionCapPerLevel + TEMPLE_DOMINION_CAP).
+    /// pose ou augmente le Dominion d'un point, plafonné par le niveau effectif du Temple (voir
+    /// TempleDominionCapPerLevel + TEMPLE_DOMINION_CAP + TEMPLE_DOMINION_LEVEL_BONUS).
     /// </summary>
     private void ApplyTempleActionOnHex(Civilization civ, Temple temple, HexCoord hex)
     {
@@ -221,8 +223,28 @@ public class CorruptionController
     {
         int capPerLevel = TempleDominionCapPerLevel
             + civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.TEMPLE_DOMINION_CAP, "", 0);
-        return capPerLevel * templeLevel;
+        return capPerLevel * GetTempleDominionLevel(civ, templeLevel);
     }
+
+    /// <summary>
+    /// Niveau auquel un Temple de niveau <paramref name="templeLevel"/> produit du Dominion pour cette
+    /// civilisation : son niveau réel plus TEMPLE_DOMINION_LEVEL_BONUS (Ziggourat +1). Ne concerne que
+    /// la production de Dominion — le niveau réel du bâtiment (coûts, défense, plafond de niveau)
+    /// n'est pas touché.
+    /// </summary>
+    public static int GetTempleDominionLevel(Civilization civ, int templeLevel)
+        => templeLevel + civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.TEMPLE_DOMINION_LEVEL_BONUS, "", 0);
+
+    /// <summary>
+    /// Vrai si un Temple bâti de ce niveau produit du Dominion pour cette civilisation : son niveau
+    /// effectif (voir <see cref="GetTempleDominionLevel"/>) atteint <see cref="TempleMinDominionLevel"/>.
+    /// La borne haute porte sur le niveau réel, pas sur l'effectif : la Ziggourat doit continuer de
+    /// bénéficier au Temple de niveau maximal, pas l'exclure.
+    /// </summary>
+    public static bool ProducesDominion(Civilization civ, int templeLevel)
+        => templeLevel >= 1
+        && templeLevel <= TempleMaxDominionLevel
+        && GetTempleDominionLevel(civ, templeLevel) >= TempleMinDominionLevel;
 
     /// <summary>
     /// Tampons de <see cref="ProcessSpread"/>, réutilisés d'un cycle et d'un événement d'horloge à

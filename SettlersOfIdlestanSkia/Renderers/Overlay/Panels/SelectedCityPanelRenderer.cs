@@ -260,7 +260,7 @@ public class SelectedCityPanelRenderer : PanelRendererBase
                     }
                 }
 
-                if (hoveredBuilding is Temple temple && temple.Level >= 2)
+                if (hoveredBuilding is Temple temple && _cityBuildingService.IsTempleProducingDominion(temple))
                 {
                     int cap = _cityBuildingService.GetTempleDominionCap(temple);
                     int harvestBonusPercent = (int)Math.Round(_cityBuildingService.GetDominionHarvestBonusPerLevel() * 100);

@@ -5,9 +5,11 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Model.Buildings;
 
 /// <summary>
-/// Bâtiment unique racial des Humains (voir RaceDefinitions). Émet le flag
-/// DOMINION_HARVEST_SPEED_DOUBLED : double le bonus de vitesse de récolte du Dominion pour la
-/// civilisation (voir Dominion.GetHarvestTimeMultiplier).
+/// Bâtiment unique racial des Humains (voir RaceDefinitions). Émet deux modificateurs :
+/// DOMINION_HARVEST_SPEED_BONUS (+50% sur le bonus de vitesse de récolte du Dominion pour la
+/// civilisation, voir Dominion.GetHarvestTimeMultiplier) et TEMPLE_DOMINION_LEVEL_BONUS (chaque
+/// Temple produit du Dominion comme s'il avait un niveau de plus, voir
+/// CorruptionController.GetTempleDominionLevel).
 /// Niveau max par défaut 0 : constructible uniquement quand la race Humaine fournit son
 /// BUILDING_MAX_LEVEL +1 (même patron que les uniques débloqués par prestige).
 /// Prérequis de construction : Dominion débloqué (pouvoir divin Foi) ET un Temple niveau 4 dans
@@ -56,6 +58,7 @@ public class Ziggurat : Building, IUniqueBuilding
     public IEnumerable<Modifier> GetUniqueBuildingModifiers()
     {
         if (Level <= 0) yield break;
-        yield return new Modifier(ECategory.DOMINION_HARVEST_SPEED_DOUBLED, EType.ADDITIVE, 1.0);
+        yield return new Modifier(ECategory.DOMINION_HARVEST_SPEED_BONUS, EType.ADDITIVE, 0.5);
+        yield return new Modifier(ECategory.TEMPLE_DOMINION_LEVEL_BONUS, EType.ADDITIVE, 1);
     }
 }

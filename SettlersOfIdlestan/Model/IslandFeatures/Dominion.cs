@@ -31,17 +31,15 @@ public class Dominion : IslandFeature
     /// <summary>
     /// Bonus total de vitesse de récolte sur cet hex : +10% par niveau de Dominion, amplifié par le
     /// bonus de prestige DOMINION_HARVEST_SPEED_PER_LEVEL (+10% du bonus par vertex acheté autour de
-    /// l'hex de prestige), puis doublé si la civilisation possède la Ziggourat
-    /// (DOMINION_HARVEST_SPEED_DOUBLED). Ex. niveau 5 avec 2 vertex (0.2) : 50% × 1.2 = +60%
-    /// (+120% avec Ziggourat).
+    /// l'hex de prestige), puis par DOMINION_HARVEST_SPEED_BONUS (+50% si la civilisation possède la
+    /// Ziggourat). Ex. niveau 5 avec 2 vertex (0.2) : 50% × 1.2 = +60% (+90% avec Ziggourat).
     /// </summary>
     private double GetTotalHarvestBonus(SettlersOfIdlestan.Model.Civilization.Civilization civ)
     {
         double prestigeAmplifier = civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_HARVEST_SPEED_PER_LEVEL, "", 0.0);
         double bonus = IntrinsicHarvestBonusPerLevel * Level * (1.0 + prestigeAmplifier);
-        if (civ.ModifierAggregator.HasModifier(ECategory.DOMINION_HARVEST_SPEED_DOUBLED))
-            bonus *= 2.0;
-        return bonus;
+        double buildingAmplifier = civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_HARVEST_SPEED_BONUS, "", 0.0);
+        return bonus * (1.0 + buildingAmplifier);
     }
 
     /// <summary>Accélère la récolte selon <see cref="GetTotalHarvestBonus"/> : délai de récolte ÷ (1 + bonus).</summary>

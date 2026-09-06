@@ -116,14 +116,15 @@ public class UniqueBuildingBonusTests
     }
 
     [Fact]
-    public void Ziggurat_DoublesDominionHarvestSpeedBonus()
+    public void Ziggurat_BoostsDominionHarvestSpeedAndTempleDominionLevel()
     {
         var (_, city, civ) = CreateSetup();
-        Assert.False(civ.ModifierAggregator.HasModifier(ECategory.DOMINION_HARVEST_SPEED_DOUBLED));
+        Assert.False(civ.ModifierAggregator.HasModifier(ECategory.DOMINION_HARVEST_SPEED_BONUS));
 
         BuildUnique(city, civ, new Ziggurat { Level = 1 });
 
-        Assert.True(civ.ModifierAggregator.HasModifier(ECategory.DOMINION_HARVEST_SPEED_DOUBLED));
+        Assert.Equal(0.5, civ.ModifierAggregator.ApplyModifiers(ECategory.DOMINION_HARVEST_SPEED_BONUS, "", 0.0));
+        Assert.Equal(1, civ.ModifierAggregator.ApplyModifiers(ECategory.TEMPLE_DOMINION_LEVEL_BONUS, "", 0));
     }
 
     [Fact]
