@@ -753,6 +753,25 @@ public class Civilization
     public int CityMaxSoldiersBonus => ModifierAggregator.ApplyModifiers(ECategory.CITY_MAX_SOLDIERS_BONUS, "", 0);
 
     /// <summary>
+    /// Part du bonus de capacité de soldats réservée aux couches profondes (Abysse, Pandémonium) —
+    /// hex de prestige Conquête Planaire. À ajouter à <see cref="CityMaxSoldiersBonus"/> pour les seuls
+    /// emplacements qui s'y trouvent ; <see cref="GetCityMaxSoldiersBonus"/> fait les deux.
+    /// </summary>
+    [JsonIgnore]
+    public int DeepLayerCityMaxSoldiersBonus => ModifierAggregator.ApplyModifiers(ECategory.DEEP_LAYER_CITY_MAX_SOLDIERS_BONUS, "", 0);
+
+    /// <summary>
+    /// Bonus de capacité de soldats applicable à un emplacement militaire situé sur la couche
+    /// <paramref name="layerZ"/>. Point de lecture unique de la capacité : passer par
+    /// <see cref="CityMaxSoldiersBonus"/> seul ignorerait le bonus de Conquête Planaire.
+    /// <para>Sur un chemin chaud qui balaie plusieurs emplacements, préférer relever les deux
+    /// propriétés une fois hors de la boucle (chaque lecture réagrège les modifiers) et les combiner
+    /// soi-même — voir SoldierProductionEngine.ProduceSoldiers.</para>
+    /// </summary>
+    public int GetCityMaxSoldiersBonus(int layerZ)
+        => CityMaxSoldiersBonus + (LayerState.IsDeepLayer(layerZ) ? DeepLayerCityMaxSoldiersBonus : 0);
+
+    /// <summary>
     /// Liste des ressources d�tenues par la civilisation.
     /// </summary>
     // Resources are stored as a map from Resource -> quantity.

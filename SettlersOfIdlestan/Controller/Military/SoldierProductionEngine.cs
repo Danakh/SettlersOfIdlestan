@@ -27,7 +27,7 @@ internal class SoldierProductionEngine
     // PNJ éliminées (0 ville) sont retirées de WorldState.Civilizations. GetCivilization cherche par
     // Index, robuste au décalage des positions suivantes.
     internal int GetMaximumSoldierCapacity(IMilitaryVertex vertex)
-        => vertex.MaxSoldiers + (_state!.GetCivilization(vertex.CivilizationIndex)?.CityMaxSoldiersBonus ?? 0);
+        => vertex.MaxSoldiers + (_state!.GetCivilization(vertex.CivilizationIndex)?.GetCityMaxSoldiersBonus(vertex.Position.Z) ?? 0);
 
     /// <summary>
     /// Vrai si la production de soldats de <paramref name="city"/> est bridée au quota de soldats
@@ -67,7 +67,10 @@ internal class SoldierProductionEngine
             // bonus de Garnison, propre à chaque ville (voir City.UnitProductionSpeedBonus), s'y ajoute
             // individuellement pour chaque ville ci-dessous plutôt que d'être plié dans cette constante.
             double civUnitProductionSpeed = civ.UnitProductionSpeed;
+            // Deux lectures par civilisation plutôt qu'un GetCityMaxSoldiersBonus par ville : chacune
+            // réagrège les modifiers (voir Civilization.GetCityMaxSoldiersBonus).
             int maxSoldiersBonus = civ.CityMaxSoldiersBonus;
+            int deepLayerBonus = civ.DeepLayerCityMaxSoldiersBonus;
             int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
             bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
 
@@ -76,7 +79,9 @@ internal class SoldierProductionEngine
             for (int i = 0; i < cities.Count; i++)
             {
                 var city = cities[i];
-                if (city.Soldiers + city.IncomingSoldiers.Count >= city.MaxSoldiers + maxSoldiersBonus) continue;
+                int cityMaxSoldiers = city.MaxSoldiers + maxSoldiersBonus
+                    + (LayerState.IsDeepLayer(city.Position.Z) ? deepLayerBonus : 0);
+                if (city.Soldiers + city.IncomingSoldiers.Count >= cityMaxSoldiers) continue;
                 long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / (civUnitProductionSpeed + city.UnitProductionSpeedBonus));
 
                 // coldStartOnZero: true — LastSoldierProductionTick reste à 0 tant que la ville n'a
@@ -100,7 +105,7 @@ internal class SoldierProductionEngine
                 // s'épuiser en cours de route.
                 for (long cyc = 0; cyc < cycles; cyc++)
                 {
-                    if (city.Soldiers + city.IncomingSoldiers.Count >= city.MaxSoldiers + maxSoldiersBonus) break;
+                    if (city.Soldiers + city.IncomingSoldiers.Count >= cityMaxSoldiers) break;
 
                     if (barracks.ActivationStatus != ActivationStatus.ACTIVE || restrictedToFreeSoldiers)
                     {
@@ -151,6 +156,7 @@ internal class SoldierProductionEngine
             // Constante par civilisation — même motif que ProduceSoldiers.
             double civUnitProductionSpeed = civ.UnitProductionSpeed;
             int maxSoldiersBonus = civ.CityMaxSoldiersBonus;
+            int deepLayerBonus = civ.DeepLayerCityMaxSoldiersBonus;
             int freePerCity = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
             bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
 
@@ -158,7 +164,9 @@ internal class SoldierProductionEngine
             for (int i = 0; i < cities.Count; i++)
             {
                 var city = cities[i];
-                int room = city.MaxSoldiers + maxSoldiersBonus - city.Soldiers - city.IncomingSoldiers.Count;
+                int cityMaxSoldiers = city.MaxSoldiers + maxSoldiersBonus
+                    + (LayerState.IsDeepLayer(city.Position.Z) ? deepLayerBonus : 0);
+                int room = cityMaxSoldiers - city.Soldiers - city.IncomingSoldiers.Count;
                 if (room <= 0) continue;
 
                 long productionInterval = (long)(MilitaryController.SoldierProductionIntervalTicks / (civUnitProductionSpeed + city.UnitProductionSpeedBonus));
@@ -179,7 +187,7 @@ internal class SoldierProductionEngine
                 // en cours de route.
                 for (long cyc = 0; cyc < cycles; cyc++)
                 {
-                    int cycleRoom = city.MaxSoldiers + maxSoldiersBonus - city.Soldiers - city.IncomingSoldiers.Count;
+                    int cycleRoom = cityMaxSoldiers - city.Soldiers - city.IncomingSoldiers.Count;
                     if (cycleRoom <= 0) break;
 
                     if (restrictedToFreeSoldiers)

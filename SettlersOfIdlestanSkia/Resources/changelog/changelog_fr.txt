@@ -7,6 +7,7 @@ v0.21
 • Nouveau jalon d'Ascension Exode Divin : le vertex de prestige Relocalisation est offert à chaque Ascension, et relocaliser une ville ne coûte plus rien
 • Nouveau bâtiment magique Spire de Défense : frappe automatiquement un monstre à 2 hexs ou moins, une fois par seconde, pour 1 Cristal et 1 dégât qui ignore l'armure — sans consommer de soldat
 • Nouveau jalon d'Ascension Commerce Divin : la vente et l'achat automatiques ne réclament plus qu'un Marché de niveau 1, toute ville construite en reçoit un gratuitement, et chaque Marché produit deux fois plus d'or par cycle
+• Nouveaux pouvoirs militaires de prestige dans les Abysses : la Phalange engage 5 soldats par attaque et n'oppose l'armure d'un monstre qu'une seule fois à la salve entière, l'Expédition Punitive fait riposter 10% de la garnison dès qu'un monstre l'attaque, et la Logistique Mobile offre 3 routes à chaque Camp Mobile gratuit tout en protégeant celles qui le touchent
 
 ---
 

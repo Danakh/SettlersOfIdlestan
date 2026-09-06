@@ -901,7 +901,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 city.AddBuilding(barracks);
             }
 
-            city.Soldiers = Math.Min(20, city.MaxSoldiers + civ.CityMaxSoldiersBonus);
+            city.Soldiers = Math.Min(20, city.MaxSoldiers + civ.GetCityMaxSoldiersBonus(city.Position.Z));
         }
 
         /// <summary>

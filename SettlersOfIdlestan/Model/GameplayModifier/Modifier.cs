@@ -333,6 +333,14 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             AUTO_TRADE_ANY_MARKET_LEVEL,
             /// <summary>Or produit par un Marché à chaque cycle de génération (voir MarketGoldProductionEngine). Base = 1 ; +1 = 2 or par cycle. La cadence des cycles elle-même est portée par MARKET_GOLD_SPEED. SubCategory unused. Accordé par le jalon d'Ascension Commerce Divin (AscensionMilestoneId.MarketMastery).</summary>
             MARKET_GOLD_PER_CYCLE,
+            /// <summary>Bonus plat de capacité maximale de soldats, accordé aux seuls emplacements militaires des couches profondes — Abysses et Pandémonium (voir LayerState.IsDeepLayer, Civilization.GetCityMaxSoldiersBonus). S'ajoute à CITY_MAX_SOLDIERS_BONUS, qui lui s'applique partout. Base = 0. SubCategory unused. Accordé par l'hex de prestige Conquête Planaire, par vertex adjacent acheté.</summary>
+            DEEP_LAYER_CITY_MAX_SOLDIERS_BONUS,
+            /// <summary>Nombre de routes gratuites bâties autour d'un Camp Mobile posé gratuitement (Architecte de Guerre, voir MobileCampController.PlaceFreeMobileCamp) ; sa seule présence fait aussi protéger par tout Camp Mobile les routes qui le touchent, comme une ville protège les siennes à distance 2 (voir RoadController.IsRoadProtectedFromConquest). Base = 0. SubCategory unused. Accordé par le vertex de prestige Logistique Mobile.</summary>
+            MOBILE_CAMP_FREE_ROADS,
+            /// <summary>Fraction des soldats présents qui contre-attaquent immédiatement le monstre qui vient de frapper leur emplacement, s'il est à portée (voir MonsterCombatEngine.ResolvePunitiveExpedition). Base = 0.0 ; 0.1 = 10% des soldats, arrondi au supérieur. SubCategory unused. Accordé par le vertex de prestige Expédition Punitive.</summary>
+            PUNITIVE_EXPEDITION_RATIO,
+            /// <summary>Nombre de soldats engagés simultanément dans une même attaque, contre un monstre comme contre une ville (voir MonsterCombatEngine.StrikeMonster, CityAttackEngine). Contre un monstre, la réduction d'armure ne s'applique alors qu'une fois sur les dégâts cumulés de la salve au lieu d'une fois par soldat. Base = 1 ; REPLACER 5 (Phalange). SubCategory unused. Accordé par le vertex de prestige Phalange.</summary>
+            SIMULTANEOUS_ATTACK_SOLDIERS,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

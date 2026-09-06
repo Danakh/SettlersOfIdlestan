@@ -867,6 +867,11 @@ public class MonsterFeatureController
             monster.LastAttackTargetVertex = null;
             monster.LastAttackResourcesString = null;
         }
+
+        // Riposte de l'Expédition Punitive, une fois l'attaque entièrement résolue : le monstre peut y
+        // mourir et être retiré du monde, ce qui interdit d'en faire quoi que ce soit ensuite ici. Les
+        // chemins où la cible est détruite sortent plus haut — il n'y a alors plus personne pour riposter.
+        _militaryController?.ResolvePunitiveExpedition(target, monster);
     }
 
     /// <summary>Détruit une Flotte de Guerre ou un Camp Mobile tué par un monstre (voir ApplyMonsterAttack).</summary>

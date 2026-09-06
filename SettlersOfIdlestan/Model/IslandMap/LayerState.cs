@@ -25,6 +25,13 @@ public class LayerState
     /// </summary>
     public const int PandemoniumZ = 3;
 
+    /// <summary>
+    /// Vrai pour les deux couches les plus profondes (Abysse et Pandémonium), celles qu'on n'atteint
+    /// qu'après la Faille des Abysses. Sert aux bonus qui ne valent que là — voir
+    /// <see cref="SettlersOfIdlestan.Model.GameplayModifier.Modifier.ECategory.DEEP_LAYER_CITY_MAX_SOLDIERS_BONUS"/>.
+    /// </summary>
+    public static bool IsDeepLayer(int z) => z == AbyssZ || z == PandemoniumZ;
+
     public IslandMap Map { get; set; }
 
     /// <summary>

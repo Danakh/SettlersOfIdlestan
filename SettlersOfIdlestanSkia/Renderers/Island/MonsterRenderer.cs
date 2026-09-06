@@ -25,6 +25,9 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     /// <summary>Taille de la boule de feu d'une Spire de Défense — celle du volcan (voir VolcanoRenderer).</summary>
     private const float FireballParticleIconSize = 20f;
 
+    /// <summary>Écartement (px) entre deux trajectoires d'une même salve — même valeur que les particules de récolte.</summary>
+    private const float AttackParticleSpreadStep = 15f;
+
     private sealed class MonsterVisual
     {
         public HexCoord ModelPosition = new(0, 0, IslandMap.SurfaceLayer);
@@ -46,6 +49,13 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     {
         public SKPoint From;
         public SKPoint To;
+
+        /// <summary>
+        /// Point de contrôle de la courbe de Bézier quadratique — au milieu du segment pour une
+        /// trajectoire droite, décalé perpendiculairement pour écarter les particules d'une même salve
+        /// (voir <see cref="EmitAttackParticles"/>, même principe que HarvestParticleSystem).
+        /// </summary>
+        public SKPoint ControlPoint;
         public float Progress;
 
         /// <summary>Vrai pour un tir de Spire de Défense : boule de feu du volcan au lieu de l'icône d'attaque.</summary>
@@ -102,7 +112,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             if (worldState == null) return;
             if (args.CityVertex.Z != worldState.CurrentViewedLayer) return;
             if (!IsSourceOrDestinationVisible(worldState, args.CityVertex, args.MonsterPosition)) return;
-            EmitAttackParticle(args.CityVertex, args.MonsterPosition, isFireball);
+            EmitAttackParticles(args.CityVertex, args.MonsterPosition, isFireball, args.SoldierCount);
         }
     }
 
@@ -116,17 +126,41 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         return false;
     }
 
-    private void EmitAttackParticle(Vertex cityVertex, HexCoord targetPosition, bool isFireball)
+    /// <summary>
+    /// Une particule par soldat engagé dans l'attaque (Phalange, Expédition Punitive — voir
+    /// SoldierAttackEventArgs.SoldierCount) : sans écartement elles se superposeraient exactement et la
+    /// salve se lirait comme une attaque unique. Les points de contrôle sont répartis en largeur par
+    /// rapport à l'axe départ→cible, exactement comme les particules de récolte
+    /// (HarvestParticleSystem.EmitParticles).
+    /// </summary>
+    private void EmitAttackParticles(Vertex cityVertex, HexCoord targetPosition, bool isFireball, int count)
     {
         var from = VertexToIsland(cityVertex);
         var (bx, by) = AxialToIsland(targetPosition.Q, targetPosition.R);
-        _attackParticles.Add(new AttackParticle
+        var to = new SKPoint(bx, by);
+
+        int n = Math.Max(1, count);
+        var mid = new SKPoint((from.X + to.X) / 2f, (from.Y + to.Y) / 2f);
+
+        float dx = to.X - from.X;
+        float dy = to.Y - from.Y;
+        float len = MathF.Sqrt(dx * dx + dy * dy);
+        float perpX = 0f, perpY = 0f;
+        if (len > 0f) { perpX = -dy / len; perpY = dx / len; }
+
+        float halfSpan = (n - 1) * AttackParticleSpreadStep / 2f;
+        for (int i = 0; i < n; i++)
         {
-            From = from,
-            To = new SKPoint(bx, by),
-            Progress = 0f,
-            IsFireball = isFireball,
-        });
+            float offset = n > 1 ? i * AttackParticleSpreadStep - halfSpan : 0f;
+            _attackParticles.Add(new AttackParticle
+            {
+                From = from,
+                To = to,
+                ControlPoint = new SKPoint(mid.X + perpX * offset, mid.Y + perpY * offset),
+                Progress = 0f,
+                IsFireball = isFireball,
+            });
+        }
     }
 
     public void Render(SKCanvas canvas, GameRenderContext context)
@@ -243,7 +277,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             var p = _attackParticles[i];
             p.Progress = Math.Min(1f, p.Progress + dt / AttackParticleDuration);
             float t = Smoothstep(p.Progress);
-            var pos2 = Lerp(p.From, p.To, t);
+            var pos2 = QuadraticBezier(p.From, p.ControlPoint, p.To, t);
             float alpha = p.Progress < 0.7f ? 1f : (1f - p.Progress) / 0.3f;
             if (p.IsFireball) DrawFireballParticle(canvas, pos2, alpha);
             else DrawAttackParticle(canvas, pos2, alpha);
@@ -278,6 +312,15 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
 
     private SKPoint CurrentVisualPoint(MonsterVisual v)
         => Lerp(v.From, v.To, Smoothstep(v.MoveProgress));
+
+    /// <summary>Bézier quadratique B(t) = (1-t)²·P0 + 2(1-t)t·P1 + t²·P2 — droite quand P1 est au milieu.</summary>
+    private static SKPoint QuadraticBezier(SKPoint from, SKPoint control, SKPoint to, float t)
+    {
+        float mt = 1f - t;
+        return new SKPoint(
+            mt * mt * from.X + 2f * mt * t * control.X + t * t * to.X,
+            mt * mt * from.Y + 2f * mt * t * control.Y + t * t * to.Y);
+    }
 
     private static void DrawSvgMonsterIcon(SKCanvas canvas, SKPoint center, SKSvg? svg, float size)
     {

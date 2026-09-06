@@ -7,6 +7,7 @@ v0.21
 • New Divine Exodus Ascension milestone: the Relocation prestige vertex is granted for free at every Ascension, and relocating a city no longer costs anything
 • New Defense Spire magic building: automatically strikes a monster 2 hexes away or less, once per second, for 1 Crystal and 1 damage that ignores armor — without spending soldiers
 • New Divine Commerce Ascension milestone: automatic selling and buying only require a level 1 Market, every city built receives one for free, and every Market produces twice as much gold per cycle
+• New military prestige powers in the Abyss: the Phalanx engages 5 soldiers per attack and only applies a monster's armor once to the whole volley, the Punitive Expedition makes 10% of a garrison strike back the moment a monster attacks it, and Mobile Logistics grants 3 roads to every free Mobile Camp while protecting those that touch it
 
 ---
 

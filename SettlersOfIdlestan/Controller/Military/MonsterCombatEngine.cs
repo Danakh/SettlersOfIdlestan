@@ -39,6 +39,68 @@ internal class MonsterCombatEngine
     private static int SoldierDamage(Civilization civ)
         => civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_ATTACK_DAMAGE, "", 1);
 
+    /// <summary>
+    /// Taille de la salve : nombre de soldats engagés simultanément dans une même attaque. 1 par
+    /// défaut, 5 avec la Phalange (SIMULTANEOUS_ATTACK_SOLDIERS). Partagé avec les attaques de ville
+    /// (voir <see cref="CityAttackEngine"/>).
+    /// </summary>
+    internal static int SimultaneousAttackSoldiers(Civilization civ)
+        => Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.SIMULTANEOUS_ATTACK_SOLDIERS, "", 1));
+
+    /// <summary>
+    /// Salve d'au plus <paramref name="soldierCount"/> soldats de <paramref name="vertex"/> contre
+    /// <paramref name="monster"/> : consomme une Arme en Acier par soldat engagé, applique les dégâts,
+    /// puis retire les soldats perdus (une Armure d'Acier ou une Potion de Soin peut en sauver).
+    /// Point de passage unique des trois façons de frapper un monstre : corps-à-corps, tir à distance
+    /// et Expédition Punitive.
+    ///
+    /// <para>Seuls les soldats nécessaires sont engagés : une Phalange ne doit pas coûter 5 soldats
+    /// pour achever un bandit à 1 PV. Avec la Phalange (<paramref name="poolArmor"/>), la réduction
+    /// d'armure ne s'applique qu'une fois sur les dégâts cumulés de la salve, au lieu d'une fois par
+    /// soldat — c'est tout l'intérêt du vertex face aux monstres blindés.</para>
+    ///
+    /// Retourne le nombre de soldats réellement engagés (0 si la salve n'a pas eu lieu).
+    /// </summary>
+    private int StrikeMonster(Civilization civ, IMilitaryVertex vertex, MonsterFeature monster,
+        int soldierCount, int soldierDamage, bool steelWeaponsUnlocked, bool poolArmor,
+        Action<IMilitaryVertex, Resource> onConsumed)
+    {
+        int available = Math.Min(soldierCount, vertex.Soldiers);
+        if (available <= 0 || monster.Hp <= 0) return 0;
+
+        // Part déterministe de la réduction d'armure (voir MonsterFeature.ApplyArmorReduction) : sert
+        // uniquement à savoir quand la salve a déjà de quoi tuer, le tirage réel ayant lieu en sortie
+        // de boucle.
+        int pooledReduction = poolArmor ? (int)Math.Floor(monster.Armor / 2.0) : 0;
+
+        int engaged = 0;
+        int pooledRaw = 0;
+        for (int s = 0; s < available; s++)
+        {
+            if (poolArmor ? pooledRaw - pooledReduction >= monster.Hp : monster.Hp <= 0) break;
+
+            // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
+            bool hasSteelWeapon = steelWeaponsUnlocked && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
+            if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
+            int rawDamage = soldierDamage + (hasSteelWeapon ? 1 : 0);
+            engaged++;
+
+            if (poolArmor) pooledRaw += rawDamage;
+            else monster.Hp -= MonsterFeature.ApplyArmorReduction(rawDamage, monster.Armor, _prng!);
+        }
+
+        if (engaged == 0) return 0;
+
+        if (poolArmor)
+            monster.Hp -= MonsterFeature.ApplyArmorReduction(pooledRaw, monster.Armor, _prng!);
+        if (monster.Hp <= 0) monster.KilledByCivilizationIndex = civ.Index;
+
+        // Armures d'Acier : chaque soldat engagé peut survivre à l'assaut en consommant 1 Acier
+        int saved = SteelArmorEngine.TrySaveSoldiers(civ, vertex, engaged, _prng!, onConsumed);
+        vertex.Soldiers -= engaged - saved;
+        return engaged;
+    }
+
     internal void ResolveMonsterCombat(long currentTick,
         Action<SoldierAttackEventArgs> onSoldierAttackedMonster,
         Action<ConsumableConsumedEventArgs> onConsumableConsumed)
@@ -94,6 +156,7 @@ internal class MonsterCombatEngine
             bool steelWeaponsUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
             // Comme l'intervalle de combat : agrégé une fois par civilisation, pas par emplacement.
             int soldierDamage = SoldierDamage(civ);
+            int salvoSize = SimultaneousAttackSoldiers(civ);
 
             var vertices = civ.MilitaryVertices;
             for (int i = 0; i < vertices.Count; i++)
@@ -109,19 +172,12 @@ internal class MonsterCombatEngine
                 // le lambda capturait le monstre et allouait donc une fermeture par emplacement.
                 if (!vertex.Position.IsAdjacentTo(monster.Position)) continue;
 
-                // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
-                bool hasSteelWeapon = steelWeaponsUnlocked
-                    && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
-                if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
+                int engaged = StrikeMonster(civ, vertex, monster, salvoSize, soldierDamage,
+                    steelWeaponsUnlocked, poolArmor: salvoSize > 1, onConsumed);
+                if (engaged == 0) continue;
 
-                // Armures d'Acier : le soldat peut survivre à l'assaut en consommant 1 Acier
-                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!, onConsumed) == 0)
-                    vertex.Soldiers--;
-                int rawDamage = soldierDamage + (hasSteelWeapon ? 1 : 0);
-                monster.Hp -= MonsterFeature.ApplyArmorReduction(rawDamage, monster.Armor, _prng!);
-                if (monster.Hp <= 0) monster.KilledByCivilizationIndex = civ.Index;
                 vertex.LastAttackTick = currentTick;
-                onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position));
+                onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position, engaged));
                 didAttack = true;
             }
         }
@@ -203,22 +259,17 @@ internal class MonsterCombatEngine
                 if (currentTick - vertex.LastAttackTick < EffectiveCombatInterval(civ)) continue;
                 if (GetAttackAvailability(vertex, monster) != MonsterAttackAvailability.Available) continue;
 
-                bool hasSteelWeapon = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS)
-                    && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
-                if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
+                int salvoSize = SimultaneousAttackSoldiers(civ);
+                int engaged = StrikeMonster(civ, vertex, monster, salvoSize, SoldierDamage(civ),
+                    civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS),
+                    poolArmor: salvoSize > 1, onConsumed);
+                if (engaged == 0) continue;
 
-                if (SteelArmorEngine.TrySaveSoldiers(civ, vertex, 1, _prng!, onConsumed) == 0)
-                    vertex.Soldiers--;
-                int rawDamage = SoldierDamage(civ) + (hasSteelWeapon ? 1 : 0);
-                monster.Hp -= MonsterFeature.ApplyArmorReduction(rawDamage, monster.Armor, _prng!);
                 vertex.LastAttackTick = currentTick;
-                onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position));
+                onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position, engaged));
 
                 if (monster.Hp <= 0)
-                {
-                    monster.KilledByCivilizationIndex = civ.Index;
                     (deadMonsters ??= new List<MonsterFeature>()).Add(monster);
-                }
             }
         }
 
@@ -227,6 +278,48 @@ internal class MonsterCombatEngine
         {
             _state.RemoveFeature(m);
             _state.EventLog.Add(m.RemovedEventType);
+        }
+    }
+
+    // ── Expédition Punitive ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Expédition Punitive (PUNITIVE_EXPEDITION_RATIO) : une fraction des soldats présents sur
+    /// l'emplacement qui vient d'être frappé contre-attaque immédiatement le monstre responsable, si
+    /// celui-ci est à portée. Appelé par MonsterFeatureController à la fin de l'attaque du monstre,
+    /// hors de tout cooldown : c'est une riposte, pas un tour de combat de plus (le monstre ne peut
+    /// de toute façon frapper qu'à son propre intervalle d'attaque).
+    /// </summary>
+    internal void ResolvePunitiveExpedition(IMilitaryVertex vertex, MonsterFeature monster,
+        Action<SoldierAttackEventArgs> onSoldierAttackedMonster,
+        Action<ConsumableConsumedEventArgs> onConsumableConsumed)
+    {
+        if (_state == null || monster.Hp <= 0 || vertex.Soldiers <= 0) return;
+
+        var civ = _state.GetCivilization(vertex.CivilizationIndex);
+        if (civ == null) return;
+
+        double ratio = civ.ModifierAggregator.ApplyModifiers(ECategory.PUNITIVE_EXPEDITION_RATIO, "", 0.0);
+        if (ratio <= 0) return;
+        if (GetAttackAvailability(vertex, monster) != MonsterAttackAvailability.Available) return;
+
+        // Arrondi au supérieur : une garnison de moins de 10 soldats doit riposter d'un soldat plutôt
+        // que de ne rien faire du tout.
+        int soldiers = (int)Math.Ceiling(vertex.Soldiers * ratio);
+
+        int salvoSize = SimultaneousAttackSoldiers(civ);
+        int engaged = StrikeMonster(civ, vertex, monster, soldiers, SoldierDamage(civ),
+            civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS),
+            poolArmor: salvoSize > 1,
+            (v, res) => onConsumableConsumed(new ConsumableConsumedEventArgs(v.Position, res)));
+        if (engaged == 0) return;
+
+        onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position, engaged));
+
+        if (monster.Hp <= 0)
+        {
+            _state.RemoveFeature(monster);
+            _state.EventLog.Add(monster.RemovedEventType);
         }
     }
 }

@@ -341,13 +341,74 @@ namespace SettlersOfIdlestan.Controller.Island
             return new LayerBurstContext(working, ownOccupied, enemyProtectedEdges, mapTiles);
         }
 
-        private HashSet<Edge> ComputeEnemyProtectedEdgesSet(Civilization civ, int layer) =>
-            new HashSet<Edge>(
-                _state!.Civilizations
-                    .Where(c => c.Index != civ.Index)
-                    .SelectMany(c => c.Roads)
-                    .Where(r => r.Position.Z == layer && r.DistanceToNearestCity <= 2)
-                    .Select(r => r.Position));
+        private HashSet<Edge> ComputeEnemyProtectedEdgesSet(Civilization civ, int layer)
+        {
+            var set = new HashSet<Edge>();
+            var civilizations = _state!.Civilizations;
+            for (int c = 0; c < civilizations.Count; c++)
+            {
+                var other = civilizations[c];
+                if (other.Index == civ.Index) continue;
+
+                // Relevé une fois par civilisation : la protection par Camp Mobile dépend d'un
+                // modificateur et de la liste des camps, identiques pour toutes ses routes.
+                var campVertices = GetProtectingCampVertices(other, layer);
+                var roads = other.Roads;
+                for (int r = 0; r < roads.Count; r++)
+                {
+                    var road = roads[r];
+                    if (road.Position.Z != layer) continue;
+                    if (road.DistanceToNearestCity <= 2 || TouchesProtectingCamp(road, campVertices))
+                        set.Add(road.Position);
+                }
+            }
+            return set;
+        }
+
+        /// <summary>
+        /// Distance (en routes) jusqu'à une ville en deçà de laquelle une route ne peut pas être
+        /// conquise par une civilisation adverse.
+        /// </summary>
+        private const int RoadProtectionDistanceFromCity = 2;
+
+        /// <summary>
+        /// Vertex des Camps Mobiles de la civilisation sur cette couche, ou null si la Logistique
+        /// Mobile (<see cref="Modifier.ECategory.MOBILE_CAMP_FREE_ROADS"/>) n'est pas acquise — sans
+        /// elle, un camp ne protège aucune route.
+        /// </summary>
+        private static HashSet<Vertex>? GetProtectingCampVertices(Civilization civ, int layer)
+        {
+            if (civ.MobileCamps.Count == 0) return null;
+            if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.MOBILE_CAMP_FREE_ROADS)) return null;
+
+            var set = new HashSet<Vertex>();
+            var camps = civ.MobileCamps;
+            for (int i = 0; i < camps.Count; i++)
+                if (camps[i].Position.Z == layer)
+                    set.Add(camps[i].Position);
+            return set.Count > 0 ? set : null;
+        }
+
+        /// <summary>Vrai si la route touche l'un des camps protecteurs relevés par <see cref="GetProtectingCampVertices"/> — la « distance 1 » d'un camp.</summary>
+        private static bool TouchesProtectingCamp(Road road, HashSet<Vertex>? campVertices)
+        {
+            if (campVertices == null) return false;
+            foreach (var vertex in road.Position.GetVertices())
+                if (campVertices.Contains(vertex)) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Vrai si cette route de <paramref name="owner"/> est protégée contre la conquête par une
+        /// autre civilisation : à distance ≤ 2 de l'une de ses villes (zone d'influence classique), ou
+        /// touchant l'un de ses Camps Mobiles quand elle possède la Logistique Mobile — un camp protège
+        /// alors ses routes à distance 1 comme une ville le fait à distance 2. Point de lecture unique
+        /// de la règle, partagé avec <see cref="ComputeEnemyProtectedEdgesSet"/>, qui la réécrit en
+        /// balayage par civilisation pour ne relever les camps qu'une fois.
+        /// </summary>
+        public bool IsRoadProtectedFromConquest(Road road, Civilization owner)
+            => road.DistanceToNearestCity <= RoadProtectionDistanceFromCity
+               || TouchesProtectingCamp(road, GetProtectingCampVertices(owner, road.Position.Z));
 
         /// <summary>
         /// Ajoute à la liste de travail les 0 à 2 nouvelles arêtes candidates ouvertes par la route
@@ -584,8 +645,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var enemyProtectedEdges = new HashSet<Edge>(
                 _state.Civilizations
                     .Where(c => c.Index != civilizationIndex)
-                    .SelectMany(c => c.Roads)
-                    .Where(r => r.DistanceToNearestCity <= 2)
+                    .SelectMany(c => c.Roads.Where(r => IsRoadProtectedFromConquest(r, c)))
                     .Select(r => r.Position));
 
             return candidates
@@ -648,11 +708,10 @@ namespace SettlersOfIdlestan.Controller.Island
             if (civ.Roads.Any(r => r.Position.Equals(edge)))
                 throw new InvalidOperationException("Edge already occupied");
 
-            // Les routes ennemies proches de leur ville ne sont pas conquérables
+            // Les routes ennemies proches de leur ville (ou d'un de leurs Camps Mobiles) ne sont pas conquérables
             bool isEnemyProtected = _state.Civilizations
                 .Where(c => c.Index != civilizationIndex)
-                .SelectMany(c => c.Roads)
-                .Any(r => r.Position.Equals(edge) && r.DistanceToNearestCity <= 2);
+                .Any(c => c.Roads.Any(r => r.Position.Equals(edge) && IsRoadProtectedFromConquest(r, c)));
             if (isEnemyProtected)
                 throw new InvalidOperationException("Edge is protected by an enemy road");
 
@@ -732,8 +791,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             bool isEnemyProtected = _state.Civilizations
                 .Where(c => c.Index != civilizationIndex)
-                .SelectMany(c => c.Roads)
-                .Any(r => r.Position.Equals(edge) && r.DistanceToNearestCity <= 2);
+                .Any(c => c.Roads.Any(r => r.Position.Equals(edge) && IsRoadProtectedFromConquest(r, c)));
             if (isEnemyProtected) return false;
 
             TryRemoveEnemyRoadAt(edge, civilizationIndex);
@@ -748,6 +806,66 @@ namespace SettlersOfIdlestan.Controller.Island
             OnRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civilizationIndex, edge));
 
             return true;
+        }
+
+        /// <summary>
+        /// Logistique Mobile : bâtit gratuitement jusqu'à <paramref name="maxRoads"/> des trois routes
+        /// qui partent de <paramref name="vertex"/> — ni ressources, ni points de recherche, ni
+        /// contrainte de raccordement au réseau (le Camp Mobile qui vient d'y être posé tient lieu de
+        /// tête de pont).
+        ///
+        /// <para>Aucune route existante n'est écrasée : une arête déjà occupée, par la civilisation
+        /// elle-même ou par une adverse, est sautée plutôt que conquise — contrairement à une
+        /// construction normale (voir <see cref="TryRemoveEnemyRoadAt"/>). Les arêtes que le terrain
+        /// interdit (eau profonde, mer ou Vide sans le déblocage correspondant) le sont aussi.</para>
+        ///
+        /// Retourne le nombre de routes réellement posées.
+        /// </summary>
+        public int PlaceFreeRoadsAround(int civilizationIndex, Vertex vertex, int maxRoads)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+            if (maxRoads <= 0) return 0;
+
+            var civ = _state.GetCivilization(civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            var map = _state.GetMapForZ(vertex.Z);
+            if (map == null) return 0;
+
+            int built = 0;
+            foreach (var edge in GetEdgesAtVertex(vertex))
+            {
+                if (built >= maxRoads) break;
+                if (!map.HasTile(edge.Hex1) || !map.HasTile(edge.Hex2)) continue;
+
+                // Pas d'écrasement : toute arête déjà occupée, alliée comme adverse, est laissée telle quelle.
+                if (_state.Civilizations.Any(c => c.Roads.Any(r => r.Position.Equals(edge)))) continue;
+
+                if (IsEdgeBetweenVoidHexes(edge))
+                {
+                    if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_VOID_ROUTES)) continue;
+                }
+                else if (!IsEdgeOnLand(edge))
+                {
+                    if (EdgeTouchesDeepWater(edge, civ)) continue;
+                    if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES)) continue;
+                    if (!IsValidMaritimeEdge(edge, civ)) continue;
+                }
+
+                civ.AddRoad(new Road(edge) { CivilizationIndex = civilizationIndex });
+                built++;
+
+                InvalidateBuildableRoadsCacheForLayer(edge.Z);
+                // Même événement qu'une route bâtie à la main : c'est lui qui déclenche l'extension
+                // automatique de la carte (voir MainGameController.OnRoadBuiltExtendMap).
+                OnRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civilizationIndex, edge));
+            }
+
+            if (built == 0) return 0;
+
+            ComputeRoadDistancesForCivilization(civ, vertex.Z);
+            _state.Visibility.RecalculateFor(civilizationIndex);
+            return built;
         }
 
         private void TryRemoveEnemyRoadAt(Edge edge, int buildingCivIndex)

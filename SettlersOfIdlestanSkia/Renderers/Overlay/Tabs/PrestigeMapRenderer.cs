@@ -847,6 +847,10 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.CRYSTAL_GENERATION_PER_LABORATORY => $"+{mod.Value:0.#} {localization.Get("prestige_tooltip_crystal_generation_per_laboratory")}",
         Modifier.ECategory.SMITH_DOUBLE_PROD_CHANCE_PERCENT  => $"+{(int)mod.Value}% {localization.Get("prestige_tooltip_smith_double_prod_chance")}",
         Modifier.ECategory.AUTO_CAMP_ON_CONQUEST             => localization.Get("prestige_tooltip_auto_camp_on_conquest"),
+        Modifier.ECategory.DEEP_LAYER_CITY_MAX_SOLDIERS_BONUS => localization.GetFormated("prestige_tooltip_deep_layer_city_max_soldiers", (int)mod.Value),
+        Modifier.ECategory.MOBILE_CAMP_FREE_ROADS            => localization.GetFormated("prestige_tooltip_mobile_camp_free_roads", (int)mod.Value),
+        Modifier.ECategory.PUNITIVE_EXPEDITION_RATIO         => localization.GetFormated("prestige_tooltip_punitive_expedition", (int)(mod.Value * 100)),
+        Modifier.ECategory.SIMULTANEOUS_ATTACK_SOLDIERS      => localization.GetFormated("prestige_tooltip_simultaneous_attack_soldiers", (int)mod.Value),
         _ => $"+{mod.Value}"
     };
 

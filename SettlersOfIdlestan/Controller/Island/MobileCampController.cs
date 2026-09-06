@@ -4,6 +4,7 @@ using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 
@@ -31,6 +32,7 @@ namespace SettlersOfIdlestan.Controller.Island
     {
         private WorldState? _state;
         private CityBuilderController? _cityBuilderController;
+        private RoadController? _roadController;
         private GameClock? _clock;
 
         /// <summary>Distance minimale (arêtes) entre un Camp Mobile et tout autre emplacement militaire de la même civilisation.</summary>
@@ -44,13 +46,14 @@ namespace SettlersOfIdlestan.Controller.Island
 
         internal MobileCampController() { }
 
-        internal void Initialize(WorldState state, CityBuilderController cityBuilderController, GameClock? clock = null)
+        internal void Initialize(WorldState state, CityBuilderController cityBuilderController, GameClock? clock = null, RoadController? roadController = null)
         {
             if (_clock != null)
                 _clock.Advanced -= OnClockAdvanced;
 
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _cityBuilderController = cityBuilderController ?? throw new ArgumentNullException(nameof(cityBuilderController));
+            _roadController = roadController;
             _clock = clock;
 
             if (_clock != null)
@@ -190,6 +193,9 @@ namespace SettlersOfIdlestan.Controller.Island
         /// distance aux autres emplacements militaires, recherche MobileCampConstruction, coût) — utilisé
         /// pour la récompense de conquête AUTO_CAMP_ON_CONQUEST (voir CityAttackEngine.ResolveCityAttacks),
         /// qui construit le camp sur l'emplacement d'une ville adverse tout juste détruite.
+        /// <para>Avec la Logistique Mobile (MOBILE_CAMP_FREE_ROADS), le camp arrive avec ses routes :
+        /// jusqu'à N des trois arêtes qui partent de son vertex sont bâties gratuitement, celles qui
+        /// sont libres (voir RoadController.PlaceFreeRoadsAround).</para>
         /// </summary>
         public MobileCamp PlaceFreeMobileCamp(int civilizationIndex, Vertex vertex)
         {
@@ -201,6 +207,11 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var camp = new MobileCamp(vertex) { CivilizationIndex = civilizationIndex, CreatedTick = _clock?.CurrentTick ?? 0 };
             civ.AddMobileCamp(camp);
+
+            int freeRoads = civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.MOBILE_CAMP_FREE_ROADS, "", 0);
+            if (freeRoads > 0)
+                _roadController?.PlaceFreeRoadsAround(civilizationIndex, vertex, freeRoads);
+
             _state.Visibility.RecalculateFor(civilizationIndex);
             return camp;
         }
@@ -264,7 +275,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (civ != null && city != null)
             {
                 GrantFreeBarracks(city);
-                int capacity = city.MaxSoldiers + civ.CityMaxSoldiersBonus;
+                int capacity = city.MaxSoldiers + civ.GetCityMaxSoldiersBonus(city.Position.Z);
                 city.Soldiers = Math.Min(city.Soldiers + camp.Soldiers, capacity);
             }
 

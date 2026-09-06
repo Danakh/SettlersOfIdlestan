@@ -28,6 +28,9 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private const float ConsumableArcDistanceMax = 26f;
     private const float ConsumableArcHeight = 16f;
 
+    /// <summary>Écartement (px) entre deux soldats d'une même salve — même valeur que les particules de récolte.</summary>
+    private const float ParticleSpreadStep = 15f;
+
     private sealed class MilitaryParticle
     {
         public List<SKPoint> Path = new();
@@ -35,6 +38,12 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         public Vertex? SourceVertex;
         public Vertex? TargetVertex;
         public float Progress;
+
+        /// <summary>
+        /// Décalage (px) appliqué perpendiculairement au segment parcouru : écarte les soldats d'une
+        /// même salve, qui suivent tous le même chemin (voir <see cref="EmitParticles"/>). 0 = centré.
+        /// </summary>
+        public float LateralOffset;
     }
 
     private sealed class ConsumableParticle
@@ -141,7 +150,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             if (isPrestigeTransitionPending()) return;
             if (!isIslandTabActive()) return;
             if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
-            EmitParticle(args.Path);
+            EmitParticles(args.Path, args.SoldierCount);
         };
         militaryController.ReinforcementSent += (_, args) =>
         {
@@ -171,18 +180,30 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         _interactionService = service;
     }
 
-    private void EmitParticle(List<Vertex> vertexPath)
+    /// <summary>
+    /// Une particule par soldat engagé dans l'attaque (Phalange — voir
+    /// CityAttackEventArgs.SoldierCount) : elles suivent le même chemin, écartées latéralement pour
+    /// rester toutes visibles, comme les particules de récolte (HarvestParticleSystem.EmitParticles).
+    /// </summary>
+    private void EmitParticles(List<Vertex> vertexPath, int count)
     {
         if (vertexPath.Count == 0) return;
         var pathPoints = vertexPath.Select(v => VertexToIsland(v)).ToList();
-        _particles.Add(new MilitaryParticle
+
+        int n = Math.Max(1, count);
+        float halfSpan = (n - 1) * ParticleSpreadStep / 2f;
+        for (int i = 0; i < n; i++)
         {
-            Path = pathPoints,
-            VertexPath = vertexPath,
-            SourceVertex = vertexPath[0],
-            TargetVertex = vertexPath[^1],
-            Progress = 0f,
-        });
+            _particles.Add(new MilitaryParticle
+            {
+                Path = pathPoints,
+                VertexPath = vertexPath,
+                SourceVertex = vertexPath[0],
+                TargetVertex = vertexPath[^1],
+                Progress = 0f,
+                LateralOffset = n > 1 ? i * ParticleSpreadStep - halfSpan : 0f,
+            });
+        }
     }
 
     private void EmitConsumableParticle(Vertex position, Resource resource)
@@ -469,6 +490,15 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
             var pos = new SKPoint(
                 from.X + (to.X - from.X) * segT,
                 from.Y + (to.Y - from.Y) * segT);
+
+            if (p.LateralOffset != 0f)
+            {
+                float dx = to.X - from.X;
+                float dy = to.Y - from.Y;
+                float len = MathF.Sqrt(dx * dx + dy * dy);
+                if (len > 0f)
+                    pos = new SKPoint(pos.X - dy / len * p.LateralOffset, pos.Y + dx / len * p.LateralOffset);
+            }
 
             float alpha = p.Progress > 0.8f ? (1f - p.Progress) / 0.2f : 1f;
             if (reinforce)

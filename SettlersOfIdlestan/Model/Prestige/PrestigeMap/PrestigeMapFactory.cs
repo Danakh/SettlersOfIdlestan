@@ -607,19 +607,23 @@ public static class PrestigeMapFactory
                 PrestigeMap.MobileLogisticsVertex,
                 "prestige_vertex_mobile_logistics",
                 cost: Cost(PrestigeMap.MobileLogisticsVertex),
-                modifiers: Array.Empty<Modifier>()
+                // 3 routes gratuites autour de chaque Camp Mobile posé par l'Architecte de Guerre, et
+                // protection par tout camp des routes qui le touchent (voir MOBILE_CAMP_FREE_ROADS).
+                modifiers: new Modifier[] { new(ECategory.MOBILE_CAMP_FREE_ROADS, EType.ADDITIVE, 3) }
             ),
             new(
                 PrestigeMap.PunitiveExpeditionVertex,
                 "prestige_vertex_punitive_expedition",
                 cost: Cost(PrestigeMap.PunitiveExpeditionVertex),
-                modifiers: Array.Empty<Modifier>()
+                modifiers: new Modifier[] { new(ECategory.PUNITIVE_EXPEDITION_RATIO, EType.ADDITIVE, 0.1) }
             ),
             new(
                 PrestigeMap.PhalanxVertex,
                 "prestige_vertex_phalanx",
                 cost: Cost(PrestigeMap.PhalanxVertex),
-                modifiers: Array.Empty<Modifier>()
+                // REPLACER plutôt qu'ADDITIVE : c'est la taille de la salve elle-même (1 soldat par
+                // défaut), pas un bonus qui s'empilerait avec une autre source.
+                modifiers: new Modifier[] { new(ECategory.SIMULTANEOUS_ATTACK_SOLDIERS, EType.REPLACER, 5) }
             ),
             // Puissance Abyssale (magie)
             new(
@@ -852,7 +856,9 @@ public static class PrestigeMapFactory
                 PrestigeMap.PlanarConquestCoord,
                 "prestige_hex_planar_conquest",
                 adjacentVertices: Adjacent(PrestigeMap.PlanarConquestCoord),
-                perVertexModifiers: Array.Empty<Modifier>(),
+                // Capacité réservée aux couches profondes (Abysses et Pandémonium) : la garnison des
+                // villes de surface et de l'Inframonde n'est pas touchée.
+                perVertexModifiers: new Modifier[] { new(ECategory.DEEP_LAYER_CITY_MAX_SOLDIERS_BONUS, EType.ADDITIVE, 3) },
                 domain: PrestigeHexDomain.Exterminate
             ),
             new(

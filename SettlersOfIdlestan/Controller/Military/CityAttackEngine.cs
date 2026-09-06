@@ -77,6 +77,7 @@ internal class CityAttackEngine
             int attackRange = CityAttackRange(attackerCiv);
             bool steelWeaponsUnlocked = attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
             int soldierDamage = attackerCiv.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_ATTACK_DAMAGE, "", 1);
+            int salvoSize = MonsterCombatEngine.SimultaneousAttackSoldiers(attackerCiv);
 
             // Copie des emplacements : un tour de boucle peut détruire une ville et donc muter la
             // liste. Le tampon est réutilisé d'un événement à l'autre plutôt que réalloué par
@@ -122,17 +123,33 @@ internal class CityAttackEngine
                     continue;
                 }
 
-                // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
-                bool hasSteelWeapon = steelWeaponsUnlocked
-                    && attackerCiv.GetResourceQuantity(Resource.SteelWeapon) >= 1;
-                if (hasSteelWeapon) attackerCiv.RemoveResource(Resource.SteelWeapon, 1);
+                // Salve : 1 soldat, ou 5 avec la Phalange (voir MonsterCombatEngine.SimultaneousAttackSoldiers).
+                // Chacun consomme sa propre Arme en Acier et frappe pour son propre compte ; la boucle
+                // s'arrête dès que la cible tombe, pour ne pas gaspiller le reste de la salve.
+                int engaged = 0;
+                bool destroyed = false;
+                for (int s = 0; s < salvoSize && s < attackerVertex.Soldiers && !destroyed; s++)
+                {
+                    // Armes en Acier : consomme 1 ArmeAcier pour infliger 1 dégât supplémentaire
+                    bool hasSteelWeapon = steelWeaponsUnlocked
+                        && attackerCiv.GetResourceQuantity(Resource.SteelWeapon) >= 1;
+                    if (hasSteelWeapon) attackerCiv.RemoveResource(Resource.SteelWeapon, 1);
+                    engaged++;
 
-                // Armures d'Acier : le soldat envoyé peut survivre en consommant 1 ArmureAcier
-                if (SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerVertex, 1, _prng!, onConsumed) == 0)
-                    attackerVertex.Soldiers--;
+                    // Contre une ville, un dégât = une application de la cascade (soldat, défense, niveau
+                    // d'Hôtel de ville) : les dégâts supplémentaires du soldat (SOLDIER_ATTACK_DAMAGE,
+                    // Bras de Dieu) et de l'Arme en Acier se traduisent donc en applications répétées.
+                    int hits = soldierDamage + (hasSteelWeapon ? 1 : 0);
+                    for (int hit = 0; hit < hits && !destroyed; hit++)
+                        destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed, onConsumableConsumed);
+                }
+
+                // Armures d'Acier : chaque soldat envoyé peut survivre en consommant 1 ArmureAcier
+                int saved = SteelArmorEngine.TrySaveSoldiers(attackerCiv, attackerVertex, engaged, _prng!, onConsumed);
+                attackerVertex.Soldiers -= engaged - saved;
                 attackerVertex.LastAttackTick = currentTick;
 
-                onSoldierAttackedCity(new CityAttackEventArgs(attackerVertex.Position, targetVertex.Position, path));
+                onSoldierAttackedCity(new CityAttackEventArgs(attackerVertex.Position, targetVertex.Position, path, engaged));
 
                 // Vendetta : une civilisation qui attaque le joueur devient la cible des raids automatiques
                 // (voir RaidEngine.ResolvePlayerAutoVendetta).
@@ -142,13 +159,6 @@ internal class CityAttackEngine
                     _state.AutomationSettings.VendettaTargetCivIndex = attackerCiv.Index;
                 }
 
-                // Contre une ville, un dégât = une application de la cascade (soldat, défense, niveau
-                // d'Hôtel de ville) : les dégâts supplémentaires du soldat (SOLDIER_ATTACK_DAMAGE,
-                // Bras de Dieu) et de l'Arme en Acier se traduisent donc en applications répétées.
-                int hits = soldierDamage + (hasSteelWeapon ? 1 : 0);
-                bool destroyed = false;
-                for (int hit = 0; hit < hits && !destroyed; hit++)
-                    destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed, onConsumableConsumed);
                 if (destroyed && destroyedPositions.Add(targetVertex.Position))
                 {
                     var ownerCiv = _state.GetCivilization(targetVertex.CivilizationIndex);

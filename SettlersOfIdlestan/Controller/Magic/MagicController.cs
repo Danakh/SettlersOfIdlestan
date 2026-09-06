@@ -619,7 +619,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (city == null || city.CivilizationIndex != civ.Index) return false;
 
             civ.RemoveResource(Resource.Crystal, GetSpellCost(def));
-            int effectiveMaxSoldiers = city.MaxSoldiers + civ.CityMaxSoldiersBonus;
+            int effectiveMaxSoldiers = city.MaxSoldiers + civ.GetCityMaxSoldiersBonus(city.Position.Z);
             city.Soldiers = Math.Min(effectiveMaxSoldiers, city.Soldiers + def.TroopReward);
             RegisterSpellCast(id);
             return true;
