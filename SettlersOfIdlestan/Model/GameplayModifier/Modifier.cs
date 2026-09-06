@@ -329,6 +329,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE,
             /// <summary>Réduction plate de l'entretien en or payé chaque seconde par un Raid actif (voir RaidEngine.PayUpkeep). Base = 0 ; 10 annule les 10 or/s de départ, l'escalade de +2/s continuant à courir. Jamais sous 0. SubCategory unused. Accordé par la Fosse aux Crânes (Orcs).</summary>
             RAID_UPKEEP_REDUCTION,
+            /// <summary>Flags que la vente et l'achat automatiques n'exigent plus qu'un Marché de niveau 1 dans la ville productrice, au lieu du niveau 4 par défaut (voir Civilization.AutoTradeMinMarketLevel, ProductionOverflowTrader). Les déblocages eux-mêmes (UNLOCK_AUTO_MARKET_TRADE / UNLOCK_AUTO_BUY_TRADE) restent requis. SubCategory unused. Accordé par le jalon d'Ascension Commerce Divin (AscensionMilestoneId.MarketMastery).</summary>
+            AUTO_TRADE_ANY_MARKET_LEVEL,
+            /// <summary>Or produit par un Marché à chaque cycle de génération (voir MarketGoldProductionEngine). Base = 1 ; +1 = 2 or par cycle. La cadence des cycles elle-même est portée par MARKET_GOLD_SPEED. SubCategory unused. Accordé par le jalon d'Ascension Commerce Divin (AscensionMilestoneId.MarketMastery).</summary>
+            MARKET_GOLD_PER_CYCLE,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

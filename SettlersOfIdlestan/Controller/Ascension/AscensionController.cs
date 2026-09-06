@@ -902,6 +902,20 @@ public class AscensionController : IModifierProvider
             yield return new Modifier(Modifier.ECategory.BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE, Modifier.EType.ADDITIVE, 4.0);
         }
 
+        // Jalon Commerce Divin (AscensionMilestoneId.MarketMastery) : un Marché de niveau 1 suffit
+        // désormais à la vente et à l'achat automatiques (au lieu du niveau 4 — voir
+        // Civilization.AutoTradeMinMarketLevel), toute ville construite naît avec un Marché niveau 1
+        // gratuit (NEW_CITY_BUILDING, appliqué aussi à la ville de départ par
+        // PrestigeMapController.ApplyPrestigeToNewGame) et chaque Marché produit 2 or par cycle au
+        // lieu d'un seul. Les deux premiers effets se combinent : toute ville sait vendre son surplus
+        // dès sa fondation, sans une seule amélioration de Marché.
+        if (IsMilestoneUnlocked(AscensionMilestoneId.MarketMastery))
+        {
+            yield return new Modifier(Modifier.ECategory.AUTO_TRADE_ANY_MARKET_LEVEL, Modifier.EType.ADDITIVE, 1.0);
+            yield return new Modifier(Modifier.ECategory.NEW_CITY_BUILDING, "Market", Modifier.EType.ADDITIVE, 1);
+            yield return new Modifier(Modifier.ECategory.MARKET_GOLD_PER_CYCLE, Modifier.EType.ADDITIVE, 1);
+        }
+
         // Bonus/malus de la race jouée pendant ce cycle (voir RaceDefinitions).
         foreach (var modifier in RaceDefinitions.Get(SelectedRace).Modifiers)
             yield return modifier;

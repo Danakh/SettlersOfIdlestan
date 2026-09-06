@@ -28,6 +28,10 @@ internal sealed class MarketGoldProductionEngine
 
         foreach (var civ in _state.Civilizations)
         {
+            // Or produit par cycle et par Marché — base 1, doublé par le jalon d'Ascension Commerce
+            // Divin. Lu une fois par civilisation : la valeur ne dépend pas de la ville.
+            int goldPerCycle = HarvestController.GetMarketGoldPerCycle(civ);
+
             var cities = civ.GetCitiesWith(BuildingType.Market);
             for (int i = 0; i < cities.Count; i++)
             {
@@ -45,8 +49,9 @@ internal sealed class MarketGoldProductionEngine
                 // Marché et par tick) : sans cette tentative d'achat, la part d'or conservée
                 // (AutoBuyGoldKeepPercent) n'était consultée que sur le bonus d'or des Mines et sur
                 // le débordement d'une vente, et le stock dérivait librement au-dessus du seuil.
-                _trader!.TryAutoBuyOnGoldOverflow(civ, city, (int)cycles);
-                civ.AddResource(Resource.Gold, (int)cycles);
+                int gold = (int)cycles * goldPerCycle;
+                _trader!.TryAutoBuyOnGoldOverflow(civ, city, gold);
+                civ.AddResource(Resource.Gold, gold);
                 for (long c = 0; c < cycles; c++)
                     ResourceGenerated?.Invoke(this, new MarketGenerationEventArgs(civ.Index, Resource.Gold, city.Position));
             }

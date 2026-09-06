@@ -6,6 +6,7 @@ The changelog is not actively maintained at the moment.
 v0.21
 • New Divine Exodus Ascension milestone: the Relocation prestige vertex is granted for free at every Ascension, and relocating a city no longer costs anything
 • New Defense Spire magic building: automatically strikes a monster 2 hexes away or less, once per second, for 1 Crystal and 1 damage that ignores armor — without spending soldiers
+• New Divine Commerce Ascension milestone: automatic selling and buying only require a level 1 Market, every city built receives one for free, and every Market produces twice as much gold per cycle
 
 ---
 

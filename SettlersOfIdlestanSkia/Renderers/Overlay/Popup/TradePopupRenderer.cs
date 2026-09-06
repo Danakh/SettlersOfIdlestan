@@ -193,7 +193,7 @@ public sealed class TradePopupRenderer : PopupRendererBase
             AutoSellRows: autoSellRows,
             AutoGoldHeader: _localization.Get("trade_auto_gold_header"),
             AutoGoldKeepPercent: autoBuyUnlocked && automation != null ? automation.AutoBuyGoldKeepPercent : -1,
-            AutoNote: _localization.Get("trade_auto_note"));
+            AutoNote: _localization.GetFormated("trade_auto_note", civ.AutoTradeMinMarketLevel));
     }
 
     /// <summary>

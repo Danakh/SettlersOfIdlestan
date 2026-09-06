@@ -36,6 +36,10 @@ public static class AscensionMilestoneDefinitions
         new AscensionMilestoneDefinition(AscensionMilestoneId.FreeRelocation,
             "ascension_milestone_relocation_name", "ascension_milestone_relocation_desc", "ascension_milestone_relocation_requirement",
             RequiredAscendedRaceCount: 3),
+
+        new AscensionMilestoneDefinition(AscensionMilestoneId.MarketMastery,
+            "ascension_milestone_market_name", "ascension_milestone_market_desc", "ascension_milestone_market_requirement",
+            RequiredAscendedRaceCount: 4),
     };
 
     public static AscensionMilestoneDefinition? Get(AscensionMilestoneId id)

@@ -27,7 +27,8 @@ internal sealed class ProductionOverflowTrader
     /// <summary>
     /// Vrai si la vente automatique du surplus est déverrouillée pour cette ressource (recherche Marché
     /// Automatique, plus Comptoirs Avancés pour Minerai/Verre/Acier) et que la ville productrice possède
-    /// un Marché niv.4+.
+    /// un Marché d'au moins <see cref="Civilization.AutoTradeMinMarketLevel"/> (niv.4, ramené à 1 par le
+    /// jalon d'Ascension Commerce Divin).
     /// </summary>
     public static bool IsAutoMarketTradeUnlocked(Civilization civ, City city, Resource res)
     {
@@ -37,7 +38,7 @@ internal sealed class ProductionOverflowTrader
 
         if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_MARKET_TRADE)) return false;
         if (isSellableIntermediate && !civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_INTERMEDIATE_TRADE)) return false;
-        return city.FindBuilding(BuildingType.Market) is { Level: >= 4 };
+        return HasAutoTradeMarket(civ, city);
     }
 
     /// <summary>
@@ -84,8 +85,16 @@ internal sealed class ProductionOverflowTrader
     {
         if (_tradeController == null) return;
         if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE)) return;
-        if (city.FindBuilding(BuildingType.Market) is not { Level: >= 4 }) return;
+        if (!HasAutoTradeMarket(civ, city)) return;
 
         _tradeController.TryAutoBuyOnGoldOverflow(civ.Index, incomingGold);
     }
+
+    /// <summary>
+    /// Vrai si <paramref name="city"/> possède un Marché au niveau requis par la civilisation pour
+    /// commercer automatiquement (voir <see cref="Civilization.AutoTradeMinMarketLevel"/>) — seuil
+    /// commun à la vente et à l'achat, qui ne doivent jamais diverger.
+    /// </summary>
+    private static bool HasAutoTradeMarket(Civilization civ, City city) =>
+        city.FindBuilding(BuildingType.Market) is { } market && market.Level >= civ.AutoTradeMinMarketLevel;
 }

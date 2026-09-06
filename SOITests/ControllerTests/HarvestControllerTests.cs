@@ -519,5 +519,74 @@ namespace SOITests.ControllerTests
             Assert.Equal(maxWood, civ.GetResourceQuantity(Resource.Wood));
             Assert.Equal(0, civ.GetResourceQuantity(Resource.Gold));
         }
+
+        // ── Jalon d'Ascension Commerce Divin (AscensionMilestoneId.MarketMastery) ────────────
+
+        private sealed class FlatModifierProvider : IModifierProvider
+        {
+            private readonly List<Modifier> _mods;
+            public FlatModifierProvider(params Modifier[] mods) => _mods = new(mods);
+            public IEnumerable<Modifier> GetModifiers() => _mods;
+#pragma warning disable CS0067
+            public event Action? OnModifiersChanged;
+#pragma warning restore CS0067
+        }
+
+        /// <summary>
+        /// AUTO_TRADE_ANY_MARKET_LEVEL : le même Marché niveau 3 qui ne vendait rien
+        /// (AutomaticHarvest_DoesNotSellOverflow_WhenCityMarketBelowLevel4) vend son surplus dès que
+        /// le seuil tombe à 1.
+        /// </summary>
+        [Fact]
+        public void AutomaticHarvest_SellsOverflow_BelowLevel4_WithAnyMarketLevelModifier()
+        {
+            var (state, civ, city) = CreateOverflowSetup();
+            city.AddBuilding(new Market { Level = 1 });
+            civ.ModifierAggregator.Register(new FlatModifierProvider(
+                new Modifier(ECategory.AUTO_TRADE_ANY_MARKET_LEVEL, EType.ADDITIVE, 1.0)));
+            civ.RecalculateStorageCapacity();
+            civ.TechnologyTree.CompleteResearch(TechnologyId.AutomaticMarket);
+
+            Assert.Equal(1, civ.AutoTradeMinMarketLevel);
+
+            int maxWood = civ.GetResourceMaxQuantity(Resource.Wood);
+            civ.AddResource(Resource.Wood, maxWood);
+
+            var clock = new GameClock();
+            clock.Start();
+            var tradeController = new TradeController(state);
+            var harvestController = new HarvestController();
+            harvestController.Initialize(state, clock, tradeController);
+
+            clock.SimulateAdvance(10);
+
+            int sellRate = tradeController.GetSellRate(civ.Index, Resource.Wood);
+            Assert.Equal(maxWood - sellRate + 1, civ.GetResourceQuantity(Resource.Wood));
+        }
+
+        /// <summary>
+        /// MARKET_GOLD_PER_CYCLE : le taux d'or annoncé double avec la quantité réellement produite
+        /// par cycle. Ces taux pilotent l'investissement automatique des Monuments et l'autoplay, ils
+        /// ne doivent jamais se désaccorder du tick (voir HarvestController.GetMarketGoldPerCycle).
+        /// </summary>
+        [Fact]
+        public void GetAverageProductionRatesPerSecond_MarketGold_ScalesWithGoldPerCycle()
+        {
+            var (state, civ, city) = CreateOverflowSetup();
+            city.AddBuilding(new Market { Level = 3 });
+
+            var clock = new GameClock();
+            clock.Start();
+            var harvestController = new HarvestController();
+            harvestController.Initialize(state, clock);
+
+            double baseRate = harvestController.GetAverageProductionRatesPerSecond(civ.Index)[Resource.Gold];
+
+            civ.ModifierAggregator.Register(new FlatModifierProvider(
+                new Modifier(ECategory.MARKET_GOLD_PER_CYCLE, EType.ADDITIVE, 1)));
+
+            Assert.Equal(2, HarvestController.GetMarketGoldPerCycle(civ));
+            Assert.Equal(baseRate * 2, harvestController.GetAverageProductionRatesPerSecond(civ.Index)[Resource.Gold], precision: 10);
+        }
     }
 }

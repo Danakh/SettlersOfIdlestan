@@ -2006,6 +2006,51 @@ public class AscensionControllerTests
         Assert.Contains(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.FREE_RELOCATION);
     }
 
+    // ── Jalon Commerce Divin (AscensionMilestoneId.MarketMastery) ───────────────────────────
+
+    [Fact]
+    public void GetModifiers_MarketMasteryMilestone_GrantsTheThreeMarketModifiers()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(ascensionsPerformed: 4);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Dwarf);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Orc);
+
+        // 3 races : le jalon précédent (Exode Divin) est acquis, celui-ci ne l'est pas encore.
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.AUTO_TRADE_ANY_MARKET_LEVEL);
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.MARKET_GOLD_PER_CYCLE);
+
+        godState.AscensionState.AscendedRaces.Add(RaceId.Goblin);
+
+        Assert.Contains(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.AUTO_TRADE_ANY_MARKET_LEVEL);
+        Assert.Contains(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.MARKET_GOLD_PER_CYCLE && m.Value == 1);
+        Assert.Contains(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.NEW_CITY_BUILDING
+                                                       && m.SubCategory == nameof(BuildingType.Market));
+    }
+
+    /// <summary>
+    /// Le Marché offert par le jalon passe par NEW_CITY_BUILDING : toute ville fondée après coup en
+    /// reçoit un, niveau 1 — c'est ce que consomme CityBuilderController.CreateCityAt.
+    /// </summary>
+    [Fact]
+    public void MarketMasteryMilestone_GrantsAMarketToEveryNewCity()
+    {
+        var (_, _, civ, ascension, godState) = CreateTestSetup(ascensionsPerformed: 4);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Elf);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Dwarf);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Orc);
+        godState.AscensionState.AscendedRaces.Add(RaceId.Goblin);
+
+        civ.ModifierAggregator.Register(ascension);
+
+        Assert.Contains(BuildingType.Market, civ.ModifierAggregator.GetGrantedBuildingTypes(Modifier.ECategory.NEW_CITY_BUILDING));
+        Assert.Equal(2, HarvestController.GetMarketGoldPerCycle(civ));
+
+        // Le seuil de commerce automatique tombe à 1 dès le recalcul des caches dérivés.
+        civ.RecalculateStorageCapacity();
+        Assert.Equal(1, civ.AutoTradeMinMarketLevel);
+    }
+
     // ── Île de départ du cycle suivant (AscensionController.AscensionSkippedIslandCount) ─────
     // Les jalons font sauter le début de l'archipel : chaque cycle repart plus loin que le précédent
     // jusqu'aux îles de fin de partie (île 5+, voir AtlasController.GetAscensionStartingWorldId).

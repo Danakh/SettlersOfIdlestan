@@ -15,5 +15,6 @@ public enum AscensionMilestoneId
     PermanentUniqueBuildings,
     PrestigiousAscension,
     ResearchProduction,
-    FreeRelocation
+    FreeRelocation,
+    MarketMastery
 }

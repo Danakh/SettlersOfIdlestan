@@ -526,6 +526,17 @@ namespace SettlersOfIdlestan.Controller.Island
             return Math.Max(1L, (long)(baseCooldown / speedMultiplier));
         }
 
+        /// <summary>
+        /// Or produit par un Marché à chaque cycle de génération : 1, doublé par le modificateur
+        /// MARKET_GOLD_PER_CYCLE (jalon d'Ascension Commerce Divin). Source unique partagée par le
+        /// tick (MarketGoldProductionEngine) et par les taux de production annoncés
+        /// (<see cref="GetAverageProductionRatesPerSecond"/>, <see cref="GetProductionRatesBySource"/>) :
+        /// ces taux pilotent l'investissement automatique des Monuments et l'autoplay, et une
+        /// quantité par cycle connue d'un seul des deux côtés les désaccorderait.
+        /// </summary>
+        public static int GetMarketGoldPerCycle(Civilization civ) =>
+            Math.Max(0, civ.ModifierAggregator.ApplyModifiers(ECategory.MARKET_GOLD_PER_CYCLE, "", 1));
+
 
         /// <summary>
         /// Multiplicateur de vitesse commun aux bâtiments de transformation (Fonderie, Forge d'Armes,
@@ -826,7 +837,8 @@ namespace SettlersOfIdlestan.Controller.Island
                     // ignorait le modificateur, alors que le tick et GetProductionRatesBySource
                     // utilisaient déjà le cooldown effectif. Ces taux pilotent l'investissement
                     // automatique des Monuments et l'autoplay (voir les appelants).
-                    AddProductionRate(result, Resource.Gold, 100.0 / GetEffectiveMarketGoldGenerationCooldown(civ, market.Level));
+                    AddProductionRate(result, Resource.Gold,
+                        100.0 * GetMarketGoldPerCycle(civ) / GetEffectiveMarketGoldGenerationCooldown(civ, market.Level));
             }
 
             return result;
@@ -953,7 +965,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 var market = city.FindBuilding<Market>(BuildingType.Market);
                 if (market != null && market.Level > 0)
-                    AddSourceRate(result, Resource.Gold, BuildingSourceKey(BuildingType.Market), 100.0 / GetEffectiveMarketGoldGenerationCooldown(civ, market.Level));
+                    AddSourceRate(result, Resource.Gold, BuildingSourceKey(BuildingType.Market),
+                        100.0 * GetMarketGoldPerCycle(civ) / GetEffectiveMarketGoldGenerationCooldown(civ, market.Level));
 
                 var smelter = city.FindBuilding<Smelter>(BuildingType.Smelter);
                 if (smelter != null && smelter.Level >= 1 && smelter.ActivationStatus == ActivationStatus.ACTIVE)

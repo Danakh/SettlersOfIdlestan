@@ -841,8 +841,18 @@ public class Civilization
     [JsonIgnore]
     public bool AutoBuyUnlockedCache { get; private set; }
 
-    /// <summary>Niveau de Marché minimal ouvrant droit à l'Achat Automatique.</summary>
-    private const int AutoBuyMinMarketLevel = 4;
+    /// <summary>Niveau de Marché minimal ouvrant droit à la vente et à l'achat automatiques.</summary>
+    public const int DefaultAutoTradeMinMarketLevel = 4;
+
+    /// <summary>
+    /// Niveau de Marché qu'une ville doit atteindre pour que la vente et l'achat automatiques s'y
+    /// appliquent : <see cref="DefaultAutoTradeMinMarketLevel"/>, ramené à 1 par le modifier
+    /// AUTO_TRADE_ANY_MARKET_LEVEL (jalon d'Ascension Commerce Divin). Recalculé avec
+    /// <see cref="AutoBuyUnlockedCache"/> par <see cref="RecalculateStorageCapacity"/> : la vente
+    /// automatique interroge ce seuil à chaque production (voir ProductionOverflowTrader).
+    /// </summary>
+    [JsonIgnore]
+    public int AutoTradeMinMarketLevel { get; private set; } = DefaultAutoTradeMinMarketLevel;
 
     /// <summary>
     /// Recalcule <see cref="StorageCapacityBasic"/>, <see cref="StorageCapacityAdvanced"/> et
@@ -860,6 +870,11 @@ public class Civilization
         int advanced = 0;
         bool hasHighLevelMarket = false;
 
+        // Lu avant la boucle : c'est le seuil que doivent franchir les Marchés balayés juste après.
+        int autoTradeMinMarketLevel = ModifierAggregator.HasModifier(ECategory.AUTO_TRADE_ANY_MARKET_LEVEL)
+            ? 1
+            : DefaultAutoTradeMinMarketLevel;
+
         // Boucles indexées : City.Buildings est typée IReadOnlyList, dont l'énumérateur est boxé à
         // chaque foreach. Ce recalcul est déclenché par chaque construction.
         for (int c = 0; c < _cities.Count; c++)
@@ -870,7 +885,7 @@ public class Civilization
                 var building = buildings[b];
                 basic += building.GetStorageCapacityBonusBasic();
                 advanced += building.GetStorageCapacityBonusAdvanced();
-                if (building.Type == BuildingType.Market && building.Level >= AutoBuyMinMarketLevel)
+                if (building.Type == BuildingType.Market && building.Level >= autoTradeMinMarketLevel)
                     hasHighLevelMarket = true;
             }
         }
@@ -884,6 +899,7 @@ public class Civilization
 
         StorageCapacityBasic = basic;
         StorageCapacityAdvanced = advanced;
+        AutoTradeMinMarketLevel = autoTradeMinMarketLevel;
         AutoBuyUnlockedCache = hasHighLevelMarket
             && ModifierAggregator.HasModifier(ECategory.UNLOCK_AUTO_BUY_TRADE);
     }
