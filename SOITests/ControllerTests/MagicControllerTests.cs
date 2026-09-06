@@ -179,12 +179,13 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             AddMageTower(state);
-            civ.AddResource(Resource.Crystal, 50);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 100);
 
             Assert.True(controller.LaunchRitual(RitualId.Growth));
 
-            // Coût de lancement : base 10 × 1² = 10 cristaux
-            Assert.Equal(40, civ.GetResourceQuantity(Resource.Crystal));
+            // Coût de lancement : base 50 × 1² = 50 cristaux
+            Assert.Equal(50, civ.GetResourceQuantity(Resource.Crystal));
             Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
 
             // Effet : +10% de vitesse de récolte par puissance
@@ -232,14 +233,15 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             AddMageTower(state, level: 10); // budget de puissance = floor(1 + 10×10%) = 2
-            civ.AddResource(Resource.Crystal, 50);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 250);
 
-            controller.LaunchRitual(RitualId.Growth); // 10 cristaux (p1)
+            controller.LaunchRitual(RitualId.Growth); // 50 cristaux (p1)
 
-            // Passage p1 → p2 : 10×2² − 10×1² = 30 cristaux
-            Assert.Equal(30, controller.GetPowerIncreaseCost(RitualId.Growth));
+            // Passage p1 → p2 : 50×2² − 50×1² = 150 cristaux
+            Assert.Equal(150, controller.GetPowerIncreaseCost(RitualId.Growth));
             Assert.True(controller.IncreaseRitualPower(RitualId.Growth));
-            Assert.Equal(10, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(50, civ.GetResourceQuantity(Resource.Crystal));
 
             // Effet linéaire : +10% × 2 = +20%
             double harvestSpeed = civ.ModifierAggregator.ApplyModifiers(ECategory.HARVEST_SPEED, "", 1.0);
@@ -305,7 +307,8 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             AddMageTower(state);
-            civ.AddResource(Resource.Crystal, 50);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 100);
 
             Assert.Null(controller.GetActiveRitual(RitualId.Growth));
             Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
@@ -313,7 +316,7 @@ namespace SOITests.ControllerTests
             var active = controller.GetActiveRitual(RitualId.Growth);
             Assert.NotNull(active);
             Assert.True(controller.IsRitualAutomated(RitualId.Growth));
-            Assert.Equal(40, civ.GetResourceQuantity(Resource.Crystal)); // coût de lancement payé (10)
+            Assert.Equal(50, civ.GetResourceQuantity(Resource.Crystal)); // coût de lancement payé (50)
         }
 
         [Fact]
@@ -415,6 +418,7 @@ namespace SOITests.ControllerTests
                 new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, 1),
                 new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 2),
             }));
+            GrantCrystalStorage(civ, 10000);
             civ.AddResource(Resource.Crystal, 1000);
 
             controller.LaunchRitual(RitualId.Growth);
@@ -440,6 +444,7 @@ namespace SOITests.ControllerTests
                 new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, 1),
                 new(ECategory.RITUAL_TOTAL_POWER, EType.ADDITIVE, 2), // budget = 3
             }));
+            GrantCrystalStorage(civ, 10000);
             civ.AddResource(Resource.Crystal, 1000);
 
             controller.LaunchRitual(RitualId.Growth);
@@ -464,6 +469,7 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             AddMageTower(state, level: 10); // budget de puissance = floor(1 + 10×10%) = 2
+            GrantCrystalStorage(civ, 10000);
             civ.AddResource(Resource.Crystal, 1000);
 
             controller.LaunchRitual(RitualId.Growth);
@@ -653,14 +659,15 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             AddMageTower(state);
-            civ.AddResource(Resource.Crystal, 50);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 100);
 
-            controller.LaunchRitual(RitualId.Growth); // reste 40
+            controller.LaunchRitual(RitualId.Growth); // reste 50
 
             clock.SimulateAdvance(MagicController.UpkeepIntervalTicks);
 
-            // Entretien : base 2 × 1² = 2 cristaux par cycle
-            Assert.Equal(38, civ.GetResourceQuantity(Resource.Crystal));
+            // Entretien : base 5 × 1² = 5 cristaux par cycle
+            Assert.Equal(45, civ.GetResourceQuantity(Resource.Crystal));
             Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
         }
 
@@ -671,7 +678,7 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             AddMageTower(state);
-            civ.AddResource(Resource.Crystal, 10); // juste le coût de lancement
+            civ.AddResource(Resource.Crystal, 50); // juste le coût de lancement
 
             controller.LaunchRitual(RitualId.Growth); // reste 0
 
@@ -691,7 +698,8 @@ namespace SOITests.ControllerTests
             var civ = state.PlayerCivilization;
             UnlockMagic(civ, RitualId.Growth);
             var tower = AddMageTower(state, level: 10); // budget de puissance = floor(1 + 10×10%) = 2
-            civ.AddResource(Resource.Crystal, 50);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 250);
 
             controller.LaunchRitual(RitualId.Growth);
             controller.IncreaseRitualPower(RitualId.Growth);
@@ -718,8 +726,8 @@ namespace SOITests.ControllerTests
             AddMageTower(state);
 
             var def = RitualDefinitions.Get(RitualId.MartialBlessing)!;
-            // Base 4 × 1² × (1 − 0.5) = 2
-            Assert.Equal(2, controller.GetUpkeepCost(def, 1));
+            // Base 10 × 1² × (1 − 0.5) = 5
+            Assert.Equal(5, controller.GetUpkeepCost(def, 1));
         }
 
         [Fact]
