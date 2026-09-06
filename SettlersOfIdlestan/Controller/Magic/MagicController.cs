@@ -262,7 +262,12 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// <see cref="Controller.Expand.MonumentInvestment.GetInvestmentRatesBySource"/>), pour garantir un
         /// total identique entre la page Rituels et cette infobulle.
         /// </summary>
-        public (List<(string SourceKey, double Rate)> Gains, List<(string SourceKey, double Rate)> Losses) GetCrystalGainsAndLosses()
+        /// <param name="includeMonumentInvestment">
+        /// false pour ne pas compter l'investissement en Monuments, dont le prélèvement est un pourcentage
+        /// du stock courant et non un débit fixe (voir <see cref="GetNetCrystalPerSecond"/>). L'affichage,
+        /// lui, le montre toujours : c'est bien une sortie de cristaux à l'instant considéré.
+        /// </param>
+        public (List<(string SourceKey, double Rate)> Gains, List<(string SourceKey, double Rate)> Losses) GetCrystalGainsAndLosses(bool includeMonumentInvestment = true)
         {
             var gains = new List<(string SourceKey, double Rate)>();
             var losses = new List<(string SourceKey, double Rate)>();
@@ -278,7 +283,8 @@ namespace SettlersOfIdlestan.Controller.Magic
                     losses.AddRange(cons);
             }
 
-            if (Controller.Expand.MonumentInvestment.GetInvestmentRatesBySource(_state, civ).TryGetValue(Resource.Crystal, out var monument))
+            if (includeMonumentInvestment
+                && Controller.Expand.MonumentInvestment.GetInvestmentRatesBySource(_state, civ).TryGetValue(Resource.Crystal, out var monument))
                 losses.AddRange(monument);
 
             double ritualUpkeep = GetRitualUpkeepPerSecond();
@@ -890,10 +896,17 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         // ── Automatisation de la puissance ───────────────────────────────────
 
-        /// <summary>Somme des gains et pertes de cristaux/seconde actuels (mêmes sources que <see cref="GetCrystalGainsAndLosses"/>).</summary>
+        /// <summary>
+        /// Somme des gains et pertes de cristaux/seconde retenue par l'automatisation (mêmes sources que
+        /// <see cref="GetCrystalGainsAndLosses"/>), <em>hors</em> investissement en Monuments : celui-ci
+        /// prélève un pourcentage du stock courant, il décroît donc de lui-même à mesure que le stock
+        /// baisse et ne peut jamais le vider. Le compter comme un débit fixe rendait le net durablement
+        /// négatif dès qu'un Monument investissait des cristaux, et l'automatisation démontait alors les
+        /// rituels un point à la fois alors que le stock, lui, se stabilisait.
+        /// </summary>
         private double GetNetCrystalPerSecond()
         {
-            var (gains, losses) = GetCrystalGainsAndLosses();
+            var (gains, losses) = GetCrystalGainsAndLosses(includeMonumentInvestment: false);
             return gains.Sum(g => g.Rate) - losses.Sum(l => l.Rate);
         }
 
