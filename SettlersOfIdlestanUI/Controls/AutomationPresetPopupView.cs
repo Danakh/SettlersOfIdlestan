@@ -132,7 +132,7 @@ public sealed class AutomationPresetPopupView : UserControl
             Child = body,
         };
 
-        Content = new Border { Background = Veil, Child = box };
+        Content = PopupVeil.Create(Veil, box, viewModel.Close);
     }
 
     /// <summary>En-tete d'une colonne de preset : son numero, plus deux petits boutons "0"/"M" qui

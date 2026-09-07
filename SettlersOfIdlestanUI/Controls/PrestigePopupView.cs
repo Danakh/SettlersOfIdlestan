@@ -135,7 +135,7 @@ public sealed class PrestigePopupView : UserControl
             Child = body,
         };
 
-        Content = new Border { Background = Veil, Child = box };
+        Content = PopupVeil.Create(Veil, box, viewModel.Close);
     }
 
     /// <summary>Une ligne du decompte : libelle a gauche, valeur a droite.</summary>

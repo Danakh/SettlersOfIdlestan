@@ -91,6 +91,6 @@ public sealed class SettingsPopupView : UserControl
             Child = body,
         };
 
-        Content = new Border { Background = Veil, Child = box };
+        Content = PopupVeil.Create(Veil, box, viewModel.Close);
     }
 }

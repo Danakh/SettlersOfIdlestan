@@ -292,7 +292,7 @@ public sealed class TradePopupView : UserControl
             Child = body,
         };
 
-        Content = new Border { Background = Veil, Child = box };
+        Content = PopupVeil.Create(Veil, box, () => { reclaimFocus(); viewModel.Close(); });
     }
 
     private static Button TabButton(string labelPath, string activePath, Action onClick, string? visiblePath = null)
