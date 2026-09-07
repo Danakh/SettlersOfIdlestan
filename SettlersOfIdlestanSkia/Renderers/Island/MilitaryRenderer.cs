@@ -28,8 +28,8 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     private const float ConsumableArcDistanceMax = 26f;
     private const float ConsumableArcHeight = 16f;
 
-    /// <summary>Écartement (px) entre deux soldats d'une même salve — même valeur que les particules de récolte.</summary>
-    private const float ParticleSpreadStep = 15f;
+    /// <summary>Écartement (px) entre deux soldats d'une même salve — resserré pour que la phalange reste groupée.</summary>
+    private const float ParticleSpreadStep = 5f;
 
     private sealed class MilitaryParticle
     {

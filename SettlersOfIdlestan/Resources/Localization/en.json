@@ -1524,7 +1524,7 @@
   "ascension_power_handofgod_name": "Hand of God",
   "ascension_power_handofgod_desc": "Automatically harvests every available manual resource as soon as its cooldown allows it.",
   "ascension_power_divineinventory_name": "Divine Inventory",
-  "ascension_power_divineinventory_desc": "Increases the civilization's storage capacity by 1000%.",
+  "ascension_power_divineinventory_desc": "Increases the civilization's storage capacity by 500%.",
   "ascension_power_hornofplenty_name": "Horn of Plenty",
   "ascension_power_hornofplenty_desc": "Grants +100% yield to every automatic harvest, in all your cities and whatever the building — stacks with the other yield bonuses, which can push a harvest beyond double. On top of that, a divine bounty of 20 units of each basic resource (Food, Wood, Brick, Stone) is granted to the civilization every second.",
   "ascension_power_eyeofgod_name": "Eye of God",

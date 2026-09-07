@@ -890,7 +890,7 @@ public class AscensionController : IModifierProvider
         }
 
         if (IsPowerUnlocked(AscensionPowerId.DivineInventory))
-            yield return new Modifier(Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER, Modifier.EType.ADDITIVE, 10.0);
+            yield return new Modifier(Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER, Modifier.EType.ADDITIVE, 5.0);
 
         if (IsPowerUnlocked(AscensionPowerId.ArmOfGod))
             yield return new Modifier(Modifier.ECategory.SOLDIER_ATTACK_DAMAGE, Modifier.EType.ADDITIVE, 1);

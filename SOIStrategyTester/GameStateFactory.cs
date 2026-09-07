@@ -181,8 +181,8 @@ public static class GameStateFactory
     ///
     /// <para>C'est un autre joueur que celui de <see cref="NewGameForRace"/>, pas le même en mieux :
     /// Poing de Dieu frappe un monstre pour 100 à travers son armure, Bras de Dieu double les dégâts
-    /// d'un soldat, Courroux de Dieu double la cadence d'attaque et Inventaire Divin décuple le
-    /// stockage. Aucun de ces leviers n'existe sans Ascension — d'où deux manches Pandémonium
+    /// d'un soldat, Courroux de Dieu double la cadence d'attaque et Inventaire Divin multiplie le
+    /// stockage par six. Aucun de ces leviers n'existe sans Ascension — d'où deux manches Pandémonium
     /// distinctes plutôt qu'un réglage de difficulté (voir PandemoniumRunner).</para>
     ///
     /// <para>Tout passe par les vrais chemins : les pouvoirs sont achetés par
