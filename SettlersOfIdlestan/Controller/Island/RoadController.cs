@@ -609,7 +609,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (enemyProtectedEdges.Contains(edge)) continue;
                 if (IsEdgeBetweenVoidHexes(edge))
                 {
-                    if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_VOID_ROUTES))
+                    if (!CanBuildVoidRoad(edge, civ))
                         continue;
                 }
                 else if (!IsEdgeOnLand(edge))
@@ -709,7 +709,7 @@ namespace SettlersOfIdlestan.Controller.Island
             bool isMaritimePath = !isVoidPath && !IsEdgeOnLand(edge);
             if (isVoidPath)
             {
-                if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_VOID_ROUTES))
+                if (!CanBuildVoidRoad(edge, civ))
                     throw new InvalidOperationException("Cannot build a road on an edge between two void hexes");
             }
             else if (isMaritimePath)
@@ -778,10 +778,13 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Vrai si l'arête sépare deux hexagones de Vide — cible du sort Pont du Vide
-        /// (<see cref="BuildVoidBridge"/>). Les deux hexagones doivent exister sur la carte fournie.
+        /// (<see cref="BuildVoidBridge"/>). Les deux hexagones doivent exister sur la carte fournie,
+        /// et la couche doit autoriser les routes du Vide : le sort ne contourne pas l'interdiction
+        /// du Pandémonium (voir <see cref="AreVoidRoadsAllowedOnLayer"/>).
         /// </summary>
         public bool IsVoidBridgeEdge(Edge edge, IslandMap map)
         {
+            if (!AreVoidRoadsAllowedOnLayer(edge.Z)) return false;
             var tile1 = map.GetTile(edge.Hex1);
             var tile2 = map.GetTile(edge.Hex2);
             return tile1?.TerrainType == TerrainType.Void && tile2?.TerrainType == TerrainType.Void;
@@ -801,6 +804,8 @@ namespace SettlersOfIdlestan.Controller.Island
 
             var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            if (!AreVoidRoadsAllowedOnLayer(edge.Z)) return false;
 
             var map = _state.GetMapForZ(edge.Z);
             if (map == null) return false;
@@ -861,7 +866,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 if (IsEdgeBetweenVoidHexes(edge))
                 {
-                    if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_VOID_ROUTES)) continue;
+                    if (!CanBuildVoidRoad(edge, civ)) continue;
                 }
                 else if (!IsEdgeOnLand(edge))
                 {
@@ -1222,6 +1227,25 @@ namespace SettlersOfIdlestan.Controller.Island
             return hex1IsVoid && hex2IsVoid;
         }
 
+        /// <summary>
+        /// Vrai si les routes du Vide sont autorisées sur la couche <paramref name="z"/>. Le
+        /// Pandémonium en est exclu : c'est une île unique et fermée, cernée d'un anneau de Vide que
+        /// rien ne borde au-delà (voir <see cref="Controller.Generator.PandemoniumGenerator"/>). Y
+        /// poser des routes du Vide ne mène nulle part et permettrait de contourner l'île — le siège
+        /// du dieu démon doit se jouer sur la terre ferme.
+        /// </summary>
+        public static bool AreVoidRoadsAllowedOnLayer(int z) => z != LayerState.PandemoniumZ;
+
+        /// <summary>
+        /// Vrai si cette civilisation peut bâtir une route du Vide sur cette arête : déblocage
+        /// <see cref="Modifier.ECategory.UNLOCK_VOID_ROUTES"/> ET couche qui les autorise (voir
+        /// <see cref="AreVoidRoadsAllowedOnLayer"/>). Seul point de décision — tous les chemins de
+        /// construction (manuelle, PNJ, Logistique Mobile, Pont du Vide) passent par lui.
+        /// </summary>
+        private bool CanBuildVoidRoad(Edge edge, Civilization civ)
+            => AreVoidRoadsAllowedOnLayer(edge.Z)
+               && civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_VOID_ROUTES);
+
         /// <summary>Coût en points de recherche de la première route du Vide.</summary>
         public const long VoidRouteBaseResearchCost = 1_000_000L;
 
@@ -1286,6 +1310,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// <summary>Coût en points de recherche à afficher pour une route du Vide sur cette arête (null si l'arête n'en est pas une).</summary>
         public long? GetPlayerVoidRoadResearchCost(Edge edge)
         {
+            if (!AreVoidRoadsAllowedOnLayer(edge.Z)) return null;
             if (!IsEdgeBetweenVoidHexes(edge)) return null;
             return GetVoidRouteResearchCostFor(_state!.PlayerCivilization);
         }

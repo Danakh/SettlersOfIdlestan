@@ -866,4 +866,93 @@ public class RoadControllerTests
         Assert.NotNull(controller.BuildRoad(0, secondEdge));
         Assert.Contains(civ.Roads, r => r.Position.Equals(secondEdge));
     }
+
+    private sealed class FlatModifierProvider : IModifierProvider
+    {
+        private readonly List<Modifier> _mods;
+        public FlatModifierProvider(params Modifier[] mods) => _mods = new(mods);
+        public IEnumerable<Modifier> GetModifiers() => _mods;
+#pragma warning disable CS0067
+        public event Action? OnModifiersChanged;
+#pragma warning restore CS0067
+    }
+
+    /// <summary>
+    /// Couche de trois hexes — une terre et deux hexes de Vide — avec une ville du joueur sur le
+    /// vertex qu'ils partagent : l'arête entre les deux hexes de Vide est donc bien raccordée au
+    /// réseau, et seuls le terrain et la couche décident de sa constructibilité. Le déblocage
+    /// UNLOCK_VOID_ROUTES (Marche du Vide) est acquis.
+    /// </summary>
+    private static (WorldState state, Civilization civ, Edge voidEdge) VoidEdgeOnLayer(int z)
+    {
+        var land = new HexCoord(0, 0, z);
+        var void1 = new HexCoord(1, 0, z);
+        var void2 = new HexCoord(0, 1, z);
+
+        var civ = new Civilization { Index = 0 };
+        civ.AddCity(new City(Vertex.Create(land, void1, void2)) { CivilizationIndex = 0 });
+        civ.AddCustomAggregator(new FlatModifierProvider(
+            new Modifier(ECategory.UNLOCK_VOID_ROUTES, EType.ADDITIVE, 1)));
+
+        var surface = new IslandMap(new HexTile[]
+        {
+            new(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain),
+        });
+        var state = new WorldState(surface, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        state.AddLayer(z, new LayerState(new IslandMap(new HexTile[]
+        {
+            new(land,  TerrainType.Plain),
+            new(void1, TerrainType.Void),
+            new(void2, TerrainType.Void),
+        }, z)));
+
+        return (state, civ, Edge.Create(void1, void2));
+    }
+
+    /// <summary>
+    /// Témoin : dans l'Abysse, Marche du Vide acquise, l'arête entre deux hexes de Vide est bien
+    /// constructible — c'est là tout l'intérêt des routes du Vide.
+    /// </summary>
+    [Fact]
+    public void VoidRoutes_AbyssLayer_VoidEdgeBuildable()
+    {
+        var (state, _, voidEdge) = VoidEdgeOnLayer(LayerState.AbyssZ);
+        var roads = new RoadController(state).GetBuildableRoads(0);
+        Assert.Contains(roads, r => r.Position.Equals(voidEdge));
+    }
+
+    /// <summary>
+    /// Le Pandémonium interdit les routes du Vide même avec Marche du Vide : l'île y est unique et
+    /// close, cernée d'un anneau de Vide sans rien derrière — le siège du dieu démon doit se jouer
+    /// sur la terre ferme (voir RoadController.AreVoidRoadsAllowedOnLayer).
+    /// </summary>
+    [Fact]
+    public void VoidRoutes_PandemoniumLayer_VoidEdgeNeverBuildable()
+    {
+        var (state, civ, voidEdge) = VoidEdgeOnLayer(LayerState.PandemoniumZ);
+        var controller = new RoadController(state);
+
+        Assert.DoesNotContain(controller.GetBuildableRoads(0), r => r.Position.Equals(voidEdge));
+
+        civ.AddResource(Resource.Wood,  100);
+        civ.AddResource(Resource.Brick, 100);
+        civ.AddResource(Resource.Gold,  100);
+        Assert.Throws<InvalidOperationException>(() => controller.BuildRoad(0, voidEdge));
+    }
+
+    /// <summary>
+    /// Le Pont du Vide ne contourne pas l'interdiction : l'arête n'est plus une cible valide dans le
+    /// Pandémonium, et la construction directe échoue.
+    /// </summary>
+    [Fact]
+    public void VoidBridge_PandemoniumLayer_EdgeNotTargetableAndNotBuilt()
+    {
+        var (state, civ, voidEdge) = VoidEdgeOnLayer(LayerState.PandemoniumZ);
+        var controller = new RoadController(state);
+        var map = state.GetMapForZ(LayerState.PandemoniumZ)!;
+
+        Assert.False(controller.IsVoidBridgeEdge(voidEdge, map));
+        Assert.False(controller.BuildVoidBridge(0, voidEdge));
+        Assert.DoesNotContain(civ.Roads, r => r.Position.Equals(voidEdge));
+    }
 }

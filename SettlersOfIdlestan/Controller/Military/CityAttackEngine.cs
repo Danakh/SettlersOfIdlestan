@@ -259,8 +259,10 @@ internal class CityAttackEngine
     /// <summary>
     /// Vérifie que le chemin le plus direct entre l'attaquant et sa cible ne traverse aucune arête
     /// interdite : deux hex d'eau sans <see cref="ECategory.UNLOCK_MARITIME_ROUTES"/>, ou deux hex de
-    /// Vide sans <see cref="ECategory.UNLOCK_VOID_ROUTES"/>. Même logique que RoadController pour la
-    /// constructibilité des routes, mais appliquée au chemin d'attaque plutôt qu'à une arête bâtie.
+    /// Vide sans <see cref="ECategory.UNLOCK_VOID_ROUTES"/>, ou deux hex de Vide sur une couche qui
+    /// interdit les routes du Vide (le Pandémonium — voir
+    /// <see cref="RoadController.AreVoidRoadsAllowedOnLayer"/>). Même logique que RoadController pour
+    /// la constructibilité des routes, mais appliquée au chemin d'attaque plutôt qu'à une arête bâtie.
     /// </summary>
     private bool IsAttackPathValid(Civilization attackerCiv, List<Vertex> path)
     {
@@ -271,7 +273,8 @@ internal class CityAttackEngine
 
             if (IsEdgeBetweenVoidHexes(edge))
             {
-                if (!attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_VOID_ROUTES))
+                if (!RoadController.AreVoidRoadsAllowedOnLayer(edge.Z)
+                    || !attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_VOID_ROUTES))
                     return false;
             }
             else if (!IsEdgeOnLand(edge))
