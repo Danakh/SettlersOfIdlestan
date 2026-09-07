@@ -254,6 +254,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             INLAND_CITY_LEVEL_CAP,
             /// <summary>Flags que la Guilde des bâtisseurs peut aussi automatiser routes et avant-postes dans l'Inframonde (SubCategory unused, voir RoadController.PerformBuildersGuildConstruction et CityBuilderController.PerformBuildersGuildOutpostConstruction).</summary>
             UNLOCK_BUILDERS_GUILD_UNDERWORLD,
+            /// <summary>Comme UNLOCK_BUILDERS_GUILD_UNDERWORLD, mais pour l'Abysse — réglages d'automatisation distincts de ceux de l'Inframonde. Ne débloque jamais les routes du Vide : la guilde ne pose que des routes de base, jamais une route coûtant des points de recherche (voir RoadController.TryAddCandidate et SeedLayerBurstContext). SubCategory unused.</summary>
+            UNLOCK_BUILDERS_GUILD_ABYSS,
             /// <summary>Flags que l'action War Herald (raid gratuit sur une ville alliée, redirigeant les flux de renfort) est déverrouillée pour la civilisation du joueur.</summary>
             UNLOCK_WAR_HERALD,
             /// <summary>Fraction de réduction des dégâts d'éruption volcanique subis par les villes de la civilisation. Base = 0.0 ; 0.5 = -50%.</summary>

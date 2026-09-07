@@ -128,11 +128,13 @@ namespace SettlersOfIdlestan.Controller.Island
             if (civ.GetUniqueBuilding(BuildingType.BuildersGuild) is not BuildersGuild guild || guild.Level < 4) return;
 
             bool underworldUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
+            bool abyssUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_BUILDERS_GUILD_ABYSS);
             bool surfaceEnabled = _state.AutomationSettings.IsOutpostAutomationActive;
             bool underworldEnabled = underworldUnlocked && _state.AutomationSettings.IsOutpostAutomationActiveUnderworld;
+            bool abyssEnabled = abyssUnlocked && _state.AutomationSettings.IsOutpostAutomationActiveAbyss;
 
             // Keep timer running even when disabled to avoid burst on re-enable
-            if (!surfaceEnabled && !underworldEnabled)
+            if (!surfaceEnabled && !underworldEnabled && !abyssEnabled)
             {
                 guild.LastOutpostBuildTick = now;
                 return;
@@ -170,8 +172,13 @@ namespace SettlersOfIdlestan.Controller.Island
                 var buildable = new List<Vertex>();
                 if (surfaceEnabled) buildable.AddRange(allBuildable.Where(v => v.Z == IslandMap.SurfaceLayer));
 
-                // La guilde priorise la surface : l'Inframonde n'est considéré que si aucun avant-poste
-                // de surface n'est disponible ce cycle.
+                // Ordre de priorité des couches : Surface > Abysse > Inframonde. L'Abysse passe avant
+                // l'Inframonde (contrairement à la profondeur géographique) parce que ses avant-postes
+                // sont la ressource rare de la fin de partie, alors que l'Inframonde en offre presque
+                // toujours : servi en dernier, l'Abysse ne serait jamais atteint. Une couche n'est
+                // considérée que si celles au-dessus d'elle dans cet ordre n'offrent rien ce cycle.
+                if (buildable.Count == 0 && abyssEnabled)
+                    buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.AbyssZ));
                 if (buildable.Count == 0 && underworldEnabled)
                     buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.UnderworldZ));
                 if (buildable.Count == 0) break;

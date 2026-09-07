@@ -119,9 +119,11 @@ namespace SettlersOfIdlestan.Controller.Island
                 // Keep timer running when disabled to avoid burst on re-enable (player only)
                 bool isPlayerCiv = civ.Index == _state.PlayerCivilization.Index;
                 bool underworldUnlocked = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
+                bool abyssUnlocked = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_ABYSS);
                 bool surfaceEnabled = !isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActive;
                 bool underworldEnabled = underworldUnlocked && (!isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActiveUnderworld);
-                if (!surfaceEnabled && !underworldEnabled)
+                bool abyssEnabled = abyssUnlocked && (!isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActiveAbyss);
+                if (!surfaceEnabled && !underworldEnabled && !abyssEnabled)
                 {
                     guild.LastRoadBuildTick = now;
                     continue;
@@ -151,7 +153,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 int surfaceRoadsPerCycle = Math.Max(1, (int)Math.Round(
                     civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE, "", 1.0)));
 
-                BuildRoadsForGuildBurst(civ, guild, cycles, surfaceRoadsPerCycle, surfaceEnabled, underworldEnabled);
+                BuildRoadsForGuildBurst(civ, guild, cycles, surfaceRoadsPerCycle, surfaceEnabled, underworldEnabled, abyssEnabled);
             }
         }
 
@@ -162,8 +164,9 @@ namespace SettlersOfIdlestan.Controller.Island
         /// seule route d'Inframonde. S'arrête dès qu'un cycle ne trouve plus de route constructible —
         /// les cycles suivants échoueraient pour la même raison.
         ///
-        /// Les deux layers (surface et Inframonde — l'Abysse n'a pas d'automatisation de routes)
-        /// maintiennent chacun une liste de travail locale des arêtes constructibles, mise à jour de
+        /// Les trois layers automatisables (surface, Abysse, Inframonde — servis dans cet ordre de
+        /// priorité, voir <see cref="GuildRoadLayerPriority"/>) maintiennent chacun une liste de
+        /// travail locale des arêtes constructibles, mise à jour de
         /// proche en proche à chaque route posée (une route n'ouvre que 0 à 2 nouvelles arêtes
         /// candidates, à son extrémité libre — voir <see cref="PatchCandidatesAfterBuild"/>), au lieu
         /// de rappeler <see cref="ComputeBuildableRoadsForLayer"/>/
@@ -175,7 +178,7 @@ namespace SettlersOfIdlestan.Controller.Island
         /// nettoyage des civs mortes et du cache d'automatisation des guildes (voir mémoire
         /// endgame_x10_freeze_investigation).
         ///
-        /// L'Inframonde est une couche AutoExtend : y poser une route peut révéler de nouveaux
+        /// L'Inframonde et l'Abysse sont des couches AutoExtend : y poser une route peut révéler de nouveaux
         /// hexagones de carte aux deux sommets de CETTE route (voir
         /// <see cref="AutoExtendController.TryExtendMapAfterRoad"/>, qui ne touche jamais que les
         /// hexagones à un pas de l'arête qui vient d'être construite). C'est pour ça que
@@ -202,30 +205,29 @@ namespace SettlersOfIdlestan.Controller.Island
         /// changerait quels hexagones comptent comme "nouveaux" pour ce mécanisme au fil d'une rafale
         /// à plusieurs cycles, un changement de comportement de jeu et pas seulement de performance.
         /// </summary>
-        private void BuildRoadsForGuildBurst(Civilization civ, BuildersGuild guild, long cycles, int surfaceRoadsPerCycle, bool surfaceEnabled, bool underworldEnabled)
+        private void BuildRoadsForGuildBurst(Civilization civ, BuildersGuild guild, long cycles, int surfaceRoadsPerCycle, bool surfaceEnabled, bool underworldEnabled, bool abyssEnabled)
         {
-            LayerBurstContext? surfaceCtx = null;
-            LayerBurstContext? underworldCtx = null;
-            bool surfaceTouched = false;
-            bool underworldTouched = false;
+            var contexts = new LayerBurstContext?[GuildRoadLayerPriority.Length];
+            // Même ordre que GuildRoadLayerPriority (surface, Abysse, Inframonde), pas celui des paramètres.
+            var enabled = new[] { surfaceEnabled, abyssEnabled, underworldEnabled };
+            var touched = new bool[GuildRoadLayerPriority.Length];
 
-            void BuildChosen(Road chosen, LayerBurstContext ctx)
+            void BuildChosen(Road chosen, LayerBurstContext ctx, int layerIndex)
             {
                 TryRemoveEnemyRoadAt(chosen.Position, civ.Index);
                 var road = new Road(chosen.Position) { CivilizationIndex = civ.Index, DistanceToNearestCity = chosen.DistanceToNearestCity };
                 civ.AddRoad(road);
 
-                bool onSurface = chosen.Position.Z == IslandMap.SurfaceLayer;
-                if (onSurface) surfaceTouched = true; else underworldTouched = true;
+                touched[layerIndex] = true;
 
-                // Voir la doc de la méthode : doit être émis avant le patch pour l'Inframonde.
+                // Voir la doc de la méthode : doit être émis avant le patch pour les couches AutoExtend.
                 OnAutoRoadBuilt?.Invoke(this, new RoadAutoBuiltEventArgs(civ.Index, chosen.Position));
 
                 PatchCandidatesAfterBuild(civ, guild, ctx, road);
 
                 // Seule la couche de la route posée a changé : les autres n'ont aucune raison d'être
-                // reconstruites, et le sont à chaque route quand l'Inframonde est automatisé.
-                if (!onSurface)
+                // reconstruites, et le sont à chaque route quand une couche profonde est automatisée.
+                if (chosen.Position.Z != IslandMap.SurfaceLayer)
                     _state!.Visibility.RecalculateForLayer(civ.Index, chosen.Position.Z);
             }
 
@@ -233,26 +235,22 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 bool built = false;
 
-                // La surface pose jusqu'à surfaceRoadsPerCycle routes par cycle (1 par défaut, 5 avec
-                // le jalon d'Ascension Exode Divin — voir BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE).
-                if (surfaceEnabled)
+                // La guilde sert les couches dans l'ordre de GuildRoadLayerPriority : une couche plus
+                // profonde n'est considérée que si aucune route n'a pu être posée sur celles au-dessus
+                // ce cycle.
+                for (int i = 0; i < GuildRoadLayerPriority.Length && !built; i++)
                 {
-                    surfaceCtx ??= SeedLayerBurstContext(civ, IslandMap.SurfaceLayer, guild.MaxAutoRoadDistance);
-                    for (int s = 0; s < surfaceRoadsPerCycle && surfaceCtx.Working.Count > 0; s++)
-                    {
-                        BuildChosen(surfaceCtx.Working[_prng!.Next(surfaceCtx.Working.Count)], surfaceCtx);
-                        built = true;
-                    }
-                }
+                    if (!enabled[i]) continue;
+                    int layer = GuildRoadLayerPriority[i];
+                    var ctx = contexts[i] ??= SeedLayerBurstContext(civ, layer, guild.MaxAutoRoadDistance);
 
-                // La guilde priorise la surface : l'Inframonde n'est considéré que si aucune route
-                // de surface n'est disponible ce cycle.
-                if (!built && underworldEnabled)
-                {
-                    underworldCtx ??= SeedLayerBurstContext(civ, LayerState.UnderworldZ, guild.MaxAutoRoadDistance);
-                    if (underworldCtx.Working.Count > 0)
+                    // La surface pose jusqu'à surfaceRoadsPerCycle routes par cycle (1 par défaut, 5 avec
+                    // le jalon d'Ascension Exode Divin — voir BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE) ;
+                    // les couches profondes restent à une route par cycle.
+                    int roadsThisCycle = layer == IslandMap.SurfaceLayer ? surfaceRoadsPerCycle : 1;
+                    for (int s = 0; s < roadsThisCycle && ctx.Working.Count > 0; s++)
                     {
-                        BuildChosen(underworldCtx.Working[_prng!.Next(underworldCtx.Working.Count)], underworldCtx);
+                        BuildChosen(ctx.Working[_prng!.Next(ctx.Working.Count)], ctx, i);
                         built = true;
                     }
                 }
@@ -260,20 +258,32 @@ namespace SettlersOfIdlestan.Controller.Island
                 if (!built) break;
             }
 
-            if (surfaceTouched)
+            for (int i = 0; i < GuildRoadLayerPriority.Length; i++)
             {
-                ComputeRoadDistancesForCivilization(civ, IslandMap.SurfaceLayer);
-                InvalidateBuildableRoadsCacheForLayer(IslandMap.SurfaceLayer);
-                _state!.Visibility.RecalculateForLayer(civ.Index, IslandMap.SurfaceLayer);
-            }
-            if (underworldTouched)
-            {
-                ComputeRoadDistancesForCivilization(civ, LayerState.UnderworldZ);
-                InvalidateBuildableRoadsCacheForLayer(LayerState.UnderworldZ);
-                // Visibilité déjà tenue à jour route par route ci-dessus (voir doc) : pas de second
-                // appel ici.
+                if (!touched[i]) continue;
+                int layer = GuildRoadLayerPriority[i];
+                ComputeRoadDistancesForCivilization(civ, layer);
+                InvalidateBuildableRoadsCacheForLayer(layer);
+                // Visibilité déjà tenue à jour route par route sur les couches profondes (voir doc) :
+                // seule la surface a besoin d'un recalcul de fin de rafale.
+                if (layer == IslandMap.SurfaceLayer)
+                    _state!.Visibility.RecalculateForLayer(civ.Index, layer);
             }
         }
+
+        /// <summary>
+        /// Couches automatisables par la Guilde des bâtisseurs, dans l'ordre où elle les sert : la
+        /// surface d'abord, puis l'Abysse, puis l'Inframonde. L'Abysse passe avant l'Inframonde
+        /// (contrairement à la profondeur géographique) pour la même raison que les avant-postes
+        /// (voir CityBuilderController.PerformBuildersGuildOutpostConstruction) : l'Inframonde offre
+        /// presque toujours une arête constructible, donc servi en dernier l'Abysse ne serait jamais
+        /// atteint. Le Pandémonium n'a pas d'automatisation de routes. L'index dans ce tableau sert de
+        /// clé aux tableaux parallèles de <see cref="BuildRoadsForGuildBurst"/> (déblocage, contexte de
+        /// rafale, couche modifiée) — l'ordre de <c>enabled</c> y suit donc celui-ci, pas celui des
+        /// paramètres.
+        /// </summary>
+        private static readonly int[] GuildRoadLayerPriority =
+            { IslandMap.SurfaceLayer, LayerState.AbyssZ, LayerState.UnderworldZ };
 
         /// <summary>
         /// Liste de travail des arêtes constructibles d'un layer pour une civilisation, maintenue
@@ -337,7 +347,12 @@ namespace SettlersOfIdlestan.Controller.Island
                 mapTiles = computed.MapTiles;
             }
 
-            var working = roads.Where(r => r.DistanceToNearestCity <= maxAutoRoadDistance).ToList();
+            // Les routes du Vide sont retirées de la liste de travail : la guilde ne pose que des routes
+            // de base, jamais une route coûtant des points de recherche (voir TryAddCandidate). Le
+            // filtre est ici et pas dans ComputeBuildableRoadsForLayer, dont le résultat est aussi
+            // celui que l'UI propose au joueur à la construction manuelle.
+            var working = roads.Where(r => r.DistanceToNearestCity <= maxAutoRoadDistance
+                                           && !IsEdgeBetweenVoidHexes(r.Position)).ToList();
             return new LayerBurstContext(working, ownOccupied, enemyProtectedEdges, mapTiles);
         }
 
@@ -434,9 +449,10 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Mêmes règles de validité qu'un candidat de <see cref="ComputeBuildableRoadsForLayer"/> (arête
-        /// sur la carte, non occupée par nous, non protégée par un ennemi, terre/Vide/mer débloqué·e
-        /// selon le cas), plus le filtre de distance maximale de la guilde (implicite dans
-        /// <see cref="GetBuildableRoadsAtDistance"/> côté recalcul complet).
+        /// sur la carte, non occupée par nous, non protégée par un ennemi, terre/mer débloquée selon le
+        /// cas), plus le filtre de distance maximale de la guilde (implicite dans
+        /// <see cref="GetBuildableRoadsAtDistance"/> côté recalcul complet) et l'exclusion des routes
+        /// du Vide, propre à l'automatisation.
         /// </summary>
         private void TryAddCandidate(Civilization civ, BuildersGuild guild, LayerBurstContext ctx, Edge edge, int distance)
         {
@@ -445,11 +461,13 @@ namespace SettlersOfIdlestan.Controller.Island
             if (ctx.OwnOccupied.Contains(edge) || ctx.EnemyProtectedEdges.Contains(edge)) return;
             if (ctx.Working.Any(r => r.Position.Equals(edge))) return;
 
-            if (IsEdgeBetweenVoidHexes(edge))
-            {
-                if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_VOID_ROUTES)) return;
-            }
-            else if (!IsEdgeOnLand(edge))
+            // Jamais de route du Vide en automatique, même Void Walking acquise : les routes bâties
+            // par la guilde sont gratuites, alors qu'une route du Vide coûte des points de recherche
+            // (voir GetVoidRouteResearchCostFor) — l'automatiser reviendrait à les offrir. Même
+            // exclusion côté liste de travail initiale (voir SeedLayerBurstContext).
+            if (IsEdgeBetweenVoidHexes(edge)) return;
+
+            if (!IsEdgeOnLand(edge))
             {
                 if (EdgeTouchesDeepWater(edge, civ)) return;
                 if (!civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_MARITIME_ROUTES) || !IsValidMaritimeEdge(edge, civ)) return;

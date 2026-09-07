@@ -1,9 +1,9 @@
-⚠ Ce jeu est encore en alpha. Le contenu et l'équilibre peuvent changer à tout moment.
-Le changelog n'est pas activement mis à jour pour le moment.
+⚠ Le jeu entre en bêta : la démo publique arrive bientôt. Le contenu et l'équilibre peuvent encore changer.
 
 ---
 
 v0.22
+• Automatisation étendue de la Guilde des Bâtisseurs à l'Abysse : avec la recherche Cartographie du Vide, routes et avant-postes automatiques dans l'Abysse (réglages séparés de ceux de la surface et de l'Inframonde). Les routes du Vide, qui coûtent des points de recherche, restent à bâtir à la main
 
 ---
 

@@ -809,11 +809,18 @@ public static class TechnologyDefinitions
         // Les routes du Vide déjà bâties ne comptent que pour deux tiers dans le coût exponentiel de
         // la suivante : 1M × 4^n devient 1M × 4^(2n/3) (voir RoadController.GetVoidRouteResearchCost).
         // Baissée de 2 tiers (coût / 16).
+        // Pendant abyssal de Cartographie Souterraine : débloque aussi l'automatisation des routes et
+        // des avant-postes de la Guilde des bâtisseurs dans l'Abysse. La guilde n'y pose que des
+        // routes de base — jamais une route du Vide, qui coûte des points de recherche.
         new(TechnologyId.CartographieDuVide,
             "tech_cartographie_du_vide_name", "tech_cartographie_du_vide_desc",
             cost: 418750000,
             prerequisites: new[] { TechnologyId.VoidCompass },
-            modifiers: new Modifier[] { new(ECategory.VOID_ROUTE_COST_REDUCTION, EType.ADDITIVE, 1) },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.VOID_ROUTE_COST_REDUCTION, EType.ADDITIVE, 1),
+                new(ECategory.UNLOCK_BUILDERS_GUILD_ABYSS, EType.ADDITIVE, 1),
+            },
             tier: 11, line: 4),
 
         // === Branche de la Théocratie (tiers 12-13 depuis la baisse de 2 tiers) ===

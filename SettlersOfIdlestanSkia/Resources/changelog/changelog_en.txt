@@ -1,9 +1,9 @@
-⚠ This game is still in alpha. Content and balance may change at any time.
-The changelog is not actively maintained at the moment.
+⚠ The game is entering beta: the public demo is coming soon. Content and balance may still change.
 
 ---
 
 v0.22
+• Builders Guild automation extended to the Abyss: with the Void Cartography research, automatic roads and outposts in the Abyss (toggles separate from the surface and Underworld ones). Void routes, which cost research points, still have to be built by hand
 
 ---
 

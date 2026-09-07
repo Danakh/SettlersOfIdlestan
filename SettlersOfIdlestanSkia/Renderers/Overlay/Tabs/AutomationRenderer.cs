@@ -20,6 +20,8 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyOutpost       = "Outpost";
     internal const string PinKeyRoadUnderworld    = "RoadUnderworld";
     internal const string PinKeyOutpostUnderworld = "OutpostUnderworld";
+    internal const string PinKeyRoadAbyss         = "RoadAbyss";
+    internal const string PinKeyOutpostAbyss      = "OutpostAbyss";
     internal const string PinKeyTownHall      = "TownHall";
     internal const string PinKeyProduction    = "Production";
     internal const string PinKeyArtisan       = "Artisan";
@@ -64,6 +66,8 @@ public sealed class AutomationRenderer : IDisposable
             [PinKeyRoadUnderworld] = AutomationCategory.Construction,
             [PinKeyOutpost] = AutomationCategory.Construction,
             [PinKeyOutpostUnderworld] = AutomationCategory.Construction,
+            [PinKeyRoadAbyss] = AutomationCategory.Construction,
+            [PinKeyOutpostAbyss] = AutomationCategory.Construction,
             [PinKeyTownHall] = AutomationCategory.Construction,
             [PinKeyProduction] = AutomationCategory.Construction,
             [PinKeyArtisan] = AutomationCategory.Construction,
@@ -195,6 +199,7 @@ public sealed class AutomationRenderer : IDisposable
         arcaneTower ??= civ.GetUniqueBuilding(BuildingType.ArcaneTower) as ArcaneTower;
 
         bool hasBuildersGuildUnderworld = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_UNDERWORLD);
+        bool hasBuildersGuildAbyss = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_ABYSS);
         bool roadUnlocked = buildersGuild != null && buildersGuild.Level >= 1;
         bool outpostUnlocked = buildersGuild != null && buildersGuild.Level >= 4;
 
@@ -204,6 +209,8 @@ public sealed class AutomationRenderer : IDisposable
             [PinKeyRoadUnderworld] = roadUnlocked && hasBuildersGuildUnderworld,
             [PinKeyOutpost] = outpostUnlocked,
             [PinKeyOutpostUnderworld] = outpostUnlocked && hasBuildersGuildUnderworld,
+            [PinKeyRoadAbyss] = roadUnlocked && hasBuildersGuildAbyss,
+            [PinKeyOutpostAbyss] = outpostUnlocked && hasBuildersGuildAbyss,
             [PinKeyTownHall] = roadUnlocked,
             [PinKeyProduction] = harvestersGuild is { Level: >= 1 },
             [PinKeyArtisan] = artisansGuild is { Level: >= 1 },
@@ -252,6 +259,8 @@ public sealed class AutomationRenderer : IDisposable
             Row(PinKeyRoadUnderworld, "automation_road_underworld", unlocks[PinKeyRoadUnderworld], settings.RoadAutomationEnabledUnderworld),
             Row(PinKeyOutpost, "automation_outpost", unlocks[PinKeyOutpost], settings.OutpostAutomationEnabled),
             Row(PinKeyOutpostUnderworld, "automation_outpost_underworld", unlocks[PinKeyOutpostUnderworld], settings.OutpostAutomationEnabledUnderworld),
+            Row(PinKeyRoadAbyss, "automation_road_abyss", unlocks[PinKeyRoadAbyss], settings.RoadAutomationEnabledAbyss),
+            Row(PinKeyOutpostAbyss, "automation_outpost_abyss", unlocks[PinKeyOutpostAbyss], settings.OutpostAutomationEnabledAbyss),
             Row(PinKeyTownHall, "automation_townhall", unlocks[PinKeyTownHall], settings.TownHallAutomationEnabled, TownHallTypes),
             Row(PinKeyProduction, "automation_production", unlocks[PinKeyProduction], settings.ProductionBuildingAutomationEnabled, ProductionTypes),
             Row(PinKeyArtisan, "automation_artisan", unlocks[PinKeyArtisan], settings.ArtisanBuildingAutomationEnabled, ArtisanTypes),
@@ -518,6 +527,8 @@ public sealed class AutomationRenderer : IDisposable
             case PinKeyRoadUnderworld:     settings.RoadAutomationEnabledUnderworld = !settings.RoadAutomationEnabledUnderworld; return;
             case PinKeyOutpost:            settings.OutpostAutomationEnabled = !settings.OutpostAutomationEnabled; return;
             case PinKeyOutpostUnderworld:  settings.OutpostAutomationEnabledUnderworld = !settings.OutpostAutomationEnabledUnderworld; return;
+            case PinKeyRoadAbyss:          settings.RoadAutomationEnabledAbyss = !settings.RoadAutomationEnabledAbyss; return;
+            case PinKeyOutpostAbyss:       settings.OutpostAutomationEnabledAbyss = !settings.OutpostAutomationEnabledAbyss; return;
             case PinKeyTownHall:           settings.TownHallAutomationEnabled = !settings.TownHallAutomationEnabled; return;
             case PinKeyProduction:         settings.ProductionBuildingAutomationEnabled = !settings.ProductionBuildingAutomationEnabled; return;
             case PinKeyArtisan:            settings.ArtisanBuildingAutomationEnabled = !settings.ArtisanBuildingAutomationEnabled; return;

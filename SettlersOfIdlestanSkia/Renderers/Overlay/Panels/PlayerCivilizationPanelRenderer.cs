@@ -381,6 +381,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             case AutomationRenderer.PinKeyOutpost:       if (settings != null) settings.OutpostAutomationEnabled = !settings.OutpostAutomationEnabled;                     break;
             case AutomationRenderer.PinKeyRoadUnderworld:    if (settings != null) settings.RoadAutomationEnabledUnderworld = !settings.RoadAutomationEnabledUnderworld;       break;
             case AutomationRenderer.PinKeyOutpostUnderworld: if (settings != null) settings.OutpostAutomationEnabledUnderworld = !settings.OutpostAutomationEnabledUnderworld; break;
+            case AutomationRenderer.PinKeyRoadAbyss:         if (settings != null) settings.RoadAutomationEnabledAbyss = !settings.RoadAutomationEnabledAbyss;                 break;
+            case AutomationRenderer.PinKeyOutpostAbyss:      if (settings != null) settings.OutpostAutomationEnabledAbyss = !settings.OutpostAutomationEnabledAbyss;           break;
             case AutomationRenderer.PinKeyProduction:    if (settings != null) settings.ProductionBuildingAutomationEnabled = !settings.ProductionBuildingAutomationEnabled; break;
             case AutomationRenderer.PinKeyArtisan:       if (settings != null) settings.ArtisanBuildingAutomationEnabled = !settings.ArtisanBuildingAutomationEnabled;     break;
             case AutomationRenderer.PinKeyLibrary:       if (settings != null) settings.LibraryBuildingAutomationEnabled = !settings.LibraryBuildingAutomationEnabled;     break;
@@ -521,6 +523,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeyOutpost      => settings.OutpostAutomationEnabled,
             AutomationRenderer.PinKeyRoadUnderworld    => settings.RoadAutomationEnabledUnderworld,
             AutomationRenderer.PinKeyOutpostUnderworld => settings.OutpostAutomationEnabledUnderworld,
+            AutomationRenderer.PinKeyRoadAbyss         => settings.RoadAutomationEnabledAbyss,
+            AutomationRenderer.PinKeyOutpostAbyss      => settings.OutpostAutomationEnabledAbyss,
             AutomationRenderer.PinKeyProduction   => settings.ProductionBuildingAutomationEnabled,
             AutomationRenderer.PinKeyArtisan      => settings.ArtisanBuildingAutomationEnabled,
             AutomationRenderer.PinKeyLibrary      => settings.LibraryBuildingAutomationEnabled,
@@ -569,6 +573,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             [AutomationRenderer.PinKeyOutpost]            = "automation_outpost",
             [AutomationRenderer.PinKeyRoadUnderworld]     = "automation_road_underworld",
             [AutomationRenderer.PinKeyOutpostUnderworld]  = "automation_outpost_underworld",
+            [AutomationRenderer.PinKeyRoadAbyss]          = "automation_road_abyss",
+            [AutomationRenderer.PinKeyOutpostAbyss]       = "automation_outpost_abyss",
             [AutomationRenderer.PinKeyProduction]         = "automation_production",
             [AutomationRenderer.PinKeyArtisan]            = "automation_artisan",
             [AutomationRenderer.PinKeyLibrary]            = "automation_library",
