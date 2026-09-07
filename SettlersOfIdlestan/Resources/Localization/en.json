@@ -873,6 +873,8 @@
   "event_tentacle_discovered_body": "A rooted tentacle bursts out of the Abyss. It will never leave its hex — but killing it opens a Pandemonium Gate.",
   "event_tentacle_defeated_title": "🦑 Tentacle severed!",
   "event_tentacle_defeated_body": "The tentacle crumbles to dust and the Void yawns open in its place.",
+  "event_tentacle_discovered_no_gate_body": "A rooted tentacle bursts out of the Abyss. It will never leave its hex — but as long as it lives it will lash at anything within reach.",
+  "event_tentacle_defeated_no_gate_body": "The tentacle crumbles to dust. The Abyss takes it back and leaves nothing behind.",
   "hex_tooltip_demon_god_info": "😈 Demon god — harvest blocked ({0}/{1} HP) — master of the Pandemonium",
   "hex_tooltip_demon_god_info_leveled": "😈 Demon god Level {2} — harvest blocked ({0}/{1} HP) — master of the Pandemonium",
   "event_demon_god_discovered_title": "😈 The demon god sees you",

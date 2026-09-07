@@ -1312,6 +1312,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_tentacle_discovered_title"),
                 _localizationService.Get("event_tentacle_discovered_body"),
                 NotificationIcon.StoreFail),
+            GameEventType.TentacleDiscoveredNoGate => (
+                _localizationService.Get("event_tentacle_discovered_title"),
+                _localizationService.Get("event_tentacle_discovered_no_gate_body"),
+                NotificationIcon.StoreFail),
             GameEventType.DemonGodDiscovered => (
                 _localizationService.Get("event_demon_god_discovered_title"),
                 _localizationService.Get("event_demon_god_discovered_body"),

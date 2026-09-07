@@ -140,6 +140,31 @@ namespace SOITests.ControllerTests
             Assert.Equal(Abyss1, gate.Position);
         }
 
+        /// <summary>
+        /// Le journal ne doit annoncer l'ouverture du portail que pour la Tentacule qui l'a
+        /// réellement fait surgir : les suivantes tombent sur un portail déjà là, celles du
+        /// Pandémonium n'en ouvrent jamais.
+        /// </summary>
+        [Fact]
+        public void TentacleDefeatedEvent_AnnouncesTheGateOnlyForTheOneThatOpenedIt()
+        {
+            var (state, _, _) = CreateSetup();
+            var first = new Tentacle(Abyss1);
+            var second = new Tentacle(Abyss2);
+            var pandemonium = new Tentacle(new HexCoord(2, 0, LayerState.PandemoniumZ));
+            state.AddFeature(first);
+            state.AddFeature(second);
+            state.AddFeature(pandemonium);
+
+            Kill(state, first);
+            Kill(state, second);
+            Kill(state, pandemonium);
+
+            Assert.Equal(GameEventType.TentacleDefeated, first.RemovedEventType);
+            Assert.Equal(GameEventType.TentacleDefeatedNoGate, second.RemovedEventType);
+            Assert.Equal(GameEventType.TentacleDefeatedNoGate, pandemonium.RemovedEventType);
+        }
+
         [Fact]
         public void Investment_CompletingAllResources_BuildsGate()
         {

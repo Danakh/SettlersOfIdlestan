@@ -136,6 +136,19 @@ public enum GameEventType
 
     /// <summary>Le Titan d'Acier est tombé au combat. Un nouveau chantier peut être posé.</summary>
     SteelTitanDefeated,
+
+    /// <summary>
+    /// Tentacule repérée alors qu'un Portail du Pandémonium existe déjà sur l'île : même annonce que
+    /// <see cref="TentacleDiscovered"/>, sans la promesse d'un portail. Un seul portail par île
+    /// (voir PandemoniumGateController), les suivantes ne sont donc que des monstres de plus.
+    /// </summary>
+    TentacleDiscoveredNoGate,
+
+    /// <summary>
+    /// Tentacule abattue sans qu'un Portail du Pandémonium en surgisse — il en existait déjà un, ou
+    /// elle ne gardait pas l'Abysse. Même annonce que <see cref="TentacleDefeated"/> sans l'ouverture.
+    /// </summary>
+    TentacleDefeatedNoGate,
 }
 
 public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);

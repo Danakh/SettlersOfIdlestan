@@ -61,6 +61,10 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// une mort au combat d'un simple retrait de feature (nettoyage d'une couche perdue) ; le
         /// filtre sur <see cref="LayerState.AbyssZ"/> réserve la récompense aux Tentacules de
         /// l'Abysse, celles qui gardent le Pandémonium lui-même n'ouvrant évidemment rien.
+        ///
+        /// <para>Marque la Tentacule quand le portail surgit vraiment
+        /// (<see cref="Tentacle.OpenedPandemoniumGate"/>) : l'appelant qui journalise sa mort juste
+        /// après annonce ainsi l'ouverture pour la première seulement, jamais pour les suivantes.</para>
         /// </summary>
         private void OnFeatureRemoved(object? sender, IslandFeature feature)
         {
@@ -68,10 +72,18 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (feature is not Tentacle tentacle) return;
             if (tentacle.Hp > 0) return;
             if (tentacle.Position.Z != LayerState.AbyssZ) return;
-            if (_state.Features.OfType<PandemoniumGate>().Any()) return;
+            if (HasPandemoniumGate(_state)) return;
 
-            PlaceMonument(tentacle.Position);
+            tentacle.OpenedPandemoniumGate = PlaceMonument(tentacle.Position) != null;
         }
+
+        /// <summary>
+        /// Vrai si le Portail du Pandémonium de cette île existe déjà — posé ou bâti. Un seul par
+        /// île : c'est ce qui interdit une deuxième pose, et ce qui évite au journal de promettre
+        /// un portail à qui en a déjà un (voir <see cref="GameEventType.TentacleDiscoveredNoGate"/>).
+        /// </summary>
+        public static bool HasPandemoniumGate(WorldState? state)
+            => state?.Features.OfType<PandemoniumGate>().Any() == true;
 
         protected override PandemoniumGate CreateFeature(HexCoord position) => new(position);
 

@@ -65,8 +65,23 @@ public class Tentacle : MonsterFeature
     public override bool AlternatesAttackPatterns => true;
     public override int FocusedAttackStrikes => TentacleFocusedAttackStrikes;
 
+    /// <summary>
+    /// Vrai quand la mort de cette Tentacule vient réellement de faire surgir le Portail du
+    /// Pandémonium. Posé par <c>PandemoniumGateController.OnFeatureRemoved</c>, qui est notifié
+    /// pendant <c>WorldState.RemoveFeature</c> — donc avant que l'appelant ne journalise
+    /// <see cref="RemovedEventType"/> : c'est ce qui permet au journal de distinguer la première
+    /// Tentacule abattue (le portail s'ouvre) des suivantes (il est déjà là).
+    ///
+    /// Hors sauvegarde : la Tentacule est retirée du monde dans la foulée, l'information ne vit que
+    /// le temps de la journalisation.
+    /// </summary>
+    [JsonIgnore]
+    public bool OpenedPandemoniumGate { get; set; }
+
     public override GameEventType DiscoveredEventType => GameEventType.TentacleDiscovered;
-    public override GameEventType RemovedEventType => GameEventType.TentacleDefeated;
+
+    public override GameEventType RemovedEventType =>
+        OpenedPandemoniumGate ? GameEventType.TentacleDefeated : GameEventType.TentacleDefeatedNoGate;
 
     public override string? SvgIconResourceName => "Resources.icons.military.kraken-tentacule.svg";
     public override float IconSizeFactor => 1.8f;

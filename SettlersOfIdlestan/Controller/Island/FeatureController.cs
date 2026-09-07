@@ -137,8 +137,17 @@ public class FeatureController
                 // entrée NoEvent et affichait « ? NoEvent » à chaque Source rencontrée.
                 if (feature.DiscoveredEventType != GameEventType.NoEvent)
                 {
-                    bool featureToast = feature.DiscoveredEventType is GameEventType.BanditHideoutDiscovered or GameEventType.DragonDiscovered or GameEventType.MinorDemonDiscovered or GameEventType.MajorDemonDiscovered or GameEventType.VolcanoDiscovered or GameEventType.TentacleDiscovered or GameEventType.DemonGodDiscovered;
-                    _state.EventLog.Add(feature.DiscoveredEventType, toast: featureToast);
+                    var discovered = feature.DiscoveredEventType;
+
+                    // Une Tentacule n'annonce un Portail du Pandémonium que tant qu'il n'y en a pas
+                    // déjà un : il n'en surgit qu'un par île (voir PandemoniumGateController), les
+                    // suivantes ne sont plus qu'un monstre de plus à abattre.
+                    if (discovered == GameEventType.TentacleDiscovered
+                        && Expand.PandemoniumGateController.HasPandemoniumGate(_state))
+                        discovered = GameEventType.TentacleDiscoveredNoGate;
+
+                    bool featureToast = discovered is GameEventType.BanditHideoutDiscovered or GameEventType.DragonDiscovered or GameEventType.MinorDemonDiscovered or GameEventType.MajorDemonDiscovered or GameEventType.VolcanoDiscovered or GameEventType.TentacleDiscovered or GameEventType.TentacleDiscoveredNoGate or GameEventType.DemonGodDiscovered;
+                    _state.EventLog.Add(discovered, toast: featureToast);
                 }
 
                 OnFeatureDiscovered?.Invoke(this, feature);

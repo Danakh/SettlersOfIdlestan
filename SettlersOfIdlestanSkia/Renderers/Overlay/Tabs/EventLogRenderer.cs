@@ -311,10 +311,18 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Discovery,
             _localization.Get("event_tentacle_discovered_title"),
             _localization.Get("event_tentacle_discovered_body")),
+        GameEventType.TentacleDiscoveredNoGate => (
+            EventLogTone.Discovery,
+            _localization.Get("event_tentacle_discovered_title"),
+            _localization.Get("event_tentacle_discovered_no_gate_body")),
         GameEventType.TentacleDefeated => (
             EventLogTone.Success,
             _localization.Get("event_tentacle_defeated_title"),
             _localization.Get("event_tentacle_defeated_body")),
+        GameEventType.TentacleDefeatedNoGate => (
+            EventLogTone.Success,
+            _localization.Get("event_tentacle_defeated_title"),
+            _localization.Get("event_tentacle_defeated_no_gate_body")),
         GameEventType.DemonGodDiscovered => (
             EventLogTone.Discovery,
             _localization.Get("event_demon_god_discovered_title"),

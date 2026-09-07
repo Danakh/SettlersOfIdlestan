@@ -873,6 +873,8 @@
   "event_tentacle_discovered_body": "Une tentacule enracinée jaillit de l'Abysse. Elle ne bougera pas d'un hex — mais l'abattre ouvrira un Portail du Pandémonium.",
   "event_tentacle_defeated_title": "🦑 Tentacule tranchée !",
   "event_tentacle_defeated_body": "La tentacule s'effondre en poussière et le Vide s'entrouvre à sa place.",
+  "event_tentacle_discovered_no_gate_body": "Une tentacule enracinée jaillit de l'Abysse. Elle ne bougera pas d'un hex — mais tant qu'elle vivra, elle frappera de loin tout ce qui passe à sa portée.",
+  "event_tentacle_defeated_no_gate_body": "La tentacule s'effondre en poussière. L'Abysse la reprend sans rien laisser derrière elle.",
   "hex_tooltip_demon_god_info": "😈 Dieu démon — récolte bloquée ({0}/{1} PV) — le maître du Pandémonium",
   "hex_tooltip_demon_god_info_leveled": "😈 Dieu démon Niveau {2} — récolte bloquée ({0}/{1} PV) — le maître du Pandémonium",
   "event_demon_god_discovered_title": "😈 Le dieu démon vous regarde",
