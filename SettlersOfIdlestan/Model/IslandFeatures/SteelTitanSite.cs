@@ -26,7 +26,7 @@ public class SteelTitanSite : Monument
     {
         { Resource.Stone,   50000 },
         { Resource.Ore,     20000 },
-        { Resource.Mithril,  1000 },
+        { Resource.Mithril,  5000 },
     };
 
     public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv)

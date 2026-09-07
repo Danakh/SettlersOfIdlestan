@@ -5,6 +5,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using System.Linq;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using System.Collections.Generic;
 using Xunit;
@@ -273,6 +274,283 @@ namespace SOITests.ControllerTests
             // Second raid fires at tick 200
             clock.SimulateAdvance(1);
             Assert.Equal(8, civ.GetResourceQuantity(Resource.Wood));
+        }
+
+        // ── Attaques alternées : zone / concentrée (Tentacule) ─────────────────
+
+        /// <summary>
+        /// Tentacule sur Center, deux villes à portée (l'une sur son hex, l'autre à deux anneaux) et
+        /// un Aventurier voisin. Les compteurs de l'Aventurier sont placés loin dans le futur : sans
+        /// carte de visibilité, il ne verrait de toute façon aucune proie, mais il chercherait à
+        /// rentrer vers une ville et bougerait donc de son hex, ce qui fausserait les distances.
+        /// </summary>
+        private static (GameClock clock, Tentacle tentacle, City onHex, City twoRings, Adventurer adventurer)
+            AlternatingAttackSetup()
+        {
+            var adventurerHex = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Desert),
+                new(NE, TerrainType.Plain),
+                new(NW, TerrainType.Plain),
+                new(adventurerHex, TerrainType.Plain),
+            };
+            foreach (var hex in VertexAtRing2) tiles.Add(new HexTile(hex, TerrainType.Plain));
+
+            var civ = new Civilization { Index = 0 };
+            var onHex = new City(Vertex.Create(Center, NE, NW)) { CivilizationIndex = 0, Soldiers = 100 };
+            onHex.AddBuilding(new TownHall { Level = 5 });
+            var twoRings = new City(Vertex.Create(VertexAtRing2[0], VertexAtRing2[1], VertexAtRing2[2]))
+            {
+                CivilizationIndex = 0,
+                Soldiers = 100,
+            };
+            twoRings.AddBuilding(new TownHall { Level = 5 });
+            civ.AddCity(onHex);
+            civ.AddCity(twoRings);
+
+            var state = new WorldState(new IslandMap(tiles), new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var tentacle = new Tentacle(Center) { Found = true };
+            var adventurer = new Adventurer(adventurerHex)
+            {
+                Found = true,
+                LastMovedTick = long.MaxValue / 2,
+                LastAttackTick = long.MaxValue / 2,
+            };
+            state.AddFeature(tentacle);
+            state.AddFeature(adventurer);
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MonsterFeatureController();
+            controller.Initialize(state, clock, new GamePRNG());
+            return (clock, tentacle, onHex, twoRings, adventurer);
+        }
+
+        [Fact]
+        public void Tentacle_FirstAttackSweepsEveryTargetInRange()
+        {
+            var (clock, tentacle, onHex, twoRings, adventurer) = AlternatingAttackSetup();
+            int damage = tentacle.AttackDamage;
+            int adventurerHp = adventurer.Hp;
+
+            clock.SimulateAdvance(tentacle.AttackIntervalTicks);
+
+            // Un coup pour chacune des deux villes ET pour l'Aventurier, dans la même salve.
+            Assert.Equal(100 - damage, onHex.Soldiers);
+            Assert.Equal(100 - damage, twoRings.Soldiers);
+            Assert.Equal(adventurerHp - damage, adventurer.Hp);
+            Assert.Equal(3, tentacle.LastAttackImpacts.Count);
+            Assert.All(tentacle.LastAttackImpacts, i => Assert.Equal(1, i.Strikes));
+        }
+
+        [Fact]
+        public void Tentacle_SecondAttackConcentratesFiveStrikesOnASingleTarget()
+        {
+            var (clock, tentacle, onHex, twoRings, adventurer) = AlternatingAttackSetup();
+            int damage = tentacle.AttackDamage;
+
+            clock.SimulateAdvance(tentacle.AttackIntervalTicks); // salve de zone
+            int afterSweepOnHex = onHex.Soldiers;
+            int afterSweepTwoRings = twoRings.Soldiers;
+            int afterSweepAdventurer = adventurer.Hp;
+
+            clock.SimulateAdvance(tentacle.AttackIntervalTicks); // salve concentrée
+
+            // La cible prioritaire est la ville posée sur l'hex de la Tentacule ; elle seule encaisse,
+            // et elle encaisse cinq coups.
+            Assert.Equal(afterSweepOnHex - 5 * damage, onHex.Soldiers);
+            Assert.Equal(afterSweepTwoRings, twoRings.Soldiers);
+            // L'Aventurier régénère de son côté : seul compte qu'il n'ait pas encaissé de coup de plus.
+            Assert.True(adventurer.Hp >= afterSweepAdventurer);
+
+            var impact = Assert.Single(tentacle.LastAttackImpacts);
+            Assert.Equal(onHex.Position, impact.Vertex);
+            Assert.Equal(Tentacle.TentacleFocusedAttackStrikes, impact.Strikes);
+        }
+
+        /// <summary>Frappant à distance, elle n'encaisse pas le coup en retour de l'Aventurier qu'elle balaie.</summary>
+        [Fact]
+        public void Tentacle_TakesNoReturnBlowFromTheAdventurerItSweeps()
+        {
+            var (clock, tentacle, _, _, adventurer) = AlternatingAttackSetup();
+            int initialHp = tentacle.Hp;
+            Assert.True(adventurer.AttackDamage > 0);
+
+            clock.SimulateAdvance(tentacle.AttackIntervalTicks);
+
+            Assert.Equal(initialHp, tentacle.Hp);
+        }
+
+        /// <summary>
+        /// L'alternance bascule même quand rien n'est à portée : sinon la salve de zone resterait en
+        /// réserve et la Tentacule frapperait deux fois de suite de la même façon en retrouvant une cible.
+        /// </summary>
+        [Fact]
+        public void Tentacle_AlternatesEvenWithNothingInRange()
+        {
+            var tentacle = new Tentacle(Center) { Found = true };
+            var (_, clock) = CorruptionSetup(tentacle);
+
+            Assert.True(tentacle.NextAttackIsAreaSweep);
+            clock.SimulateAdvance(tentacle.AttackIntervalTicks);
+            Assert.False(tentacle.NextAttackIsAreaSweep);
+            clock.SimulateAdvance(tentacle.AttackIntervalTicks);
+            Assert.True(tentacle.NextAttackIsAreaSweep);
+        }
+
+        // ── Renforcement par la Corruption (Tentacule) ─────────────────────────
+
+        /// <summary>Un seul hex, le monstre dessus, et le contrôleur branché sur l'horloge.</summary>
+        private static (WorldState state, GameClock clock) CorruptionSetup(MonsterFeature monster)
+        {
+            var map = new IslandMap(new List<HexTile> { new(Center, TerrainType.Desert) });
+            var civ = new Civilization { Index = 0 };
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            state.AddFeature(monster);
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MonsterFeatureController();
+            controller.Initialize(state, clock, new GamePRNG());
+            return (state, clock);
+        }
+
+        [Fact]
+        public void Tentacle_GainsArmorAndRegenFromTheCorruptionOnItsHex()
+        {
+            var tentacle = new Tentacle(Center) { Found = true };
+            var (state, clock) = CorruptionSetup(tentacle);
+
+            double baseArmor = tentacle.Armor;
+            double baseRegen = tentacle.HpRegenAmount;
+
+            state.AddFeature(new Corruption(Center, level: 3));
+            clock.SimulateAdvance(1);
+
+            Assert.Equal(3, tentacle.CorruptionBonus);
+            Assert.Equal(baseArmor + 3, tentacle.Armor);
+            Assert.Equal(baseRegen + 3, tentacle.HpRegenAmount);
+        }
+
+        [Fact]
+        public void Tentacle_LosesTheBonusOnceItsHexIsCleansed()
+        {
+            var tentacle = new Tentacle(Center) { Found = true };
+            var (state, clock) = CorruptionSetup(tentacle);
+
+            var corruption = new Corruption(Center, level: 2);
+            state.AddFeature(corruption);
+            clock.SimulateAdvance(1);
+            Assert.Equal(2, tentacle.CorruptionBonus);
+
+            // Réduite d'un niveau, puis entièrement dissipée : le bonus suit dans les deux sens.
+            corruption.Level = 1;
+            clock.SimulateAdvance(1);
+            Assert.Equal(1, tentacle.CorruptionBonus);
+
+            state.RemoveFeature(corruption);
+            clock.SimulateAdvance(1);
+            Assert.Equal(0, tentacle.CorruptionBonus);
+            Assert.Equal(1, tentacle.Armor);
+        }
+
+        /// <summary>Garde-fou : le bonus est opt-in, un monstre ordinaire posé sur un hex corrompu n'y gagne rien.</summary>
+        [Fact]
+        public void Dragon_GainsNothingFromTheCorruptionOnItsHex()
+        {
+            var dragon = new Dragon(Center) { Found = true };
+            var (state, clock) = CorruptionSetup(dragon);
+
+            double baseArmor = dragon.Armor;
+            state.AddFeature(new Corruption(Center, level: 4));
+            clock.SimulateAdvance(1);
+
+            Assert.False(dragon.EmpoweredByCorruption);
+            Assert.Equal(0, dragon.CorruptionBonus);
+            Assert.Equal(baseArmor, dragon.Armor);
+        }
+
+        // ── Portée d'attaque étendue (Tentacule : 3 hexes) ─────────────────────
+
+        // Un vertex est fait de 3 hexes mutuellement adjacents ; c'est le plus PROCHE qui décide de
+        // la portée (voir MonsterFeatureController.IsVertexWithinRange). Les triangles ci-dessous
+        // sont choisis pour que ce plus proche tombe exactement sur l'anneau voulu autour de Center.
+        private static readonly HexCoord[] VertexAtRing2 =
+        {
+            new(2, 0, IslandMap.SurfaceLayer),  // distance 2 ← le plus proche
+            new(1, 1, IslandMap.SurfaceLayer),  // distance 2
+            new(2, 1, IslandMap.SurfaceLayer),  // distance 3
+        };
+
+        private static readonly HexCoord[] VertexAtRing3 =
+        {
+            new(3, 0, IslandMap.SurfaceLayer),  // distance 3 ← le plus proche
+            new(2, 1, IslandMap.SurfaceLayer),  // distance 3
+            new(3, 1, IslandMap.SurfaceLayer),  // distance 4
+        };
+
+        /// <summary>Monstre sur Center et une unique ville (20 soldats, Hôtel de ville 5) au vertex donné.</summary>
+        private static (GameClock clock, City city) RangeSetup(MonsterFeature monster, HexCoord[] cityHexes)
+        {
+            var tiles = new List<HexTile> { new(Center, TerrainType.Desert) };
+            foreach (var hex in cityHexes) tiles.Add(new HexTile(hex, TerrainType.Plain));
+
+            var civ = new Civilization { Index = 0 };
+            var city = new City(Vertex.Create(cityHexes[0], cityHexes[1], cityHexes[2]))
+            {
+                CivilizationIndex = 0,
+                Soldiers = 20,
+            };
+            city.AddBuilding(new TownHall { Level = 5 });
+            civ.AddCity(city);
+
+            var state = new WorldState(new IslandMap(tiles), new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            state.AddFeature(monster);
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MonsterFeatureController();
+            controller.Initialize(state, clock, new GamePRNG());
+            return (clock, city);
+        }
+
+        [Fact]
+        public void Tentacle_ReachesACityTwoRingsAway()
+        {
+            var tentacle = new Tentacle(Center) { Found = true };
+            var (clock, city) = RangeSetup(tentacle, VertexAtRing2);
+
+            clock.SimulateAdvance(tentacle.AttackIntervalTicks);
+
+            Assert.Equal(city.Position, tentacle.LastAttackTargetVertex);
+            Assert.Equal(20 - tentacle.AttackDamage, city.Soldiers);
+        }
+
+        [Fact]
+        public void Tentacle_DoesNotReachACityThreeRingsAway()
+        {
+            var tentacle = new Tentacle(Center) { Found = true };
+            var (clock, city) = RangeSetup(tentacle, VertexAtRing3);
+
+            clock.SimulateAdvance(tentacle.AttackIntervalTicks);
+
+            Assert.Null(tentacle.LastAttackTargetVertex);
+            Assert.Equal(20, city.Soldiers);
+        }
+
+        /// <summary>Garde-fou : la portée 2 du Dragon n'a pas bougé en généralisant le rayon.</summary>
+        [Fact]
+        public void Dragon_DoesNotReachACityTwoRingsAway()
+        {
+            var dragon = new Dragon(Center) { Found = true };
+            var (clock, city) = RangeSetup(dragon, VertexAtRing2);
+
+            clock.SimulateAdvance(Dragon.DragonAttackIntervalTicks);
+
+            Assert.Null(dragon.LastAttackTargetVertex);
+            Assert.Equal(20, city.Soldiers);
         }
 
         // ── Dragon target consistency after a city is destroyed ────────────────

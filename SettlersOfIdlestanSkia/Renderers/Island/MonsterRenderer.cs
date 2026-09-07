@@ -116,6 +116,45 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         }
     }
 
+    /// <summary>
+    /// Une boule de feu par coup porté, cible par cible (voir MonsterFeature.LastAttackImpacts) :
+    /// une salve de zone en lance une sur chacune de ses cibles, une salve concentrée en lance
+    /// autant que de coups sur la même — les deux se distinguent donc à l'œil. Émise depuis la
+    /// relecture de LastAttackTick et non sur un événement du contrôleur comme les tirs des villes :
+    /// côté modèle une attaque de monstre ne s'observe pas autrement, exactement comme le reste de
+    /// cette animation.
+    ///
+    /// <para>Un tir s'affiche dès que l'une de ses deux extrémités est découverte — le monstre ou la
+    /// cible — même exception que celle qui laisse voir l'attaque d'un monstre posté sur un hex
+    /// encore sous brouillard (voir <c>attackTargetVisible</c> dans Render).</para>
+    /// </summary>
+    private void EmitRangedAttack(MonsterFeature monster, SKPoint from, VisibleIslandMap? visibleMap)
+    {
+        bool sourceVisible = visibleMap == null || visibleMap.HasTile(monster.Position);
+
+        var impacts = monster.LastAttackImpacts;
+        for (int i = 0; i < impacts.Count; i++)
+        {
+            var impact = impacts[i];
+            SKPoint to;
+            bool targetVisible;
+            if (impact.Vertex != null)
+            {
+                to = VertexToIsland(impact.Vertex);
+                targetVisible = visibleMap == null || visibleMap.IsVertexVisible(impact.Vertex);
+            }
+            else if (impact.Hex != null)
+            {
+                to = HexToPoint(impact.Hex.Value);
+                targetVisible = visibleMap == null || visibleMap.HasTile(impact.Hex.Value);
+            }
+            else continue;
+
+            if (!sourceVisible && !targetVisible) continue;
+            EmitAttackParticles(from, to, isFireball: true, count: impact.Strikes);
+        }
+    }
+
     private static bool IsSourceOrDestinationVisible(WorldState worldState, Vertex source, HexCoord target)
     {
         if (!worldState.Visibility.GetForZ(source.Z).TryGetValue(worldState.PlayerCivilization.Index, out var visibleMap))
@@ -135,10 +174,16 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     /// </summary>
     private void EmitAttackParticles(Vertex cityVertex, HexCoord targetPosition, bool isFireball, int count)
     {
-        var from = VertexToIsland(cityVertex);
         var (bx, by) = AxialToIsland(targetPosition.Q, targetPosition.R);
-        var to = new SKPoint(bx, by);
+        EmitAttackParticles(VertexToIsland(cityVertex), new SKPoint(bx, by), isFireball, count);
+    }
 
+    /// <summary>
+    /// Même salve, exprimée en coordonnées écran : sert au tir d'un monstre à distance, qui part de la
+    /// position animée du monstre (et non d'un vertex de ville) vers sa cible.
+    /// </summary>
+    private void EmitAttackParticles(SKPoint from, SKPoint to, bool isFireball, int count)
+    {
         int n = Math.Max(1, count);
         var mid = new SKPoint((from.X + to.X) / 2f, (from.Y + to.Y) / 2f);
 
@@ -218,6 +263,13 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
                         v.FlyingResource = res;
                 }
                 v.ResourceFlyProgress = 1f;
+
+                // Attaque à distance : le monstre ne bouge pas (voir plus bas, sa position reste
+                // normalPos), le tir est matérialisé par des boules de feu vers ses cibles.
+                // AttackAnimProgress continue de courir : c'est lui qui cadence l'envol des
+                // ressources volées.
+                if (monster.HasRangedAttack && monster.Found && monster.Position.Z == context.CurrentLayer)
+                    EmitRangedAttack(monster, normalPos, visibleMap);
             }
             if (v.AttackAnimProgress < 1f)
             {
@@ -235,7 +287,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             {
                 bool destVisible = visibleMap.HasTile(monster.Position);
                 bool fromVisible = v.MoveProgress < 1f && visibleMap.HasTile(v.FromHex);
-                // Un monstre à portée 2 peut frapper une ville depuis un hex voisin non
+                // Un monstre à portée étendue peut frapper une ville depuis un hex non
                 // découvert (le brouillard de guerre ne s'étend en général qu'aux hexes de la
                 // ville elle-même, sans anneau de rayon 1 sans Tour de Guet) : sans cette
                 // exception, l'attaque entière (élan du monstre + particules de perte) restait
@@ -249,7 +301,8 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             if (svgName == null) continue;
 
             SKPoint pos;
-            if (v.AttackAnimProgress < 1f)
+            // Un tireur reste sur son hex : seul l'élan du corps-à-corps déplace l'icône.
+            if (v.AttackAnimProgress < 1f && !monster.HasRangedAttack)
             {
                 float t = v.AttackAnimProgress;
                 pos = t < 0.5f

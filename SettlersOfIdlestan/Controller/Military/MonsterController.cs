@@ -172,6 +172,7 @@ public class MonsterFeatureController
 
         UpdateSpawns(currentTick);
         UpdateAdventurerSpawns(currentTick);
+        RefreshCorruptionBonuses();
 
         foreach (var monster in _monsters.ToList())
             UpdateMonster(monster, currentTick);
@@ -423,6 +424,7 @@ public class MonsterFeatureController
         if (_state == null) return;
         if (currentTick - monster.LastAttackTick < monster.AttackIntervalTicks) return;
         monster.LastAttackTick = currentTick;
+        monster.LastAttackImpacts.Clear();
 
         // Un chasseur ne doit jamais engager un monstre que le joueur ne voit pas (brouillard de guerre).
         var target = _monsters.FirstOrDefault(m =>
@@ -437,22 +439,33 @@ public class MonsterFeatureController
         }
 
         monster.LastAttackTargetHex = target.Position;
+        monster.LastAttackImpacts.Add(new MonsterAttackImpact(null, target.Position, 1));
 
-        target.Hp -= MonsterFeature.ApplyArmorReduction(monster.AttackDamage, target.Armor, _prng!);
-        monster.Hp -= MonsterFeature.ApplyArmorReduction(target.AttackDamage, monster.Armor, _prng!);
+        StrikeMonsterTarget(monster, target, currentTick);
+    }
 
-        if (target.Hp <= 0)
-        {
-            _state.RemoveFeature(target);
-            _state.EventLog.Add(target.RemovedEventType);
-        }
-        if (monster.Hp <= 0)
-        {
-            _state.RemoveFeature(monster);
-            _state.EventLog.Add(monster.RemovedEventType);
-            if (monster is Adventurer deadAdventurer)
-                StartAdventurerRespawnCooldown(deadAdventurer, currentTick);
-        }
+    /// <summary>
+    /// Un coup porté par un monstre à un autre. La cible rend le sien dans le même échange — sauf
+    /// contre un tireur (<see cref="MonsterFeature.HasRangedAttack"/>), qui frappe hors d'atteinte.
+    /// Retire du monde celui des deux qui tombe.
+    /// </summary>
+    private void StrikeMonsterTarget(MonsterFeature attacker, MonsterFeature target, long currentTick)
+    {
+        target.Hp -= MonsterFeature.ApplyArmorReduction(attacker.AttackDamage, target.Armor, _prng!);
+        if (!attacker.HasRangedAttack)
+            attacker.Hp -= MonsterFeature.ApplyArmorReduction(target.AttackDamage, attacker.Armor, _prng!);
+
+        if (target.Hp <= 0) RemoveDeadMonster(target, currentTick);
+        if (attacker.Hp <= 0) RemoveDeadMonster(attacker, currentTick);
+    }
+
+    /// <summary>Retire un monstre tué au combat entre monstres, en relançant le cooldown de son Relais si c'était un Aventurier.</summary>
+    private void RemoveDeadMonster(MonsterFeature dead, long currentTick)
+    {
+        _state!.RemoveFeature(dead);
+        _state.EventLog.Add(dead.RemovedEventType);
+        if (dead is Adventurer deadAdventurer)
+            StartAdventurerRespawnCooldown(deadAdventurer, currentTick);
     }
 
     /// <summary>Démarre le cooldown de réapparition du Relais des Aventuriers ayant invoqué cet Aventurier, à sa mort.</summary>
@@ -466,6 +479,29 @@ public class MonsterFeatureController
         var waypost = city?.Buildings.OfType<AdventurersWaypost>().FirstOrDefault();
         if (waypost != null)
             waypost.LastAdventurerDeathTick = currentTick;
+    }
+
+    // ── Renforcement par la Corruption ───────────────────────────────────────
+
+    /// <summary>
+    /// Réaligne <see cref="MonsterFeature.CorruptionBonus"/> sur le niveau de Corruption réellement
+    /// présent sur l'hex de chaque monstre qui s'en nourrit (voir
+    /// <see cref="MonsterFeature.EmpoweredByCorruption"/>).
+    ///
+    /// <para>Fait une fois par événement d'horloge, avant tout le reste, plutôt qu'à la lecture de
+    /// <c>Armor</c>/<c>HpRegenAmount</c> : ces propriétés vivent dans le modèle, qui ne voit pas le
+    /// WorldState, et elles sont interrogées à chaque coup porté — bien plus souvent que la Corruption
+    /// ne bouge (un point par 10 s au plus, voir CorruptionController). Avant la boucle des monstres,
+    /// pour que la régénération jouée juste après compte déjà le niveau du tick courant.</para>
+    /// </summary>
+    private void RefreshCorruptionBonuses()
+    {
+        for (int i = 0; i < _monsters.Count; i++)
+        {
+            var monster = _monsters[i];
+            if (!monster.EmpoweredByCorruption) continue;
+            monster.CorruptionBonus = _state!.GetFirstFeatureAt<Corruption>(monster.Position)?.Level ?? 0;
+        }
     }
 
     // ── Régénération de PV ───────────────────────────────────────────────────
@@ -691,17 +727,142 @@ public class MonsterFeatureController
         if (_state == null) return;
         if (currentTick - monster.LastAttackTick < monster.AttackIntervalTicks) return;
 
-        var target = FindAttackTarget(monster);
+        monster.LastAttackImpacts.Clear();
 
-        if (target == null)
+        // Alternance zone / concentrée : le motif est choisi ET basculé quoi qu'il advienne ensuite,
+        // y compris si aucune cible n'est à portée (voir MonsterFeature.NextAttackIsAreaSweep).
+        bool areaSweep = false;
+        if (monster.AlternatesAttackPatterns)
         {
-            monster.LastAttackTick = currentTick;
-            monster.LastAttackTargetVertex = null;
-            monster.LastAttackResourcesString = null;
-            return;
+            areaSweep = monster.NextAttackIsAreaSweep;
+            monster.NextAttackIsAreaSweep = !areaSweep;
         }
 
-        ApplyMonsterAttack(monster, target, currentTick);
+        if (areaSweep) { AreaSweepAttack(monster, currentTick); return; }
+
+        monster.LastAttackTick = currentTick;
+        monster.LastAttackResourcesString = null;
+
+        var target = FindAttackTarget(monster);
+        if (target != null)
+        {
+            int strikes = monster.AlternatesAttackPatterns ? Math.Max(1, monster.FocusedAttackStrikes) : 1;
+            int landed = 0;
+            for (int i = 0; i < strikes; i++)
+            {
+                var outcome = ApplyMonsterAttack(monster, target, currentTick);
+                if (outcome == MonsterAttackOutcome.NoEffect) break;
+                landed++;
+                // Cible unique : une ville détruite au 2e coup n'en encaisse pas 3 de plus, et la
+                // salve ne se reporte pas sur une autre — c'est tout l'intérêt de l'alternance.
+                if (outcome == MonsterAttackOutcome.TargetDestroyed) break;
+            }
+            if (landed > 0)
+                monster.LastAttackImpacts.Add(new MonsterAttackImpact(target.Position, null, landed));
+        }
+
+        SetPrimaryAttackTarget(monster);
+    }
+
+    /// <summary>
+    /// Salve de zone : un coup sur CHAQUE cible à portée — emplacements militaires (villes, Flottes
+    /// de Guerre, Camps Mobiles) puis monstres « amis » du joueur (Aventurier, Titan d'Acier — voir
+    /// <see cref="MonsterFeature.AttacksOtherMonsters"/>), qu'aucun monstre n'attaquait jusqu'ici.
+    /// Voir <see cref="MonsterFeature.AlternatesAttackPatterns"/>.
+    /// </summary>
+    private void AreaSweepAttack(MonsterFeature monster, long currentTick)
+    {
+        monster.LastAttackTick = currentTick;
+        monster.LastAttackResourcesString = null;
+
+        // Les deux listes de cibles sont figées avant le premier coup : détruire une ville modifie
+        // MilitaryVertices, et tuer un monstre retire une entrée de _monsters — itérer directement
+        // dessus reviendrait à modifier la collection en cours de parcours.
+        var vertexTargets = CollectMilitaryTargetsInRange(monster);
+        for (int i = 0; i < vertexTargets.Count; i++)
+        {
+            var target = vertexTargets[i];
+            if (!IsTargetStillPresent(target)) continue;
+            if (ApplyMonsterAttack(monster, target, currentTick) == MonsterAttackOutcome.NoEffect) continue;
+            monster.LastAttackImpacts.Add(new MonsterAttackImpact(target.Position, null, 1));
+        }
+
+        var monsterTargets = CollectFriendlyMonstersInRange(monster);
+        for (int i = 0; i < monsterTargets.Count; i++)
+        {
+            if (monster.Hp <= 0) break; // tué par une contre-attaque en cours de balayage
+            var target = monsterTargets[i];
+            if (target.Hp <= 0) continue;
+            // Impact enregistré avant le coup : la cible peut être retirée du monde juste après.
+            monster.LastAttackImpacts.Add(new MonsterAttackImpact(null, target.Position, 1));
+            StrikeMonsterTarget(monster, target, currentTick);
+        }
+
+        SetPrimaryAttackTarget(monster);
+    }
+
+    /// <summary>
+    /// Reporte la première cible touchée dans <see cref="MonsterFeature.LastAttackTargetVertex"/> /
+    /// <see cref="MonsterFeature.LastAttackTargetHex"/> : l'animation classique (élan du monstre,
+    /// envol des ressources volées) ne connaît qu'une cible, et n'anime rien si les deux sont nuls.
+    /// </summary>
+    private static void SetPrimaryAttackTarget(MonsterFeature monster)
+    {
+        var impacts = monster.LastAttackImpacts;
+        monster.LastAttackTargetVertex = impacts.Count > 0 ? impacts[0].Vertex : null;
+        monster.LastAttackTargetHex = impacts.Count > 0 ? impacts[0].Hex : null;
+        if (impacts.Count == 0) monster.LastAttackResourcesString = null;
+    }
+
+    /// <summary>
+    /// Tous les emplacements militaires à portée. Même règle que <see cref="FindAttackTarget"/> —
+    /// son hex propre est le cas <c>radius = 0</c> — mais sans priorité : la salve de zone les frappe
+    /// tous, l'ordre n'a pas d'importance.
+    /// </summary>
+    private List<IMilitaryVertex> CollectMilitaryTargetsInRange(MonsterFeature monster)
+    {
+        var targets = new List<IMilitaryVertex>();
+        int radius = Math.Max(0, monster.AttackRangeInHexes - 1);
+        foreach (var civ in _state!.Civilizations)
+        {
+            if (IsImmuneTo(civ, monster)) continue;
+            var vertices = civ.MilitaryVertices;
+            for (int i = 0; i < vertices.Count; i++)
+                if (IsVertexWithinRange(vertices[i].Position, monster.Position, radius))
+                    targets.Add(vertices[i]);
+        }
+        return targets;
+    }
+
+    /// <summary>
+    /// Monstres « amis » du joueur à portée. Distance comptée comme pour un chasseur
+    /// (<see cref="HasPreyInRange"/>), d'hex à hex : c'est la convention de la portée d'un monstre
+    /// face à un autre monstre. Pas de filtre de visibilité — contrairement au chasseur, qui ne doit
+    /// pas engager une proie que le joueur ne voit pas, un monstre attaqué appartient au joueur.
+    /// </summary>
+    private List<MonsterFeature> CollectFriendlyMonstersInRange(MonsterFeature monster)
+    {
+        var targets = new List<MonsterFeature>();
+        for (int i = 0; i < _monsters.Count; i++)
+        {
+            var candidate = _monsters[i];
+            if (candidate == monster || !candidate.AttacksOtherMonsters || candidate.Hp <= 0) continue;
+            if (!candidate.Position.HasSameZ(monster.Position)) continue;
+            if (candidate.Position.DistanceTo(monster.Position) > monster.AttackRangeInHexes) continue;
+            targets.Add(candidate);
+        }
+        return targets;
+    }
+
+    /// <summary>Vrai si cet emplacement militaire appartient toujours à sa civilisation (pas détruit plus tôt dans le même balayage).</summary>
+    private bool IsTargetStillPresent(IMilitaryVertex target)
+    {
+        var civ = _state!.GetCivilization(target.CivilizationIndex);
+        if (civ == null) return false;
+        var vertices = civ.MilitaryVertices;
+        for (int i = 0; i < vertices.Count; i++)
+            if (ReferenceEquals(vertices[i], target)) return true;
+        return false;
     }
 
     /// <summary>
@@ -720,24 +881,36 @@ public class MonsterFeatureController
                     return vertices[i];
         }
 
-        if (monster.AttackRangeInHexes < 2) return null;
-
-        // Portée étendue : hexes voisins du monstre
-        var map = _state.GetMapFor(monster.Position)!;
-        var neighborSet = monster.Position.Neighbors()
-            .Where(n => map.HasTile(n))
-            .ToHashSet();
+        // Portée étendue : tout hex à AttackRangeInHexes - 1 du monstre ou moins (portée 1 = son seul
+        // hex, déjà traité ci-dessus ; portée 2 = ses voisins ; portée 3 = deux anneaux, etc.).
+        int radius = monster.AttackRangeInHexes - 1;
+        if (radius <= 0) return null;
 
         foreach (var civ in _state.Civilizations)
         {
             if (IsImmuneTo(civ, monster)) continue;
             var vertices = civ.MilitaryVertices;
             for (int i = 0; i < vertices.Count; i++)
-                if (vertices[i].Position.GetHexes().Any(h => neighborSet.Contains(h)))
+                if (IsVertexWithinRange(vertices[i].Position, monster.Position, radius))
                     return vertices[i];
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// True si l'un des 3 hexes du vertex est à <paramref name="radius"/> hexes ou moins de
+    /// <paramref name="center"/>. Le hex le plus PROCHE décide — le monstre vise un emplacement dès
+    /// qu'il en touche un coin, à l'inverse de la portée des soldats qui compte depuis le hex le plus
+    /// éloigné pour ne jamais dépasser la distance annoncée au joueur (voir MonsterCombatEngine).
+    /// </summary>
+    private static bool IsVertexWithinRange(Vertex vertex, HexCoord center, int radius)
+    {
+        var hexes = vertex.GetHexes();
+        for (int i = 0; i < hexes.Length; i++)
+            if (hexes[i].HasSameZ(center) && hexes[i].DistanceTo(center) <= radius)
+                return true;
+        return false;
     }
 
     /// <summary>
@@ -750,17 +923,28 @@ public class MonsterFeatureController
     private static bool IsImmuneTo(Civilization civ, MonsterFeature monster)
         => civ.ModifierAggregator.HasModifier(ECategory.MONSTER_ATTACK_IMMUNITY, monster.GetType().Name);
 
-    private void ApplyMonsterAttack(MonsterFeature monster, IMilitaryVertex target, long tick)
+    /// <summary>Ce qu'une attaque a produit sur sa cible — voir <see cref="ApplyMonsterAttack"/>.</summary>
+    private enum MonsterAttackOutcome
+    {
+        /// <summary>Rien ne s'est passé : cible immunisée, protégée par une Palissade, ou plus rien à prendre.</summary>
+        NoEffect,
+        /// <summary>La cible a encaissé (dégâts et/ou vol) et existe toujours.</summary>
+        Hit,
+        /// <summary>La cible a été détruite par cette attaque.</summary>
+        TargetDestroyed,
+    }
+
+    private MonsterAttackOutcome ApplyMonsterAttack(MonsterFeature monster, IMilitaryVertex target, long tick)
     {
         monster.LastAttackTick = tick;
         var civ = _state!.GetCivilization(target.CivilizationIndex);
-        if (civ == null) return;
+        if (civ == null) return MonsterAttackOutcome.NoEffect;
 
         if (!monster.IgnoresPalisade && target is City palisadeCheck && palisadeCheck.FindBuilding(BuildingType.Palisade) is { Level: > 0 })
         {
             monster.LastAttackTargetVertex = null;
             monster.LastAttackResourcesString = null;
-            return;
+            return MonsterAttackOutcome.NoEffect;
         }
 
         bool didSomething = false;
@@ -824,7 +1008,7 @@ public class MonsterFeatureController
                     monster.LastAttackTargetVertex = city.Position;
                     monster.LastAttackResourcesString = null;
                     _cityBuilderController?.DestroyCity(city, CityDestructionCause.Monster);
-                    return;
+                    return MonsterAttackOutcome.TargetDestroyed;
                 }
             }
             else if (damage > 0)
@@ -835,7 +1019,7 @@ public class MonsterFeatureController
                 monster.LastAttackTargetVertex = target.Position;
                 monster.LastAttackResourcesString = null;
                 DestroyMilitaryTarget(target);
-                return;
+                return MonsterAttackOutcome.TargetDestroyed;
             }
         }
 
@@ -871,7 +1055,11 @@ public class MonsterFeatureController
         // Riposte de l'Expédition Punitive, une fois l'attaque entièrement résolue : le monstre peut y
         // mourir et être retiré du monde, ce qui interdit d'en faire quoi que ce soit ensuite ici. Les
         // chemins où la cible est détruite sortent plus haut — il n'y a alors plus personne pour riposter.
-        _militaryController?.ResolvePunitiveExpedition(target, monster);
+        // Un tireur (HasRangedAttack) reste hors d'atteinte : rien à contre-attaquer.
+        if (!monster.HasRangedAttack)
+            _militaryController?.ResolvePunitiveExpedition(target, monster);
+
+        return didSomething ? MonsterAttackOutcome.Hit : MonsterAttackOutcome.NoEffect;
     }
 
     /// <summary>Détruit une Flotte de Guerre ou un Camp Mobile tué par un monstre (voir ApplyMonsterAttack).</summary>

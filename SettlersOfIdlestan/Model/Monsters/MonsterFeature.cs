@@ -95,7 +95,11 @@ public abstract class MonsterFeature : IslandFeature
     public double HpRegenCarry { get; set; } = 0;
 
     // ── Attaque des villes (opt-in) ────────────────────────────────────────
-    /// <summary>Portée en hexes : 0 = n'attaque pas, 1 = hex propre, 2 = hex propre + voisins.</summary>
+    /// <summary>
+    /// Portée en hexes : 0 = n'attaque pas, 1 = hex propre, 2 = hex propre + voisins, et ainsi de
+    /// suite — le rayon balayé vaut toujours <c>AttackRangeInHexes - 1</c> (voir
+    /// MonsterFeatureController.FindAttackTarget).
+    /// </summary>
     [JsonIgnore]
     public virtual int AttackRangeInHexes => 0;
     [JsonIgnore]
@@ -111,12 +115,60 @@ public abstract class MonsterFeature : IslandFeature
     /// <summary>Ressources volées (une par tirage) lors d'une attaque réussie.</summary>
     [JsonIgnore]
     public virtual int AttackResources => 0;
+
+    /// <summary>
+    /// Opt-in : ce monstre frappe à distance au lieu de se jeter sur sa cible. Deux conséquences,
+    /// l'une de règle et l'autre d'affichage :
+    /// <list type="bullet">
+    /// <item>il ne s'expose pas à la riposte de l'Expédition Punitive (voir
+    /// MonsterFeatureController.ApplyMonsterAttack) — il frappe de loin, il n'y a rien à contre-attaquer ;</item>
+    /// <item>son icône ne bouge pas pendant l'attaque : le tir est représenté par une boule de feu
+    /// lancée vers la cible (voir MonsterRenderer).</item>
+    /// </list>
+    /// N'influe ni sur <see cref="AttackRangeInHexes"/> ni sur le choix de la cible : un monstre au
+    /// corps-à-corps peut déjà avoir une portée 2, et un tireur peut frapper un hex adjacent.
+    /// </summary>
+    [JsonIgnore]
+    public virtual bool HasRangedAttack => false;
     public long LastAttackTick { get; set; } = 0;
     public Vertex? LastAttackTargetVertex { get; set; } = null;
     /// <summary>Hex cible de la dernière attaque contre un autre monstre (Aventurier), pour l'animation.</summary>
     public HexCoord? LastAttackTargetHex { get; set; } = null;
     /// <summary>Noms des ressources volées lors de la dernière attaque (séparés par virgule), pour l'animation.</summary>
     public string? LastAttackResourcesString { get; set; } = null;
+
+    /// <summary>
+    /// Toutes les cibles touchées par la dernière attaque et le nombre de coups reçus par chacune.
+    /// <see cref="LastAttackTargetVertex"/>/<see cref="LastAttackTargetHex"/> n'en retiennent que la
+    /// première (l'animation classique ne connaît qu'une cible) ; c'est cette liste qui porte une
+    /// salve de zone ou une salve concentrée en entier. Reconstruite à chaque attaque et jamais
+    /// persistée : purement visuelle, la porter dans chaque sauvegarde coûterait plus que de la
+    /// recalculer (même arbitrage que les propriétés calculées de <see cref="IslandFeature"/>).
+    /// </summary>
+    [JsonIgnore]
+    public List<MonsterAttackImpact> LastAttackImpacts { get; } = new();
+
+    // ── Attaques alternées : zone / concentrée (opt-in) ─────────────────────
+    /// <summary>
+    /// Opt-in : ce monstre alterne à chaque intervalle d'attaque entre une salve de ZONE — un coup
+    /// sur chacune des cibles à portée, emplacements militaires comme monstres « amis » du joueur —
+    /// et une salve CONCENTRÉE de <see cref="FocusedAttackStrikes"/> coups sur une cible unique.
+    /// false = un coup, une cible, le cas de tous les autres monstres.
+    /// </summary>
+    [JsonIgnore]
+    public virtual bool AlternatesAttackPatterns => false;
+
+    /// <summary>Nombre de coups de la salve concentrée (voir <see cref="AlternatesAttackPatterns"/>).</summary>
+    [JsonIgnore]
+    public virtual int FocusedAttackStrikes => 1;
+
+    /// <summary>
+    /// Vrai si la prochaine attaque est la salve de zone. Basculé à chaque intervalle d'attaque, y
+    /// compris quand aucune cible n'est à portée — sinon un monstre isolé garderait sa salve en
+    /// réserve et frapperait deux fois de suite de la même façon en retrouvant une cible. Persisté
+    /// pour que l'alternance ne reparte pas de zéro au chargement d'une sauvegarde.
+    /// </summary>
+    public bool NextAttackIsAreaSweep { get; set; } = true;
 
     /// <summary>
     /// Opt-in : ce monstre est « ami » et combat les autres monstres au lieu des villes
@@ -148,6 +200,29 @@ public abstract class MonsterFeature : IslandFeature
     /// </summary>
     [JsonIgnore]
     public virtual bool GeneratesCorruption => false;
+
+    // ── Renforcement par la Corruption (opt-in) ────────────────────────────
+    /// <summary>
+    /// Opt-in : ce monstre puise dans la Corruption de son propre hex — son armure et sa
+    /// régénération gagnent chacune le niveau de Corruption qui s'y trouve, relevé dans
+    /// <see cref="CorruptionBonus"/>. Indépendant de <see cref="GeneratesCorruption"/>, même si les
+    /// deux vont naturellement ensemble : un monstre qui corrompt son hex se renforce alors tout
+    /// seul avec le temps, et le priver de sa Corruption (Temple, Spire de Corruption) l'affaiblit
+    /// avant même de l'attaquer.
+    /// </summary>
+    [JsonIgnore]
+    public virtual bool EmpoweredByCorruption => false;
+
+    /// <summary>
+    /// Niveau de Corruption relevé sur l'hex du monstre — 0 si <see cref="EmpoweredByCorruption"/>
+    /// est faux. Réévalué à chaque événement d'horloge par
+    /// MonsterFeatureController.RefreshCorruptionBonuses plutôt que lu à la volée : <see cref="Armor"/>
+    /// et <see cref="HpRegenAmount"/> sont des propriétés du modèle, qui n'a pas accès au WorldState,
+    /// et elles sont interrogées à chaque coup porté — bien plus souvent que la Corruption ne bouge.
+    /// Persisté pour que le bonus ne disparaisse pas entre le chargement d'une sauvegarde et le
+    /// premier tick d'horloge (même motif que <see cref="Adventurer.MithrilForgeArmorBonus"/>).
+    /// </summary>
+    public int CorruptionBonus { get; set; }
 
     // ── Invocation de nouvelles créatures (opt-in) ─────────────────────────
     /// <summary>Tente de générer une nouvelle MonsterFeature. Retourne null si aucune invocation n'a lieu.</summary>

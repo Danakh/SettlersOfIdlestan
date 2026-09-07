@@ -455,6 +455,53 @@ public class PlanarConquestBranchTests
     }
 
     /// <summary>
+    /// Un monstre qui frappe à distance (<see cref="MonsterFeature.HasRangedAttack"/>) ne s'expose pas
+    /// à la riposte, même posé sur un hex de la ville : il n'est pas au contact, il n'y a rien à
+    /// contre-attaquer.
+    /// </summary>
+    [Fact]
+    public void PunitiveExpedition_DoesNotCounterAttackARangedMonster()
+    {
+        var map = new IslandMap(new HexTile[]
+        {
+            new(Center, TerrainType.Plain),
+            new(NE, TerrainType.Plain),
+            new(NW, TerrainType.Plain),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var city = new City(Vertex.Create(Center, NE, NW))
+        {
+            CivilizationIndex = 0,
+            Soldiers = 20,
+            LastAttackTick = long.MaxValue / 2,
+        };
+        city.AddBuilding(new TownHall { Level = 5 });
+        civ.AddCity(city);
+        Grant(civ, new Modifier(ECategory.PUNITIVE_EXPEDITION_RATIO, EType.ADDITIVE, 0.1));
+
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        var tentacle = new Tentacle(Center) { Found = true };
+        state.AddFeature(tentacle);
+        Assert.True(tentacle.HasRangedAttack);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new MilitaryController();
+        ctrl.Initialize(state, clock, prng: new GamePRNG());
+        var monsters = new MonsterFeatureController();
+        monsters.Initialize(state, clock, new GamePRNG(), militaryController: ctrl);
+
+        int initialHp = tentacle.Hp;
+        int damage = tentacle.AttackDamage;
+        clock.SimulateAdvance(tentacle.AttackIntervalTicks);
+
+        // La tentacule a bien frappé (AttackDamage soldats tués), mais rien ne lui a répondu.
+        Assert.Equal(20 - damage, city.Soldiers);
+        Assert.Equal(initialHp, tentacle.Hp);
+    }
+
+    /// <summary>
     /// « Si à portée » : un Dragon frappe à 2 hexes, distance à laquelle les soldats ne peuvent
     /// répondre sans Surveillance ni Tour de guet (voir MonsterCombatEngine.GetAttackAvailability).
     /// </summary>
