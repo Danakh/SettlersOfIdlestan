@@ -109,7 +109,7 @@ public sealed class AutomationRenderer : IDisposable
     private static readonly BuildingType[] MilitaryTypes   = [BuildingType.Barracks, BuildingType.Garrison, BuildingType.Arsenal, BuildingType.WeaponSmith, BuildingType.ArmorSmith, BuildingType.Palisade];
     private static readonly BuildingType[] GrandTempleTypes = [BuildingType.Temple];
     private static readonly BuildingType[] MithrilMineTypes = [BuildingType.MithrilMine];
-    private static readonly BuildingType[] ArcaneTowerTypes = [BuildingType.MageTower, BuildingType.AlchimistHut];
+    private static readonly BuildingType[] ArcaneTowerTypes = [BuildingType.MageTower, BuildingType.AlchimistHut, BuildingType.DefenseSpire];
 
     public AutomationRenderer(GameControllerService gameControllerService, LocalizationService localization)
     {
@@ -226,15 +226,22 @@ public sealed class AutomationRenderer : IDisposable
         var settings = worldState.AutomationSettings;
         var unlocks = ComputeStructuralUnlocks(civ);
 
+        // Le récapitulatif d'une ligne masque déjà les bâtiments verrouillés (voir IsUnlocked), mais
+        // la description est un texte figé : celle des bâtiments magiques ne nomme la Spire de Défense
+        // qu'une fois son vertex de prestige acheté.
+        bool defenseSpireUnlocked = IsUnlocked(civ, BuildingType.DefenseSpire);
+
         // Categorie deduite de la cle plutot que passee en parametre : PinKeyCategories est deja
         // la table de reference (partagee avec le panneau civilisation), la dedoubler ici ne
         // pourrait que diverger.
         AutomationCategory CategoryOf(string key) =>
             PinKeyCategories.TryGetValue(key, out var category) ? category : AutomationCategory.Construction;
 
-        RowModel Row(string key, string root, bool unlocked, bool isOn, BuildingType[]? summary = null, bool hasNote = true) =>
+        // descKey : description alternative pour une ligne dont le texte dépend d'un déblocage
+        // (bâtiments magiques + Spire de Défense). Le reste des clés reste dérivé de `root`.
+        RowModel Row(string key, string root, bool unlocked, bool isOn, BuildingType[]? summary = null, bool hasNote = true, string? descKey = null) =>
             unlocked
-                ? new RowModel(key, _localization.Get(root + "_name"), _localization.Get(root + "_desc"),
+                ? new RowModel(key, _localization.Get(root + "_name"), _localization.Get(descKey ?? root + "_desc"),
                     hasNote ? _localization.Get(root + "_note") : null, isOn, IsLocked: false, CanPin: true, summary, CategoryOf(key))
                 : new RowModel(key, _localization.Get(root + "_name"), _localization.Get(root + "_locked"),
                     null, null, IsLocked: true, CanPin: false, null, CategoryOf(key));
@@ -255,7 +262,8 @@ public sealed class AutomationRenderer : IDisposable
             Row(PinKeyMilBuildings, "automation_military_buildings", unlocks[PinKeyMilBuildings], settings.MilitaryBuildingAutomationEnabled, MilitaryTypes),
             Row(PinKeyGrandTemple, "automation_grandtemple", unlocks[PinKeyGrandTemple], settings.TempleAutomationEnabled, GrandTempleTypes),
             Row(PinKeyMithrilMine, "automation_mithrilmine", unlocks[PinKeyMithrilMine], settings.MithrilMineBuildingAutomationEnabled, MithrilMineTypes),
-            Row(PinKeyArcaneTower, "automation_arcanetower", unlocks[PinKeyArcaneTower], settings.ArcaneTowerBuildingAutomationEnabled, ArcaneTowerTypes),
+            Row(PinKeyArcaneTower, "automation_arcanetower", unlocks[PinKeyArcaneTower], settings.ArcaneTowerBuildingAutomationEnabled, ArcaneTowerTypes,
+                descKey: defenseSpireUnlocked ? "automation_arcanetower_desc_spire" : null),
         };
 
         var behaviors = new List<RowModel>
@@ -324,6 +332,20 @@ public sealed class AutomationRenderer : IDisposable
     }
 
     /// <summary>
+    /// Un bâtiment est-il débloqué pour cette civilisation ? Règle générale de toutes les listes de
+    /// bâtiments de cet onglet (récapitulatifs des lignes, tableau des presets) : un type dont le
+    /// niveau max vaut 0 n'a pas à y figurer — le joueur ne peut ni le voir dans une ville ni le
+    /// construire, l'afficher ne ferait qu'annoncer du contenu verrouillé (Fonderie, Ferme de
+    /// Champignons, Tour de Mages, Spire de Défense... tant que leur vertex de prestige ou leur
+    /// recherche n'est pas pris).
+    ///
+    /// <para>Ne lit que la civilisation (modificateurs BUILDING_MAX_LEVEL, résultat caché par
+    /// Civilization.SetCachedMaxLevel), donc appelable par image sans être un poste de coût.</para>
+    /// </summary>
+    private bool IsUnlocked(Civilization civ, BuildingType type) =>
+        _gameControllerService.MainGameController.BuildingController.GetMaxLevel(type, civ) > 0;
+
+    /// <summary>
     /// Etat de construction d'un type de batiment, tel qu'affiche sous une ligne d'automatisme :
     /// « Scierie: 3×Niv2 4×Niv1 », ou « Scierie: - » si aucun n'est bati. Partage entre le rendu
     /// Skia et l'instantane destine a l'hote.
@@ -385,9 +407,10 @@ public sealed class AutomationRenderer : IDisposable
                     IsLocked: row.IsLocked,
                     CanPin: row.CanPin,
                     IsPinned: pinned.Contains(row.Key),
+                    // Un type encore verrouille (niveau max 0) est retire du recapitulatif : voir IsUnlocked.
                     SummaryLines: row.SummaryTypes == null
                         ? []
-                        : row.SummaryTypes.Select(t => FormatSummaryEntry(civ.Cities, t,
+                        : row.SummaryTypes.Where(t => IsUnlocked(civ, t)).Select(t => FormatSummaryEntry(civ.Cities, t,
                             presetsUnlocked ? civ : null, presetsUnlocked ? worldState.AutomationSettings : null).Text).ToList(),
                     Category: row.Category,
                     CanDemobilize: row.CanDemobilize))
@@ -419,10 +442,14 @@ public sealed class AutomationRenderer : IDisposable
     public AutomationPresetPopupSnapshot GetAutomationPresetPopupSnapshot()
     {
         var gameState = _gameControllerService.CurrentGameState;
-        if (!_presetPopupOpen || _disposed || gameState == null) return AutomationPresetPopupSnapshot.Closed;
+        var civ = _gameControllerService.PlayerCivilization;
+        if (!_presetPopupOpen || _disposed || gameState == null || civ == null) return AutomationPresetPopupSnapshot.Closed;
 
         var presets = gameState.GodState.AutomationPresets;
         var rows = BuildingController.PresetTableBuildingTypes
+            // Meme regle que les recapitulatifs : un batiment encore verrouille n'a pas sa ligne ici,
+            // ou son plafond de preset n'aurait de toute facon rien a brider (voir IsUnlocked).
+            .Where(type => IsUnlocked(civ, type))
             .Select(type => new AutomationPresetRowSnapshot(
                 Key: type.ToString(),
                 Name: _localization.Get($"building_{type.ToString().ToLower()}_name"),

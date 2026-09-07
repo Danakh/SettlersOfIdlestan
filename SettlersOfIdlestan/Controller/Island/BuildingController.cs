@@ -57,8 +57,13 @@ namespace SettlersOfIdlestan.Controller.Island
             [BuildingType.Watchtower, BuildingType.AdventurersWaypost];
 
         /// <summary>
-        /// Types de bâtiments affichés dans le tableau d'édition des presets d'automatisation :
-        /// tous les bâtiments non-uniques à l'exception de <see cref="_excludedFromPresetTable"/>.
+        /// Types de bâtiments candidats au tableau d'édition des presets d'automatisation : tous les
+        /// bâtiments non-uniques à l'exception de <see cref="_excludedFromPresetTable"/>. Ceux qui
+        /// sont encore verrouillés pour la civilisation qui regarde le tableau en sont retirés à
+        /// l'affichage — règle générale de toutes les listes de bâtiments, voir
+        /// <see cref="GetMaxLevel(BuildingType, Civilization)"/> et
+        /// AutomationRenderer.GetAutomationPresetPopupSnapshot — plutôt qu'inscrits ici un par un :
+        /// la Fonderie, la Ferme de Champignons et la Spire de Défense y manquaient.
         /// </summary>
         public static readonly BuildingType[] PresetTableBuildingTypes =
             _allBuildingTypes.Except(_uniqueBuildingTypes).Except(_excludedFromPresetTable).ToArray();
@@ -283,15 +288,24 @@ namespace SettlersOfIdlestan.Controller.Island
             if (_state == null || _clock == null) return;
             long now = _clock.CurrentTick;
             BuildingType[] targets = [BuildingType.MageTower, BuildingType.AlchimistHut];
+            BuildingType[] targetsWithSpire = [BuildingType.MageTower, BuildingType.AlchimistHut, BuildingType.DefenseSpire];
 
             foreach (var civ in _state.Civilizations)
             {
                 if (civ.GetUniqueBuilding(BuildingType.ArcaneTower) is not ArcaneTower arcaneTower || arcaneTower.Level == 0) continue;
 
+                // La Spire de Défense n'entre dans les cibles qu'une fois débloquée par le vertex de
+                // prestige (GetDefaultMaxLevel() == 0 sinon). BuildBuilding la refuserait de toute
+                // façon, mais l'écarter ici évite de payer un balayage ville×type supplémentaire à
+                // chaque action de guilde pour un type qui ne peut rien donner — et garde la ligne
+                // d'automatisation cohérente avec l'onglet, qui masque la Spire tant qu'elle est
+                // verrouillée (voir AutomationRenderer.BuildColumns).
+                var civTargets = GetMaxLevel(BuildingType.DefenseSpire, civ) > 0 ? targetsWithSpire : targets;
+
                 bool isPlayer = civ.Index == _state.PlayerCivilization.Index;
                 bool enabled = !isPlayer || _state.AutomationSettings.IsArcaneTowerBuildingAutomationActive;
                 long tick = arcaneTower.LastMagicBuildTick;
-                TickGuildAutomation(civ, ref tick, arcaneTower.GetAutoMagicCooldownTicks(), enabled, targets, now, GuildAutomationKind.ArcaneTower);
+                TickGuildAutomation(civ, ref tick, arcaneTower.GetAutoMagicCooldownTicks(), enabled, civTargets, now, GuildAutomationKind.ArcaneTower);
                 arcaneTower.LastMagicBuildTick = tick;
             }
         }
@@ -1037,6 +1051,20 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.GetCivilization(civilizationIndex)
                 ?? throw new InvalidOperationException($"No civilization with index {civilizationIndex}.");
             return GetMaxLevel(building, civ);
+        }
+
+        /// <summary>
+        /// Niveau max civ-wide pour un <b>type</b> de bâtiment, sans instance sous la main : passe par
+        /// la sonde partagée (voir <see cref="GetProbe"/>) plutôt que de faire créer un bâtiment jetable
+        /// à l'appelant. C'est la question « ce bâtiment est-il débloqué ? » (0 = verrouillé), que
+        /// posent les listes de l'interface aussi bien que l'automatisation de guilde ; toute liste de
+        /// bâtiments montrée au joueur doit filtrer là-dessus, sans quoi elle annonce des bâtiments
+        /// qu'il ne peut ni voir ni construire.
+        /// </summary>
+        public int GetMaxLevel(BuildingType type, Civilization civ)
+        {
+            var probe = GetProbe(type);
+            return probe == null ? 0 : GetMaxLevel(probe, civ);
         }
 
         public int GetMaxLevel(Building building, Civilization civ)

@@ -186,6 +186,7 @@
   "automation_mithrilmine_locked": "Requires the Volcanic Forge",
   "automation_arcanetower_name": "Magic Buildings",
   "automation_arcanetower_desc": "Auto-builds/upgrades Mage Towers and Alchemist Huts every 10s",
+  "automation_arcanetower_desc_spire": "Auto-builds/upgrades Mage Towers, Alchemist Huts and Defense Spires every 10s",
   "automation_arcanetower_note": "The order of upgraded cities is random.",
   "automation_arcanetower_locked": "Requires the Arcane Tower",
   "automation_military_reinforcement_name": "Reinforcement",
