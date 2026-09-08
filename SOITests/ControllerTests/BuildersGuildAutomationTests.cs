@@ -546,4 +546,171 @@ public class BuildersGuildAutomationTests
         clock.SimulateAdvance(1100);
         Assert.Equal(3, city.Level);
     }
+
+    // =========================================================================
+    // Test 7 — Le Pandémonium suit les réglages de l'Abysse
+    // =========================================================================
+
+    /// <summary>
+    /// Même géométrie que <see cref="CreateNineteenHexIslandState"/>, mais posée sur le Pandémonium :
+    /// la surface est réduite à un hexagone (WorldState en exige une) et toute la civilisation vit sur
+    /// la couche profonde. La ville de départ est au vertex partagé par le centre, l'est et le
+    /// nord-est, et porte la Guilde des bâtisseurs.
+    /// </summary>
+    private static (WorldState state, Civilization civ, City city) CreatePandemoniumLayerState(int guildLevel)
+    {
+        const int Z = LayerState.PandemoniumZ;
+        HexCoord At(HexCoord surfaceCoord) => new(surfaceCoord.Q, surfaceCoord.R, Z);
+
+        var surface = new IslandMap(new HexTile[] { new(C, TerrainType.Plain) });
+
+        var tiles = new[]
+        {
+            C, R1_E, R1_NE, R1_NW, R1_W, R1_SW, R1_SE,
+            R2_E, R2_NE, R2_N, R2_NW, R2_WNW, R2_WW, R2_W, R2_SW, R2_S, R2_SE, R2_ESE, R2_SSE,
+        }.Select(h => new HexTile(At(h), TerrainType.Plain)).ToArray();
+
+        var civ = new Civilization { Index = 0 };
+        var city = new City(Vertex.Create(At(C), At(R1_E), At(R1_NE))) { CivilizationIndex = 0 };
+        city.AddBuilding(new BuildersGuild { Level = guildLevel });
+        civ.AddCity(city);
+
+        // La guilde ne sert le Pandémonium que si Cartographie du Vide est acquise, exactement comme
+        // pour l'Abysse (UNLOCK_BUILDERS_GUILD_ABYSS).
+        civ.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(ECategory.UNLOCK_BUILDERS_GUILD_ABYSS, EType.ADDITIVE, 1),
+        }));
+
+        var state = new WorldState(surface, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        state.AddLayer(Z, new LayerState(new IslandMap(tiles, Z)));
+
+        // Automatisation de surface coupée : seuls les réglages Abysse doivent décider ici.
+        state.AutomationSettings.RoadAutomationEnabled = false;
+        state.AutomationSettings.OutpostAutomationEnabled = false;
+
+        return (state, civ, city);
+    }
+
+    /// <summary>
+    /// Le Pandémonium n'a pas de case d'automatisation propre : il est servi sous celle de l'Abysse
+    /// (voir RoadController.GuildRoadLayerPriority). Réglage activé → la guilde y pose ses routes.
+    /// </summary>
+    [Fact]
+    public void AutoRoad_Pandemonium_UsesAbyssSetting_BuildsRoads()
+    {
+        var (state, civ, _) = CreatePandemoniumLayerState(guildLevel: 1);
+        state.AutomationSettings.RoadAutomationEnabledAbyss = true;
+
+        var clock = new GameClock();
+        clock.Start();
+
+        var roadController = new RoadController();
+        roadController.Initialize(state, clock, new GamePRNG());
+
+        clock.SimulateAdvance(10); // amorce du timer (first-fire guard)
+        Assert.Empty(civ.Roads);
+
+        clock.SimulateAdvance(500);
+        Assert.Single(civ.Roads);
+        Assert.Equal(LayerState.PandemoniumZ, civ.Roads[0].Position.Z);
+    }
+
+    /// <summary>Réglage Abysse coupé → aucune route automatique dans le Pandémonium.</summary>
+    [Fact]
+    public void AutoRoad_Pandemonium_AbyssSettingDisabled_BuildsNothing()
+    {
+        var (state, civ, _) = CreatePandemoniumLayerState(guildLevel: 1);
+        state.AutomationSettings.RoadAutomationEnabledAbyss = false;
+
+        var clock = new GameClock();
+        clock.Start();
+
+        var roadController = new RoadController();
+        roadController.Initialize(state, clock, new GamePRNG());
+
+        clock.SimulateAdvance(10);
+        clock.SimulateAdvance(500);
+        clock.SimulateAdvance(500);
+
+        Assert.Empty(civ.Roads);
+    }
+
+    /// <summary>
+    /// Même règle pour les avant-postes : le Pandémonium est servi sous le réglage de l'Abysse (voir
+    /// CityBuilderController.PerformBuildersGuildOutpostConstruction). La chaîne de routes menant au
+    /// vertex à distance 3 est posée directement (les routes automatiques sont gratuites, mais la
+    /// chaîne, elle, n'est ici qu'un décor pour rendre le vertex constructible).
+    /// </summary>
+    [Fact]
+    public void AutoOutpost_Pandemonium_UsesAbyssSetting_BuildsOutpost()
+    {
+        const int Z = LayerState.PandemoniumZ;
+        HexCoord At(HexCoord surfaceCoord) => new(surfaceCoord.Q, surfaceCoord.R, Z);
+
+        var (state, civ, _) = CreatePandemoniumLayerState(guildLevel: 4);
+        state.AutomationSettings.OutpostAutomationEnabledAbyss = true;
+        state.AutomationSettings.RoadAutomationEnabledAbyss = false; // isole l'automatisation testée
+
+        civ.AddRoad(new Road(Edge.Create(At(C), At(R1_E))) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
+        civ.AddRoad(new Road(Edge.Create(At(R1_E), At(R1_SE))) { CivilizationIndex = 0, DistanceToNearestCity = 2 });
+        civ.AddRoad(new Road(Edge.Create(At(R1_SE), At(R2_SSE))) { CivilizationIndex = 0, DistanceToNearestCity = 3 });
+
+        // Coût d'une ville du Pandémonium : même barème que l'Abysse (Or et Cristal en plus).
+        civ.SetStorageCapacityCache(1000, 1000);
+        civ.AddResource(Resource.Wood, 100);
+        civ.AddResource(Resource.Brick, 100);
+        civ.AddResource(Resource.Food, 100);
+        civ.AddResource(Resource.Gold, 100);
+        civ.AddResource(Resource.Crystal, 100);
+
+        var clock = new GameClock();
+        clock.Start();
+
+        var cityController = new CityBuilderController();
+        cityController.Initialize(state, clock, new GamePRNG());
+
+        clock.SimulateAdvance(10); // amorce du timer
+        Assert.Single(civ.Cities);
+
+        clock.SimulateAdvance(1000);
+
+        Assert.Equal(2, civ.Cities.Count);
+        Assert.Equal(Vertex.Create(At(R1_SE), At(R2_SSE), At(R2_ESE)), civ.Cities[1].Position);
+    }
+
+    /// <summary>Réglage Abysse coupé → aucun avant-poste automatique dans le Pandémonium.</summary>
+    [Fact]
+    public void AutoOutpost_Pandemonium_AbyssSettingDisabled_BuildsNothing()
+    {
+        const int Z = LayerState.PandemoniumZ;
+        HexCoord At(HexCoord surfaceCoord) => new(surfaceCoord.Q, surfaceCoord.R, Z);
+
+        var (state, civ, _) = CreatePandemoniumLayerState(guildLevel: 4);
+        state.AutomationSettings.OutpostAutomationEnabledAbyss = false;
+        state.AutomationSettings.RoadAutomationEnabledAbyss = false;
+
+        civ.AddRoad(new Road(Edge.Create(At(C), At(R1_E))) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
+        civ.AddRoad(new Road(Edge.Create(At(R1_E), At(R1_SE))) { CivilizationIndex = 0, DistanceToNearestCity = 2 });
+        civ.AddRoad(new Road(Edge.Create(At(R1_SE), At(R2_SSE))) { CivilizationIndex = 0, DistanceToNearestCity = 3 });
+
+        civ.SetStorageCapacityCache(1000, 1000);
+        civ.AddResource(Resource.Wood, 100);
+        civ.AddResource(Resource.Brick, 100);
+        civ.AddResource(Resource.Food, 100);
+        civ.AddResource(Resource.Gold, 100);
+        civ.AddResource(Resource.Crystal, 100);
+
+        var clock = new GameClock();
+        clock.Start();
+
+        var cityController = new CityBuilderController();
+        cityController.Initialize(state, clock, new GamePRNG());
+
+        clock.SimulateAdvance(10);
+        clock.SimulateAdvance(1000);
+        clock.SimulateAdvance(1000);
+
+        Assert.Single(civ.Cities);
+    }
 }

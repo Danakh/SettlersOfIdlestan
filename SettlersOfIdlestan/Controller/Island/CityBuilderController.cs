@@ -131,6 +131,9 @@ namespace SettlersOfIdlestan.Controller.Island
             bool abyssUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_BUILDERS_GUILD_ABYSS);
             bool surfaceEnabled = _state.AutomationSettings.IsOutpostAutomationActive;
             bool underworldEnabled = underworldUnlocked && _state.AutomationSettings.IsOutpostAutomationActiveUnderworld;
+            // Le Pandémonium n'a pas de réglage propre : il suit celui de l'Abysse (même déblocage, même
+            // case dans le panneau d'automatisation), comme le fait déjà le coût de ses nouvelles villes
+            // (voir NewCityBuildingCostFor).
             bool abyssEnabled = abyssUnlocked && _state.AutomationSettings.IsOutpostAutomationActiveAbyss;
 
             // Keep timer running even when disabled to avoid burst on re-enable
@@ -172,11 +175,15 @@ namespace SettlersOfIdlestan.Controller.Island
                 var buildable = new List<Vertex>();
                 if (surfaceEnabled) buildable.AddRange(allBuildable.Where(v => v.Z == IslandMap.SurfaceLayer));
 
-                // Ordre de priorité des couches : Surface > Abysse > Inframonde. L'Abysse passe avant
-                // l'Inframonde (contrairement à la profondeur géographique) parce que ses avant-postes
-                // sont la ressource rare de la fin de partie, alors que l'Inframonde en offre presque
-                // toujours : servi en dernier, l'Abysse ne serait jamais atteint. Une couche n'est
-                // considérée que si celles au-dessus d'elle dans cet ordre n'offrent rien ce cycle.
+                // Ordre de priorité des couches : Surface > Pandémonium > Abysse > Inframonde. Les
+                // couches profondes ne suivent pas la profondeur géographique : leurs avant-postes sont
+                // la ressource rare de la fin de partie, alors que l'Inframonde en offre presque
+                // toujours ; servis en dernier, l'Abysse et le Pandémonium ne seraient jamais atteints,
+                // et le Pandémonium — île close, vite saturée — passe devant l'Abysse pour la même
+                // raison. Une couche n'est considérée que si celles au-dessus d'elle dans cet ordre
+                // n'offrent rien ce cycle. Le Pandémonium est servi sous le réglage de l'Abysse.
+                if (buildable.Count == 0 && abyssEnabled)
+                    buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.PandemoniumZ));
                 if (buildable.Count == 0 && abyssEnabled)
                     buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.AbyssZ));
                 if (buildable.Count == 0 && underworldEnabled)

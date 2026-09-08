@@ -122,6 +122,9 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool abyssUnlocked = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_ABYSS);
                 bool surfaceEnabled = !isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActive;
                 bool underworldEnabled = underworldUnlocked && (!isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActiveUnderworld);
+                // Le Pandémonium n'a pas de réglage propre : il suit celui de l'Abysse (même déblocage,
+                // même case dans le panneau d'automatisation), comme le coût des nouvelles villes le fait
+                // déjà (voir CityBuilderController.NewCityBuildingCostFor).
                 bool abyssEnabled = abyssUnlocked && (!isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActiveAbyss);
                 if (!surfaceEnabled && !underworldEnabled && !abyssEnabled)
                 {
@@ -208,8 +211,9 @@ namespace SettlersOfIdlestan.Controller.Island
         private void BuildRoadsForGuildBurst(Civilization civ, BuildersGuild guild, long cycles, int surfaceRoadsPerCycle, bool surfaceEnabled, bool underworldEnabled, bool abyssEnabled)
         {
             var contexts = new LayerBurstContext?[GuildRoadLayerPriority.Length];
-            // Même ordre que GuildRoadLayerPriority (surface, Abysse, Inframonde), pas celui des paramètres.
-            var enabled = new[] { surfaceEnabled, abyssEnabled, underworldEnabled };
+            // Même ordre que GuildRoadLayerPriority (surface, Pandémonium, Abysse, Inframonde), pas celui
+            // des paramètres. Le Pandémonium partage le réglage et le déblocage de l'Abysse.
+            var enabled = new[] { surfaceEnabled, abyssEnabled, abyssEnabled, underworldEnabled };
             var touched = new bool[GuildRoadLayerPriority.Length];
 
             void BuildChosen(Road chosen, LayerBurstContext ctx, int layerIndex)
@@ -273,17 +277,19 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>
         /// Couches automatisables par la Guilde des bâtisseurs, dans l'ordre où elle les sert : la
-        /// surface d'abord, puis l'Abysse, puis l'Inframonde. L'Abysse passe avant l'Inframonde
-        /// (contrairement à la profondeur géographique) pour la même raison que les avant-postes
-        /// (voir CityBuilderController.PerformBuildersGuildOutpostConstruction) : l'Inframonde offre
-        /// presque toujours une arête constructible, donc servi en dernier l'Abysse ne serait jamais
-        /// atteint. Le Pandémonium n'a pas d'automatisation de routes. L'index dans ce tableau sert de
-        /// clé aux tableaux parallèles de <see cref="BuildRoadsForGuildBurst"/> (déblocage, contexte de
-        /// rafale, couche modifiée) — l'ordre de <c>enabled</c> y suit donc celui-ci, pas celui des
-        /// paramètres.
+        /// surface d'abord, puis le Pandémonium, puis l'Abysse, puis l'Inframonde. Les couches
+        /// profondes ne suivent pas la profondeur géographique, pour la même raison que les
+        /// avant-postes (voir CityBuilderController.PerformBuildersGuildOutpostConstruction) :
+        /// l'Inframonde offre presque toujours une arête constructible, donc servi en dernier l'Abysse
+        /// ne serait jamais atteint ; le Pandémonium, île close et vite saturée, passe devant pour la
+        /// même raison. Le Pandémonium n'a pas de réglage propre : il est servi sous celui de l'Abysse
+        /// (routes du Vide exclues de toute façon, voir <see cref="AreVoidRoadsAllowedOnLayer"/>).
+        /// L'index dans ce tableau sert de clé aux tableaux parallèles de
+        /// <see cref="BuildRoadsForGuildBurst"/> (déblocage, contexte de rafale, couche modifiée) —
+        /// l'ordre de <c>enabled</c> y suit donc celui-ci, pas celui des paramètres.
         /// </summary>
         private static readonly int[] GuildRoadLayerPriority =
-            { IslandMap.SurfaceLayer, LayerState.AbyssZ, LayerState.UnderworldZ };
+            { IslandMap.SurfaceLayer, LayerState.PandemoniumZ, LayerState.AbyssZ, LayerState.UnderworldZ };
 
         /// <summary>
         /// Liste de travail des arêtes constructibles d'un layer pour une civilisation, maintenue

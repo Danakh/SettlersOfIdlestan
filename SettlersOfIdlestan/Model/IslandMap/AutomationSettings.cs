@@ -70,11 +70,11 @@ public class AutomationSettings
     public bool OutpostAutomationEnabledUnderworld { get; set; } = false;
     [JsonIgnore] public bool IsOutpostAutomationActiveUnderworld => Active(OutpostAutomationEnabledUnderworld);
 
-    /// <summary>Comme RoadAutomationEnabledUnderworld, mais pour l'Abysse (nécessite la recherche Cartographie du Vide, voir RoadController.PerformBuildersGuildConstruction). Les routes du Vide en sont exclues : la guilde n'y pose que des routes de base.</summary>
+    /// <summary>Comme RoadAutomationEnabledUnderworld, mais pour l'Abysse — et pour le Pandémonium, qui n'a pas de réglage propre et suit celui-ci (nécessite la recherche Cartographie du Vide, voir RoadController.PerformBuildersGuildConstruction). Les routes du Vide en sont exclues : la guilde n'y pose que des routes de base.</summary>
     public bool RoadAutomationEnabledAbyss { get; set; } = true;
     [JsonIgnore] public bool IsRoadAutomationActiveAbyss => Active(RoadAutomationEnabledAbyss);
 
-    /// <summary>Comme OutpostAutomationEnabledUnderworld, mais pour l'Abysse (nécessite la recherche Cartographie du Vide, voir CityBuilderController.PerformBuildersGuildOutpostConstruction).</summary>
+    /// <summary>Comme OutpostAutomationEnabledUnderworld, mais pour l'Abysse — et pour le Pandémonium, qui n'a pas de réglage propre et suit celui-ci (nécessite la recherche Cartographie du Vide, voir CityBuilderController.PerformBuildersGuildOutpostConstruction).</summary>
     public bool OutpostAutomationEnabledAbyss { get; set; } = false;
     [JsonIgnore] public bool IsOutpostAutomationActiveAbyss => Active(OutpostAutomationEnabledAbyss);
 
