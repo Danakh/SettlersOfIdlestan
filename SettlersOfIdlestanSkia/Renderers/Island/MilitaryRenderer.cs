@@ -133,7 +133,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         }
 
         _consumableIcons[Resource.SteelArmor] = _resourceManager.LoadImage("Resources.icons.consumable_sprites.steelarmor.svg");
-        _consumableIcons[Resource.HealingPotion] = _resourceManager.LoadImage("Resources.icons.consumable_sprites.healingpotion.svg");
+        _consumableIcons[Resource.StrengthPotion] = _resourceManager.LoadImage("Resources.icons.consumable_sprites.strengthpotion.svg");
     }
 
     public void Connect(
@@ -528,7 +528,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
     }
 
     /// <summary>
-    /// Fait partir l'icône du consommable détruit (Armure d'Acier, Potion de Soin) en arc vers la
+    /// Fait partir l'icône du consommable consommé (Armure d'Acier, Potion de Force) en arc vers la
     /// gauche ou la droite (alterné par <see cref="EmitConsumableParticle"/>), puis disparaître —
     /// à l'opposé d'un gain de ressource qui monte tout droit vers le haut.
     /// </summary>

@@ -76,6 +76,7 @@ internal class CityAttackEngine
             double speed = attackerCiv.ModifierAggregator.ApplyModifiers(ECategory.ATTACK_SPEED, "", 1.0);
             int attackRange = CityAttackRange(attackerCiv);
             bool steelWeaponsUnlocked = attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
+            bool strengthPotionsUnlocked = attackerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_STRENGTH_POTION);
             int soldierDamage = attackerCiv.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_ATTACK_DAMAGE, "", 1);
             int salvoSize = MonsterCombatEngine.SimultaneousAttackSoldiers(attackerCiv);
 
@@ -137,12 +138,16 @@ internal class CityAttackEngine
                         && attackerCiv.CanConsumeConsumable(Resource.SteelWeapon, attackerVertex.Position.Z)
                         && attackerCiv.GetResourceQuantity(Resource.SteelWeapon) >= 1;
                     if (hasSteelWeapon) attackerCiv.RemoveResource(Resource.SteelWeapon, 1);
+                    // Potion de Force : bue à l'assaut, 50 % de chance d'ajouter 1 dégât. Offensif
+                    // seulement — une ville qui se défend n'en consomme aucune (voir StrengthPotionEngine).
+                    int potionDamage = StrengthPotionEngine.TryDrinkPotion(attackerCiv, attackerVertex, strengthPotionsUnlocked, _prng!, onConsumed);
                     engaged++;
 
                     // Contre une ville, un dégât = une application de la cascade (soldat, défense, niveau
                     // d'Hôtel de ville) : les dégâts supplémentaires du soldat (SOLDIER_ATTACK_DAMAGE,
-                    // Bras de Dieu) et de l'Arme en Acier se traduisent donc en applications répétées.
-                    int hits = soldierDamage + (hasSteelWeapon ? 1 : 0);
+                    // Bras de Dieu), de l'Arme en Acier et de la Potion de Force se traduisent donc en
+                    // applications répétées.
+                    int hits = soldierDamage + (hasSteelWeapon ? 1 : 0) + potionDamage;
                     for (int hit = 0; hit < hits && !destroyed; hit++)
                         destroyed = ApplyAttackToCity(targetVertex, onCityBuildingDestroyed, onConsumableConsumed);
                 }

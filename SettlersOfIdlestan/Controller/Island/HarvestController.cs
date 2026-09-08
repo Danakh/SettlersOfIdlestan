@@ -75,7 +75,7 @@ namespace SettlersOfIdlestan.Controller.Island
         public const long WeaponSmithBaseIntervalTicks = 2000L;
         // 20 s × 100 ticks/s — intervalle de base de production de la Forge d'Armures (niv. 1)
         public const long ArmorSmithBaseIntervalTicks = 2000L;
-        // 20 s × 100 ticks/s — intervalle de base de production de Potions de Soin par la Hutte d'Alchimie (niv. 1)
+        // 20 s × 100 ticks/s — intervalle de base de production de Potions de Force par la Hutte d'Alchimie (niv. 1)
         public const long AlchimistHutPotionBaseIntervalTicks = 2000L;
 
         private GamePRNG? _prng;
@@ -669,7 +669,7 @@ namespace SettlersOfIdlestan.Controller.Island
             => Math.Max(1L, (long)(ArmorSmithBaseIntervalTicks * Math.Pow(0.9, level - 1) / GetProductionBuildingSpeed(civ)));
 
 
-        /// <summary>Intervalle de production de Potions de Soin pour une Hutte d'Alchimie du niveau donné (x0.9 par niveau), après PRODUCTION_BUILDING_SPEED.</summary>
+        /// <summary>Intervalle de production de Potions de Force pour une Hutte d'Alchimie du niveau donné (x0.9 par niveau), après PRODUCTION_BUILDING_SPEED.</summary>
         public static long GetAlchimistHutPotionInterval(Civilization? civ, int level)
             => Math.Max(1L, (long)(AlchimistHutPotionBaseIntervalTicks * Math.Pow(0.9, level - 1) / GetProductionBuildingSpeed(civ)));
 
@@ -1095,11 +1095,11 @@ namespace SettlersOfIdlestan.Controller.Island
                     AddSourceRate(result, Resource.SteelArmor, BuildingSourceKey(BuildingType.ArmorSmith), 100.0 / GetArmorSmithInterval(civ, armorSmith.Level));
 
                 var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { Level: >= 1 } h1 ? h1 : null;
-                if (hut != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION) && hut.ActivationStatus == ActivationStatus.ACTIVE)
+                if (hut != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STRENGTH_POTION) && hut.ActivationStatus == ActivationStatus.ACTIVE)
                 {
                     // Même rendement par cycle que AlchimistHutProductionEngine.TickPotions (Alchimie Avancée).
-                    int potionsPerCycle = Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.HEALING_POTION_PER_CYCLE, "", 1));
-                    AddSourceRate(result, Resource.HealingPotion, BuildingSourceKey(BuildingType.AlchimistHut),
+                    int potionsPerCycle = Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.STRENGTH_POTION_PER_CYCLE, "", 1));
+                    AddSourceRate(result, Resource.StrengthPotion, BuildingSourceKey(BuildingType.AlchimistHut),
                         potionsPerCycle * 100.0 / GetAlchimistHutPotionInterval(civ, hut.Level));
                 }
             }
@@ -1168,7 +1168,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     AddSourceRate(result, Resource.Steel, BuildingSourceKey(BuildingType.ArmorSmith), ArmorSmith.SteelInputPerArmor * 100.0 / GetArmorSmithInterval(civ, armorSmith.Level));
 
                 var hut = city.FindBuilding<AlchimistHut>(BuildingType.AlchimistHut) is { Level: >= 1 } h1 ? h1 : null;
-                if (hut != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION) && hut.ActivationStatus == ActivationStatus.ACTIVE)
+                if (hut != null && civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STRENGTH_POTION) && hut.ActivationStatus == ActivationStatus.ACTIVE)
                 {
                     double cyclesPerSecond = 100.0 / GetAlchimistHutPotionInterval(civ, hut.Level);
                     string hutKey = BuildingSourceKey(BuildingType.AlchimistHut);

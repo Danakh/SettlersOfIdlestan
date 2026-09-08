@@ -31,7 +31,7 @@ public class MonsterFeatureController
     /// <summary>Intervalle de déplacement par défaut (3 000 ticks = 30 s à vitesse normale).</summary>
     public const long MovementIntervalTicks = 3_000L;
 
-    /// <summary>Un consommable (Armure d'Acier, Potion de Soin) a été détruit pour sauver un soldat lors d'une attaque de monstre.</summary>
+    /// <summary>Un consommable (Armure d'Acier) a été détruit pour sauver un soldat lors d'une attaque de monstre. Les Potions de Force ne servent qu'en attaque et ne sont jamais bues ici.</summary>
     public event EventHandler<ConsumableConsumedEventArgs>? ConsumableConsumed;
 
     internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null, PrestigeState? prestigeState = null, WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null, BuildingController? buildingController = null, MilitaryController? militaryController = null)

@@ -9,7 +9,7 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Controller.Island.Production;
 
 /// <summary>
-/// Les deux productions de la Hutte d'Alchimie : les Potions de Soin (Verre + Cristal → Potion) et la
+/// Les deux productions de la Hutte d'Alchimie : les Potions de Force (Verre + Cristal → Potion) et la
 /// récolte de Cristaux des Cercles de Fées adjacents.
 ///
 /// <para>Deux étapes distinctes du tick, dans cet ordre (voir <c>HarvestController</c>) : elles ne
@@ -32,11 +32,11 @@ internal sealed class AlchimistHutProductionEngine
 
         foreach (var civ in _state.Civilizations)
         {
-            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION)) continue;
+            if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STRENGTH_POTION)) continue;
 
             // Potions rendues par cycle : 1 de base, doublé par le vertex de prestige Alchimie Avancée.
             // Les entrées (Verre, Cristal) ne suivent pas — le vertex augmente le rendement, pas le débit.
-            int potionsPerCycle = Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.HEALING_POTION_PER_CYCLE, "", 1));
+            int potionsPerCycle = Math.Max(1, civ.ModifierAggregator.ApplyModifiers(ECategory.STRENGTH_POTION_PER_CYCLE, "", 1));
 
             var cities = civ.GetCitiesWith(BuildingType.AlchimistHut);
             for (int i = 0; i < cities.Count; i++)
@@ -58,7 +58,7 @@ internal sealed class AlchimistHutProductionEngine
                 // cycles dus, et le plafond de Potions peut être atteint en cours de route.
                 for (long c = 0; c < cycles; c++)
                 {
-                    if (civ.GetResourceQuantity(Resource.HealingPotion) >= civ.GetResourceMaxQuantity(Resource.HealingPotion)) break;
+                    if (civ.GetResourceQuantity(Resource.StrengthPotion) >= civ.GetResourceMaxQuantity(Resource.StrengthPotion)) break;
 
                     if (civ.GetResourceQuantity(Resource.Glass) < AlchimistHut.GlassInputPerPotion)
                     {
@@ -73,7 +73,7 @@ internal sealed class AlchimistHutProductionEngine
 
                     civ.RemoveResource(Resource.Glass, AlchimistHut.GlassInputPerPotion);
                     civ.RemoveResource(Resource.Crystal, AlchimistHut.CrystalInputPerPotion);
-                    civ.AddResource(Resource.HealingPotion, potionsPerCycle);
+                    civ.AddResource(Resource.StrengthPotion, potionsPerCycle);
                 }
             }
         }

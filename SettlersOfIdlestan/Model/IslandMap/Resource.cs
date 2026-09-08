@@ -1,4 +1,6 @@
+using System;
 using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SettlersOfIdlestan.Model.IslandMap;
@@ -6,7 +8,7 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// <summary>
 /// Represents the resources produced by land tiles.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<Resource>))]
+[JsonConverter(typeof(ResourceJsonConverter))]
 public enum Resource
 {
     Food,
@@ -23,7 +25,37 @@ public enum Resource
     SteelArmor,
     MithrilWeapon,
     MithrilArmor,
-    HealingPotion,
+    StrengthPotion,
+}
+
+/// <summary>
+/// Sérialise <see cref="Resource"/> par nom, avec remap des noms des sauvegardes antérieures.
+/// Les ressources sont aussi utilisées comme clés de dictionnaire (stocks, coûts, plafonds), qui
+/// passent par ReadAsPropertyName/WriteAsPropertyName et non par Read/Write.
+/// Chaque renommage doit être documenté ici avec la version qui l'a introduit.
+/// </summary>
+public sealed class ResourceJsonConverter : JsonConverter<Resource>
+{
+    public override Resource Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => Parse(reader.GetString());
+
+    public override void Write(Utf8JsonWriter writer, Resource value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value.ToString());
+
+    public override Resource ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => Parse(reader.GetString());
+
+    public override void WriteAsPropertyName(Utf8JsonWriter writer, Resource value, JsonSerializerOptions options)
+        => writer.WritePropertyName(value.ToString());
+
+    private static Resource Parse(string? s)
+    {
+        // [Legacy remap v0.22] "HealingPotion" renommé en "StrengthPotion" — la Potion de Soin
+        // (sauvetage d'un soldat) est devenue la Potion de Force (dégât supplémentaire en attaque).
+        if (s == "HealingPotion") return Resource.StrengthPotion;
+        if (Enum.TryParse<Resource>(s, out var value)) return value;
+        throw new JsonException($"Unknown Resource value '{s}'.");
+    }
 }
 
 public class ResourceUtils
@@ -62,7 +94,7 @@ public class ResourceUtils
         Resource.SteelArmor,
         Resource.MithrilWeapon,
         Resource.MithrilArmor,
-        Resource.HealingPotion,
+        Resource.StrengthPotion,
     };
     /// <summary>Basic + Intermediate + Advanced resources — every resource except the crafted consumables.</summary>
     public static List<Resource> NonConsumableResources = BasicResources

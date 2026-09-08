@@ -14,7 +14,7 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SOITests.ControllerTests
 {
-    /// <summary>Tests de la Hutte d'Alchimie : prérequis de construction, récolte de cristaux et production de Potions de Soin.</summary>
+    /// <summary>Tests de la Hutte d'Alchimie : prérequis de construction, récolte de cristaux et production de Potions de Force.</summary>
     public class AlchimistHutTests
     {
         private static HexCoord NE     => new(0, 1, IslandMap.SurfaceLayer);
@@ -172,7 +172,7 @@ namespace SOITests.ControllerTests
             city.AddBuilding(new AlchimistHut { Level = 1 });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
-                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
+                new Modifier(ECategory.UNLOCK_STRENGTH_POTION, EType.ADDITIVE, 1),
             }));
             var clock = new GameClock();
             clock.Start();
@@ -183,7 +183,7 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks);
 
-            Assert.True(civ.GetResourceQuantity(Resource.HealingPotion) >= 1);
+            Assert.True(civ.GetResourceQuantity(Resource.StrengthPotion) >= 1);
             // Seul le Cristal consommé par la potion a bougé : la Caverne aux Champignons n'en donne aucun.
             Assert.Equal(10 - AlchimistHut.CrystalInputPerPotion, civ.GetResourceQuantity(Resource.Crystal));
         }
@@ -261,10 +261,10 @@ namespace SOITests.ControllerTests
             Assert.Equal(FairyCircle.CrystalsPerCycle, civ.GetResourceQuantity(Resource.Crystal));
         }
 
-        // ── Production de Potions de Soin ───────────────────────────────────
+        // ── Production de Potions de Force ───────────────────────────────────
 
         [Fact]
-        public void HealingPotion_AlchimistHutLevel1_ProducesAfter1000TicksAndConsumesGlassAndCrystal()
+        public void StrengthPotion_AlchimistHutLevel1_ProducesAfter1000TicksAndConsumesGlassAndCrystal()
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
@@ -273,7 +273,7 @@ namespace SOITests.ControllerTests
             city.AddBuilding(new AlchimistHut { Level = 1 });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
-                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
+                new Modifier(ECategory.UNLOCK_STRENGTH_POTION, EType.ADDITIVE, 1),
             }));
             var clock = new GameClock();
             clock.Start();
@@ -284,17 +284,17 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks);
 
-            Assert.True(civ.GetResourceQuantity(Resource.HealingPotion) >= 1);
+            Assert.True(civ.GetResourceQuantity(Resource.StrengthPotion) >= 1);
             Assert.Equal(10 - AlchimistHut.GlassInputPerPotion, civ.GetResourceQuantity(Resource.Glass));
             Assert.Equal(10 - AlchimistHut.CrystalInputPerPotion, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         /// <summary>
-        /// Alchimie Avancée (HEALING_POTION_PER_CYCLE) : le rendement double, les entrées ne bougent pas.
+        /// Alchimie Avancée (STRENGTH_POTION_PER_CYCLE) : le rendement double, les entrées ne bougent pas.
         /// C'est tout l'intérêt du vertex — sans quoi il ne ferait qu'avancer la même consommation.
         /// </summary>
         [Fact]
-        public void HealingPotion_AvecAlchimieAvancee_ProduitDeuxPotionsPourLesMemesEntrees()
+        public void StrengthPotion_AvecAlchimieAvancee_ProduitDeuxPotionsPourLesMemesEntrees()
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
@@ -303,8 +303,8 @@ namespace SOITests.ControllerTests
             city.AddBuilding(new AlchimistHut { Level = 1 });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
-                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
-                new Modifier(ECategory.HEALING_POTION_PER_CYCLE, EType.ADDITIVE, 1),
+                new Modifier(ECategory.UNLOCK_STRENGTH_POTION, EType.ADDITIVE, 1),
+                new Modifier(ECategory.STRENGTH_POTION_PER_CYCLE, EType.ADDITIVE, 1),
             }));
             var clock = new GameClock();
             clock.Start();
@@ -315,13 +315,13 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks);
 
-            Assert.Equal(2, civ.GetResourceQuantity(Resource.HealingPotion));
+            Assert.Equal(2, civ.GetResourceQuantity(Resource.StrengthPotion));
             Assert.Equal(10 - AlchimistHut.GlassInputPerPotion, civ.GetResourceQuantity(Resource.Glass));
             Assert.Equal(10 - AlchimistHut.CrystalInputPerPotion, civ.GetResourceQuantity(Resource.Crystal));
         }
 
         [Fact]
-        public void HealingPotion_NoModifier_ProducesNothing()
+        public void StrengthPotion_NoModifier_ProducesNothing()
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
@@ -334,18 +334,18 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks * 5);
 
-            Assert.Equal(0, civ.GetResourceQuantity(Resource.HealingPotion));
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.StrengthPotion));
         }
 
         [Fact]
-        public void HealingPotion_NotEnoughGlassOrCrystal_ProducesNothing()
+        public void StrengthPotion_NotEnoughGlassOrCrystal_ProducesNothing()
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
             city.AddBuilding(new AlchimistHut { Level = 1 });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
-                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
+                new Modifier(ECategory.UNLOCK_STRENGTH_POTION, EType.ADDITIVE, 1),
             }));
             var clock = new GameClock();
             clock.Start();
@@ -353,11 +353,11 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks * 5);
 
-            Assert.Equal(0, civ.GetResourceQuantity(Resource.HealingPotion));
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.StrengthPotion));
         }
 
         [Fact]
-        public void HealingPotion_Inactive_ProducesNothing()
+        public void StrengthPotion_Inactive_ProducesNothing()
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
@@ -367,7 +367,7 @@ namespace SOITests.ControllerTests
             city.AddBuilding(hut);
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
-                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
+                new Modifier(ECategory.UNLOCK_STRENGTH_POTION, EType.ADDITIVE, 1),
             }));
             var clock = new GameClock();
             clock.Start();
@@ -375,24 +375,22 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(HarvestController.AlchimistHutPotionBaseIntervalTicks * 5);
 
-            Assert.Equal(0, civ.GetResourceQuantity(Resource.HealingPotion));
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.StrengthPotion));
         }
 
-        // ── Sauvetage de soldats (Armure d'Acier + Potion de Soin) ──────────
+        // ── Sauvetage de soldats (Armure d'Acier seule) ─────────────────────
 
         [Fact]
-        public void TrySaveSoldiers_BothConsumablesAvailable_ChancesSumTo100Percent()
+        public void TrySaveSoldiers_ArsenalLevel13_ChanceReaches100Percent()
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
             civ.Resources[Resource.SteelArmor] = 1000;
-            civ.Resources[Resource.HealingPotion] = 1000;
-            // Arsenal niveau 3 : 35% (base armure) + 5%*3 (arsenal) + 50% (potion) = 100%.
-            city.AddBuilding(new Arsenal { Level = 3 });
+            // Arsenal niveau 13 : 35% (base armure) + 5%*13 (arsenal) = 100%.
+            city.AddBuilding(new Arsenal { Level = 13 });
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
                 new Modifier(ECategory.UNLOCK_STEEL_ARMOR, EType.ADDITIVE, 1),
-                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
             }));
 
             int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, 100, new GamePRNG(123));
@@ -400,21 +398,22 @@ namespace SOITests.ControllerTests
             Assert.Equal(100, saved);
         }
 
+        /// <summary>La Potion de Force est un consommable purement offensif : elle ne sauve plus aucun soldat.</summary>
         [Fact]
-        public void TrySaveSoldiers_OnlyHealingPotionUnlocked_ConsumesPotionsNotArmor()
+        public void TrySaveSoldiers_OnlyStrengthPotionUnlocked_SavesNothingAndConsumesNoPotion()
         {
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
-            civ.Resources[Resource.HealingPotion] = 1000;
+            civ.Resources[Resource.StrengthPotion] = 1000;
             civ.AddCustomAggregator(new StaticModifierProvider(new[]
             {
-                new Modifier(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
+                new Modifier(ECategory.UNLOCK_STRENGTH_POTION, EType.ADDITIVE, 1),
             }));
 
             int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, 100, new GamePRNG(123));
 
-            Assert.True(saved > 0);
-            Assert.True(civ.GetResourceQuantity(Resource.HealingPotion) < 1000);
+            Assert.Equal(0, saved);
+            Assert.Equal(1000, civ.GetResourceQuantity(Resource.StrengthPotion));
         }
 
         [Fact]
@@ -423,13 +422,71 @@ namespace SOITests.ControllerTests
             var (state, city) = CreateSetup();
             var civ = state.PlayerCivilization;
             civ.Resources[Resource.SteelArmor] = 100;
-            civ.Resources[Resource.HealingPotion] = 100;
+            civ.Resources[Resource.StrengthPotion] = 100;
 
             int saved = SteelArmorEngine.TrySaveSoldiers(civ, city, 10, new GamePRNG(123));
 
             Assert.Equal(0, saved);
             Assert.Equal(100, civ.GetResourceQuantity(Resource.SteelArmor));
-            Assert.Equal(100, civ.GetResourceQuantity(Resource.HealingPotion));
+            Assert.Equal(100, civ.GetResourceQuantity(Resource.StrengthPotion));
+        }
+
+        // ── Potion de Force : dégât supplémentaire en attaque ────────────────
+
+        [Fact]
+        public void TryDrinkPotion_NotUnlocked_ConsumesNothingAndAddsNoDamage()
+        {
+            var (state, city) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            civ.Resources[Resource.StrengthPotion] = 100;
+
+            int damage = StrengthPotionEngine.TryDrinkPotion(civ, city, potionsUnlocked: false, new GamePRNG(123));
+
+            Assert.Equal(0, damage);
+            Assert.Equal(100, civ.GetResourceQuantity(Resource.StrengthPotion));
+        }
+
+        [Fact]
+        public void TryDrinkPotion_NoPotionInStock_AddsNoDamage()
+        {
+            var (state, city) = CreateSetup();
+            var civ = state.PlayerCivilization;
+
+            int damage = StrengthPotionEngine.TryDrinkPotion(civ, city, potionsUnlocked: true, new GamePRNG(123));
+
+            Assert.Equal(0, damage);
+        }
+
+        /// <summary>La potion est bue à chaque assaut ; seul son effet est tiré au sort (50%).</summary>
+        [Fact]
+        public void TryDrinkPotion_Unlocked_AlwaysConsumesAndAddsDamageAboutHalfTheTime()
+        {
+            var (state, city) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            civ.Resources[Resource.StrengthPotion] = 1000;
+            var prng = new GamePRNG(123);
+
+            int totalDamage = 0;
+            for (int i = 0; i < 1000; i++)
+                totalDamage += StrengthPotionEngine.TryDrinkPotion(civ, city, potionsUnlocked: true, prng);
+
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.StrengthPotion));
+            Assert.InRange(totalDamage, 400, 600);
+        }
+
+        [Fact]
+        public void TryDrinkPotion_Consumed_NotifiesTheConsumableCallback()
+        {
+            var (state, city) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            civ.Resources[Resource.StrengthPotion] = 1;
+
+            Resource? consumed = null;
+            StrengthPotionEngine.TryDrinkPotion(civ, city, potionsUnlocked: true, new GamePRNG(123),
+                (_, res) => consumed = res);
+
+            Assert.Equal(Resource.StrengthPotion, consumed);
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.StrengthPotion));
         }
     }
 }

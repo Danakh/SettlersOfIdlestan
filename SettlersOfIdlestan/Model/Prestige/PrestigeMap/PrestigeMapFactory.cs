@@ -301,7 +301,7 @@ public static class PrestigeMapFactory
                     new(ECategory.MAGIC_FEATURE_COUNT, "FairyCircle", EType.ADDITIVE, 3),
                     new(ECategory.UNLOCK_RESOURCE, "Crystal", EType.ADDITIVE, 1),
                     new(ECategory.BUILDING_MAX_LEVEL, "AlchimistHut", EType.ADDITIVE, 3),
-                    new(ECategory.UNLOCK_HEALING_POTION, EType.ADDITIVE, 1),
+                    new(ECategory.UNLOCK_STRENGTH_POTION, EType.ADDITIVE, 1),
                 }
             ),
             new(
@@ -630,9 +630,9 @@ public static class PrestigeMapFactory
                 PrestigeMap.AdvancedAlchemyVertex,
                 "prestige_vertex_advanced_alchemy",
                 cost: Cost(PrestigeMap.AdvancedAlchemyVertex),
-                // Rendement doublé à consommation inchangée : 2 Potions de Soin pour le même Verre et
+                // Rendement doublé à consommation inchangée : 2 Potions de Force pour le même Verre et
                 // le même Cristal (voir AlchimistHutProductionEngine.TickPotions).
-                modifiers: new Modifier[] { new(ECategory.HEALING_POTION_PER_CYCLE, EType.ADDITIVE, 1) }
+                modifiers: new Modifier[] { new(ECategory.STRENGTH_POTION_PER_CYCLE, EType.ADDITIVE, 1) }
             ),
             new(
                 PrestigeMap.EclecticResearchVertex,

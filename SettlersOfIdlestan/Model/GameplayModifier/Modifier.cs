@@ -7,7 +7,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
 {
     public class Modifier
     {
-        [JsonConverter(typeof(JsonStringEnumConverter<ECategory>))]
+        [JsonConverter(typeof(ECategoryJsonConverter))]
         public enum ECategory
         {
             BUILDING_MAX_LEVEL,
@@ -168,12 +168,12 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_RAID,
             /// <summary>Nombre de soldats par ville dont la nourriture d'entretien est offerte chaque cycle. SubCategory unused.</summary>
             SOLDIER_FOOD_FREE_PER_CITY,
-            /// <summary>Flags que la Hutte d'Alchimie peut produire des Potions de Soin (consommable) ; chaque potion consommée donne 50 % de chance de sauver un soldat.</summary>
-            UNLOCK_HEALING_POTION,
-            /// <summary>Potions de Soin produites par cycle et par Hutte d'Alchimie, à consommation d'entrées
+            /// <summary>Flags que la Hutte d'Alchimie peut produire des Potions de Force (consommable) ; chaque potion bue par un soldat qui attaque donne 50 % de chance d'infliger 1 dégât de plus. Sans effet en défense.</summary>
+            UNLOCK_STRENGTH_POTION,
+            /// <summary>Potions de Force produites par cycle et par Hutte d'Alchimie, à consommation d'entrées
             /// inchangée (voir AlchimistHutProductionEngine.TickPotions). Base = 1 ; ADDITIVE +1 = 2 potions par
             /// cycle pour le même Verre et le même Cristal. SubCategory unused.</summary>
-            HEALING_POTION_PER_CYCLE,
+            STRENGTH_POTION_PER_CYCLE,
             /// <summary>SubCategory = SpellId name. Signale que le sort instantané est connu (débloqué par recherche).</summary>
             UNLOCK_SPELL,
             /// <summary>Fraction de réduction du coût en cristaux d'un sort. SubCategory = SpellId name (vide = s'applique à tous les sorts) (0.25 = -25%).</summary>
@@ -264,7 +264,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             VOLCANO_DAMAGE_REDUCTION,
             /// <summary>Flags que les Scieries peuvent récolter du Bois sur les Cavernes aux Champignons adjacentes (à vitesse réduite, voir Sawmill.GetAutomaticHarvestTerrainSpeedMultiplier). SubCategory unused.</summary>
             UNLOCK_SAWMILL_MUSHROOM_HARVEST,
-            /// <summary>Flags que les Huttes d'Alchimie peuvent aussi être bâties au bord d'une Caverne aux Champignons, faute de Cercle de Fées (voir AlchimistHut.HasBuildPrerequisites, Sanctuaire de l'Araignée). Elles n'y récoltent aucun cristal — les cristaux viennent des Cercles de Fées — mais y produisent des Potions de Soin. SubCategory unused.</summary>
+            /// <summary>Flags que les Huttes d'Alchimie peuvent aussi être bâties au bord d'une Caverne aux Champignons, faute de Cercle de Fées (voir AlchimistHut.HasBuildPrerequisites, Sanctuaire de l'Araignée). Elles n'y récoltent aucun cristal — les cristaux viennent des Cercles de Fées — mais y produisent des Potions de Force. SubCategory unused.</summary>
             UNLOCK_ALCHIMIST_HUT_MUSHROOM_CAVE,
             /// <summary>Bonus (ou malus) additif de prestige propre à la race choisie à l'Ascension, distinct de PRESTIGE_GAIN (recherches + arbre de Prestige). Base = 0.0 ; -0.25 = -25% (Gobelins).</summary>
             PRESTIGE_GAIN_RACE,
@@ -355,7 +355,7 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             /// non seulement de la civilisation. SubCategory unused. Accordé par l'hex de prestige Connaissance
             /// du Terrain, par vertex adjacent acheté.</summary>
             LAYER_KNOWLEDGE_HARVEST_SPEED_PER_HOUR,
-            /// <summary>Fraction du stock maximum d'un consommable (Arme/Armure en Acier, Potion de Soin —
+            /// <summary>Fraction du stock maximum d'un consommable (Arme/Armure en Acier, Potion de Force —
             /// voir ResourceUtils.ConsumableResources) sanctuarisée : sous ce seuil, le consommable ne peut
             /// plus être dépensé <b>ailleurs que dans le plan le plus profond atteint</b> par la civilisation
             /// (voir Civilization.CanConsumeConsumable). Base = 0.0 ; 0.2 = les derniers 20% sont réservés à
@@ -388,6 +388,37 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             Category = category;
             Type = type;
             Value = value;
+        }
+
+        /// <summary>
+        /// Sérialise <see cref="ECategory"/> par nom, avec remap des noms des sauvegardes antérieures.
+        /// Les modificateurs des PNJ (NpcParameters.ExtraModifiers) et des races sont persistés dans
+        /// la sauvegarde : renommer une catégorie sans remap rend illisibles toutes les parties en
+        /// cours. Chaque renommage doit être documenté ici avec la version qui l'a introduit.
+        /// </summary>
+        public sealed class ECategoryJsonConverter : System.Text.Json.Serialization.JsonConverter<ECategory>
+        {
+            public override ECategory Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+                => Parse(reader.GetString());
+
+            public override void Write(System.Text.Json.Utf8JsonWriter writer, ECategory value, System.Text.Json.JsonSerializerOptions options)
+                => writer.WriteStringValue(value.ToString());
+
+            public override ECategory ReadAsPropertyName(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+                => Parse(reader.GetString());
+
+            public override void WriteAsPropertyName(System.Text.Json.Utf8JsonWriter writer, ECategory value, System.Text.Json.JsonSerializerOptions options)
+                => writer.WritePropertyName(value.ToString());
+
+            private static ECategory Parse(string? s)
+            {
+                // [Legacy remap v0.22] "UNLOCK_HEALING_POTION"/"HEALING_POTION_PER_CYCLE" renommés avec
+                // la Potion de Soin devenue Potion de Force (dégât supplémentaire en attaque).
+                if (s == "UNLOCK_HEALING_POTION") return ECategory.UNLOCK_STRENGTH_POTION;
+                if (s == "HEALING_POTION_PER_CYCLE") return ECategory.STRENGTH_POTION_PER_CYCLE;
+                if (System.Enum.TryParse<ECategory>(s, out var value)) return value;
+                throw new System.Text.Json.JsonException($"Unknown Modifier.ECategory value '{s}'.");
+            }
         }
 
         public Modifier(ECategory category, string subCategory, EType type, double value)

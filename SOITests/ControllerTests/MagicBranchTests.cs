@@ -30,7 +30,7 @@ namespace SOITests.ControllerTests
             Assert.Contains(alchimistHut.Modifiers, m =>
                 m.Category == ECategory.BUILDING_MAX_LEVEL && m.SubCategory == "AlchimistHut");
             Assert.Contains(alchimistHut.Modifiers, m =>
-                m.Category == ECategory.UNLOCK_HEALING_POTION);
+                m.Category == ECategory.UNLOCK_STRENGTH_POTION);
 
             var autoBuy = map.GetVertex(PrestigeMap.AutoBuyVertex);
             Assert.NotNull(autoBuy);

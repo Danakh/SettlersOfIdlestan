@@ -255,7 +255,7 @@ public class Civilization
 
     /// <summary>
     /// Matériel d'Expédition (CONSUMABLE_RESERVE_FRACTION) : sous la fraction sanctuarisée de son stock
-    /// maximum, un consommable (Arme/Armure en Acier, Potion de Soin) n'est plus dépensable ailleurs
+    /// maximum, un consommable (Arme/Armure en Acier, Potion de Force) n'est plus dépensable ailleurs
     /// que dans le plan le plus profond atteint — la réserve est gardée pour l'expédition la plus
     /// avancée. Sans le vertex acheté, ou pour une ressource qui n'est pas un consommable, la réponse
     /// est toujours vraie.

@@ -368,7 +368,7 @@ namespace SettlersOfIdlestan.Controller.Expand
                 case Resource.SteelArmor:
                     return playerCiv.Cities.SelectMany(c => c.Buildings.OfType<ArmorSmith>())
                         .Any(b => b.Level >= 1 && b.ActivationStatus == ActivationStatus.ACTIVE);
-                case Resource.HealingPotion:
+                case Resource.StrengthPotion:
                     return playerCiv.Cities.SelectMany(c => c.Buildings.OfType<AlchimistHut>())
                         .Any(b => b.Level >= 1 && b.ActivationStatus == ActivationStatus.ACTIVE);
                 case Resource.Crystal:

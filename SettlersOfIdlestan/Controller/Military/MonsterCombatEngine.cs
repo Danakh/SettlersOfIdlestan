@@ -34,7 +34,8 @@ internal class MonsterCombatEngine
 
     /// <summary>
     /// Dégâts d'une attaque de soldat avant réduction d'armure : 1 de base, majoré par
-    /// SOLDIER_ATTACK_DAMAGE (Bras de Dieu), plus 1 si une Arme en Acier est consommée.
+    /// SOLDIER_ATTACK_DAMAGE (Bras de Dieu), plus 1 si une Arme en Acier est consommée et plus 1 si
+    /// la Potion de Force bue fait mouche (voir StrengthPotionEngine).
     /// </summary>
     private static int SoldierDamage(Civilization civ)
         => civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_ATTACK_DAMAGE, "", 1);
@@ -49,8 +50,8 @@ internal class MonsterCombatEngine
 
     /// <summary>
     /// Salve d'au plus <paramref name="soldierCount"/> soldats de <paramref name="vertex"/> contre
-    /// <paramref name="monster"/> : consomme une Arme en Acier par soldat engagé, applique les dégâts,
-    /// puis retire les soldats perdus (une Armure d'Acier ou une Potion de Soin peut en sauver).
+    /// <paramref name="monster"/> : consomme une Arme en Acier et une Potion de Force par soldat engagé,
+    /// applique les dégâts, puis retire les soldats perdus (une Armure d'Acier peut en sauver).
     /// Point de passage unique des trois façons de frapper un monstre : corps-à-corps, tir à distance
     /// et Expédition Punitive.
     ///
@@ -62,8 +63,8 @@ internal class MonsterCombatEngine
     /// Retourne le nombre de soldats réellement engagés (0 si la salve n'a pas eu lieu).
     /// </summary>
     private int StrikeMonster(Civilization civ, IMilitaryVertex vertex, MonsterFeature monster,
-        int soldierCount, int soldierDamage, bool steelWeaponsUnlocked, bool poolArmor,
-        Action<IMilitaryVertex, Resource> onConsumed)
+        int soldierCount, int soldierDamage, bool steelWeaponsUnlocked, bool strengthPotionsUnlocked,
+        bool poolArmor, Action<IMilitaryVertex, Resource> onConsumed)
     {
         int available = Math.Min(soldierCount, vertex.Soldiers);
         if (available <= 0 || monster.Hp <= 0) return 0;
@@ -85,7 +86,10 @@ internal class MonsterCombatEngine
                 && civ.CanConsumeConsumable(Resource.SteelWeapon, vertex.Position.Z)
                 && civ.GetResourceQuantity(Resource.SteelWeapon) >= 1;
             if (hasSteelWeapon) civ.RemoveResource(Resource.SteelWeapon, 1);
-            int rawDamage = soldierDamage + (hasSteelWeapon ? 1 : 0);
+            // Potion de Force : bue à l'assaut, 50 % de chance d'ajouter 1 dégât. Offensif seulement —
+            // rien n'en est consommé quand un monstre frappe une ville (voir StrengthPotionEngine).
+            int potionDamage = StrengthPotionEngine.TryDrinkPotion(civ, vertex, strengthPotionsUnlocked, _prng!, onConsumed);
+            int rawDamage = soldierDamage + (hasSteelWeapon ? 1 : 0) + potionDamage;
             engaged++;
 
             if (poolArmor) pooledRaw += rawDamage;
@@ -137,7 +141,7 @@ internal class MonsterCombatEngine
         if (monster.AttacksOtherMonsters) return false; // monstres "amis" (ex. Aventurier) : jamais ciblés par les soldats
 
         // Délégué construit une fois par appel, hors des boucles : il ne capture plus que le rappel
-        // reçu en paramètre, l'emplacement lui étant transmis par TrySaveSoldiers.
+        // reçu en paramètre, l'emplacement lui étant transmis par les moteurs de consommables.
         Action<IMilitaryVertex, Resource> onConsumed =
             (v, res) => onConsumableConsumed(new ConsumableConsumedEventArgs(v.Position, res));
 
@@ -157,6 +161,7 @@ internal class MonsterCombatEngine
             if (currentTick - monster.LastAttackedByMilitaryTick < combatInterval) continue;
 
             bool steelWeaponsUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS);
+            bool strengthPotionsUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STRENGTH_POTION);
             // Comme l'intervalle de combat : agrégé une fois par civilisation, pas par emplacement.
             int soldierDamage = SoldierDamage(civ);
             int salvoSize = SimultaneousAttackSoldiers(civ);
@@ -176,7 +181,7 @@ internal class MonsterCombatEngine
                 if (!vertex.Position.IsAdjacentTo(monster.Position)) continue;
 
                 int engaged = StrikeMonster(civ, vertex, monster, salvoSize, soldierDamage,
-                    steelWeaponsUnlocked, poolArmor: salvoSize > 1, onConsumed);
+                    steelWeaponsUnlocked, strengthPotionsUnlocked, poolArmor: salvoSize > 1, onConsumed);
                 if (engaged == 0) continue;
 
                 vertex.LastAttackTick = currentTick;
@@ -265,6 +270,7 @@ internal class MonsterCombatEngine
                 int salvoSize = SimultaneousAttackSoldiers(civ);
                 int engaged = StrikeMonster(civ, vertex, monster, salvoSize, SoldierDamage(civ),
                     civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS),
+                    civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STRENGTH_POTION),
                     poolArmor: salvoSize > 1, onConsumed);
                 if (engaged == 0) continue;
 
@@ -313,6 +319,7 @@ internal class MonsterCombatEngine
         int salvoSize = SimultaneousAttackSoldiers(civ);
         int engaged = StrikeMonster(civ, vertex, monster, soldiers, SoldierDamage(civ),
             civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS),
+            civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STRENGTH_POTION),
             poolArmor: salvoSize > 1,
             (v, res) => onConsumableConsumed(new ConsumableConsumedEventArgs(v.Position, res)));
         if (engaged == 0) return;

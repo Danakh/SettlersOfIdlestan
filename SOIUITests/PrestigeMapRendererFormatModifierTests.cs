@@ -31,14 +31,14 @@ public class PrestigeMapRendererFormatModifierTests
     /// <summary>
     /// Catégories que l'appelant écarte avant d'atteindre FormatModifier, parce qu'il les rend
     /// lui-même sur une ligne dédiée — voir PrestigeMapRenderer (bâtiments de départ / de nouvelle
-    /// ville, recherche débloquée, Potion de Soin).
+    /// ville, recherche débloquée, Potion de Force).
     /// </summary>
     private static readonly HashSet<Modifier.ECategory> HandledByTheCallerInstead = new()
     {
         Modifier.ECategory.STARTING_CITY_BUILDING,
         Modifier.ECategory.NEW_CITY_BUILDING,
         Modifier.ECategory.UNLOCK_RESEARCH,
-        Modifier.ECategory.UNLOCK_HEALING_POTION,
+        Modifier.ECategory.UNLOCK_STRENGTH_POTION,
     };
 
     /// <summary>Tous les modificateurs affichés par les infobulles de la carte de prestige.</summary>

@@ -589,7 +589,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
             m.Category != Modifier.ECategory.STARTING_CITY_BUILDING &&
             m.Category != Modifier.ECategory.NEW_CITY_BUILDING &&
             m.Category != Modifier.ECategory.UNLOCK_RESEARCH &&
-            m.Category != Modifier.ECategory.UNLOCK_HEALING_POTION))
+            m.Category != Modifier.ECategory.UNLOCK_STRENGTH_POTION))
             lines.Add(FormatModifier(mod, _localization));
 
         foreach (var mod in vertex.Modifiers.Where(m => m.Category == Modifier.ECategory.UNLOCK_RESEARCH))
@@ -791,7 +791,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.UNLOCK_AUTO_MARKET_TRADE         => localization.Get("prestige_tooltip_unlocks_auto_market_trade"),
         Modifier.ECategory.UNLOCK_AUTO_BUY_TRADE            => localization.Get("prestige_tooltip_unlocks_auto_buy_trade"),
         Modifier.ECategory.UNLOCK_MARKET_SPECIALIZATION     => localization.Get("prestige_tooltip_unlocks_market_specialization"),
-        Modifier.ECategory.UNLOCK_HEALING_POTION            => localization.Get("prestige_tooltip_unlocks_healing_potion"),
+        Modifier.ECategory.UNLOCK_STRENGTH_POTION            => localization.Get("prestige_tooltip_unlocks_strength_potion"),
         Modifier.ECategory.SPELL_COST_REDUCTION             => mod.SubCategory == ""
             ? $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_spell_cost_all")}"
             : $"-{(int)(mod.Value * 100)}% {localization.Get("prestige_tooltip_spell_cost")} — {localization.Get($"spell_{mod.SubCategory.ToLower()}_name")}",
@@ -843,7 +843,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         // n'est qu'un coefficient, l'infobulle décrit donc la règle plutôt qu'un nombre.
         Modifier.ECategory.RESEARCH_SPEED_PER_UNIQUE_BUILDING_SQUARED
                                                              => localization.Get("prestige_tooltip_research_speed_per_unique_building_squared"),
-        Modifier.ECategory.HEALING_POTION_PER_CYCLE          => localization.Get("prestige_tooltip_healing_potion_per_cycle"),
+        Modifier.ECategory.STRENGTH_POTION_PER_CYCLE          => localization.Get("prestige_tooltip_strength_potion_per_cycle"),
         Modifier.ECategory.CRYSTAL_GENERATION_PER_LABORATORY => $"+{mod.Value:0.#} {localization.Get("prestige_tooltip_crystal_generation_per_laboratory")}",
         Modifier.ECategory.SMITH_DOUBLE_PROD_CHANCE_PERCENT  => $"+{(int)mod.Value}% {localization.Get("prestige_tooltip_smith_double_prod_chance")}",
         Modifier.ECategory.AUTO_CAMP_ON_CONQUEST             => localization.Get("prestige_tooltip_auto_camp_on_conquest"),

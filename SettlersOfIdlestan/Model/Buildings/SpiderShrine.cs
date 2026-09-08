@@ -15,7 +15,7 @@ namespace SettlersOfIdlestan.Model.Buildings;
 /// Fermes fongiques sur les Cavernes aux Champignons, en augmentant de 1 les dégâts d'attaque de
 /// l'Aventurier et en ouvrant la construction des Huttes d'Alchimie au bord des Cavernes aux
 /// Champignons (UNLOCK_ALCHIMIST_HUT_MUSHROOM_CAVE) : elles n'y récoltent aucun cristal — seuls les
-/// Cercles de Fées en donnent — mais y produisent des Potions de Soin. La hutte reste par ailleurs
+/// Cercles de Fées en donnent — mais y produisent des Potions de Force. La hutte reste par ailleurs
 /// verrouillée tant que le vertex de prestige Hutte d'Alchimie n'en relève pas le niveau maximum.
 /// Souterrain uniquement, comme la Guilde des Aventuriers. Niveau max par défaut 0 :
 /// constructible uniquement quand la race Elfes noirs fournit son BUILDING_MAX_LEVEL +1.

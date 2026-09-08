@@ -9,21 +9,20 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Controller.Military;
 
 /// <summary>
-/// Armures d'Acier et Potions de Soin : quand un soldat devrait mourir (attaque ou défense), consomme
-/// 1 ArmureAcier ou 1 PotionDeSoin et a une chance de le sauver pour chacune. Les Armures d'Acier
-/// donnent <see cref="Arsenal.ArmorSaveBasePercent"/> % de base, augmenté de <see cref="Arsenal.ArmorSavePercentPerLevel"/> %
-/// par niveau d'Arsenal dans cette ville. Les chances sont sommées avant le tirage.
-/// Nécessite les recherches/bâtiments correspondants (Armures d'Acier, Hutte d'Alchimie) et le consommable en stock.
+/// Armures d'Acier : quand un soldat devrait mourir (attaque ou défense), consomme 1 ArmureAcier et a
+/// une chance de le sauver. Elles donnent <see cref="Arsenal.ArmorSaveBasePercent"/> % de base, augmenté
+/// de <see cref="Arsenal.ArmorSavePercentPerLevel"/> % par niveau d'Arsenal dans cette ville.
+/// Nécessite la recherche Armures en Acier et le consommable en stock.
+/// La Potion de Force ne sauve aucun soldat : elle ajoute des dégâts en attaque
+/// (voir <see cref="StrengthPotionEngine"/>).
 /// </summary>
 internal static class SteelArmorEngine
 {
-    private const int HealingPotionSaveChancePercent = 50;
-
     /// <summary>
     /// Tente de sauver jusqu'à <paramref name="losses"/> soldats.
-    /// Chaque sauvetage consomme 1 ArmureAcier ou 1 PotionDeSoin. Retourne le nombre de soldats sauvés.
-    /// <paramref name="onConsumableConsumed"/> est appelé pour chaque consommable réellement détruit
-    /// (armure ou potion), afin de permettre l'affichage d'une particule côté rendu.
+    /// Chaque sauvetage consomme 1 ArmureAcier. Retourne le nombre de soldats sauvés.
+    /// <paramref name="onConsumableConsumed"/> est appelé pour chaque armure réellement détruite,
+    /// afin de permettre l'affichage d'une particule côté rendu.
     /// </summary>
     /// <param name="onConsumableConsumed">
     /// Reçoit l'emplacement concerné en plus de la ressource, précisément pour que l'appelant n'ait
@@ -37,9 +36,7 @@ internal static class SteelArmorEngine
     {
         if (civ == null || losses <= 0) return 0;
 
-        bool hasSteelArmor = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_ARMOR);
-        bool hasHealingPotion = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_HEALING_POTION);
-        if (!hasSteelArmor && !hasHealingPotion) return 0;
+        if (!civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_ARMOR)) return 0;
 
         // Une Flotte de Guerre n'a pas de bâtiments (voir WarFleet) — pas de bonus d'Arsenal pour elle.
         int arsenalLevel = vertex is City city ? (city.FindBuilding(BuildingType.Arsenal)?.Level ?? 0) : 0;
@@ -54,24 +51,12 @@ internal static class SteelArmorEngine
         int saved = 0;
         for (int i = 0; i < losses; i++)
         {
-            bool steelArmorAvailable = hasSteelArmor && civ.CanConsumeConsumable(Resource.SteelArmor, z) && civ.GetResourceQuantity(Resource.SteelArmor) >= 1;
-            bool healingPotionAvailable = hasHealingPotion && civ.CanConsumeConsumable(Resource.HealingPotion, z) && civ.GetResourceQuantity(Resource.HealingPotion) >= 1;
-            if (!steelArmorAvailable && !healingPotionAvailable) break;
+            if (!civ.CanConsumeConsumable(Resource.SteelArmor, z) || civ.GetResourceQuantity(Resource.SteelArmor) < 1) break;
 
-            int steelArmorChance = steelArmorAvailable ? steelArmorSaveChancePercent : 0;
-            int healingPotionChance = healingPotionAvailable ? HealingPotionSaveChancePercent : 0;
-
-            int roll = prng.Next(100);
-            if (roll < steelArmorChance)
+            if (prng.Next(100) < steelArmorSaveChancePercent)
             {
                 civ.RemoveResource(Resource.SteelArmor, 1);
                 onConsumableConsumed?.Invoke(vertex, Resource.SteelArmor);
-                saved++;
-            }
-            else if (roll < steelArmorChance + healingPotionChance)
-            {
-                civ.RemoveResource(Resource.HealingPotion, 1);
-                onConsumableConsumed?.Invoke(vertex, Resource.HealingPotion);
                 saved++;
             }
         }

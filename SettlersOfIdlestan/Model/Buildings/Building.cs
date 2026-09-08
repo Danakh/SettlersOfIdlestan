@@ -152,7 +152,7 @@ public enum BuildingType
     /// </summary>
     WarRoom,
     /// <summary>
-    /// Hutte d'Alchimie - Permet de récolter les cristaux des Cercles de Fées adjacents et produit des Potions de Soin. Ne peut être construite qu'adjacente à un Cercle de Fées découvert. Débloquée par le prestige (Hutte d'Alchimie).
+    /// Hutte d'Alchimie - Permet de récolter les cristaux des Cercles de Fées adjacents et produit des Potions de Force. Ne peut être construite qu'adjacente à un Cercle de Fées découvert. Débloquée par le prestige (Hutte d'Alchimie).
     /// </summary>
     AlchimistHut,
     /// <summary>

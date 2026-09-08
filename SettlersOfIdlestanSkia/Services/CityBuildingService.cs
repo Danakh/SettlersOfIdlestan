@@ -302,7 +302,7 @@ public class CityBuildingService
         return HarvestController.GetArmorSmithInterval(SelectedCivilization, atLevel ?? smith?.Level ?? 1);
     }
 
-    /// <summary>Cooldown effectif de production de Potions de Soin de la Hutte d'Alchimie de la ville sélectionnée.</summary>
+    /// <summary>Cooldown effectif de production de Potions de Force de la Hutte d'Alchimie de la ville sélectionnée.</summary>
     public long GetAlchimistHutPotionCooldown(int? atLevel = null)
     {
         var hut = SelectedCity?.Buildings.OfType<AlchimistHut>().FirstOrDefault();

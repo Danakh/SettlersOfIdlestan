@@ -24,7 +24,7 @@ public class PlayerResourcesOverlayRenderer
     {
         { Resource.SteelWeapon, Modifier.ECategory.UNLOCK_STEEL_WEAPONS },
         { Resource.SteelArmor, Modifier.ECategory.UNLOCK_STEEL_ARMOR },
-        { Resource.HealingPotion, Modifier.ECategory.UNLOCK_HEALING_POTION },
+        { Resource.StrengthPotion, Modifier.ECategory.UNLOCK_STRENGTH_POTION },
     };
 
     /// Ecrit depuis l'evenement LowStock de la civilisation, lu pendant la construction de

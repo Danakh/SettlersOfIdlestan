@@ -47,7 +47,7 @@ public class ReinforcementEventArgs(Vertex sourceCity, Vertex targetCity, List<V
 }
 
 /// <summary>
-/// Un consommable (Armure d'Acier, Potion de Soin) a été détruit pour sauver un soldat lors d'un
+/// Un consommable (Armure d'Acier pour sauver un soldat, Potion de Force bue à l'assaut) a été détruit lors d'un
 /// combat — attaque de joueur/NPC (CityAttackEngine, MonsterCombatEngine) ou de monstre
 /// (MonsterFeatureController). Utilisé pour afficher une particule côté rendu.
 /// </summary>

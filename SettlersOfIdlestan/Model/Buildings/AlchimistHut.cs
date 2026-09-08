@@ -7,12 +7,12 @@ namespace SettlersOfIdlestan.Model.Buildings;
 /// <summary>
 /// Hutte d'Alchimie — récolte automatiquement les cristaux des Cercles de Fées adjacents
 /// (comportement aligné sur les bâtiments de production : cooldown de base 20s, réduit avec le
-/// niveau, modificateur HARVEST_SPEED applicable) et produit des Potions de Soin (consommable).
+/// niveau, modificateur HARVEST_SPEED applicable) et produit des Potions de Force (consommable offensif).
 /// Ne peut être construite qu'adjacente à un Cercle de Fées découvert — ou, avec
 /// UNLOCK_ALCHIMIST_HUT_MUSHROOM_CAVE (Sanctuaire de l'Araignée des Elfes noirs), au bord d'une
 /// Caverne aux Champignons ; celles-là ne récoltent aucun cristal (les cristaux viennent des seuls
 /// Cercles de Fées, voir AlchimistHutProductionEngine.TickFairyCircleCrystals) mais produisent des
-/// Potions de Soin comme les autres.
+/// Potions de Force comme les autres.
 /// Verrouillée par défaut ; débloquée par le vertex de prestige Hutte d'Alchimie.
 /// </summary>
 public class AlchimistHut : Building
@@ -23,13 +23,13 @@ public class AlchimistHut : Building
     /// <summary>Dernier tick où la hutte a récolté des cristaux des Cercles de Fées adjacents.</summary>
     public long LastCrystalProductionTick { get; set; } = 0;
 
-    /// <summary>Dernier tick où la hutte a produit une Potion de Soin.</summary>
+    /// <summary>Dernier tick où la hutte a produit une Potion de Force.</summary>
     public long LastPotionProductionTick { get; set; } = 0;
 
-    /// <summary>Verre consommé par Potion de Soin produite.</summary>
+    /// <summary>Verre consommé par Potion de Force produite.</summary>
     public const int GlassInputPerPotion = 1;
 
-    /// <summary>Cristal consommé par Potion de Soin produite.</summary>
+    /// <summary>Cristal consommé par Potion de Force produite.</summary>
     public const int CrystalInputPerPotion = 1;
 
     public AlchimistHut() : base(BuildingType.AlchimistHut)
