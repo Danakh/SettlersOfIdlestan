@@ -120,8 +120,8 @@ public abstract class MonsterFeature : IslandFeature
     /// Opt-in : ce monstre frappe à distance au lieu de se jeter sur sa cible. Deux conséquences,
     /// l'une de règle et l'autre d'affichage :
     /// <list type="bullet">
-    /// <item>il ne s'expose pas à la riposte de l'Expédition Punitive (voir
-    /// MonsterFeatureController.ApplyMonsterAttack) — il frappe de loin, il n'y a rien à contre-attaquer ;</item>
+    /// <item>il ne rend pas les coups quand un autre monstre le prend pour cible (voir
+    /// MonsterFeatureController.StrikeMonsterTarget) — il frappe de loin, on ne l'atteint pas ;</item>
     /// <item>son icône ne bouge pas pendant l'attaque : le tir est représenté par une boule de feu
     /// lancée vers la cible (voir MonsterRenderer).</item>
     /// </list>

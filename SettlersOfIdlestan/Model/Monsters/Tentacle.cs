@@ -51,7 +51,7 @@ public class Tentacle : MonsterFeature
     public override int AttackDamage => 7 + MajorDemon.MajorDemonAttackDamagePerLevel * (Level - 1);
     public override int AttackResources => 10;
 
-    /// <summary>Frappe à distance : ne subit pas la riposte de l'Expédition Punitive et lance une boule de feu au lieu de se jeter sur la ville.</summary>
+    /// <summary>Frappe à distance : ne rend pas les coups aux autres monstres et lance une boule de feu au lieu de se jeter sur la ville.</summary>
     public override bool HasRangedAttack => true;
 
     /// <summary>Coups de la salve concentrée, un intervalle d'attaque sur deux (voir AlternatesAttackPatterns).</summary>

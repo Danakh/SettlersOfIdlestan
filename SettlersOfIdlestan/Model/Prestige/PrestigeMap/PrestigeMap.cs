@@ -138,7 +138,7 @@ public class PrestigeMap
     // le coin opposé de l'hex et n'est atteignable qu'après eux (100M, terminus de la branche).
     // Conquête Planaire (5,-2) — militaire
     public static readonly Vertex MobileLogisticsVertex    = Vertex.Create(new( 5, -2, 0), new( 5, -1, 0), new( 6, -2, 0));
-    public static readonly Vertex PunitiveExpeditionVertex = Vertex.Create(new( 5, -2, 0), new( 5, -3, 0), new( 6, -3, 0));
+    public static readonly Vertex DemonWardVertex          = Vertex.Create(new( 5, -2, 0), new( 5, -3, 0), new( 6, -3, 0));
     public static readonly Vertex PhalanxVertex            = Vertex.Create(new( 5, -2, 0), new( 6, -3, 0), new( 6, -2, 0));
     // Puissance Abyssale (-2,5) — magie
     public static readonly Vertex AdvancedAlchemyVertex    = Vertex.Create(new(-2,  5, 0), new(-3,  5, 0), new(-3,  6, 0));

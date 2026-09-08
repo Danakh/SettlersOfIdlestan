@@ -166,7 +166,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     }
 
     /// <summary>
-    /// Une particule par soldat engagé dans l'attaque (Phalange, Expédition Punitive — voir
+    /// Une particule par soldat engagé dans l'attaque (Phalange — voir
     /// SoldierAttackEventArgs.SoldierCount) : sans écartement elles se superposeraient exactement et la
     /// salve se lirait comme une attaque unique. Les points de contrôle sont répartis en largeur par
     /// rapport à l'axe départ→cible, exactement comme les particules de récolte

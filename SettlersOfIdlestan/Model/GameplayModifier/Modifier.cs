@@ -343,8 +343,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             DEEP_LAYER_CITY_MAX_SOLDIERS_BONUS,
             /// <summary>Nombre de routes gratuites bâties autour d'un Camp Mobile posé gratuitement (Architecte de Guerre, voir MobileCampController.PlaceFreeMobileCamp) ; sa seule présence fait aussi protéger par tout Camp Mobile les routes qui le touchent, comme une ville protège les siennes à distance 2 (voir RoadController.IsRoadProtectedFromConquest). Base = 0. SubCategory unused. Accordé par le vertex de prestige Logistique Mobile.</summary>
             MOBILE_CAMP_FREE_ROADS,
-            /// <summary>Fraction des soldats présents qui contre-attaquent immédiatement le monstre qui vient de frapper leur emplacement, s'il est à portée (voir MonsterCombatEngine.ResolvePunitiveExpedition). Base = 0.0 ; 0.1 = 10% des soldats, arrondi au supérieur. SubCategory unused. Accordé par le vertex de prestige Expédition Punitive.</summary>
-            PUNITIVE_EXPEDITION_RATIO,
+            /// <summary>Réduction fixe (en points) appliquée aux dégâts de toute attaque de monstre, quelle que soit la cible — ville, Flotte de Guerre ou Camp Mobile (plancher 0, voir MonsterFeatureController.ApplyMonsterAttack). S'ajoute à MONSTER_DAMAGE_REDUCTION_ON_CITIES, qui lui ne couvre que les villes. Base = 0 ; 1 = -1 dégât par attaque. SubCategory unused. Accordé par le vertex de prestige Protection contre les Démons.</summary>
+            MONSTER_DAMAGE_REDUCTION,
             /// <summary>Nombre de soldats engagés simultanément dans une même attaque, contre un monstre comme contre une ville (voir MonsterCombatEngine.StrikeMonster, CityAttackEngine). Contre un monstre, la réduction d'armure ne s'applique alors qu'une fois sur les dégâts cumulés de la salve au lieu d'une fois par soldat. Base = 1 ; REPLACER 5 (Phalange). SubCategory unused. Accordé par le vertex de prestige Phalange.</summary>
             SIMULTANEOUS_ATTACK_SOLDIERS,
             /// <summary>Bonus additif de vitesse de récolte accordé <b>par heure passée dans le plan</b> où se

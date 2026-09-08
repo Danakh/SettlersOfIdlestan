@@ -952,11 +952,15 @@ public class MonsterFeatureController
         // ── Dégâts en cascade ────────────────────────────────────────────────
         int damage = monster.AttackDamage;
 
-        // Sanctuaire de l'Araignée (Elfes noirs, MONSTER_DAMAGE_REDUCTION_ON_CITIES) : réduit les
-        // dégâts de toute attaque de monstre visant une ville, avant répartition sur la cascade.
-        if (damage > 0 && target is City)
+        // Réductions de dégâts, avant répartition sur la cascade : Protection contre les Démons
+        // (vertex de prestige, MONSTER_DAMAGE_REDUCTION) sur toutes les cibles, Sanctuaire de
+        // l'Araignée (Elfes noirs, MONSTER_DAMAGE_REDUCTION_ON_CITIES) sur les seules villes. Les
+        // deux s'additionnent.
+        if (damage > 0)
         {
-            int reduction = civ.ModifierAggregator.ApplyModifiers(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, "", 0);
+            int reduction = civ.ModifierAggregator.ApplyModifiers(ECategory.MONSTER_DAMAGE_REDUCTION, "", 0);
+            if (target is City)
+                reduction += civ.ModifierAggregator.ApplyModifiers(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, "", 0);
             damage = Math.Max(0, damage - reduction);
         }
 
@@ -1051,13 +1055,6 @@ public class MonsterFeatureController
             monster.LastAttackTargetVertex = null;
             monster.LastAttackResourcesString = null;
         }
-
-        // Riposte de l'Expédition Punitive, une fois l'attaque entièrement résolue : le monstre peut y
-        // mourir et être retiré du monde, ce qui interdit d'en faire quoi que ce soit ensuite ici. Les
-        // chemins où la cible est détruite sortent plus haut — il n'y a alors plus personne pour riposter.
-        // Un tireur (HasRangedAttack) reste hors d'atteinte : rien à contre-attaquer.
-        if (!monster.HasRangedAttack)
-            _militaryController?.ResolvePunitiveExpedition(target, monster);
 
         return didSomething ? MonsterAttackOutcome.Hit : MonsterAttackOutcome.NoEffect;
     }

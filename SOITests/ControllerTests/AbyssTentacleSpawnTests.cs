@@ -133,7 +133,7 @@ namespace SOITests.ControllerTests
             Assert.False(tentacle.CanMove);
 
             // Contrepartie de l'immobilité : elle frappe un anneau plus loin que le démon, et à
-            // distance — donc sans s'exposer à la riposte de l'Expédition Punitive.
+            // distance — donc sans rendre les coups à ce qu'elle vise.
             Assert.Equal(demon.AttackRangeInHexes + 1, tentacle.AttackRangeInHexes);
             Assert.False(demon.HasRangedAttack);
             Assert.True(tentacle.HasRangedAttack);

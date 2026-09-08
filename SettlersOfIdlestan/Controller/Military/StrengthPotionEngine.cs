@@ -12,7 +12,7 @@ namespace SettlersOfIdlestan.Controller.Military;
 /// consommation, exactement comme l'Arme en Acier consomme toujours son acier.
 ///
 /// <para>Seules les attaques menées par la civilisation en profitent : monstres frappés au
-/// corps-à-corps, au tir à distance ou en Expédition Punitive (voir <see cref="MonsterCombatEngine"/>),
+/// corps-à-corps ou au tir à distance (voir <see cref="MonsterCombatEngine"/>),
 /// et attaques de ville (voir <see cref="CityAttackEngine"/>). Rien n'est consommé en défense : quand
 /// un monstre frappe une ville, les soldats se défendent sans potion.</para>
 /// </summary>

@@ -16,7 +16,7 @@ namespace SOITests.MilitaryTests;
 
 /// <summary>
 /// Prolongement militaire des Abysses sur la carte de prestige : hex Conquête Planaire et vertex
-/// Logistique Mobile, Expédition Punitive et Phalange.
+/// Logistique Mobile, Protection contre les Démons et Phalange.
 ///
 /// Géométrie commune aux combats : ville au vertex (Center, NE, NW), monstre sur Center — les trois
 /// hexes sont mutuellement adjacents, la ville est donc au corps-à-corps du monstre.
@@ -225,7 +225,7 @@ public class PlanarConquestBranchTests
         Assert.False(roads.IsRoadProtectedFromConquest(far, civ));
     }
 
-    // ── Combats : Phalange et Expédition Punitive ──────────────────────────────────────────
+    // ── Combats : Phalange ─────────────────────────────────────────────────────────────────
 
     private static (WorldState state, GameClock clock, MilitaryController ctrl, Civilization civ, City city)
         CombatSetup(int soldiers, MonsterFeature monster, params Modifier[] modifiers)
@@ -369,98 +369,15 @@ public class PlanarConquestBranchTests
         Assert.Equal(5, args!.SoldierCount);
     }
 
-    // ── Expédition Punitive ────────────────────────────────────────────────────────────────
+    // ── Protection contre les Démons ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Même géométrie que <see cref="CombatSetup"/>, plus le contrôleur de monstres qui fait
-    /// réellement attaquer le bandit. <c>LastAttackTick</c> de la ville est placé loin dans le futur
-    /// pour neutraliser le corps-à-corps automatique (cooldown non écoulé) : seule la riposte de
-    /// l'Expédition Punitive peut alors toucher le monstre.
+    /// Ville de la civ 0 au vertex (Center, NE, NW) et bandit de niveau 2 sur Center — 2 dégâts par
+    /// attaque. <c>LastAttackTick</c> de la ville est placé loin dans le futur pour neutraliser son
+    /// corps-à-corps automatique (cooldown non écoulé) : sa garnison ne perd alors de soldats que
+    /// sous les coups du bandit, jamais en attaquant.
     /// </summary>
-    private static (WorldState state, GameClock clock, City city, Bandit bandit)
-        PunitiveSetup(double ratio, int soldiers = 20)
-    {
-        var map = new IslandMap(new HexTile[]
-        {
-            new(Center, TerrainType.Plain),
-            new(NE, TerrainType.Plain),
-            new(NW, TerrainType.Plain),
-        });
-
-        var civ = new Civilization { Index = 0 };
-        var city = new City(Vertex.Create(Center, NE, NW))
-        {
-            CivilizationIndex = 0,
-            Soldiers = soldiers,
-            LastAttackTick = long.MaxValue / 2,
-        };
-        // Hôtel de ville obligatoire : sans lui la ville est réputée détruite dès la première attaque,
-        // et une ville détruite n'a personne pour riposter (voir ApplyMonsterAttack).
-        city.AddBuilding(new TownHall { Level = 5 });
-        civ.AddCity(city);
-        if (ratio > 0)
-            Grant(civ, new Modifier(ECategory.PUNITIVE_EXPEDITION_RATIO, EType.ADDITIVE, ratio));
-
-        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-        // Niveau 2 : 2 dégâts par attaque (un bandit de niveau 1 ne fait que voler des ressources).
-        var bandit = new Bandit(Center, long.MaxValue / 2, level: 2) { Found = true };
-        state.AddFeature(bandit);
-
-        var clock = new GameClock();
-        clock.Start();
-        var ctrl = new MilitaryController();
-        ctrl.Initialize(state, clock, prng: new GamePRNG());
-        var monsters = new MonsterFeatureController();
-        monsters.Initialize(state, clock, new GamePRNG(), militaryController: ctrl);
-
-        return (state, clock, city, bandit);
-    }
-
-    [Fact]
-    public void PunitiveExpedition_CounterAttacksTheMonsterThatJustStruck()
-    {
-        var (_, clock, city, bandit) = PunitiveSetup(ratio: 0.1);
-        int initialHp = bandit.Hp;
-
-        clock.SimulateAdvance(Bandit.RaidIntervalTicks);
-
-        // 2 soldats tués par le bandit (20 → 18), puis 10% de 18 = 2 soldats à la riposte.
-        Assert.Equal(16, city.Soldiers);
-        Assert.Equal(initialHp - 2, bandit.Hp);
-    }
-
-    [Fact]
-    public void WithoutPunitiveExpedition_TheMonsterIsNotCounterAttacked()
-    {
-        var (_, clock, city, bandit) = PunitiveSetup(ratio: 0);
-        int initialHp = bandit.Hp;
-
-        clock.SimulateAdvance(Bandit.RaidIntervalTicks);
-
-        Assert.Equal(18, city.Soldiers);
-        Assert.Equal(initialHp, bandit.Hp);
-    }
-
-    [Fact]
-    public void PunitiveExpedition_RoundsUpToOneSoldier_OnSmallGarrisons()
-    {
-        var (_, clock, city, bandit) = PunitiveSetup(ratio: 0.1, soldiers: 5);
-        int initialHp = bandit.Hp;
-
-        clock.SimulateAdvance(Bandit.RaidIntervalTicks);
-
-        // 5 - 2 (attaque) = 3 soldats, dont ceil(0.3) = 1 riposte.
-        Assert.Equal(2, city.Soldiers);
-        Assert.Equal(initialHp - 1, bandit.Hp);
-    }
-
-    /// <summary>
-    /// Un monstre qui frappe à distance (<see cref="MonsterFeature.HasRangedAttack"/>) ne s'expose pas
-    /// à la riposte, même posé sur un hex de la ville : il n'est pas au contact, il n'y a rien à
-    /// contre-attaquer.
-    /// </summary>
-    [Fact]
-    public void PunitiveExpedition_DoesNotCounterAttackARangedMonster()
+    private static (GameClock clock, City city) DemonWardSetup(params Modifier[] modifiers)
     {
         var map = new IslandMap(new HexTile[]
         {
@@ -476,14 +393,16 @@ public class PlanarConquestBranchTests
             Soldiers = 20,
             LastAttackTick = long.MaxValue / 2,
         };
+        // Hôtel de ville obligatoire : sans lui la ville est réputée détruite dès la première attaque.
         city.AddBuilding(new TownHall { Level = 5 });
         civ.AddCity(city);
-        Grant(civ, new Modifier(ECategory.PUNITIVE_EXPEDITION_RATIO, EType.ADDITIVE, 0.1));
+        if (modifiers.Length > 0)
+            Grant(civ, modifiers);
 
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-        var tentacle = new Tentacle(Center) { Found = true };
-        state.AddFeature(tentacle);
-        Assert.True(tentacle.HasRangedAttack);
+        // Niveau 2 : 2 dégâts par attaque (un bandit de niveau 1 ne fait que voler des ressources).
+        var bandit = new Bandit(Center, long.MaxValue / 2, level: 2) { Found = true };
+        state.AddFeature(bandit);
 
         var clock = new GameClock();
         clock.Start();
@@ -492,40 +411,85 @@ public class PlanarConquestBranchTests
         var monsters = new MonsterFeatureController();
         monsters.Initialize(state, clock, new GamePRNG(), militaryController: ctrl);
 
-        int initialHp = tentacle.Hp;
-        int damage = tentacle.AttackDamage;
-        clock.SimulateAdvance(tentacle.AttackIntervalTicks);
+        return (clock, city);
+    }
 
-        // La tentacule a bien frappé (AttackDamage soldats tués), mais rien ne lui a répondu.
-        Assert.Equal(20 - damage, city.Soldiers);
-        Assert.Equal(initialHp, tentacle.Hp);
+    [Fact]
+    public void DemonWard_ReducesEachMonsterAttackByOne()
+    {
+        var (clock, city) = DemonWardSetup(new Modifier(ECategory.MONSTER_DAMAGE_REDUCTION, EType.ADDITIVE, 1));
+
+        clock.SimulateAdvance(Bandit.RaidIntervalTicks);
+
+        // 2 dégâts ramenés à 1 : un seul soldat tombe.
+        Assert.Equal(19, city.Soldiers);
+    }
+
+    [Fact]
+    public void WithoutDemonWard_TheFullMonsterDamageGoesThrough()
+    {
+        var (clock, city) = DemonWardSetup();
+
+        clock.SimulateAdvance(Bandit.RaidIntervalTicks);
+
+        Assert.Equal(18, city.Soldiers);
+    }
+
+    /// <summary>Plancher à 0 : une attaque plus faible que la protection ne fait rien du tout.</summary>
+    [Fact]
+    public void DemonWard_NeverTurnsDamageIntoHealing()
+    {
+        var (clock, city) = DemonWardSetup(new Modifier(ECategory.MONSTER_DAMAGE_REDUCTION, EType.ADDITIVE, 5));
+
+        clock.SimulateAdvance(Bandit.RaidIntervalTicks);
+
+        Assert.Equal(20, city.Soldiers);
     }
 
     /// <summary>
-    /// « Si à portée » : un Dragon frappe à 2 hexes, distance à laquelle les soldats ne peuvent
-    /// répondre sans Surveillance ni Tour de guet (voir MonsterCombatEngine.GetAttackAvailability).
+    /// La réduction du Sanctuaire de l'Araignée (villes seulement) s'ajoute à celle du vertex : 2
+    /// points de réduction absorbent entièrement les 2 dégâts du bandit.
     /// </summary>
     [Fact]
-    public void PunitiveExpedition_DoesNothingWhenTheMonsterIsOutOfReach()
+    public void DemonWard_StacksWithTheSpiderShrineReduction()
     {
-        var far = new HexCoord(0, 2, IslandMap.SurfaceLayer);
+        var (clock, city) = DemonWardSetup(
+            new Modifier(ECategory.MONSTER_DAMAGE_REDUCTION, EType.ADDITIVE, 1),
+            new Modifier(ECategory.MONSTER_DAMAGE_REDUCTION_ON_CITIES, EType.ADDITIVE, 1));
+
+        clock.SimulateAdvance(Bandit.RaidIntervalTicks);
+
+        Assert.Equal(20, city.Soldiers);
+    }
+
+    /// <summary>
+    /// Contrairement au Sanctuaire de l'Araignée, la protection couvre tous les emplacements
+    /// militaires : ici un Camp Mobile, seule cible du bandit.
+    /// </summary>
+    [Fact]
+    public void DemonWard_AlsoProtectsAMobileCamp()
+    {
         var map = new IslandMap(new HexTile[]
         {
             new(Center, TerrainType.Plain),
             new(NE, TerrainType.Plain),
             new(NW, TerrainType.Plain),
-            new(far, TerrainType.Plain),
         });
 
         var civ = new Civilization { Index = 0 };
-        var city = new City(Vertex.Create(Center, NE, NW)) { CivilizationIndex = 0, Soldiers = 40 };
-        city.AddBuilding(new TownHall { Level = 5 });
-        civ.AddCity(city);
-        Grant(civ, new Modifier(ECategory.PUNITIVE_EXPEDITION_RATIO, EType.ADDITIVE, 0.1));
+        var camp = new MobileCamp(Vertex.Create(Center, NE, NW))
+        {
+            CivilizationIndex = 0,
+            Soldiers = 20,
+            CurrentDefense = 0,
+            LastAttackTick = long.MaxValue / 2,
+        };
+        civ.AddMobileCamp(camp);
+        Grant(civ, new Modifier(ECategory.MONSTER_DAMAGE_REDUCTION, EType.ADDITIVE, 1));
 
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-        var dragon = new Dragon(far) { Found = true };
-        state.AddFeature(dragon);
+        var bandit = new Bandit(Center, long.MaxValue / 2, level: 2) { Found = true };
+        state.AddFeature(bandit);
 
         var clock = new GameClock();
         clock.Start();
@@ -534,11 +498,8 @@ public class PlanarConquestBranchTests
         var monsters = new MonsterFeatureController();
         monsters.Initialize(state, clock, new GamePRNG(), militaryController: ctrl);
 
-        int initialHp = dragon.Hp;
-        clock.SimulateAdvance(Dragon.DragonAttackIntervalTicks);
+        clock.SimulateAdvance(Bandit.RaidIntervalTicks);
 
-        // Le dragon a bien frappé (5 dégâts, donc 5 soldats), mais rien ne lui a répondu.
-        Assert.Equal(35, city.Soldiers);
-        Assert.Equal(initialHp, dragon.Hp);
+        Assert.Equal(19, camp.Soldiers);
     }
 }

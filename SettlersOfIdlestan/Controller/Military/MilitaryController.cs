@@ -18,8 +18,8 @@ public class SoldierAttackEventArgs(Vertex cityVertex, HexCoord monsterPosition,
 
     /// <summary>
     /// Soldats engagés dans cette attaque — 1 sauf Phalange (voir
-    /// <see cref="Model.GameplayModifier.Modifier.ECategory.SIMULTANEOUS_ATTACK_SOLDIERS"/>) ou
-    /// Expédition Punitive. Le rendu émet une particule par soldat, décalées les unes des autres.
+    /// <see cref="Model.GameplayModifier.Modifier.ECategory.SIMULTANEOUS_ATTACK_SOLDIERS"/>).
+    /// Le rendu émet une particule par soldat, décalées les unes des autres.
     /// </summary>
     public int SoldierCount { get; } = soldierCount;
 }
@@ -331,17 +331,6 @@ public class MilitaryController
 
         return score;
     }
-
-    /// <summary>
-    /// Expédition Punitive : riposte immédiate des soldats de <paramref name="vertex"/> contre le
-    /// monstre qui vient de le frapper. Appelé par <see cref="MonsterFeatureController"/> une fois son
-    /// attaque entièrement résolue — voir <see cref="MonsterCombatEngine.ResolvePunitiveExpedition"/>
-    /// pour les conditions (modificateur acheté, monstre à portée, soldats présents).
-    /// </summary>
-    internal void ResolvePunitiveExpedition(IMilitaryVertex vertex, MonsterFeature monster)
-        => _monsterCombatEngine.ResolvePunitiveExpedition(vertex, monster,
-            args => SoldierAttackedMonster?.Invoke(this, args),
-            args => ConsumableConsumed?.Invoke(this, args));
 
     /// <summary>Distance effective en edges, après application des modificateurs de civilisation.</summary>
     public int CityAttackRange(Civilization civ)

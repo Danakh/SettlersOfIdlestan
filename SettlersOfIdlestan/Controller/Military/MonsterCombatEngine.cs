@@ -52,8 +52,7 @@ internal class MonsterCombatEngine
     /// Salve d'au plus <paramref name="soldierCount"/> soldats de <paramref name="vertex"/> contre
     /// <paramref name="monster"/> : consomme une Arme en Acier et une Potion de Force par soldat engagé,
     /// applique les dégâts, puis retire les soldats perdus (une Armure d'Acier peut en sauver).
-    /// Point de passage unique des trois façons de frapper un monstre : corps-à-corps, tir à distance
-    /// et Expédition Punitive.
+    /// Point de passage unique des deux façons de frapper un monstre : corps-à-corps et tir à distance.
     ///
     /// <para>Seuls les soldats nécessaires sont engagés : une Phalange ne doit pas coûter 5 soldats
     /// pour achever un bandit à 1 PV. Avec la Phalange (<paramref name="poolArmor"/>), la réduction
@@ -287,49 +286,6 @@ internal class MonsterCombatEngine
         {
             _state.RemoveFeature(m);
             _state.EventLog.Add(m.RemovedEventType);
-        }
-    }
-
-    // ── Expédition Punitive ─────────────────────────────────────────────────
-
-    /// <summary>
-    /// Expédition Punitive (PUNITIVE_EXPEDITION_RATIO) : une fraction des soldats présents sur
-    /// l'emplacement qui vient d'être frappé contre-attaque immédiatement le monstre responsable, si
-    /// celui-ci est à portée. Appelé par MonsterFeatureController à la fin de l'attaque du monstre,
-    /// hors de tout cooldown : c'est une riposte, pas un tour de combat de plus (le monstre ne peut
-    /// de toute façon frapper qu'à son propre intervalle d'attaque).
-    /// </summary>
-    internal void ResolvePunitiveExpedition(IMilitaryVertex vertex, MonsterFeature monster,
-        Action<SoldierAttackEventArgs> onSoldierAttackedMonster,
-        Action<ConsumableConsumedEventArgs> onConsumableConsumed)
-    {
-        if (_state == null || monster.Hp <= 0 || vertex.Soldiers <= 0) return;
-
-        var civ = _state.GetCivilization(vertex.CivilizationIndex);
-        if (civ == null) return;
-
-        double ratio = civ.ModifierAggregator.ApplyModifiers(ECategory.PUNITIVE_EXPEDITION_RATIO, "", 0.0);
-        if (ratio <= 0) return;
-        if (GetAttackAvailability(vertex, monster) != MonsterAttackAvailability.Available) return;
-
-        // Arrondi au supérieur : une garnison de moins de 10 soldats doit riposter d'un soldat plutôt
-        // que de ne rien faire du tout.
-        int soldiers = (int)Math.Ceiling(vertex.Soldiers * ratio);
-
-        int salvoSize = SimultaneousAttackSoldiers(civ);
-        int engaged = StrikeMonster(civ, vertex, monster, soldiers, SoldierDamage(civ),
-            civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STEEL_WEAPONS),
-            civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_STRENGTH_POTION),
-            poolArmor: salvoSize > 1,
-            (v, res) => onConsumableConsumed(new ConsumableConsumedEventArgs(v.Position, res)));
-        if (engaged == 0) return;
-
-        onSoldierAttackedMonster(new SoldierAttackEventArgs(vertex.Position, monster.Position, engaged));
-
-        if (monster.Hp <= 0)
-        {
-            _state.RemoveFeature(monster);
-            _state.EventLog.Add(monster.RemovedEventType);
         }
     }
 }

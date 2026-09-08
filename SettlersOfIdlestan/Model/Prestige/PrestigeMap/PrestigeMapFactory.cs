@@ -612,10 +612,12 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[] { new(ECategory.MOBILE_CAMP_FREE_ROADS, EType.ADDITIVE, 3) }
             ),
             new(
-                PrestigeMap.PunitiveExpeditionVertex,
-                "prestige_vertex_punitive_expedition",
-                cost: Cost(PrestigeMap.PunitiveExpeditionVertex),
-                modifiers: new Modifier[] { new(ECategory.PUNITIVE_EXPEDITION_RATIO, EType.ADDITIVE, 0.1) }
+                PrestigeMap.DemonWardVertex,
+                "prestige_vertex_demon_ward",
+                cost: Cost(PrestigeMap.DemonWardVertex),
+                // Pouvoir passif : -1 sur les dégâts de chaque attaque de monstre, sur toutes les
+                // cibles (voir MONSTER_DAMAGE_REDUCTION).
+                modifiers: new Modifier[] { new(ECategory.MONSTER_DAMAGE_REDUCTION, EType.ADDITIVE, 1) }
             ),
             new(
                 PrestigeMap.PhalanxVertex,
