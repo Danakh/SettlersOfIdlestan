@@ -836,14 +836,15 @@ public static class TechnologyDefinitions
             tier: 12, line: 5,
             requiresDominionUnlock: true),
 
-        // Le Dominion déborde plus vite que la Corruption : +5 points de % de chance par niveau
-        // (10%/niveau → 15%/niveau, voir CorruptionController.ProcessSpread).
+        // La parole divine frappe deux fois plus fort : 50% de chance qu'une réduction de Corruption
+        // par un Temple ou par l'annulation mutuelle du Dominion retire 2 niveaux d'un coup
+        // (voir CorruptionController.ReduceCorruption).
         // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.Evangelisation,
             "tech_evangelisation_name", "tech_evangelisation_desc",
             cost: 6687500000,
             prerequisites: new[] { TechnologyId.DogmeDeLEmprise },
-            modifiers: new Modifier[] { new(ECategory.DOMINION_SPREAD_CHANCE, EType.ADDITIVE, 5) },
+            modifiers: new Modifier[] { new(ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, EType.ADDITIVE, 0.5) },
             tier: 13, line: 5,
             requiresDominionUnlock: true),
 

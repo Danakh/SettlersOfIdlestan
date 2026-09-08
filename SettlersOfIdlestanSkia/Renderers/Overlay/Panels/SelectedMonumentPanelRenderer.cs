@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -110,9 +110,11 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                         FormatPercent(Necropolis.GetAscensionGainBonusForLevel(necropolis.Level + 1))), false));
                 break;
             }
-            case SteelTitanSite:
-                lines.Add((_localization.GetFormated("monument_bonus_steel_titan_next",
-                    SettlersOfIdlestan.Model.Monsters.SteelTitan.TitanLevel), false));
+            case SteelTitanSite site:
+                lines.Add(site.TitanForged
+                    ? (_localization.Get("monument_bonus_steel_titan_current"), true)
+                    : (_localization.GetFormated("monument_bonus_steel_titan_next",
+                        SettlersOfIdlestan.Model.Monsters.SteelTitan.TitanLevel), false));
                 break;
             case DeepestMine mine:
                 lines.Add(mine.Dug
@@ -189,10 +191,10 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         var playerCiv = _gameControllerService.PlayerCivilization;
         if (monument == null || playerCiv == null) return MonumentPanelSnapshot.Hidden;
 
-        // Le monument sélectionné peut disparaître de la carte sous le panneau : le Chantier du Titan
-        // d'Acier s'efface au profit du colosse dès qu'il est couvert (voir SteelTitanController), et
-        // une Marche de Dieu peut effacer les autres. Sans cette garde, le panneau resterait ouvert
-        // sur une feature qui n'existe plus.
+        // Le monument sélectionné peut disparaître de la carte sous le panneau : une Marche de Dieu
+        // peut effacer les monuments, et le socle du Titan d'Acier part avec son propre bouton de
+        // démantèlement. Sans cette garde, le panneau resterait ouvert sur une feature qui n'existe
+        // plus.
         if (_gameControllerService.CurrentWorldState?.ContainsFeature(monument) == false)
         {
             _monumentService.ClearSelectedInvestable();
@@ -203,16 +205,20 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                         || (monument is GreatLighthouse { IsMaxLevel: true })
                         || (monument is Observatory { IsMaxLevel: true })
                         || (monument is Necropolis { IsMaxLevel: true });
+        // Le socle du Titan n'a plus rien à recevoir tant que son colosse vit : mêmes lignes masquées
+        // et même message de pied de panneau qu'une Merveille au niveau maximum.
+        bool titanForged = monument is SteelTitanSite { TitanForged: true };
+        bool investmentClosed = wonderMaxed || titanForged;
         bool bonesPurified = monument is DivineBones { Purified: true };
         bool showResearchRow = monument.UsesResearchInvestment;
         bool showCorruptedPrestige = monument is CorruptionSpire { Built: true };
         bool showEvolve = showCorruptedPrestige
                        && _gameControllerService.MainGameController.AbyssGateController.IsAbyssGateEligible();
         bool showWonderSkip = monument is Wonder { Level: >= 1 };
-        bool showNoCityWarning = !wonderMaxed && !MonumentInvestment.HasAdjacentCity(monument.Position, playerCiv);
+        bool showNoCityWarning = !investmentClosed && !MonumentInvestment.HasAdjacentCity(monument.Position, playerCiv);
 
         var rows = new List<InvestmentRowSnapshot>();
-        if (!wonderMaxed)
+        if (!investmentClosed)
         {
             foreach (var kvp in monument.GetInvestmentCost(playerCiv))
             {
@@ -254,7 +260,9 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             Rows: rows,
             BonusLines: GetBonusLines(monument, playerCiv)
                 .Select(b => new BonusLineSnapshot(b.Text, b.Active)).ToList(),
-            WonderMaxedMessage: wonderMaxed ? _localization.Get("wonder_max_level_reached") : null,
+            WonderMaxedMessage: wonderMaxed
+                ? _localization.Get("wonder_max_level_reached")
+                : titanForged ? _localization.Get("steel_titan_forged_message") : null,
             PurifiedMessage: bonesPurified
                 ? _localization.Get(monument is DivineBones { EssenceGranted: true }
                     ? "divine_bones_purified_message"
@@ -270,11 +278,11 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
             CanSkipWonder: showWonderSkip
                 && _gameControllerService.MainGameController.PrestigeController.CanSkipToNextWonderMultiplier(),
             // Le libellé porte l'état d'armement : la confirmation en deux temps reste ici, la vue
-            // se contente d'afficher le texte courant et de renvoyer les clics.
-            DestroyButtonLabel: monument is CorruptionSpire
-                ? _localization.Get(_destroyConfirmPending
-                    ? "corruption_spire_destroy_confirm_button"
-                    : "corruption_spire_destroy_button")
+            // se contente d'afficher le texte courant et de renvoyer les clics. Le socle du Titan
+            // partage ce bouton unique : il démantèle le colosse tant qu'il en porte un, le socle
+            // lui-même sinon (voir TryDestroy).
+            DestroyButtonLabel: GetDestroyButtonKey(monument) is { } destroyKey
+                ? _localization.Get(destroyKey)
                 : null);
     }
 
@@ -286,17 +294,42 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
     }
 
     /// <summary>
-    /// Détruit la Spire depuis une vue portée par l'hôte. Comme le bouton Skia, le premier appel
-    /// arme la confirmation et le second seulement détruit (voir <see cref="_destroyConfirmPending"/>).
+    /// Clé du libellé du bouton de destruction, ou null pour un monument qui n'en a pas. Porte aussi
+    /// l'état d'armement de la confirmation en deux temps.
     /// </summary>
-    public void DestroyFromHost() => TryDestroySpire();
+    private string? GetDestroyButtonKey(Monument monument) => monument switch
+    {
+        CorruptionSpire => _destroyConfirmPending
+            ? "corruption_spire_destroy_confirm_button"
+            : "corruption_spire_destroy_button",
+        SteelTitanSite { TitanForged: true } => _destroyConfirmPending
+            ? "steel_titan_destroy_titan_confirm_button"
+            : "steel_titan_destroy_titan_button",
+        SteelTitanSite => _destroyConfirmPending
+            ? "steel_titan_destroy_site_confirm_button"
+            : "steel_titan_destroy_site_button",
+        _ => null,
+    };
 
     /// <summary>
-    /// Confirmation en deux temps de la destruction de la Spire, partagée par le bouton Skia et la
-    /// vue hôte. Retourne true une fois la Spire réellement détruite.
+    /// Détruit le monument sélectionné depuis une vue portée par l'hôte. Comme le bouton Skia, le
+    /// premier appel arme la confirmation et le second seulement détruit (voir
+    /// <see cref="_destroyConfirmPending"/>).
     /// </summary>
-    private bool TryDestroySpire()
+    public void DestroyFromHost() => TryDestroy();
+
+    /// <summary>
+    /// Confirmation en deux temps de la destruction, partagée par le bouton Skia et la vue hôte.
+    /// Retourne true une fois la destruction réellement faite.
+    ///
+    /// <para>Le socle du Titan d'Acier est le seul à survivre à son propre bouton : démanteler le
+    /// colosse le laisse en place, prêt à en refondre un — le panneau reste donc ouvert dessus.</para>
+    /// </summary>
+    private bool TryDestroy()
     {
+        var monument = _monumentService.SelectedInvestable;
+        if (monument == null) return false;
+
         if (!_destroyConfirmPending)
         {
             _destroyConfirmPending = true;
@@ -304,8 +337,24 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
         }
 
         _destroyConfirmPending = false;
-        if (!_gameControllerService.MainGameController.CorruptionSpireController.DestroyCorruptionSpire())
-            return false;
+        var main = _gameControllerService.MainGameController;
+
+        switch (monument)
+        {
+            case CorruptionSpire:
+                if (!main.CorruptionSpireController.DestroyCorruptionSpire()) return false;
+                break;
+
+            case SteelTitanSite { TitanForged: true }:
+                return main.SteelTitanController.DestroySteelTitan();
+
+            case SteelTitanSite:
+                if (!main.SteelTitanController.DestroySteelTitanSite()) return false;
+                break;
+
+            default:
+                return false;
+        }
 
         _monumentService.ClearSelectedInvestable();
         return true;

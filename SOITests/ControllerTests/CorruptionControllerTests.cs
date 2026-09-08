@@ -207,6 +207,50 @@ public class CorruptionControllerTests
     }
 
     [Fact]
+    public void TempleLevel2_CorruptionOnTarget_Evangelisation_RemovesTwoLevelsAtOnce()
+    {
+        var (state, city, landHex) = CreateSingleLandHexCitySetup();
+        city.AddBuilding(new Temple { Level = 2 });
+        state.AddFeature(new Corruption(landHex, level: 3));
+        // Chance forcée à 100% pour rendre le tirage d'Évangélisation déterministe.
+        state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, Modifier.EType.ADDITIVE, 1.0),
+        }));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        var corruption = state.GetFeaturesAt(landHex).OfType<Corruption>().Single();
+        Assert.Equal(1, corruption.Level);
+    }
+
+    [Fact]
+    public void TempleLevel2_CorruptionAtLevel1_Evangelisation_RemovesFeatureWithoutGoingNegative()
+    {
+        var (state, city, landHex) = CreateSingleLandHexCitySetup();
+        city.AddBuilding(new Temple { Level = 2 });
+        state.AddFeature(new Corruption(landHex, level: 1));
+        state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, Modifier.EType.ADDITIVE, 1.0),
+        }));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
+    }
+
+    [Fact]
     public void TempleLevel2_CorruptionAtLevel1_RemovesFeatureOnceReducedToZero()
     {
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
@@ -478,7 +522,7 @@ public class CorruptionControllerTests
     }
 
     [Fact]
-    public void Spread_DominionLevel2_WithoutEvangelisation_DoesNotTrigger()
+    public void Spread_DominionLevel2_WithoutSpreadChanceBonus_DoesNotTrigger()
     {
         var (state, a, b) = CreateTwoLandHexesSetup();
         var dominion = new Dominion(a, level: 2); // 20% de déclenchement, tirage 20 (graine 25555) → pas de débordement
@@ -500,14 +544,17 @@ public class CorruptionControllerTests
     }
 
     [Fact]
-    public void Spread_DominionLevel3_WithEvangelisation_TriggersAtFifteenPercentPerLevel()
+    public void Spread_DominionLevel3_WithSpreadChanceBonus_TriggersAtFifteenPercentPerLevel()
     {
         var (state, a, b) = CreateTwoLandHexesSetup();
         var dominion = new Dominion(a, level: 3); // 3 × (10+5) = 45% de déclenchement, tirage 31 (graine 1) → débordement
         var corruption = new Corruption(b, level: 1);
         state.AddFeature(dominion);
         state.AddFeature(corruption);
-        CompleteResearch(state, TechnologyId.Evangelisation);
+        state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.DOMINION_SPREAD_CHANCE, Modifier.EType.ADDITIVE, 5),
+        }));
 
         var clock = new GameClock();
         clock.Start();
@@ -517,6 +564,33 @@ public class CorruptionControllerTests
 
         Assert.Equal(2, dominion.Level);
         Assert.Empty(state.GetFeaturesAt(b).OfType<Corruption>());
+    }
+
+    [Fact]
+    public void Spread_MutualAnnulation_Evangelisation_CorruptionLosesTwoLevels()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        var dominion = new Dominion(a, level: 10); // 100% de déclenchement
+        var corruption = new Corruption(b, level: 5);
+        state.AddFeature(dominion);
+        state.AddFeature(corruption);
+        // Chance forcée à 100% pour rendre le tirage d'Évangélisation déterministe. Le Dominion, lui,
+        // perd toujours son point unique (Terre Consacrée non acquise).
+        state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, Modifier.EType.ADDITIVE, 1.0),
+        }));
+
+        var clock = new GameClock();
+        clock.Start();
+        // Graine choisie pour que la Corruption, retombée à 3 (30%), ne déborde pas à son tour dans
+        // le même cycle — le scénario n'isolerait plus l'annulation mutuelle du Dominion.
+        CreateController(state, clock, seed: 25555);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(9, dominion.Level);
+        Assert.Equal(3, corruption.Level);
     }
 
     [Fact]

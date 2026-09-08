@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
@@ -19,12 +19,14 @@ namespace SettlersOfIdlestan.Controller.Island;
 /// 1. <see cref="ProcessTempleProduction"/> — chaque Temple de niveau 2-4 (atteignable uniquement une
 ///    fois le pouvoir divin Foi débloqué, voir AscensionController.GetModifiers — BUILDING_MAX_LEVEL
 ///    "Temple" +3) cible un hex aléatoire parmi les 3 hexes touchant sa ville : réduit la Corruption
-///    d'un point si elle y est présente, sinon pose ou augmente le Dominion d'un point (plafonné à
+///    d'un point si elle y est présente (de deux sur un tirage réussi d'Évangélisation, voir
+///    <see cref="ReduceCorruption"/>), sinon pose ou augmente le Dominion d'un point (plafonné à
 ///    <see cref="TempleDominionCapPerLevel"/> × niveau effectif du Temple). Le niveau effectif est le
 ///    niveau réel augmenté de TEMPLE_DOMINION_LEVEL_BONUS (Ziggourat +1), ce qui abaisse aussi d'autant
 ///    le niveau à partir duquel un Temple produit — voir <see cref="ProducesDominion"/>.
 /// 2. <see cref="ProcessSpread"/> — chaque hex de Corruption ou de Dominion (toutes couches confondues)
-///    a niveau×10% de chance de déborder sur un voisin aléatoire : annulation mutuelle (-1/-1) si ce
+///    a niveau×10% de chance de déborder sur un voisin aléatoire : annulation mutuelle (-1/-1, la
+///    Corruption perdant 2 points sur un tirage réussi d'Évangélisation) si ce
 ///    voisin porte le statut opposé, propagation (+1 voisin, source inchangée) si le voisin partage le
 ///    même statut (un voisin vide compte comme statut identique de niveau 0) avec un écart de niveau
 ///    &gt; 2. Un voisin vide peut donc se voir semer une nouvelle poche à niveau 1 si la source est assez
@@ -197,8 +199,9 @@ public class CorruptionController
     }
 
     /// <summary>
-    /// Action de Temple sur un hex : dissipe un point de Corruption si elle est présente, sinon
-    /// pose ou augmente le Dominion d'un point, plafonné par le niveau effectif du Temple (voir
+    /// Action de Temple sur un hex : dissipe un point de Corruption si elle est présente (deux avec
+    /// l'Évangélisation, voir <see cref="ReduceCorruption"/>), sinon pose ou augmente le Dominion
+    /// d'un point, plafonné par le niveau effectif du Temple (voir
     /// TempleDominionCapPerLevel + TEMPLE_DOMINION_CAP + TEMPLE_DOMINION_LEVEL_BONUS).
     /// </summary>
     private void ApplyTempleActionOnHex(Civilization civ, Temple temple, HexCoord hex)
@@ -206,7 +209,7 @@ public class CorruptionController
         var corruption = _state!.GetFirstFeatureAt<Corruption>(hex);
         if (corruption != null)
         {
-            ReduceLevel(corruption);
+            ReduceCorruption(corruption);
             return;
         }
 
@@ -291,7 +294,7 @@ public class CorruptionController
 
                 bool sourceIsDominion = source is Dominion;
 
-                // Évangélisation (DOMINION_SPREAD_CHANCE) : le Dominion déborde plus souvent que la
+                // DOMINION_SPREAD_CHANCE (Humains) : le Dominion déborde plus souvent que la
                 // Corruption (points de % supplémentaires par niveau).
                 int chancePerLevel = SpreadChancePercentPerLevel
                     + (sourceIsDominion ? GetDominionSpreadChanceBonus() : 0);
@@ -331,7 +334,7 @@ public class CorruptionController
                     var corruptionSide = sourceIsDominion ? opposite : source;
                     if (!IsDominionSpared(dominionSide.Position))
                         ReduceLevel(dominionSide);
-                    ReduceLevel(corruptionSide);
+                    ReduceCorruption(corruptionSide);
                     continue;
                 }
 
@@ -357,7 +360,7 @@ public class CorruptionController
         }
     }
 
-    /// <summary>Points de % de chance de débordement supplémentaires par niveau pour le Dominion (Évangélisation).</summary>
+    /// <summary>Points de % de chance de débordement supplémentaires par niveau pour le Dominion (Humains).</summary>
     private int GetDominionSpreadChanceBonus()
         => _state!.PlayerCivilization.ModifierAggregator.ApplyModifiers(Modifier.ECategory.DOMINION_SPREAD_CHANCE, "", 0);
 
@@ -367,7 +370,7 @@ public class CorruptionController
     /// l'Évangélisation peine à s'exporter en profondeur. Exprimé en millièmes
     /// (<see cref="LayerDivisorMilliScale"/>) car le malus par couche est fractionnaire dès que le
     /// Dogme de l'Emprise (DOMINION_LAYER_PENALTY_REDUCTION) l'allège : 2/4/8 devient 1,5/2,25/3,375.
-    /// Le malus du joueur s'applique à toutes les civilisations, comme le bonus d'Évangélisation
+    /// Le malus du joueur s'applique à toutes les civilisations, comme le bonus de débordement
     /// (voir <see cref="GetDominionSpreadChanceBonus"/>) — seul le joueur bâtit en profondeur.
     /// </summary>
     public static int GetDominionLayerDivisorMilli(Civilization civ, int z)
@@ -474,6 +477,31 @@ public class CorruptionController
                 break;
             case Dominion d: d.Level++; break;
         }
+    }
+
+    /// <summary>
+    /// Réduit la Corruption d'un point, ou de deux d'un coup sur un tirage réussi de
+    /// CORRUPTION_DOUBLE_CLEANSE_CHANCE (Évangélisation, 50%). N'est utilisé que pour les deux
+    /// mécaniques que la recherche vise — la production de Temple (<see cref="ApplyTempleActionOnHex"/>)
+    /// et l'annulation mutuelle avec le Dominion (<see cref="ProcessSpread"/>) : la décroissance sous
+    /// les monuments passe toujours par <see cref="ReduceLevel"/>, elle, et retire toujours un point.
+    /// Le tirage n'est fait que si la recherche est acquise : sans elle, la séquence du PRNG doit
+    /// rester exactement celle d'avant (voir CLAUDE.md, sauvegardes de SOITests/saves/current).
+    /// Comme le modificateur du joueur pour la profondeur (voir <see cref="GetDominionLayerDivisorMilli"/>),
+    /// il s'applique à toutes les civilisations.
+    /// </summary>
+    private void ReduceCorruption(IslandFeature corruption)
+    {
+        double chance = _state!.PlayerCivilization.ModifierAggregator
+            .ApplyModifiers(Modifier.ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, "", 0.0);
+        bool doubled = chance > 0 && _prng!.Next(100) < (int)Math.Round(chance * 100);
+
+        ReduceLevel(corruption);
+
+        // Le premier point peut avoir vidé la poche : ReduceLevel l'a alors retirée de l'état (et
+        // enregistré son pic), il n'y a plus rien à retirer.
+        if (doubled && GetLevel(corruption) > 0)
+            ReduceLevel(corruption);
     }
 
     private void ReduceLevel(IslandFeature feature)

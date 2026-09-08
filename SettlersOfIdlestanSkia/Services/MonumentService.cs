@@ -33,6 +33,8 @@ public class MonumentService
         if (SelectedInvestable is GreatLighthouse { IsMaxLevel: true }) return;
         if (SelectedInvestable is Observatory { IsMaxLevel: true }) return;
         if (SelectedInvestable is Necropolis { IsMaxLevel: true }) return;
+        // Le socle du Titan n'a plus rien à recevoir tant que son colosse vit (voir SteelTitanController).
+        if (SelectedInvestable is SteelTitanSite { TitanForged: true }) return;
         if (SelectedInvestable.InvestmentEnabled.Contains(resource))
             SelectedInvestable.InvestmentEnabled.Remove(resource);
         else

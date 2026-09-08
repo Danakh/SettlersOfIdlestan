@@ -331,9 +331,9 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void Evangelisation_DominionSpreadChance_Plus5()
+    public void Evangelisation_CorruptionDoubleCleanseChance_Half()
     {
-        Assert.Equal(5, BuildAggregator(TechnologyId.Evangelisation).ApplyModifiers(ECategory.DOMINION_SPREAD_CHANCE, "", 0));
+        Assert.Equal(0.5, BuildAggregator(TechnologyId.Evangelisation).ApplyModifiers(ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, "", 0.0), 5);
     }
 
     [Fact]

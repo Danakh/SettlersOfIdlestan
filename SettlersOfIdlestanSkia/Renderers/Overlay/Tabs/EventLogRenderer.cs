@@ -287,6 +287,14 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Warning,
             _localization.Get("event_steel_titan_defeated_title"),
             _localization.Get("event_steel_titan_defeated_body")),
+        GameEventType.SteelTitanDismantled => (
+            EventLogTone.Discovery,
+            _localization.Get("event_steel_titan_dismantled_title"),
+            _localization.Get("event_steel_titan_dismantled_body")),
+        GameEventType.SteelTitanSiteDestroyed => (
+            EventLogTone.Discovery,
+            _localization.Get("event_steel_titan_site_destroyed_title"),
+            _localization.Get("event_steel_titan_site_destroyed_body")),
         GameEventType.RaidMissingBarracks => (
             EventLogTone.Warning,
             _localization.Get("event_raid_missing_barracks_title"),

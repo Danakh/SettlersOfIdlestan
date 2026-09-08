@@ -382,42 +382,106 @@ public class TerrainKnowledgeBranchTests
         Assert.False(controller.CanPlaceSteelTitan(civ));
     }
 
+    /// <summary>Couvre l'investissement du socle et laisse le contrôleur fondre le colosse.</summary>
+    private static SteelTitan ForgeTitan(GameClock clock, Civilization civ, SteelTitanSite site, WorldState state)
+    {
+        foreach (var kvp in site.GetInvestmentCost(civ))
+            site.InvestedResources[kvp.Key] = kvp.Value;
+
+        clock.SimulateAdvance(MonumentInvestment.IntervalTicks * 2);
+
+        var titan = state.GetFirstFeature<SteelTitan>();
+        Assert.NotNull(titan);
+        return titan!;
+    }
+
     [Fact]
-    public void Titan_ChantierCouvert_DevientUnColosseAllieSurLeMemeHex()
+    public void Titan_FonteCouverte_FaitApparaitreLeColosseEtLaisseLeSocleEnPlace()
     {
         var (state, clock, civ, controller) = TitanSetup();
         var hex = controller.GetPlaceableHexes().First();
         var site = controller.PlaceSteelTitanSite(hex);
         Assert.NotNull(site);
 
-        foreach (var kvp in site!.GetInvestmentCost(civ))
-            site.InvestedResources[kvp.Key] = kvp.Value;
+        var titan = ForgeTitan(clock, civ, site!, state);
 
-        clock.SimulateAdvance(MonumentInvestment.IntervalTicks * 2);
-
-        Assert.False(state.HasFeature<SteelTitanSite>());
-        var titan = state.GetFirstFeature<SteelTitan>();
-        Assert.NotNull(titan);
-        Assert.Equal(hex, titan!.Position);
+        Assert.True(state.HasFeature<SteelTitanSite>());
+        Assert.True(site!.TitanForged);
+        Assert.Empty(site.InvestedResources);
+        Assert.Equal(hex, titan.Position);
         Assert.True(titan.AttacksOtherMonsters);
         Assert.True(titan.Found);
     }
 
     [Fact]
-    public void Titan_UnSeulALaFois_ChantierPuisColosse()
+    public void Titan_UnSeulALaFois_SoclePuisColosse()
     {
         var (state, clock, civ, controller) = TitanSetup();
         var site = controller.PlaceSteelTitanSite(controller.GetPlaceableHexes().First())!;
         Assert.False(controller.CanPlaceSteelTitan(civ));
 
-        foreach (var kvp in site.GetInvestmentCost(civ))
-            site.InvestedResources[kvp.Key] = kvp.Value;
-        clock.SimulateAdvance(MonumentInvestment.IntervalTicks * 2);
+        ForgeTitan(clock, civ, site, state);
 
         Assert.False(controller.CanPlaceSteelTitan(civ));
 
+        // Le socle reste : même sans colosse, il occupe la place du seul Titan autorisé.
         state.RemoveFeature(state.GetFirstFeature<SteelTitan>()!);
 
+        Assert.False(controller.CanPlaceSteelTitan(civ));
+    }
+
+    /// <summary>
+    /// Colosse tombé au combat : le socle rouvre sa fonte au tick suivant, sans rattraper d'un coup
+    /// les cycles écoulés pendant que le colosse vivait.
+    /// </summary>
+    [Fact]
+    public void Titan_ColosseTombe_RouvreLaFonteDuSocle()
+    {
+        var (state, clock, civ, controller) = TitanSetup();
+        var site = controller.PlaceSteelTitanSite(controller.GetPlaceableHexes().First())!;
+        ForgeTitan(clock, civ, site, state);
+
+        state.RemoveFeature(state.GetFirstFeature<SteelTitan>()!);
+        clock.SimulateAdvance(1);
+
+        Assert.False(site.TitanForged);
+        Assert.Equal(clock.CurrentTick, site.LastInvestmentTick);
+
+        // Et il refond bien un nouveau colosse.
+        ForgeTitan(clock, civ, site, state);
+        Assert.True(site.TitanForged);
+    }
+
+    [Fact]
+    public void Titan_Demantele_LaisseLeSocleRefondable()
+    {
+        var (state, clock, civ, controller) = TitanSetup();
+        var site = controller.PlaceSteelTitanSite(controller.GetPlaceableHexes().First())!;
+        ForgeTitan(clock, civ, site, state);
+
+        Assert.True(controller.DestroySteelTitan());
+
+        Assert.False(state.HasFeature<SteelTitan>());
+        Assert.True(state.HasFeature<SteelTitanSite>());
+        Assert.False(site.TitanForged);
+        Assert.False(controller.CanPlaceSteelTitan(civ));
+        Assert.False(controller.DestroySteelTitan());
+    }
+
+    [Fact]
+    public void Titan_SocleDemantele_RouvreLaPoseAilleurs()
+    {
+        var (state, clock, civ, controller) = TitanSetup();
+        var site = controller.PlaceSteelTitanSite(controller.GetPlaceableHexes().First())!;
+        ForgeTitan(clock, civ, site, state);
+
+        // Tant que le colosse vit, le socle ne peut pas partir sous lui.
+        Assert.False(controller.DestroySteelTitanSite());
+
+        Assert.True(controller.DestroySteelTitan());
+        Assert.True(controller.DestroySteelTitanSite());
+
+        Assert.False(state.HasFeature<SteelTitanSite>());
         Assert.True(controller.CanPlaceSteelTitan(civ));
     }
 

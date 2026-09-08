@@ -128,14 +128,20 @@ public enum GameEventType
     /// </summary>
     MilitaryVertexLostToTerrain,
 
-    /// <summary>Chantier du Titan d'Acier posé sur la carte — voir SteelTitanController.</summary>
+    /// <summary>Socle du Titan d'Acier posé sur la carte — voir SteelTitanController.</summary>
     SteelTitanPlaced,
 
-    /// <summary>Le Titan d'Acier est achevé : le chantier laisse place au colosse allié.</summary>
+    /// <summary>Le Titan d'Acier est achevé : le colosse allié se dresse sur son socle.</summary>
     SteelTitanBuilt,
 
-    /// <summary>Le Titan d'Acier est tombé au combat. Un nouveau chantier peut être posé.</summary>
+    /// <summary>Le Titan d'Acier est tombé au combat. Le socle peut en refondre un.</summary>
     SteelTitanDefeated,
+
+    /// <summary>Le joueur a démantelé son Titan d'Acier depuis le panneau du socle.</summary>
+    SteelTitanDismantled,
+
+    /// <summary>Le joueur a démantelé le socle du Titan d'Acier : un nouveau peut être posé ailleurs.</summary>
+    SteelTitanSiteDestroyed,
 
     /// <summary>
     /// Tentacule repérée alors qu'un Portail du Pandémonium existe déjà sur l'île : même annonce que

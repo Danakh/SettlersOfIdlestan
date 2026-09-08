@@ -230,6 +230,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             DOMINION_SPREAD_CHANCE,
             /// <summary>Probabilité (0-1) qu'un Dominion situé sur un hex d'une ville possédant un Temple ne perde pas de niveau lors d'une annulation mutuelle avec la Corruption (la Corruption, elle, perd toujours le sien). Base = 0.0.</summary>
             TEMPLE_DOMINION_PROTECTION_CHANCE,
+            /// <summary>Probabilité (0-1) qu'une réduction de Corruption infligée par un Temple ou par l'annulation mutuelle du Dominion retire 2 niveaux d'un coup au lieu d'un seul (voir CorruptionController.ReduceCorruption). Base = 0.0 ; Évangélisation 0,5.</summary>
+            CORRUPTION_DOUBLE_CLEANSE_CHANCE,
             /// <summary>Flags que les routes du Vide déjà bâties ne comptent que pour moitié dans le coût exponentiel de la suivante (voir RoadController.GetVoidRouteResearchCost).</summary>
             VOID_ROUTE_COST_REDUCTION,
             /// <summary>Flags que chaque Temple ajoute un bonus fixe de défense à sa ville selon son niveau (voir Temple.GetDefenseBonusForLevel).</summary>
