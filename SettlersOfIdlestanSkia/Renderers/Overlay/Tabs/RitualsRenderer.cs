@@ -180,11 +180,15 @@ public sealed class RitualsRenderer : IDisposable
             int stacks = magic.GetSpellExhaustionStacks(def.Id);
             string description = _localization.Get(def.DescKey) + "\n"
                 + _localization.GetFormated("spell_exhaustion_desc", stacks, magic.GetSpellCostMultiplier(def.Id));
-            string cooldownTooltip = _localization.GetFormated("spell_cooldown_tooltip",
-                FormatSpellDuration(magic.GetSpellCooldownRemainingTicks(def.Id)), FormatSpellDuration(def.CooldownTicks));
-
             int charges = magic.GetSpellCharges(def.Id);
             int maxCharges = magic.GetSpellMaxCharges(def.Id);
+
+            // Le même cycle retire un cran d'épuisement s'il en reste un, sinon crédite une charge :
+            // l'infobulle dit ce que le cycle en cours va réellement produire.
+            string cooldownTooltip = _localization.GetFormated(
+                stacks > 0 ? "spell_cooldown_tooltip" : "spell_cooldown_charge_tooltip",
+                FormatSpellDuration(magic.GetSpellCooldownRemainingTicks(def.Id)), FormatSpellDuration(def.CooldownTicks));
+
             string chargesTooltip = _localization.GetFormated("spell_charges_tooltip", charges, maxCharges);
 
             spells.Add(new SpellRowSnapshot(

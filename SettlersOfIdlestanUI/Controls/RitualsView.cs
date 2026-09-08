@@ -373,7 +373,7 @@ public sealed class RitualsView : UserControl
                 Foreground = Accent,
                 Background = new SolidColorBrush(Color.FromArgb(160, 50, 50, 65)),
                 [!RangeBase.ValueProperty] = new Binding(nameof(SpellRowViewModel.CooldownRatio)),
-                [!IsVisibleProperty] = new Binding(nameof(SpellRowViewModel.HasExhaustion)),
+                [!IsVisibleProperty] = new Binding(nameof(SpellRowViewModel.ShowCooldown)),
                 [!ToolTip.TipProperty] = new Binding(nameof(SpellRowViewModel.CooldownTooltip)),
             };
 

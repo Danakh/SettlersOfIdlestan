@@ -72,6 +72,13 @@ public sealed class SpellRowViewModel : ViewModelBase
     public int Charges => _snapshot.Charges;
     public int MaxCharges => _snapshot.MaxCharges;
     public bool HasCharges => _snapshot.MaxCharges > 0;
+
+    /// <summary>
+    /// La barre de cooldown n'est affichée que si le cycle en cours a quelque chose à produire :
+    /// un cran d'épuisement à retirer, ou — sous Magie Divine — une charge de lancement encore à
+    /// gagner. À plein de charges et sans épuisement, le cycle tourne à vide et la barre disparaît.
+    /// </summary>
+    public bool ShowCooldown => _snapshot.ExhaustionStacks > 0 || _snapshot.Charges < _snapshot.MaxCharges;
     public string ChargesTooltip => _snapshot.ChargesTooltip;
 
     internal void Apply(SkiaLayer.SpellRowSnapshot snapshot)
@@ -92,14 +99,20 @@ public sealed class SpellRowViewModel : ViewModelBase
         {
             RaisePropertyChanged(nameof(ExhaustionStacks));
             RaisePropertyChanged(nameof(HasExhaustion));
+            RaisePropertyChanged(nameof(ShowCooldown));
         }
         if (previous.CooldownRatio != snapshot.CooldownRatio) RaisePropertyChanged(nameof(CooldownRatio));
         if (previous.CooldownTooltip != snapshot.CooldownTooltip) RaisePropertyChanged(nameof(CooldownTooltip));
-        if (previous.Charges != snapshot.Charges) RaisePropertyChanged(nameof(Charges));
+        if (previous.Charges != snapshot.Charges)
+        {
+            RaisePropertyChanged(nameof(Charges));
+            RaisePropertyChanged(nameof(ShowCooldown));
+        }
         if (previous.MaxCharges != snapshot.MaxCharges)
         {
             RaisePropertyChanged(nameof(MaxCharges));
             RaisePropertyChanged(nameof(HasCharges));
+            RaisePropertyChanged(nameof(ShowCooldown));
         }
         if (previous.ChargesTooltip != snapshot.ChargesTooltip) RaisePropertyChanged(nameof(ChargesTooltip));
     }
