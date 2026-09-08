@@ -300,6 +300,30 @@ namespace SettlersOfIdlestan.Controller.Expand
                && GetCorruptionLevel() >= CorruptionWarningLevelWithoutAscension
                && godState.AscensionState.AscensionsPerformed == 0;
 
+        /// <summary>
+        /// Niveau de corruption minimum pour qu'un Prestige Purifié ait un sens : la corruption ne
+        /// descend jamais sous 1 (voir <see cref="PrestigeState.CurrentCorruptionLevel"/>), donc au
+        /// niveau 1 l'action n'aurait aucun effet et le bouton n'est pas affiché.
+        /// </summary>
+        public const int MinCorruptionLevelToPurify = 2;
+
+        /// <summary>
+        /// Vrai si le Prestige Purifié est proposé : il redescend la corruption d'un niveau, et
+        /// n'exige pas de Spire de Corruption (contrairement au Prestige Corrompu — on peut toujours
+        /// renoncer à ce qu'on a déjà lâché). Seule condition : avoir de quoi redescendre.
+        /// </summary>
+        public bool IsPurifiedPrestigeAvailable() => GetCorruptionLevel() >= MinCorruptionLevelToPurify;
+
+        /// <summary>
+        /// Vrai si redescendre d'un niveau ferait passer le monde sous le seuil de corruption dont la
+        /// progression a besoin (<see cref="AbyssGate.RequiredCorruptionLevel"/>) : c'est en nettoyant
+        /// une zone de ce niveau que la Faille des Abysses s'ouvre, ce qui suppose que le niveau de
+        /// corruption du monde soit au moins celui-là. L'UI ouvre alors une confirmation dédiée
+        /// (voir PrestigeRenderer.TryPrestige) au lieu du simple rappel du niveau visé.
+        /// </summary>
+        public bool PurifiedPrestigeDropsBelowProgressionThreshold()
+            => GetCorruptionLevel() <= AbyssGate.RequiredCorruptionLevel;
+
         public int GetTier() => _prestigeState?.Tier ?? 1;
 
         /// <summary>+20% de gain de prestige par palier de progression (Tier) au-delà du premier.</summary>
@@ -424,9 +448,9 @@ namespace SettlersOfIdlestan.Controller.Expand
             => godState.AscensionState.ApplyReliquaryCapacityBonus(_playerCivilization?.DivineEssenceKeptOnPrestige ?? 0);
 
         public void PerformPrestige(MainGameState mainGameState, IslandParameters nextIslandParameters)
-            => PerformPrestige(mainGameState, nextIslandParameters, corrupted: false);
+            => PerformPrestige(mainGameState, nextIslandParameters, PrestigeCorruptionShift.Unchanged);
 
-        public void PerformPrestige(MainGameState mainGameState, IslandParameters nextIslandParameters, bool corrupted)
+        public void PerformPrestige(MainGameState mainGameState, IslandParameters nextIslandParameters, PrestigeCorruptionShift corruptionShift)
         {
             if (!PrestigeIsAvailable())
                 throw new InvalidOperationException("Prestige is not available.");
@@ -441,8 +465,13 @@ namespace SettlersOfIdlestan.Controller.Expand
             // reprennent donc bien ce qui a été effectivement versé.
             points = mainGameState.PrestigeState.ClampDemoPrestigeGain(points, mainGameState.Settings.DemoMode);
 
-            if (corrupted && HasCorruptionSpireBuilt())
+            // La corruption ne bouge qu'ici, et d'un seul niveau : c'est ce qui la laisse figée
+            // pendant toute la vie d'une île (voir PrestigeState.CurrentCorruptionLevel).
+            if (corruptionShift == PrestigeCorruptionShift.Increase && HasCorruptionSpireBuilt())
                 mainGameState.PrestigeState.CurrentCorruptionLevel++;
+            else if (corruptionShift == PrestigeCorruptionShift.Decrease)
+                mainGameState.PrestigeState.CurrentCorruptionLevel =
+                    Math.Max(1, mainGameState.PrestigeState.CurrentCorruptionLevel - 1);
 
             if (mainGameState.PrestigeState.CurrentCorruptionLevel > mainGameState.GameRecord.MaxCorruptionLevelReached)
                 mainGameState.GameRecord.MaxCorruptionLevelReached = mainGameState.PrestigeState.CurrentCorruptionLevel;

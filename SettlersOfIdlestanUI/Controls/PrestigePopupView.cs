@@ -28,6 +28,7 @@ public sealed class PrestigePopupView : UserControl
     private static readonly SolidColorBrush Warning = new(Color.FromRgb(230, 150, 70));
     private static readonly SolidColorBrush ActionEnabled = new(Color.FromRgb(60, 110, 180));
     private static readonly SolidColorBrush ActionCorrupted = new(Color.FromRgb(120, 60, 140));
+    private static readonly SolidColorBrush ActionPurified = new(Color.FromRgb(50, 135, 115));
     private static readonly SolidColorBrush ActionDisabled = new(Color.FromRgb(70, 70, 78));
     private static readonly SolidColorBrush CloseButton = new(Color.FromArgb(230, 90, 50, 50));
 
@@ -124,7 +125,9 @@ public sealed class PrestigePopupView : UserControl
 
         var box = new Border
         {
-            Width = 460,
+            // 540 et non 460 : les trois actions (normal, corrompu, purifie) tiennent alors sur une
+            // seule ligne — voir BuildActions.
+            Width = 540,
             Background = PanelBackground,
             BorderBrush = Border_,
             BorderThickness = new Thickness(2),
@@ -285,10 +288,12 @@ public sealed class PrestigePopupView : UserControl
         Margin = new Thickness(0, 8, 0, 0),
         HorizontalAlignment = HorizontalAlignment.Center,
         [!ItemsControl.ItemsSourceProperty] = new Binding(nameof(PrestigePopupViewModel.Actions)),
-        ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel
+        // WrapPanel et non StackPanel : jusqu'a trois actions (normal, corrompu, purifie) tiennent
+        // sur une ligne a la largeur du popup, mais un ecran plus etroit les fait passer a la ligne
+        // au lieu de les rogner.
+        ItemsPanel = new FuncTemplate<Panel?>(() => new WrapPanel
         {
             Orientation = Orientation.Horizontal,
-            Spacing = 10,
             HorizontalAlignment = HorizontalAlignment.Center,
         }),
         ItemTemplate = new FuncDataTemplate<PrestigeActionViewModel>(
@@ -325,6 +330,8 @@ public sealed class PrestigePopupView : UserControl
         {
             Width = 150,
             Height = 42,
+            // La marge tient lieu d'espacement : WrapPanel n'en a pas.
+            Margin = new Thickness(5, 4),
             Padding = new Thickness(0),
             CornerRadius = new CornerRadius(7),
             BorderThickness = new Thickness(0),
@@ -339,20 +346,27 @@ public sealed class PrestigePopupView : UserControl
             [ToolTip.ShowOnDisabledProperty] = true,
         };
 
-        // Le prestige corrompu se distingue du normal, et l'indisponibilite des deux.
+        // Les prestiges corrompu et purifie se distinguent du normal, et l'indisponibilite des trois.
         button[!BackgroundProperty] = new MultiBinding
         {
             Bindings =
             {
                 new Binding(nameof(PrestigeActionViewModel.IsEnabled)),
-                new Binding(nameof(PrestigeActionViewModel.IsCorrupted)),
+                new Binding(nameof(PrestigeActionViewModel.Tone)),
             },
             Converter = new FuncMultiValueConverter<object?, IBrush>(values =>
             {
                 var list = values.ToList();
                 bool enabled = list.Count > 0 && list[0] is true;
-                bool corrupted = list.Count > 1 && list[1] is true;
-                return !enabled ? ActionDisabled : corrupted ? ActionCorrupted : ActionEnabled;
+                var tone = list.Count > 1 && list[1] is SkiaLayer.PrestigeActionTone t
+                    ? t : SkiaLayer.PrestigeActionTone.Normal;
+                if (!enabled) return ActionDisabled;
+                return tone switch
+                {
+                    SkiaLayer.PrestigeActionTone.Corrupted => ActionCorrupted,
+                    SkiaLayer.PrestigeActionTone.Purified  => ActionPurified,
+                    _                                      => ActionEnabled,
+                };
             }),
         };
 

@@ -1,5 +1,6 @@
 ﻿using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Controller.Expand;
+using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Core;
@@ -15,25 +16,29 @@ public sealed class PrestigeRenderer : PopupRendererBase
 {
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService   _localization;
-    private readonly Action<bool>          _prestigeRequested;
+    private readonly Action<PrestigeCorruptionShift> _prestigeRequested;
     private readonly PrestigeEssenceLossPopupRenderer _essenceLossPopup;
     private readonly PrestigeCorruptionWarningPopupRenderer _corruptionWarningPopup;
+    private readonly PrestigePurifyConfirmPopupRenderer _purifyConfirmPopup;
 
     public PrestigeRenderer(
         GameControllerService gameControllerService,
         LocalizationService   localization,
-        Action<bool>          prestigeRequested,
+        Action<PrestigeCorruptionShift> prestigeRequested,
         TooltipRenderer       tooltipRenderer)
     {
         _gameControllerService = gameControllerService;
         _localization          = localization;
         _prestigeRequested     = prestigeRequested;
         _essenceLossPopup      = new PrestigeEssenceLossPopupRenderer(localization,
-            onConfirm: corrupted => _prestigeRequested(corrupted));
+            onConfirm: shift => _prestigeRequested(shift));
         // Le garde-fou de corruption passe avant la perte d'essences : une fois confirme, le
         // prestige corrompu reprend le chemin normal, confirmation d'essences comprise.
         _corruptionWarningPopup = new PrestigeCorruptionWarningPopupRenderer(localization,
-            onConfirm: () => ConfirmEssenceLossOrPrestige(corrupted: true));
+            onConfirm: () => ConfirmEssenceLossOrPrestige(PrestigeCorruptionShift.Increase));
+        // Meme enchainement pour le prestige purifie, dont la confirmation est toujours demandee.
+        _purifyConfirmPopup = new PrestigePurifyConfirmPopupRenderer(localization,
+            onConfirm: () => ConfirmEssenceLossOrPrestige(PrestigeCorruptionShift.Decrease));
     }
 
     public override void Initialize(SKSize canvasSize)
@@ -41,6 +46,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         base.Initialize(canvasSize);
         _essenceLossPopup.Initialize(canvasSize);
         _corruptionWarningPopup.Initialize(canvasSize);
+        _purifyConfirmPopup.Initialize(canvasSize);
     }
 
     public override void Close()
@@ -48,15 +54,18 @@ public sealed class PrestigeRenderer : PopupRendererBase
         base.Close();
         _essenceLossPopup.Close();
         _corruptionWarningPopup.Close();
+        _purifyConfirmPopup.Close();
     }
 
     /// <summary>
-    /// Instantane de la confirmation portee par ce popup qui est ouverte, s'il y en a une. Les deux
-    /// s'enchainent (corruption puis essences) et ne sont donc jamais ouvertes en meme temps, mais
-    /// l'ordre de priorite reste celui de l'enchainement.
+    /// Instantane de la confirmation portee par ce popup qui est ouverte, s'il y en a une. Elles
+    /// s'enchainent (choix de corruption puis essences) et ne sont donc jamais ouvertes en meme
+    /// temps, mais l'ordre de priorite reste celui de l'enchainement.
     /// </summary>
     public ModalPopupSnapshot GetOverlayModalSnapshot()
-        => _corruptionWarningPopup.IsOpen ? _corruptionWarningPopup.GetSnapshot() : _essenceLossPopup.GetSnapshot();
+        => _corruptionWarningPopup.IsOpen ? _corruptionWarningPopup.GetSnapshot()
+         : _purifyConfirmPopup.IsOpen     ? _purifyConfirmPopup.GetSnapshot()
+         : _essenceLossPopup.GetSnapshot();
 
     /// <summary>Declenche un bouton de l'une de ces confirmations, depuis la vue de l'hote.</summary>
     public void InvokeOverlayModalButtonFromHost(string popupId, string key)
@@ -65,6 +74,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         {
             case ModalPopupSnapshot.IdPrestigeEssenceLoss:       _essenceLossPopup.InvokeButton(key);       break;
             case ModalPopupSnapshot.IdPrestigeCorruptionWarning: _corruptionWarningPopup.InvokeButton(key); break;
+            case ModalPopupSnapshot.IdPrestigePurifyConfirm:     _purifyConfirmPopup.InvokeButton(key);     break;
         }
     }
 
@@ -192,7 +202,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         var actions = new List<PrestigeActionSnapshot>
         {
             new(PrestigePopupSnapshot.ActionNormal, _localization.Get("prestige_action"), null,
-                canPrestige, false, [_localization.Get("prestige_tooltip_action")]),
+                canPrestige, PrestigeActionTone.Normal, [_localization.Get("prestige_tooltip_action")]),
         };
 
         // Le bouton de prestige corrompu reste visible des que l'Abysse est debloque (3 vertex de
@@ -226,7 +236,27 @@ public sealed class PrestigeRenderer : PopupRendererBase
                 PrestigePopupSnapshot.ActionCorrupted,
                 _localization.Get("prestige_corrupted_action"),
                 spireBuilt ? $"{corruptionLevel} -> {corruptionLevel + 1}" : null,
-                canPrestige && spireBuilt, true,
+                canPrestige && spireBuilt, PrestigeActionTone.Corrupted,
+                tooltip));
+        }
+
+        // Prestige Purifie : redescend la corruption d'un niveau. Contrairement au corrompu, il ne
+        // demande pas de Spire — mais il n'apparait qu'a partir du niveau 2, en dessous duquel il
+        // n'aurait rien a redescendre (voir PrestigeController.IsPurifiedPrestigeAvailable).
+        if (controller.IsPurifiedPrestigeAvailable())
+        {
+            int corruptionLevel = controller.GetCorruptionLevel();
+            var tooltip = new List<string> { _localization.Get("prestige_tooltip_purified_action") };
+            tooltip.Add(_localization.Get(
+                controller.PurifiedPrestigeDropsBelowProgressionThreshold()
+                    ? "prestige_tooltip_purified_action_progression"
+                    : "prestige_tooltip_purified_action_relief"));
+
+            actions.Add(new PrestigeActionSnapshot(
+                PrestigePopupSnapshot.ActionPurified,
+                _localization.Get("prestige_purified_action"),
+                $"{corruptionLevel} -> {corruptionLevel - 1}",
+                canPrestige, PrestigeActionTone.Purified,
                 tooltip));
         }
 
@@ -267,8 +297,9 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
         switch (key)
         {
-            case PrestigePopupSnapshot.ActionNormal:    TryPrestige(corrupted: false); break;
-            case PrestigePopupSnapshot.ActionCorrupted: TryPrestige(corrupted: true);  break;
+            case PrestigePopupSnapshot.ActionNormal:    TryPrestige(PrestigeCorruptionShift.Unchanged); break;
+            case PrestigePopupSnapshot.ActionCorrupted: TryPrestige(PrestigeCorruptionShift.Increase);  break;
+            case PrestigePopupSnapshot.ActionPurified:  TryPrestige(PrestigeCorruptionShift.Decrease);  break;
         }
     }
 
@@ -293,25 +324,37 @@ public sealed class PrestigeRenderer : PopupRendererBase
             prestige.GetTicksUntilNextWonderMultiplier(), "time_jump_reason_wonder");
     }
 
-    // Deux confirmations possibles, dans cet ordre : d'abord la montee de corruption avant la
-    // premiere Ascension (choix irreversible pour tout le cycle), puis la perte d'essences divines.
-    private void TryPrestige(bool corrupted)
+    // Deux confirmations possibles, dans cet ordre : d'abord celle du changement de niveau de
+    // corruption (montee avant la premiere Ascension, ou descente, toujours confirmee), puis la
+    // perte d'essences divines.
+    private void TryPrestige(PrestigeCorruptionShift corruptionShift)
     {
         var controller = _gameControllerService.MainGameController.PrestigeController;
         var godState = _gameControllerService.MainGameController.CurrentMainState?.GodState;
+        int corruptionLevel = controller.GetCorruptionLevel();
 
-        if (corrupted && godState != null && controller.CorruptedPrestigeNeedsAscensionWarning(godState))
+        if (corruptionShift == PrestigeCorruptionShift.Increase
+            && godState != null && controller.CorruptedPrestigeNeedsAscensionWarning(godState))
         {
-            _corruptionWarningPopup.Open(controller.GetCorruptionLevel() + 1);
+            _corruptionWarningPopup.Open(corruptionLevel + 1);
             return;
         }
 
-        ConfirmEssenceLossOrPrestige(corrupted);
+        if (corruptionShift == PrestigeCorruptionShift.Decrease && controller.IsPurifiedPrestigeAvailable())
+        {
+            _purifyConfirmPopup.Open(
+                corruptionLevel - 1,
+                controller.PurifiedPrestigeDropsBelowProgressionThreshold(),
+                AbyssGate.RequiredCorruptionLevel);
+            return;
+        }
+
+        ConfirmEssenceLossOrPrestige(corruptionShift);
     }
 
     // Ouvre une confirmation si le prestige entraînerait la perte d'essences divines
     // (au-delà de ce que le Reliquaire Sacré/Renforcé permet de conserver), sinon prestige immédiat.
-    private void ConfirmEssenceLossOrPrestige(bool corrupted)
+    private void ConfirmEssenceLossOrPrestige(PrestigeCorruptionShift corruptionShift)
     {
         var godState = _gameControllerService.MainGameController.CurrentMainState?.GodState;
         int essenceLoss = godState != null
@@ -319,9 +362,9 @@ public sealed class PrestigeRenderer : PopupRendererBase
             : 0;
 
         if (essenceLoss > 0)
-            _essenceLossPopup.Open(essenceLoss, corrupted);
+            _essenceLossPopup.Open(essenceLoss, corruptionShift);
         else
-            _prestigeRequested(corrupted);
+            _prestigeRequested(corruptionShift);
     }
 
     private static string FormatRunDuration(long ticks)
@@ -339,6 +382,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
         if (Disposed) return;
         _essenceLossPopup.Dispose();
         _corruptionWarningPopup.Dispose();
+        _purifyConfirmPopup.Dispose();
         base.Dispose();
     }
 }

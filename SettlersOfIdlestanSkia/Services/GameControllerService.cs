@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -95,14 +96,14 @@ public class GameControllerService
         _controller.CurrentMainState.Clock.OfflineBankTicks += (long)(seconds * 100);
     }
 
-    public void PerformPrestige(bool corrupted = false)
+    public void PerformPrestige(PrestigeCorruptionShift corruptionShift = PrestigeCorruptionShift.Unchanged)
     {
-        _controller.PerformPrestige(corrupted);
+        _controller.PerformPrestige(corruptionShift);
     }
 
-    public void PerformPrestigeAndRestartCurrentIsland(bool corrupted = false)
+    public void PerformPrestigeAndRestartCurrentIsland(PrestigeCorruptionShift corruptionShift = PrestigeCorruptionShift.Unchanged)
     {
-        _controller.PerformPrestigeAndRestartCurrentIsland(corrupted);
+        _controller.PerformPrestigeAndRestartCurrentIsland(corruptionShift);
     }
 
     public void RestartIsland()

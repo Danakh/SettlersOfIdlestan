@@ -105,7 +105,7 @@ public class GameRecord
     /// <summary>Nombre de Prestiges Corrompus effectués (cross-prestige, voir PrestigeController.PerformPrestige).</summary>
     public int TotalCorruptedPrestigesPerformed { get; set; }
 
-    /// <summary>Niveau de corruption mondial le plus élevé jamais atteint (miroir de PrestigeState.CurrentCorruptionLevel, qui ne redescend jamais).</summary>
+    /// <summary>Niveau de corruption mondial le plus élevé jamais atteint. Contrairement à PrestigeState.CurrentCorruptionLevel, qu'un Prestige Purifié fait redescendre, ce record ne baisse jamais.</summary>
     public int MaxCorruptionLevelReached { get; set; } = 1;
 
     /// <summary>True si une Spire de Corruption a déjà été entièrement bâtie sur une Source de Corruption de niveau 4 ou plus.</summary>

@@ -284,14 +284,27 @@ public sealed record PrestigeRowSnapshot(
     bool IsWarning,
     IReadOnlyList<string> Tooltip);
 
-/// <param name="Key">Identifiant de l'action : prestige normal ou corrompu.</param>
+/// <summary>Ton d'un bouton d'action du popup de prestige : dicte sa couleur, pas son contenu.</summary>
+public enum PrestigeActionTone
+{
+    /// Prestige normal : la corruption ne bouge pas.
+    Normal,
+
+    /// Prestige corrompu : la corruption monte d'un niveau.
+    Corrupted,
+
+    /// Prestige purifie : la corruption redescend d'un niveau.
+    Purified,
+}
+
+/// <param name="Key">Identifiant de l'action : prestige normal, corrompu ou purifie.</param>
 /// <param name="SubLabel">Seconde ligne du bouton (niveau de corruption vise) ; null sinon.</param>
 public sealed record PrestigeActionSnapshot(
     string Key,
     string Label,
     string? SubLabel,
     bool IsEnabled,
-    bool IsCorrupted,
+    PrestigeActionTone Tone,
     IReadOnlyList<string> Tooltip);
 
 /// <summary>
@@ -319,6 +332,7 @@ public sealed record PrestigePopupSnapshot(
 
     public const string ActionNormal    = "prestige";
     public const string ActionCorrupted = "corruptedPrestige";
+    public const string ActionPurified  = "purifiedPrestige";
 }
 
 /// <summary>Une ligne d'echange : une ressource a vendre ou a acheter.</summary>
@@ -765,6 +779,10 @@ public sealed record ModalPopupSnapshot(
     /// Confirmation d'un prestige corrompu qui monterait la corruption trop haut avant la premiere
     /// Ascension. Portee par le popup Prestige, comme la precedente.
     public const string IdPrestigeCorruptionWarning = "prestigeCorruptionWarning";
+
+    /// Confirmation d'un prestige purifie, qui fait redescendre la corruption d'un niveau. Portee
+    /// par le popup Prestige, comme les precedentes.
+    public const string IdPrestigePurifyConfirm = "prestigePurifyConfirm";
 
     /// Confirmation d'une Ascension (hors choix de race, qui a son propre panneau). Portee par
     /// l'onglet Ascension, meme forme que les precedentes.

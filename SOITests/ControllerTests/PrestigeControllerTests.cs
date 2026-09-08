@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using SettlersOfIdlestan.Controller;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Buildings;
@@ -10,6 +10,7 @@ using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Monsters;
+using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Model.Races;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
@@ -785,10 +786,89 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(1, mainController.CurrentMainState.PrestigeState!.CurrentCorruptionLevel);
 
-            mainController.PerformPrestige(corrupted: true);
+            mainController.PerformPrestige(PrestigeCorruptionShift.Increase);
 
             // Pas de Spire construite → le niveau de corruption ne bouge pas
             Assert.Equal(1, mainController.CurrentMainState.PrestigeState!.CurrentCorruptionLevel);
+        }
+
+        // ── Prestige Purifié : redescend la corruption d'un niveau ─
+
+        /// <summary>
+        /// Prépare une partie où le prestige est disponible, au niveau de corruption demandé.
+        /// </summary>
+        private static MainGameController CreatePrestigeReadyGame(int corruptionLevel)
+        {
+            var mainController = new MainGameController();
+            mainController.CreateNewGame();
+            var civ = mainController.CurrentMainState!.CurrentWorldState!.PlayerCivilization;
+            civ.AddUniqueBuilding(BuildingType.ImperialPort);
+            for (int i = 0; i < 20; i++)
+                civ.Cities[0].AddBuilding(new Temple());
+            mainController.CurrentMainState.PrestigeState!.CurrentCorruptionLevel = corruptionLevel;
+            return mainController;
+        }
+
+        [Fact]
+        public void PerformPrestige_Purified_DecrementsCorruptionLevel()
+        {
+            var mainController = CreatePrestigeReadyGame(corruptionLevel: 3);
+
+            mainController.PerformPrestige(PrestigeCorruptionShift.Decrease);
+
+            // Pas de Spire requise, contrairement au Prestige Corrompu.
+            Assert.Equal(2, mainController.CurrentMainState!.PrestigeState!.CurrentCorruptionLevel);
+        }
+
+        [Fact]
+        public void PerformPrestige_Purified_NeverDropsBelowOne()
+        {
+            var mainController = CreatePrestigeReadyGame(corruptionLevel: 1);
+
+            mainController.PerformPrestige(PrestigeCorruptionShift.Decrease);
+
+            Assert.Equal(1, mainController.CurrentMainState!.PrestigeState!.CurrentCorruptionLevel);
+        }
+
+        /// <summary>Le record de corruption atteinte est un maximum : une purification ne le fait pas baisser.</summary>
+        [Fact]
+        public void PerformPrestige_Purified_LeavesMaxCorruptionLevelReachedUntouched()
+        {
+            var mainController = CreatePrestigeReadyGame(corruptionLevel: 5);
+            mainController.CurrentMainState!.GameRecord.MaxCorruptionLevelReached = 5;
+
+            mainController.PerformPrestige(PrestigeCorruptionShift.Decrease);
+
+            Assert.Equal(4, mainController.CurrentMainState.PrestigeState!.CurrentCorruptionLevel);
+            Assert.Equal(5, mainController.CurrentMainState.GameRecord.MaxCorruptionLevelReached);
+        }
+
+        [Fact]
+        public void IsPurifiedPrestigeAvailable_OnlyFromCorruptionLevelTwo()
+        {
+            var mainController = CreatePrestigeReadyGame(corruptionLevel: 1);
+            Assert.False(mainController.PrestigeController.IsPurifiedPrestigeAvailable());
+
+            mainController.CurrentMainState!.PrestigeState!.CurrentCorruptionLevel = 2;
+            Assert.True(mainController.PrestigeController.IsPurifiedPrestigeAvailable());
+        }
+
+        /// <summary>
+        /// L'avertissement de progression ne concerne que les niveaux qui passeraient sous le seuil
+        /// de la Faille des Abysses (AbyssGate.RequiredCorruptionLevel).
+        /// </summary>
+        [Fact]
+        public void PurifiedPrestigeDropsBelowProgressionThreshold_OnlyUpToTheThreshold()
+        {
+            var mainController = CreatePrestigeReadyGame(corruptionLevel: 2);
+            var prestige = mainController.PrestigeController;
+            Assert.True(prestige.PurifiedPrestigeDropsBelowProgressionThreshold());
+
+            mainController.CurrentMainState!.PrestigeState!.CurrentCorruptionLevel = 4;
+            Assert.True(prestige.PurifiedPrestigeDropsBelowProgressionThreshold());
+
+            mainController.CurrentMainState.PrestigeState.CurrentCorruptionLevel = 5;
+            Assert.False(prestige.PurifiedPrestigeDropsBelowProgressionThreshold());
         }
 
         // ── Ascension Prestigieuse : bonus de points divins à chaque prestige ─
@@ -843,7 +923,7 @@ namespace SOITests.ControllerTests
             Assert.Contains(mainController.PrestigeController.GetPrestigePointSources(),
                 s => s.LabelKey == "prestige_divine_points_bonus" && s.Points == 5);
 
-            mainController.PerformPrestige(corrupted: false);
+            mainController.PerformPrestige(PrestigeCorruptionShift.Unchanged);
 
             Assert.Equal(expectedPoints, mainState.PrestigeState!.PrestigePoints);
         }

@@ -3,7 +3,7 @@ using SkiaLayer = SettlersOfIdlestanSkia.Services;
 
 namespace SettlersOfIdlestanUI.ViewModels;
 
-/// <summary>Une action de prestige : normale, ou corrompue.</summary>
+/// <summary>Une action de prestige : normale, corrompue, ou purifiee.</summary>
 public sealed class PrestigeActionViewModel : ViewModelBase
 {
     private SkiaLayer.PrestigeActionSnapshot _snapshot;
@@ -23,7 +23,9 @@ public sealed class PrestigeActionViewModel : ViewModelBase
 
     public bool HasSubLabel => _snapshot.SubLabel != null;
     public bool IsEnabled => _snapshot.IsEnabled;
-    public bool IsCorrupted => _snapshot.IsCorrupted;
+
+    /// Dicte la couleur du bouton : prestige normal, corrompu ou purifie.
+    public SkiaLayer.PrestigeActionTone Tone => _snapshot.Tone;
     public string Tooltip { get => _tooltip; private set => SetProperty(ref _tooltip, value); }
 
     internal void Apply(SkiaLayer.PrestigeActionSnapshot snapshot)

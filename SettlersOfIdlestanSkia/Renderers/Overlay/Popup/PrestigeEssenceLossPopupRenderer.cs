@@ -1,3 +1,4 @@
+﻿using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestanSkia.Services.Localization;
 using SettlersOfIdlestanSkia.Services;
 
@@ -6,21 +7,21 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class PrestigeEssenceLossPopupRenderer : PopupRendererBase
 {
     private readonly LocalizationService _localization;
-    private readonly Action<bool>        _onConfirm;
+    private readonly Action<PrestigeCorruptionShift> _onConfirm;
 
-    private int    _essenceLoss;
-    private bool   _corrupted;
+    private int                     _essenceLoss;
+    private PrestigeCorruptionShift _corruptionShift;
 
-    public PrestigeEssenceLossPopupRenderer(LocalizationService localization, Action<bool> onConfirm)
+    public PrestigeEssenceLossPopupRenderer(LocalizationService localization, Action<PrestigeCorruptionShift> onConfirm)
     {
         _localization = localization;
         _onConfirm    = onConfirm;
     }
 
-    public void Open(int essenceLoss, bool corrupted)
+    public void Open(int essenceLoss, PrestigeCorruptionShift corruptionShift)
     {
-        _essenceLoss = essenceLoss;
-        _corrupted   = corrupted;
+        _essenceLoss     = essenceLoss;
+        _corruptionShift = corruptionShift;
         Open();
     }
 
@@ -65,7 +66,7 @@ public sealed class PrestigeEssenceLossPopupRenderer : PopupRendererBase
                 break;
             case KeyConfirm:
                 IsOpen = false;
-                _onConfirm(_corrupted);
+                _onConfirm(_corruptionShift);
                 break;
         }
     }

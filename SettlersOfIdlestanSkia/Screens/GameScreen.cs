@@ -1,4 +1,4 @@
-using SkiaSharp;
+﻿using SkiaSharp;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestanSkia.Core;
 using SettlersOfIdlestanSkia.Renderers;
@@ -18,6 +18,7 @@ using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 using SettlersOfIdlestan.Controller.Achievements;
 using SettlersOfIdlestan.Model.Achievements;
 using SettlersOfIdlestan.Model.Tasks;
+using SettlersOfIdlestan.Model.Prestige;
 
 namespace SettlersOfIdlestanSkia.Screens;
 
@@ -63,7 +64,7 @@ public sealed class GameScreen : IDisposable
     private DemoEndPopupRenderer? _demoEndPopup;
     private bool _prestigeTransitionPending;
     private bool _demoReplayPending;
-    private bool _corruptedPrestigePending;
+    private PrestigeCorruptionShift _pendingCorruptionShift;
     private int _speedBeforeTargetSelection = 1;
 
     private bool _isDisposed;
@@ -454,6 +455,7 @@ public sealed class GameScreen : IDisposable
             case ModalPopupSnapshot.IdDemoEnd:     _demoEndPopup?.InvokeButton(buttonKey);     break;
             case ModalPopupSnapshot.IdPrestigeEssenceLoss:
             case ModalPopupSnapshot.IdPrestigeCorruptionWarning:
+            case ModalPopupSnapshot.IdPrestigePurifyConfirm:
             case ModalPopupSnapshot.IdAscensionConfirm:
             case ModalPopupSnapshot.IdPermanentBuildingConfirm:
             case ModalPopupSnapshot.IdAscensionRaceRequired:
@@ -1492,7 +1494,7 @@ public sealed class GameScreen : IDisposable
         else clock.Pause();
     }
 
-    private void RequestPrestige(bool corrupted)
+    private void RequestPrestige(PrestigeCorruptionShift corruptionShift)
     {
         if (_prestigeTransitionPending || _islandMainRenderer == null || _overlayRenderer == null) return;
 
@@ -1503,16 +1505,16 @@ public sealed class GameScreen : IDisposable
             return;
         }
 
-        DoPrestige(corrupted);
+        DoPrestige(corruptionShift);
     }
 
-    private void DoPrestige(bool corrupted)
+    private void DoPrestige(PrestigeCorruptionShift corruptionShift)
     {
         if (_prestigeTransitionPending || _islandMainRenderer == null || _overlayRenderer == null) return;
         _overlayRenderer.Hide();
         _islandMainRenderer.BeginBlackFade(0.5f);
         _prestigeTransitionPending = true;
-        _corruptedPrestigePending = corrupted;
+        _pendingCorruptionShift = corruptionShift;
     }
 
     private void DoDemoReplay()
@@ -1522,7 +1524,7 @@ public sealed class GameScreen : IDisposable
         _islandMainRenderer.BeginBlackFade(0.5f);
         _prestigeTransitionPending = true;
         _demoReplayPending = true;
-        _corruptedPrestigePending = false;
+        _pendingCorruptionShift = PrestigeCorruptionShift.Unchanged;
     }
 
     private void CompletePrestigeTransition()
@@ -1530,16 +1532,16 @@ public sealed class GameScreen : IDisposable
         if (_cameraService == null) return;
 
         var prevCiv = _gameControllerService.PlayerCivilization;
-        bool corrupted = _corruptedPrestigePending;
-        _corruptedPrestigePending = false;
+        var corruptionShift = _pendingCorruptionShift;
+        _pendingCorruptionShift = PrestigeCorruptionShift.Unchanged;
         if (_demoReplayPending)
         {
             _demoReplayPending = false;
-            _gameControllerService.PerformPrestigeAndRestartCurrentIsland(corrupted);
+            _gameControllerService.PerformPrestigeAndRestartCurrentIsland(corruptionShift);
         }
         else
         {
-            _gameControllerService.PerformPrestige(corrupted);
+            _gameControllerService.PerformPrestige(corruptionShift);
         }
         if (_playerResourcesOverlayRenderer != null && _gameControllerService.PlayerCivilization != null)
             _playerResourcesOverlayRenderer.ConnectLowStock(prevCiv, _gameControllerService.PlayerCivilization);

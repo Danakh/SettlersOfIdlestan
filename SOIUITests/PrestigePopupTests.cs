@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -17,7 +17,9 @@ public class PrestigeActionViewModelTests
 {
     private static SkiaLayer.PrestigeActionSnapshot Action(bool enabled = true, bool corrupted = false) =>
         new(corrupted ? "corruptedPrestige" : "prestige", corrupted ? "Prestige corrompu" : "Prestige",
-            corrupted ? "2 -> 3" : null, enabled, corrupted, ["Infobulle"]);
+            corrupted ? "2 -> 3" : null, enabled,
+            corrupted ? SkiaLayer.PrestigeActionTone.Corrupted : SkiaLayer.PrestigeActionTone.Normal,
+            ["Infobulle"]);
 
     [Fact]
     public void Seule_l_action_corrompue_a_une_seconde_ligne()
@@ -48,9 +50,9 @@ public class PrestigeActionViewModelTests
     public void Le_tooltip_se_met_a_jour_quand_l_instantane_change_sans_que_la_cle_change()
     {
         var locked = new SkiaLayer.PrestigeActionSnapshot(
-            "corruptedPrestige", "Prestige corrompu", null, false, true, ["Verrouille"]);
+            "corruptedPrestige", "Prestige corrompu", null, false, SkiaLayer.PrestigeActionTone.Corrupted, ["Verrouille"]);
         var unlocked = new SkiaLayer.PrestigeActionSnapshot(
-            "corruptedPrestige", "Prestige corrompu", "2 -> 3", true, true, ["Disponible"]);
+            "corruptedPrestige", "Prestige corrompu", "2 -> 3", true, SkiaLayer.PrestigeActionTone.Corrupted, ["Disponible"]);
 
         var action = new PrestigeActionViewModel(locked);
         Assert.Equal("Verrouille", action.Tooltip);
@@ -167,8 +169,8 @@ public class PrestigePopupViewTests
     {
         var (_, _, view) = BuildProbeWindow(open: true, actions:
         [
-            new("prestige", "Prestige", null, true, false, ["a"]),
-            new("corruptedPrestige", "Prestige corrompu", "2 -> 3", true, true, ["b"]),
+            new("prestige", "Prestige", null, true, SkiaLayer.PrestigeActionTone.Normal, ["a"]),
+            new("corruptedPrestige", "Prestige corrompu", "2 -> 3", true, SkiaLayer.PrestigeActionTone.Corrupted, ["b"]),
         ]);
 
         var texts = view.GetVisualDescendants().OfType<TextBlock>()
@@ -178,6 +180,29 @@ public class PrestigePopupViewTests
 
         Assert.Contains("Prestige corrompu", texts);
         Assert.Contains("2 -> 3", texts);
+    }
+
+    /// <summary>
+    /// Les trois actions se distinguent a l'oeil : le fond du bouton suit le ton de l'instantane,
+    /// sans quoi le prestige purifie serait indiscernable du normal.
+    /// </summary>
+    [AvaloniaFact]
+    public void Les_trois_actions_ont_chacune_leur_couleur()
+    {
+        var (_, _, view) = BuildProbeWindow(open: true, actions:
+        [
+            new("prestige", "Prestige", null, true, SkiaLayer.PrestigeActionTone.Normal, ["a"]),
+            new("corruptedPrestige", "Prestige corrompu", "4 -> 5", true, SkiaLayer.PrestigeActionTone.Corrupted, ["b"]),
+            new("purifiedPrestige", "Prestige purifie", "4 -> 3", true, SkiaLayer.PrestigeActionTone.Purified, ["c"]),
+        ]);
+
+        var backgrounds = view.GetVisualDescendants().OfType<Button>()
+            .Where(b => b.DataContext is PrestigeActionViewModel)
+            .Select(b => b.Background)
+            .ToList();
+
+        Assert.Equal(3, backgrounds.Count);
+        Assert.Equal(3, backgrounds.Distinct().Count());
     }
 
     private static (Window Window, ProbeMapControl Map, PrestigePopupView View) BuildProbeWindow(

@@ -5,6 +5,7 @@
 v0.22
 • The Healing Potion becomes the Strength Potion: instead of saving a soldier, every soldier going on the attack drinks one and has a 50% chance to deal 1 extra damage. Purely offensive consumable — a city under monster attack spends none
 • Builders Guild automation extended to the Abyss: with the Void Cartography research, automatic roads and outposts in the Abyss (toggles separate from the surface and Underworld ones). Void routes, which cost research points, still have to be built by hand
+• New Purified Prestige action: from corruption level 2 on, a Prestige can bring the world's corruption back down by one level — the first way to lower it without an Ascension. No Corruption Spire required, but the prestige multiplier drops accordingly, and below level 4 the Abyss Gate goes back out of reach
 
 ---
 

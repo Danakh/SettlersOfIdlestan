@@ -242,17 +242,18 @@ namespace SettlersOfIdlestan.Controller
             PrestigeMapController.ApplyPrestigeToNewGame(newWorldState, CurrentMainState.PrestigeState);
         }
 
-        public void PerformPrestige() => PerformPrestige(corrupted: false);
+        public void PerformPrestige() => PerformPrestige(PrestigeCorruptionShift.Unchanged);
 
-        public void PerformPrestige(bool corrupted)
+        public void PerformPrestige(PrestigeCorruptionShift corruptionShift)
         {
             if (CurrentMainState == null)
                 throw new InvalidOperationException("No main state available.");
 
             var nextIslandId = AtlasController.GetNextWorldId(CurrentMainState);
             var parameters = AtlasController.GetIslandParameters(nextIslandId);
-            TaskRecordController.RecordPrestige(PrestigeController.CalculatePrestigePoints(), corrupted);
-            PrestigeController.PerformPrestige(CurrentMainState, parameters, corrupted);
+            TaskRecordController.RecordPrestige(PrestigeController.CalculatePrestigePoints(),
+                corrupted: corruptionShift == PrestigeCorruptionShift.Increase);
+            PrestigeController.PerformPrestige(CurrentMainState, parameters, corruptionShift);
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
         }
@@ -260,17 +261,18 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// Comme PerformPrestige, mais régénère la même île (mode démo : rester sur l'île 3).
         /// </summary>
-        public void PerformPrestigeAndRestartCurrentIsland() => PerformPrestigeAndRestartCurrentIsland(corrupted: false);
+        public void PerformPrestigeAndRestartCurrentIsland() => PerformPrestigeAndRestartCurrentIsland(PrestigeCorruptionShift.Unchanged);
 
-        public void PerformPrestigeAndRestartCurrentIsland(bool corrupted)
+        public void PerformPrestigeAndRestartCurrentIsland(PrestigeCorruptionShift corruptionShift)
         {
             if (CurrentMainState == null)
                 throw new InvalidOperationException("No main state available.");
 
             var currentIslandId = CurrentMainState.CurrentWorldState?.WorldId ?? AtlasController.GetFirstWorldId();
             var parameters = AtlasController.GetIslandParameters(currentIslandId);
-            TaskRecordController.RecordPrestige(PrestigeController.CalculatePrestigePoints(), corrupted);
-            PrestigeController.PerformPrestige(CurrentMainState, parameters, corrupted);
+            TaskRecordController.RecordPrestige(PrestigeController.CalculatePrestigePoints(),
+                corrupted: corruptionShift == PrestigeCorruptionShift.Increase);
+            PrestigeController.PerformPrestige(CurrentMainState, parameters, corruptionShift);
             InitializeControllersForCurrentIsland();
             PrestigeMapController.ApplyPrestigeToNewGame(CurrentMainState.CurrentWorldState!, CurrentMainState.PrestigeState);
         }

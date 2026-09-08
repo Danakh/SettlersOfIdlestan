@@ -96,9 +96,11 @@ public class PrestigeState
 
     /// <summary>
     /// Niveau de corruption de l'Inframonde. Augmente la sévérité et la chance des zones corrompues.
-    /// Démarre à 1, ne monte que par Prestige Corrompu (PrestigeController.PerformPrestige) et reste
-    /// donc figé pendant toute la vie d'une île : c'est ce qui permet de dériver le bonus de prestige
-    /// de la Spire au lieu de le mémoriser (voir PrestigeController.GetCorruptionClearBonusMultiplier).
+    /// Démarre à 1, et ne change qu'au prestige (PrestigeController.PerformPrestige, selon le
+    /// PrestigeCorruptionShift choisi) : +1 par Prestige Corrompu, -1 par Prestige Purifié, jamais
+    /// sous 1. Il reste donc figé pendant toute la vie d'une île, ce qui permet de dériver le bonus
+    /// de prestige de la Spire au lieu de le mémoriser (voir
+    /// PrestigeController.GetCorruptionClearBonusMultiplier).
     /// </summary>
     public int CurrentCorruptionLevel { get; set; } = 1;
 

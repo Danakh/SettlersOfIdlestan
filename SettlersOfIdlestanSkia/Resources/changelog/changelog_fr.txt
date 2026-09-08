@@ -5,6 +5,7 @@
 v0.22
 • La Potion de Soin devient la Potion de Force : au lieu de sauver un soldat, chaque soldat qui part à l'assaut en boit une et a 50% de chance d'infliger 1 dégât de plus. Consommable purement offensif — une ville attaquée par un monstre n'en consomme aucune
 • Automatisation étendue de la Guilde des Bâtisseurs à l'Abysse : avec la recherche Cartographie du Vide, routes et avant-postes automatiques dans l'Abysse (réglages séparés de ceux de la surface et de l'Inframonde). Les routes du Vide, qui coûtent des points de recherche, restent à bâtir à la main
+• Nouvelle action Prestige Purifié : à partir du niveau de corruption 2, un prestige peut faire redescendre la corruption du monde d'un niveau — la première façon de la baisser sans Ascension. Aucune Spire de Corruption requise, mais le multiplicateur de prestige baisse d'autant, et sous le niveau 4 la Faille des Abysses redevient hors de portée
 
 ---
 
