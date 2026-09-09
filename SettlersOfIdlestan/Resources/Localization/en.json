@@ -1118,6 +1118,8 @@
   "tech_coeur_de_la_terre_desc": "Your miners hear the heartbeat of the world: +50% Mine harvest speed.",
   "tech_creuset_du_dominion_name": "Crucible of Dominion",
   "tech_creuset_du_dominion_desc": "Steel melts faster where your god reigns: each Smelter gains +3% speed per Dominion level on its city's hexes.",
+  "tech_grands_travaux_du_dominion_name": "Great Works of Dominion",
+  "tech_grands_travaux_du_dominion_desc": "Your full granaries become worksites: a resource whose stock exceeds 75% of its capacity is invested into Monuments 10 times faster.",
   "tech_omniscience_name": "Omniscience",
   "tech_omniscience_desc": "Nothing escapes your scholars anymore: +50% research point generation speed.",
   "tech_legion_eternelle_name": "Eternal Legion",

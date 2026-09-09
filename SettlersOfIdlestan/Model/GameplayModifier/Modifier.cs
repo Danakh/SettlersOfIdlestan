@@ -186,6 +186,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             WONDER_COST_REDUCTION,
             /// <summary>Multiplicateur de vitesse d'investissement des Monuments (Merveille, Mine Profonde, Spire de Corruption), actif uniquement pour une ressource investie dont le stock dépasse 50% de sa capacité maximale. Base = 1.0; +1.0 = vitesse doublée.</summary>
             INVESTMENT_SPEED_HIGH_STOCK_BONUS,
+            /// <summary>Second palier de INVESTMENT_SPEED_HIGH_STOCK_BONUS : multiplicateur supplémentaire de vitesse d'investissement des Monuments, actif uniquement pour une ressource investie dont le stock dépasse 75% de sa capacité maximale. Base = 1.0; se multiplie au palier 50%, forcément actif lui aussi à ce niveau de stock. +9.0 = ×10. SubCategory unused. Accordé par les Grands Travaux du Dominion.</summary>
+            INVESTMENT_SPEED_VERY_HIGH_STOCK_BONUS,
             /// <summary>Flags que l'action de relocalisation de ville est déverrouillée pour la civilisation du joueur.</summary>
             UNLOCK_RELOCATION,
             /// <summary>Bonus de vitesse de récolte par niveau de Dominion sur l'hex où a lieu la récolte. Base = 0.0; agrégé via PerVertexModifiers (valeur × vertex de prestige adjacents achetés), puis multiplié par le niveau de Dominion au moment de la récolte.</summary>

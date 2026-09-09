@@ -1118,6 +1118,8 @@
   "tech_coeur_de_la_terre_desc": "Vos mineurs entendent battre le cœur du monde : +50% de vitesse de récolte des Mines.",
   "tech_creuset_du_dominion_name": "Creuset du Dominion",
   "tech_creuset_du_dominion_desc": "L'acier fond plus vite là où règne votre dieu : chaque Fonderie gagne +3% de vitesse par niveau de Dominion présent sur les hexs de sa ville.",
+  "tech_grands_travaux_du_dominion_name": "Grands Travaux du Dominion",
+  "tech_grands_travaux_du_dominion_desc": "Vos greniers pleins deviennent des chantiers : une ressource dont le stock dépasse 75% de sa capacité s'investit 10 fois plus vite dans les Monuments.",
   "tech_omniscience_name": "Omniscience",
   "tech_omniscience_desc": "Plus rien n'échappe à vos érudits : +50% de vitesse de génération des points de recherche.",
   "tech_legion_eternelle_name": "Légion Éternelle",

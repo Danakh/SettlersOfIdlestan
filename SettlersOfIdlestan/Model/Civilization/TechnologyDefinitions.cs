@@ -738,6 +738,20 @@ public static class TechnologyDefinitions
             tier: 11, line: 1,
             requiresDominionUnlock: true),
 
+        // Suite du Creuset du Dominion : second palier du bonus de stock haut à l'investissement des
+        // Monuments. Au-delà de 50% de capacité une ressource s'investit déjà plus vite (Maîtres
+        // Artisans) ; au-delà de 75% ce ×10 s'y multiplie (voir
+        // MonumentInvestment.GetHighStockSpeedBonus). Volontairement adossée au remplissage plutôt
+        // qu'au coût : elle récompense le stockage de fin de partie, quand les stocks plafonnent
+        // entre deux paliers de Monument, sans rien accélérer chez un joueur à réserves basses.
+        new(TechnologyId.GrandsTravauxDuDominion,
+            "tech_grands_travaux_du_dominion_name", "tech_grands_travaux_du_dominion_desc",
+            cost: 1687500000,
+            prerequisites: new[] { TechnologyId.CreusetDuDominion },
+            modifiers: new Modifier[] { new(ECategory.INVESTMENT_SPEED_VERY_HIGH_STOCK_BONUS, EType.ADDITIVE, 9.0) },
+            tier: 12, line: 1,
+            requiresDominionUnlock: true),
+
         // Baissée d'un tier (coût / 4).
         new(TechnologyId.Omniscience,
             "tech_omniscience_name", "tech_omniscience_desc",

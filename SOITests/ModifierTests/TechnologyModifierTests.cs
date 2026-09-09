@@ -360,6 +360,14 @@ public class TechnologyModifierTests
         Assert.Equal(0.03, BuildAggregator(TechnologyId.CreusetDuDominion).ApplyModifiers(ECategory.DOMINION_SMELTER_SPEED_PER_LEVEL, "", 0.0), 5);
     }
 
+    [Fact]
+    public void GrandsTravauxDuDominion_InvestmentSpeedVeryHighStockBonus_IsTimes10()
+    {
+        // Base 1.0 (voir Civilization.InvestmentSpeedVeryHighStockBonus) : +9 donne bien un ×10.
+        Assert.Equal(10.0, BuildAggregator(TechnologyId.GrandsTravauxDuDominion).ApplyModifiers(ECategory.INVESTMENT_SPEED_VERY_HIGH_STOCK_BONUS, "", 1.0), 5);
+        Assert.Equal(1.0, BuildAggregator().ApplyModifiers(ECategory.INVESTMENT_SPEED_VERY_HIGH_STOCK_BONUS, "", 1.0), 5);
+    }
+
     // ── RequiresDominionUnlock ────────────────────────────────────────────────
     // Les recherches du Dominion doivent rester verrouillées derrière le pouvoir divin Foi ;
     // celles qui n'en dépendent pas ne doivent pas porter le flag par accident.
@@ -374,6 +382,7 @@ public class TechnologyModifierTests
             TechnologyId.TerreConsacree,
             TechnologyId.BastionConsacre,
             TechnologyId.CreusetDuDominion,
+            TechnologyId.GrandsTravauxDuDominion,
         };
         var actual = TechnologyDefinitions.All
             .Where(t => t.RequiresDominionUnlock)

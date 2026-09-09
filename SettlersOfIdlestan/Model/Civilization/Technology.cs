@@ -168,6 +168,9 @@ public enum TechnologyId
     // ECategory.DOMINION_SMELTER_SPEED_PER_LEVEL). Verrouillée derrière le pouvoir divin Foi comme
     // les autres recherches du Dominion.
     CreusetDuDominion,
+    // Suite du Creuset du Dominion : au-dessus de 75% de capacité, une ressource s'investit dans les
+    // Monuments 10 fois plus vite (voir ECategory.INVESTMENT_SPEED_VERY_HIGH_STOCK_BONUS).
+    GrandsTravauxDuDominion,
     // Baissée de 2 tiers (coût / 16) puis d'un tier supplémentaire (coût / 4), tier 9, pour la rendre
     // accessible plus tôt.
     Omniscience,

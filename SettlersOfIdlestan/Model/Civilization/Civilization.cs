@@ -780,6 +780,13 @@ public class Civilization
     [JsonIgnore]
     public double InvestmentSpeedHighStockBonus => ModifierAggregator.ApplyModifiers(ECategory.INVESTMENT_SPEED_HIGH_STOCK_BONUS, "", 1.0);
 
+    /// <summary>
+    /// Second tier of <see cref="InvestmentSpeedHighStockBonus"/> (base 1.0), multiplied on top of it
+    /// when the resource's stock exceeds 75% of its max capacity.
+    /// </summary>
+    [JsonIgnore]
+    public double InvestmentSpeedVeryHighStockBonus => ModifierAggregator.ApplyModifiers(ECategory.INVESTMENT_SPEED_VERY_HIGH_STOCK_BONUS, "", 1.0);
+
     public int GetHarvestProductionBonus(string buildingType) =>
         ModifierAggregator.ApplyModifiers(ECategory.HARVEST_PRODUCTION_BONUS, buildingType, 0);
 

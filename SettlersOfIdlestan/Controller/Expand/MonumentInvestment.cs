@@ -54,8 +54,9 @@ namespace SettlersOfIdlestan.Controller.Expand
                     int amount = Math.Max(1, stock / 100);
 
                     int maxStock = playerCiv.GetResourceMaxQuantity(resource);
-                    if (maxStock > 0 && stock > maxStock * 0.5)
-                        amount = Math.Max(1, (int)(amount * playerCiv.InvestmentSpeedHighStockBonus));
+                    double speedBonus = GetHighStockSpeedBonus(playerCiv, stock, maxStock);
+                    if (speedBonus > 1.0)
+                        amount = Math.Max(1, (int)(amount * speedBonus));
 
                     long remaining = required - invested;
                     if (amount > remaining) amount = (int)remaining;
@@ -118,6 +119,23 @@ namespace SettlersOfIdlestan.Controller.Expand
                 monument.ResearchInvestmentEnabled = false;
 
             return monument.InvestedResearch >= required;
+        }
+
+        /// <summary>
+        /// Multiplicateur de vitesse d'investissement pour une ressource, selon le remplissage de son
+        /// stock : 1.0 en dessous de 50% de la capacité, INVESTMENT_SPEED_HIGH_STOCK_BONUS au-delà,
+        /// puis INVESTMENT_SPEED_VERY_HIGH_STOCK_BONUS <em>en plus</em> (multiplié, pas substitué)
+        /// au-delà de 75%. Utilisé à la fois par le prélèvement réel et par la projection du taux
+        /// affichée en tooltip, qui doivent rester d'accord.
+        /// </summary>
+        public static double GetHighStockSpeedBonus(Civilization playerCiv, int stock, int maxStock)
+        {
+            if (maxStock <= 0 || stock <= maxStock * 0.5) return 1.0;
+
+            double bonus = playerCiv.InvestmentSpeedHighStockBonus;
+            if (stock > maxStock * 0.75)
+                bonus *= playerCiv.InvestmentSpeedVeryHighStockBonus;
+            return bonus;
         }
 
         /// <summary>
@@ -243,8 +261,7 @@ namespace SettlersOfIdlestan.Controller.Expand
                     double amount = Math.Max(1.0, stock / 100.0);
 
                     int maxStock = playerCiv.GetResourceMaxQuantity(resource);
-                    if (maxStock > 0 && stock > maxStock * 0.5)
-                        amount *= playerCiv.InvestmentSpeedHighStockBonus;
+                    amount *= GetHighStockSpeedBonus(playerCiv, stock, maxStock);
 
                     long remaining = required - invested;
                     if (amount > remaining) amount = remaining;
