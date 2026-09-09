@@ -8,7 +8,24 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 
 public class Corruption : IslandFeature
 {
-    public int Level { get; set; } = 1;
+    /// <summary>
+    /// Plafond dur du niveau d'une zone corrompue. Le niveau double le temps de récolte
+    /// (<see cref="GetHarvestTimeMultiplier"/>, ×2^niveau) : sans plafond, une poche entretenue par une
+    /// Source de Corruption, des Os Divins ou un monstre de haut niveau finissait par rendre son hex
+    /// définitivement inexploitable. Appliqué par le setter de <see cref="Level"/>, donc sur tous les
+    /// chemins de croissance (débordement, semis autour d'un monstre, génération d'île, Corruption des
+    /// Abysses) comme à la relecture d'une sauvegarde antérieure au plafond.
+    /// </summary>
+    public const int MaxLevel = 10;
+
+    private int _level = 1;
+
+    /// <summary>Niveau de la zone corrompue, borné par <see cref="MaxLevel"/> à l'écriture.</summary>
+    public int Level
+    {
+        get => _level;
+        set => _level = Math.Min(value, MaxLevel);
+    }
 
     /// <summary>
     /// Niveau le plus élevé jamais atteint par cette zone. Sert à mesurer "le niveau nettoyé" quand

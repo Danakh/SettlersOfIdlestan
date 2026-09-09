@@ -111,7 +111,8 @@ namespace SOITests.ControllerTests
                 {
                     if (map.GetTile(hex) is not { } tile || tile.TerrainType == TerrainType.Void) continue;
                     var corruption = Assert.Single(state.GetFeaturesAt(hex).OfType<SettlersOfIdlestan.Model.IslandFeatures.Corruption>());
-                    Assert.True(corruption.Level >= corruptionLevel);
+                    // Niveau de l'île borné par le plafond dur d'une zone corrompue (Corruption.MaxLevel).
+                    Assert.True(corruption.Level >= System.Math.Min(corruptionLevel, SettlersOfIdlestan.Model.IslandFeatures.Corruption.MaxLevel));
                 }
             }
         }

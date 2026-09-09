@@ -494,22 +494,23 @@ public class CorruptionControllerTests
         int withoutDogme = RunUnderworldTempleCorruptionClearing(withDogme: false);
         int withDogme = RunUnderworldTempleCorruptionClearing(withDogme: true);
 
-        Assert.True(withDogme > withoutDogme, $"Dogme : {withDogme} points dissipés, sans : {withoutDogme}");
+        Assert.True(withDogme < withoutDogme, $"Dogme : {withDogme} cycles, sans : {withoutDogme}");
     }
 
     /// <summary>
-    /// Points de Corruption dissipés par un Temple de l'Inframonde en 300 cycles, à graine identique :
-    /// un tir sur deux aboutit sans le Dogme de l'Emprise (÷2), deux sur trois avec (÷1,5). Le niveau
-    /// de départ est assez haut pour que la zone ne soit jamais entièrement nettoyée dans l'intervalle.
+    /// Nombre de cycles qu'un Temple de l'Inframonde met à dissiper entièrement une zone de Corruption
+    /// partie du niveau maximal, à graine identique : un tir sur deux aboutit sans le Dogme de l'Emprise
+    /// (÷2), deux sur trois avec (÷1,5), donc moins de cycles avec. Compté en cycles plutôt qu'en points
+    /// dissipés sur un intervalle fixe : depuis <see cref="Corruption.MaxLevel"/>, une zone finit
+    /// toujours par être nettoyée et les deux mesures plafonneraient au même total.
     /// </summary>
     private static int RunUnderworldTempleCorruptionClearing(bool withDogme)
     {
-        const int cycles = 300;
-        const int startLevel = 300;
+        const int maxCycles = 1000;
 
         var (state, city, underworldHex) = CreateSingleHexUnderworldCitySetup();
         city.AddBuilding(new Temple { Level = 2 });
-        var corruption = new Corruption(underworldHex, level: startLevel);
+        var corruption = new Corruption(underworldHex, level: Corruption.MaxLevel);
         state.AddFeature(corruption);
         if (withDogme)
             CompleteResearch(state, TechnologyId.DogmeDeLEmprise);
@@ -519,9 +520,14 @@ public class CorruptionControllerTests
         CreateController(state, clock, seed: 25555);
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinel : initialise LastDominionProductionTick (coldStartOnZero)
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks * cycles);
 
-        return startLevel - corruption.Level;
+        for (int cycle = 1; cycle <= maxCycles; cycle++)
+        {
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+            if (corruption.Level <= 0) return cycle;
+        }
+
+        return maxCycles;
     }
 
     [Fact]
