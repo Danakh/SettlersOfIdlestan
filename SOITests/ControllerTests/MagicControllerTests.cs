@@ -264,7 +264,34 @@ namespace SOITests.ControllerTests
         // ── Automatisation de la puissance ────────────────────────────────────
 
         [Fact]
-        public void SetRitualAutomated_BlocksManualPowerButtons()
+        public void SetRitualAutomated_KeepsManualPowerButtonsUsable()
+        {
+            // Les boutons -/+ restent actifs sur un rituel automatisé : le joueur accélère la
+            // stabilisation en payant, ou baisse le niveau ponctuellement.
+            var (state, _, controller) = CreateSetup(CreateDivineRitualsGodState());
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state, level: 10); // budget de puissance = floor(1 + 10×10%) = 2
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 250);
+
+            controller.LaunchRitual(RitualId.Growth);
+            Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
+            Assert.True(controller.IsRitualAutomated(RitualId.Growth));
+
+            Assert.True(controller.CanIncreaseRitualPower(RitualId.Growth));
+            Assert.True(controller.IncreaseRitualPower(RitualId.Growth));
+            Assert.Equal(2, controller.GetActiveRitual(RitualId.Growth)!.Power);
+
+            // Budget saturé : le + s'éteint, mais le - reste opérant.
+            Assert.False(controller.CanIncreaseRitualPower(RitualId.Growth));
+            Assert.True(controller.DecreaseRitualPower(RitualId.Growth));
+            Assert.Equal(1, controller.GetActiveRitual(RitualId.Growth)!.Power);
+            Assert.True(controller.IsRitualAutomated(RitualId.Growth));
+        }
+
+        [Fact]
+        public void DecreaseRitualPower_OnAutomatedRitualAtPowerOne_StopsItButKeepsItArmed()
         {
             var (state, _, controller) = CreateSetup(CreateDivineRitualsGodState());
             var civ = state.PlayerCivilization;
@@ -274,12 +301,11 @@ namespace SOITests.ControllerTests
 
             controller.LaunchRitual(RitualId.Growth);
             Assert.True(controller.SetRitualAutomated(RitualId.Growth, true));
-            Assert.True(controller.IsRitualAutomated(RitualId.Growth));
 
-            Assert.False(controller.CanIncreaseRitualPower(RitualId.Growth));
-            Assert.False(controller.IncreaseRitualPower(RitualId.Growth));
-            Assert.False(controller.DecreaseRitualPower(RitualId.Growth));
-            Assert.Equal(1, controller.GetActiveRitual(RitualId.Growth)!.Power);
+            Assert.True(controller.DecreaseRitualPower(RitualId.Growth));
+            Assert.Null(controller.GetActiveRitual(RitualId.Growth));
+            // L'automatisation reste armée : elle relancera le rituel à son rythme habituel.
+            Assert.True(controller.IsRitualAutomated(RitualId.Growth));
         }
 
         [Fact]

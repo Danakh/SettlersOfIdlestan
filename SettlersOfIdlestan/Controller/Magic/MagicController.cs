@@ -240,8 +240,9 @@ namespace SettlersOfIdlestan.Controller.Magic
 
         /// <summary>
         /// Puissance consommée par les seuls rituels non automatisés. Sert de référence au lancement et
-        /// au réglage manuel de puissance (<see cref="CanLaunchRitual"/>, <see cref="CanIncreaseRitualPower"/>)
-        /// à la place de <see cref="UsedPower"/> : un rituel automatisé cède immédiatement 1 point de
+        /// à la montée en puissance manuelle d'un rituel non automatisé (<see cref="CanLaunchRitual"/>,
+        /// <see cref="CanIncreaseRitualPower"/>) à la place de <see cref="UsedPower"/> : un rituel
+        /// automatisé cède immédiatement 1 point de
         /// puissance (voir <see cref="ReduceAutomatedPowerIfOverBudget"/>) dès qu'une augmentation manuelle
         /// ferait dépasser le budget total, donc le bouton + ne doit pas être bloqué par la puissance déjà
         /// occupée par l'automatisation.
@@ -407,15 +408,22 @@ namespace SettlersOfIdlestan.Controller.Magic
         }
 
         /// <summary>
-        /// Faux pour un rituel automatisé : sa puissance n'est ajustée que par
-        /// <see cref="ProcessRitualPowerAutomation"/>, jamais par les boutons -/+.
+        /// Les boutons -/+ restent utilisables sur un rituel automatisé : le joueur peut payer pour
+        /// accélérer la stabilisation ou changer le niveau ponctuellement, <see cref="ProcessRitualPowerAutomation"/>
+        /// ramenant ensuite la puissance à son rythme habituel.
+        /// La référence de budget diffère selon le rituel visé : pour un rituel manuel on ignore la
+        /// puissance tenue par l'automatisation, qui cède un point aussitôt (voir
+        /// <see cref="ReduceAutomatedPowerIfOverBudget"/>) ; pour un rituel automatisé ce mécanisme
+        /// reprendrait le point au plus puissant — possiblement celui qu'on vient d'augmenter, les
+        /// cristaux dépensés pour rien —, donc on se compare au budget réellement occupé.
         /// </summary>
         public bool CanIncreaseRitualPower(RitualId id)
         {
             var civ = GetPlayerCiv();
             var active = GetActiveRitual(id);
-            if (civ == null || active == null || IsRitualAutomated(id)) return false;
-            if (UsedPowerByNonAutomatedRituals + 1 > TotalPowerBudget) return false;
+            if (civ == null || active == null) return false;
+            int used = IsRitualAutomated(id) ? UsedPower : UsedPowerByNonAutomatedRituals;
+            if (used + 1 > TotalPowerBudget) return false;
             return civ.GetResourceQuantity(Resource.Crystal) >= GetPowerIncreaseCost(id);
         }
 
@@ -430,14 +438,25 @@ namespace SettlersOfIdlestan.Controller.Magic
             return true;
         }
 
-        /// <summary>Diminue la puissance d'un rituel (gratuit). À puissance 1, arrête le rituel. Sans effet
-        /// sur un rituel automatisé, dont la puissance n'est ajustée que par <see cref="ProcessRitualPowerAutomation"/>.</summary>
+        /// <summary>Diminue la puissance d'un rituel (gratuit). À puissance 1, arrête le rituel — mais un
+        /// rituel automatisé reste alors armé, exactement comme lorsque l'automatisation le démonte
+        /// elle-même (<see cref="ReduceStrongestAutomatedRitual"/>) : la baisse est un geste temporaire,
+        /// pas un désarmement, et <see cref="ProcessRitualPowerAutomation"/> le relancera au rythme
+        /// habituel. Pour désarmer, on décoche la case « auto » ou on utilise le bouton d'arrêt
+        /// (<see cref="StopRitual"/>).</summary>
         public bool DecreaseRitualPower(RitualId id)
         {
             var active = GetActiveRitual(id);
-            if (active == null || IsRitualAutomated(id)) return false;
-            if (active.Power <= 1) return StopRitual(id);
-            active.Power--;
+            if (active == null) return false;
+            if (active.Power > 1)
+            {
+                active.Power--;
+                NotifyRitualsChanged();
+                return true;
+            }
+
+            if (!IsRitualAutomated(id)) return StopRitual(id);
+            _state!.Magic.ActiveRituals.Remove(active);
             NotifyRitualsChanged();
             return true;
         }
