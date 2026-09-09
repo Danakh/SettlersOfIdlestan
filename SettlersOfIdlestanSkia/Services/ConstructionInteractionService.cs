@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Renderers.Island;
+using SettlersOfIdlestanSkia.Renderers.Debug;
 
 namespace SettlersOfIdlestanSkia.Services;
 
@@ -219,11 +220,17 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
         var hexCoord = new HexCoord(hex.q, hex.r, currentZ);
         var playerIndex = WorldState?.PlayerCivilization.Index ?? 0;
 
-        // Les Os Divins restent non sélectionnables tant que Boussole du Vide n'est pas acquise
-        // (ils sont générés dès la création de l'île mais révélés seulement par la recherche).
-        var clickedMonument = WorldState?.Features.OfType<Monument>()
-            .FirstOrDefault(w => w.Position.Equals(hexCoord)
-                && (w is not DivineBones db || db.ShouldRenderIconFor(WorldState.PlayerCivilization)));
+        // Un Monument n'est sélectionnable que sur un hexagone réellement dessiné pour le joueur
+        // (voir IsHexRenderedForPlayer) : dans l'Abysse, une île entière est générée d'un coup dès
+        // qu'un hex de Void devient visible (AutoExtendController.OnHexesRevealed), Os Divins
+        // compris, alors que la plus grande partie de ses hexagones reste dans le brouillard.
+        // Les Os Divins restent en plus non sélectionnables tant que Boussole du Vide n'est pas
+        // acquise (ils sont générés dès la création de l'île mais révélés seulement par la recherche).
+        var clickedMonument = WorldState != null && IsHexRenderedForPlayer(WorldState, hexCoord)
+            ? WorldState.Features.OfType<Monument>()
+                .FirstOrDefault(w => w.Position.Equals(hexCoord)
+                    && (w is not DivineBones db || db.ShouldRenderIconFor(WorldState.PlayerCivilization)))
+            : null;
         if (clickedMonument != null)
         {
             _cityBuildingService.ClearSelectedCity();
@@ -238,6 +245,23 @@ public sealed class ConstructionInteractionService : IConstructionHoverProvider
             _harvestService.TryManualHarvest(hexCoord);
         }
         RefreshHover(e.Position);
+    }
+
+    /// <summary>
+    /// True si la tuile de <paramref name="hexCoord"/> est effectivement dessinée pour le joueur :
+    /// carte visible du joueur, ou carte complète quand tout est révélé (Œil de Dieu, ShowFullMap).
+    /// Même condition que GameBoardRenderer.Render, qui ne dessine que la carte retenue ici — sans
+    /// ce test, un clic dans le noir au-delà de la frontière visible atteint quand même les features
+    /// qui s'y trouvent.
+    /// </summary>
+    private bool IsHexRenderedForPlayer(WorldState worldState, HexCoord hexCoord)
+    {
+        if (DebugSettings.ShowFullMap
+            || _gameControllerService.CurrentGameState?.GodState.AscensionState.IsEyeOfGodActive == true)
+            return worldState.GetMapForZ(hexCoord.Z)?.HasTile(hexCoord) == true;
+
+        return worldState.Visibility.GetForZ(hexCoord.Z).TryGetValue(worldState.PlayerCivilization.Index, out var visibleMap)
+            && visibleMap.HasTile(hexCoord);
     }
 
     private void RefreshBuildableCache()
