@@ -97,6 +97,13 @@ public enum GameEventType
     PandemoniumGateBuilt,
 
     /// <summary>
+    /// Le joueur a perdu sa dernière ville dans le Pandémonium : toute l'arène est détruite et le
+    /// portail retombe à 50 % d'investissement, comme la Faille des Abysses — voir
+    /// PandemoniumGateController.OnCityDestroyed.
+    /// </summary>
+    PandemoniumGateLost,
+
+    /// <summary>
     /// Le joueur a perdu sa dernière ville dans les Abysses : les essences divines récoltées pendant
     /// le run sont perdues, hormis celles garanties par le Reliquaire (voir
     /// AbyssGateController.OnCityDestroyed et GodState.DivineEssenceReliquaryFloor). Message = nombre

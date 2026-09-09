@@ -22,6 +22,8 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyOutpostUnderworld = "OutpostUnderworld";
     internal const string PinKeyRoadAbyss         = "RoadAbyss";
     internal const string PinKeyOutpostAbyss      = "OutpostAbyss";
+    internal const string PinKeyRoadPandemonium    = "RoadPandemonium";
+    internal const string PinKeyOutpostPandemonium = "OutpostPandemonium";
     internal const string PinKeyTownHall      = "TownHall";
     internal const string PinKeyProduction    = "Production";
     internal const string PinKeyArtisan       = "Artisan";
@@ -68,6 +70,8 @@ public sealed class AutomationRenderer : IDisposable
             [PinKeyOutpostUnderworld] = AutomationCategory.Construction,
             [PinKeyRoadAbyss] = AutomationCategory.Construction,
             [PinKeyOutpostAbyss] = AutomationCategory.Construction,
+            [PinKeyRoadPandemonium] = AutomationCategory.Construction,
+            [PinKeyOutpostPandemonium] = AutomationCategory.Construction,
             [PinKeyTownHall] = AutomationCategory.Construction,
             [PinKeyProduction] = AutomationCategory.Construction,
             [PinKeyArtisan] = AutomationCategory.Construction,
@@ -211,6 +215,9 @@ public sealed class AutomationRenderer : IDisposable
             [PinKeyOutpostUnderworld] = outpostUnlocked && hasBuildersGuildUnderworld,
             [PinKeyRoadAbyss] = roadUnlocked && hasBuildersGuildAbyss,
             [PinKeyOutpostAbyss] = outpostUnlocked && hasBuildersGuildAbyss,
+            // Le Pandemonium partage le deblocage de l'Abysse (Cartographie du Vide), pas son reglage.
+            [PinKeyRoadPandemonium] = roadUnlocked && hasBuildersGuildAbyss,
+            [PinKeyOutpostPandemonium] = outpostUnlocked && hasBuildersGuildAbyss,
             [PinKeyTownHall] = roadUnlocked,
             [PinKeyProduction] = harvestersGuild is { Level: >= 1 },
             [PinKeyArtisan] = artisansGuild is { Level: >= 1 },
@@ -261,6 +268,8 @@ public sealed class AutomationRenderer : IDisposable
             Row(PinKeyOutpostUnderworld, "automation_outpost_underworld", unlocks[PinKeyOutpostUnderworld], settings.OutpostAutomationEnabledUnderworld),
             Row(PinKeyRoadAbyss, "automation_road_abyss", unlocks[PinKeyRoadAbyss], settings.RoadAutomationEnabledAbyss),
             Row(PinKeyOutpostAbyss, "automation_outpost_abyss", unlocks[PinKeyOutpostAbyss], settings.OutpostAutomationEnabledAbyss),
+            Row(PinKeyRoadPandemonium, "automation_road_pandemonium", unlocks[PinKeyRoadPandemonium], settings.RoadAutomationEnabledPandemonium),
+            Row(PinKeyOutpostPandemonium, "automation_outpost_pandemonium", unlocks[PinKeyOutpostPandemonium], settings.OutpostAutomationEnabledPandemonium),
             Row(PinKeyTownHall, "automation_townhall", unlocks[PinKeyTownHall], settings.TownHallAutomationEnabled, TownHallTypes),
             Row(PinKeyProduction, "automation_production", unlocks[PinKeyProduction], settings.ProductionBuildingAutomationEnabled, ProductionTypes),
             Row(PinKeyArtisan, "automation_artisan", unlocks[PinKeyArtisan], settings.ArtisanBuildingAutomationEnabled, ArtisanTypes),
@@ -529,6 +538,8 @@ public sealed class AutomationRenderer : IDisposable
             case PinKeyOutpostUnderworld:  settings.OutpostAutomationEnabledUnderworld = !settings.OutpostAutomationEnabledUnderworld; return;
             case PinKeyRoadAbyss:          settings.RoadAutomationEnabledAbyss = !settings.RoadAutomationEnabledAbyss; return;
             case PinKeyOutpostAbyss:       settings.OutpostAutomationEnabledAbyss = !settings.OutpostAutomationEnabledAbyss; return;
+            case PinKeyRoadPandemonium:    settings.RoadAutomationEnabledPandemonium = !settings.RoadAutomationEnabledPandemonium; return;
+            case PinKeyOutpostPandemonium: settings.OutpostAutomationEnabledPandemonium = !settings.OutpostAutomationEnabledPandemonium; return;
             case PinKeyTownHall:           settings.TownHallAutomationEnabled = !settings.TownHallAutomationEnabled; return;
             case PinKeyProduction:         settings.ProductionBuildingAutomationEnabled = !settings.ProductionBuildingAutomationEnabled; return;
             case PinKeyArtisan:            settings.ArtisanBuildingAutomationEnabled = !settings.ArtisanBuildingAutomationEnabled; return;

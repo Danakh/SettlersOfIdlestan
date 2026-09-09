@@ -768,6 +768,7 @@ namespace SettlersOfIdlestan.Controller
             DeepestMineController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
             SurfaceBreachController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
             AbyssGateController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
+            PandemoniumGateController.OnCityDestroyed(e.CityVertex, e.CivilizationIndex);
             if (worldState != null)
                 MonumentInvestment.OnCityDestroyed(worldState, e.CityVertex, e.CivilizationIndex);
             HarvestController.InvalidateProductionCache(e.CivilizationIndex);

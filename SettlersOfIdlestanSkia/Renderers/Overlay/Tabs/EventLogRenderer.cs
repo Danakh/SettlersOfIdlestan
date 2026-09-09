@@ -347,6 +347,10 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Success,
             _localization.Get("event_pandemonium_gate_built_title"),
             _localization.Get("event_pandemonium_gate_built_body")),
+        GameEventType.PandemoniumGateLost => (
+            EventLogTone.Danger,
+            _localization.Get("event_pandemonium_gate_lost_title"),
+            _localization.Get("event_pandemonium_gate_lost_body")),
         GameEventType.DivineBonesPurified => (
             EventLogTone.Reward,
             _localization.Get("event_divine_bones_purified_title"),

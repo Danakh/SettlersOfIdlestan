@@ -131,13 +131,14 @@ namespace SettlersOfIdlestan.Controller.Island
             bool abyssUnlocked = civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_BUILDERS_GUILD_ABYSS);
             bool surfaceEnabled = _state.AutomationSettings.IsOutpostAutomationActive;
             bool underworldEnabled = underworldUnlocked && _state.AutomationSettings.IsOutpostAutomationActiveUnderworld;
-            // Le Pandémonium n'a pas de réglage propre : il suit celui de l'Abysse (même déblocage, même
-            // case dans le panneau d'automatisation), comme le fait déjà le coût de ses nouvelles villes
-            // (voir NewCityBuildingCostFor).
             bool abyssEnabled = abyssUnlocked && _state.AutomationSettings.IsOutpostAutomationActiveAbyss;
+            // Le Pandémonium partage le déblocage de l'Abysse (Cartographie du Vide) et le coût de ses
+            // nouvelles villes (voir NewCityBuildingCostFor), mais a son propre réglage d'automatisation :
+            // le joueur doit pouvoir peupler une couche sans peupler l'autre.
+            bool pandemoniumEnabled = abyssUnlocked && _state.AutomationSettings.IsOutpostAutomationActivePandemonium;
 
             // Keep timer running even when disabled to avoid burst on re-enable
-            if (!surfaceEnabled && !underworldEnabled && !abyssEnabled)
+            if (!surfaceEnabled && !underworldEnabled && !abyssEnabled && !pandemoniumEnabled)
             {
                 guild.LastOutpostBuildTick = now;
                 return;
@@ -181,8 +182,9 @@ namespace SettlersOfIdlestan.Controller.Island
                 // toujours ; servis en dernier, l'Abysse et le Pandémonium ne seraient jamais atteints,
                 // et le Pandémonium — île close, vite saturée — passe devant l'Abysse pour la même
                 // raison. Une couche n'est considérée que si celles au-dessus d'elle dans cet ordre
-                // n'offrent rien ce cycle. Le Pandémonium est servi sous le réglage de l'Abysse.
-                if (buildable.Count == 0 && abyssEnabled)
+                // n'offrent rien ce cycle. Le Pandémonium a son propre réglage, distinct de celui de
+                // l'Abysse même s'ils partagent le déblocage.
+                if (buildable.Count == 0 && pandemoniumEnabled)
                     buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.PandemoniumZ));
                 if (buildable.Count == 0 && abyssEnabled)
                     buildable.AddRange(allBuildable.Where(v => v.Z == LayerState.AbyssZ));

@@ -1330,6 +1330,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_pandemonium_gate_built_title"),
                 _localizationService.Get("event_pandemonium_gate_built_body"),
                 NotificationIcon.Achievement),
+            GameEventType.PandemoniumGateLost => (
+                _localizationService.Get("event_pandemonium_gate_lost_title"),
+                _localizationService.Get("event_pandemonium_gate_lost_body"),
+                NotificationIcon.StoreFail),
             GameEventType.DivineBonesPurified => (
                 _localizationService.Get("event_divine_bones_purified_title"),
                 _localizationService.Get("event_divine_bones_purified_body"),

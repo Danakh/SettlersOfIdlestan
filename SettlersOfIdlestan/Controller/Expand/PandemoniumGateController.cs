@@ -100,6 +100,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         {
             // Comme la Faille des Abysses : l'investissement reste affiché à 100% une fois bâti.
             gate.Built = true;
+            gate.WasEverBuilt = true;
             gate.InvestmentEnabled.Clear();
             _state!.EventLog.Add(GameEventType.PandemoniumGateBuilt, toast: true);
             OnPandemoniumGateBuilt?.Invoke(this, EventArgs.Empty);
@@ -143,6 +144,67 @@ namespace SettlersOfIdlestan.Controller.Expand
                     _state, monster, _prestigeState?.CurrentCorruptionLevel ?? 1);
             }
             _state.Visibility.RecalculateFor(playerCiv.Index);
+        }
+
+        /// <summary>
+        /// À appeler lorsqu'une ville du joueur est détruite. Si c'était la dernière ville du
+        /// Pandémonium, c'est une perte totale — miroir de
+        /// <see cref="AbyssGateController.OnCityDestroyed"/> pour l'Abysse : (1) toute la carte du
+        /// Pandémonium est détruite, dieu démon et Tentacules compris, ainsi que les routes de la
+        /// couche ; (2) le portail retombe à 50 % d'investissement.
+        /// <see cref="TryInitializePandemonium"/> ne régénère une arène neuve qu'une fois le portail
+        /// rebâti (elle vérifie <see cref="HasPandemoniumGateBuilt"/>) — vider la couche est donc
+        /// obligatoire et non cosmétique : la régénération repose le décor par-dessus, et les
+        /// monstres de l'ancienne arène s'ajouteraient à ceux de la nouvelle.
+        /// </summary>
+        public void OnCityDestroyed(Vertex cityVertex, int civilizationIndex)
+        {
+            if (_state == null) return;
+            var playerCiv = _state.PlayerCivilization;
+            if (civilizationIndex != playerCiv.Index) return;
+            if (cityVertex.Z != LayerState.PandemoniumZ) return;
+
+            // La ville a déjà été retirée : vérifie s'il en reste dans le Pandémonium
+            if (playerCiv.Cities.Any(c => c.Position.Z == LayerState.PandemoniumZ)) return;
+
+            // Le portail est une feature de l'Abysse (hex de la Tentacule abattue), jamais du
+            // Pandémonium lui-même : il survit au vidage de la couche ci-dessous.
+            var gate = _state.Features.OfType<PandemoniumGate>().FirstOrDefault(g => g.Built);
+
+            // Remplace la couche par une map vide sans la supprimer, comme l'Abysse : les features
+            // dont Position.Z == PandemoniumZ restent valides pour GetMapFor, mais trouvent une carte
+            // sans tuiles. Le Z doit être explicite : IslandMap(empty) defaulte à Z=0.
+            _state.AddLayer(LayerState.PandemoniumZ, new LayerState(new IslandMap(Array.Empty<HexTile>(), LayerState.PandemoniumZ)));
+
+            // Retire les features orphelines de l'ancienne arène (dieu démon, Tentacules, Corruption…)
+            foreach (var feature in _state.Features.Where(f => f.Position.Z == LayerState.PandemoniumZ).ToList())
+                _state.RemoveFeature(feature);
+
+            foreach (var civ in _state.Civilizations)
+                civ.RemoveAllRoads(r => r.Position.Z == LayerState.PandemoniumZ);
+
+            // Revient sur la surface si le joueur regardait le Pandémonium
+            if (_state.CurrentViewedLayer == LayerState.PandemoniumZ)
+                _state.CurrentViewedLayer = IslandMap.SurfaceLayer;
+
+            if (gate != null)
+            {
+                gate.Built = false;
+                gate.InvestmentEnabled.Clear();
+                gate.InvestedResources.Clear();
+                gate.CompletedInvestmentCost.Clear();
+                var cost = gate.GetInvestmentCost(playerCiv);
+                foreach (var kvp in cost)
+                    gate.InvestedResources[kvp.Key] = kvp.Value / 2;
+                // Comme la Faille des Abysses, on ne relance jamais l'investissement automatique ici
+                // (même si "Automatiser les Monuments" est actif) : perdre la dernière ville du
+                // Pandémonium est un revers que le joueur doit choisir de réparer explicitement, pas
+                // quelque chose qui se referme tout seul en tâche de fond. Voir WasEverBuilt côté
+                // panneau pour le message de reconstruction.
+            }
+
+            _state.EventLog.Add(GameEventType.PandemoniumGateLost, toast: true);
+            _state.Visibility.Recalculate();
         }
     }
 }

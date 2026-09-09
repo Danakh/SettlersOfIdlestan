@@ -139,6 +139,13 @@ public class SelectedMonumentPanelRenderer : PanelRendererBase
                 lines.Add((_localization.Get("monument_bonus_corruption_spire_decay"), true));
                 AddCorruptionClearPotentialLine(lines, gate.Position);
                 break;
+            case PandemoniumGate gate:
+                lines.Add(gate.Built
+                    ? (_localization.Get("monument_bonus_pandemonium_gate_current"), true)
+                    : gate.WasEverBuilt
+                        ? (_localization.Get("monument_bonus_pandemonium_gate_lost"), false)
+                        : (_localization.Get("monument_bonus_pandemonium_gate_next"), false));
+                break;
             case DivineBones bones:
             {
                 var godState = _gameControllerService.MainGameController.CurrentMainState?.GodState;

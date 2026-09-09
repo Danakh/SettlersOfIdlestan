@@ -122,11 +122,12 @@ namespace SettlersOfIdlestan.Controller.Island
                 bool abyssUnlocked = civ.ModifierAggregator.HasModifier(Modifier.ECategory.UNLOCK_BUILDERS_GUILD_ABYSS);
                 bool surfaceEnabled = !isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActive;
                 bool underworldEnabled = underworldUnlocked && (!isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActiveUnderworld);
-                // Le Pandémonium n'a pas de réglage propre : il suit celui de l'Abysse (même déblocage,
-                // même case dans le panneau d'automatisation), comme le coût des nouvelles villes le fait
-                // déjà (voir CityBuilderController.NewCityBuildingCostFor).
                 bool abyssEnabled = abyssUnlocked && (!isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActiveAbyss);
-                if (!surfaceEnabled && !underworldEnabled && !abyssEnabled)
+                // Le Pandémonium partage le déblocage de l'Abysse (Cartographie du Vide) mais a son
+                // propre réglage : les deux couches se remplissent à des rythmes très différents et le
+                // joueur doit pouvoir en arrêter une sans arrêter l'autre.
+                bool pandemoniumEnabled = abyssUnlocked && (!isPlayerCiv || _state.AutomationSettings.IsRoadAutomationActivePandemonium);
+                if (!surfaceEnabled && !underworldEnabled && !abyssEnabled && !pandemoniumEnabled)
                 {
                     guild.LastRoadBuildTick = now;
                     continue;
@@ -156,7 +157,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 int surfaceRoadsPerCycle = Math.Max(1, (int)Math.Round(
                     civ.ModifierAggregator.ApplyModifiers(Modifier.ECategory.BUILDERS_GUILD_SURFACE_ROADS_PER_CYCLE, "", 1.0)));
 
-                BuildRoadsForGuildBurst(civ, guild, cycles, surfaceRoadsPerCycle, surfaceEnabled, underworldEnabled, abyssEnabled);
+                BuildRoadsForGuildBurst(civ, guild, cycles, surfaceRoadsPerCycle, surfaceEnabled, underworldEnabled, abyssEnabled, pandemoniumEnabled);
             }
         }
 
@@ -208,12 +209,12 @@ namespace SettlersOfIdlestan.Controller.Island
         /// changerait quels hexagones comptent comme "nouveaux" pour ce mécanisme au fil d'une rafale
         /// à plusieurs cycles, un changement de comportement de jeu et pas seulement de performance.
         /// </summary>
-        private void BuildRoadsForGuildBurst(Civilization civ, BuildersGuild guild, long cycles, int surfaceRoadsPerCycle, bool surfaceEnabled, bool underworldEnabled, bool abyssEnabled)
+        private void BuildRoadsForGuildBurst(Civilization civ, BuildersGuild guild, long cycles, int surfaceRoadsPerCycle, bool surfaceEnabled, bool underworldEnabled, bool abyssEnabled, bool pandemoniumEnabled)
         {
             var contexts = new LayerBurstContext?[GuildRoadLayerPriority.Length];
             // Même ordre que GuildRoadLayerPriority (surface, Pandémonium, Abysse, Inframonde), pas celui
-            // des paramètres. Le Pandémonium partage le réglage et le déblocage de l'Abysse.
-            var enabled = new[] { surfaceEnabled, abyssEnabled, abyssEnabled, underworldEnabled };
+            // des paramètres.
+            var enabled = new[] { surfaceEnabled, pandemoniumEnabled, abyssEnabled, underworldEnabled };
             var touched = new bool[GuildRoadLayerPriority.Length];
 
             void BuildChosen(Road chosen, LayerBurstContext ctx, int layerIndex)
@@ -282,8 +283,9 @@ namespace SettlersOfIdlestan.Controller.Island
         /// avant-postes (voir CityBuilderController.PerformBuildersGuildOutpostConstruction) :
         /// l'Inframonde offre presque toujours une arête constructible, donc servi en dernier l'Abysse
         /// ne serait jamais atteint ; le Pandémonium, île close et vite saturée, passe devant pour la
-        /// même raison. Le Pandémonium n'a pas de réglage propre : il est servi sous celui de l'Abysse
-        /// (routes du Vide exclues de toute façon, voir <see cref="AreVoidRoadsAllowedOnLayer"/>).
+        /// même raison. Le Pandémonium a son propre réglage d'automatisation, distinct de celui de
+        /// l'Abysse, même s'ils partagent le même déblocage (routes du Vide exclues de toute façon,
+        /// voir <see cref="AreVoidRoadsAllowedOnLayer"/>).
         /// L'index dans ce tableau sert de clé aux tableaux parallèles de
         /// <see cref="BuildRoadsForGuildBurst"/> (déblocage, contexte de rafale, couche modifiée) —
         /// l'ordre de <c>enabled</c> y suit donc celui-ci, pas celui des paramètres.

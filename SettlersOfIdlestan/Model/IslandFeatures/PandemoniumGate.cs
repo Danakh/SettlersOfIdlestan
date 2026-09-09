@@ -24,6 +24,11 @@ public class PandemoniumGate : Monument
     /// <summary>True une fois l'investissement terminé.</summary>
     public bool Built { get; set; } = false;
 
+    /// <summary>Reste true une fois le portail bâti pour la première fois, même après une perte
+    /// (voir PandemoniumGateController.OnCityDestroyed) — distingue "jamais construit" de "accès
+    /// perdu, à reconstruire" pour l'affichage du panneau, comme <see cref="AbyssGate.WasEverBuilt"/>.</summary>
+    public bool WasEverBuilt { get; set; } = false;
+
     /// <summary>Même coût que la Faille des Abysses — voir le commentaire de classe.</summary>
     public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => AbyssGate.GetGateCost();
 

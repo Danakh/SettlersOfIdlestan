@@ -263,5 +263,85 @@ namespace SOITests.ControllerTests
             Assert.Equal(citiesAfterOpening, state.PlayerCivilization.Cities.Count);
             Assert.Single(state.Features.OfType<DemonGod>());
         }
+
+        /// <summary>Ouvre le Pandémonium et rend la main sur le portail et l'avant-poste qui y est né.</summary>
+        private static (PandemoniumGate gate, City outpost) OpenPandemonium(WorldState state, GameClock clock)
+        {
+            var tentacle = new Tentacle(Abyss1);
+            state.AddFeature(tentacle);
+            Kill(state, tentacle);
+
+            var gate = state.Features.OfType<PandemoniumGate>().Single();
+            FillInvestment(gate);
+            clock.SimulateAdvance(PandemoniumGateController.InvestmentIntervalTicks);
+
+            return (gate, state.PlayerCivilization.Cities.Single(c => c.Position.Z == LayerState.PandemoniumZ));
+        }
+
+        [Fact]
+        public void LosingLastPandemoniumCity_ResetsGateToHalfInvestment()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var (gate, outpost) = OpenPandemonium(state, clock);
+
+            state.PlayerCivilization.RemoveCity(outpost);
+            controller.OnCityDestroyed(outpost.Position, state.PlayerCivilization.Index);
+
+            Assert.False(gate.Built);
+            Assert.True(gate.WasEverBuilt);
+            var cost = gate.GetInvestmentCost(state.PlayerCivilization);
+            foreach (var kvp in cost)
+                Assert.Equal(kvp.Value / 2, gate.InvestedResources[kvp.Key]);
+            Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.PandemoniumGateLost);
+        }
+
+        /// <summary>
+        /// Le revers doit rester un choix à réparer : aucune ressource ne doit se remettre à couler
+        /// vers le portail toute seule, même "Automatiser les Monuments" actif.
+        /// </summary>
+        [Fact]
+        public void LosingLastPandemoniumCity_DoesNotRestartInvestmentOnItsOwn()
+        {
+            var (state, clock, controller) = CreateSetup();
+            state.AutomationSettings.MonumentInvestmentAutomationEnabled = true;
+            var (gate, outpost) = OpenPandemonium(state, clock);
+
+            state.PlayerCivilization.RemoveCity(outpost);
+            controller.OnCityDestroyed(outpost.Position, state.PlayerCivilization.Index);
+
+            clock.SimulateAdvance(PandemoniumGateController.InvestmentIntervalTicks * 3);
+
+            Assert.Empty(gate.InvestmentEnabled);
+            Assert.False(gate.Built);
+            Assert.False(state.Layers[LayerState.PandemoniumZ].Map.Tiles.Any());
+        }
+
+        [Fact]
+        public void LosingLastPandemoniumCity_ClearsTheArena()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var (_, outpost) = OpenPandemonium(state, clock);
+
+            state.PlayerCivilization.RemoveCity(outpost);
+            controller.OnCityDestroyed(outpost.Position, state.PlayerCivilization.Index);
+
+            Assert.Empty(state.Features.Where(f => f.Position.Z == LayerState.PandemoniumZ));
+            Assert.Empty(state.Layers[LayerState.PandemoniumZ].Map.Tiles);
+        }
+
+        /// <summary>Perdre une ville des autres couches ne touche évidemment pas au portail.</summary>
+        [Fact]
+        public void LosingAnAbyssCity_LeavesTheGateBuilt()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var (gate, _) = OpenPandemonium(state, clock);
+            var abyssCity = state.PlayerCivilization.Cities.Single(c => c.Position.Z == LayerState.AbyssZ);
+
+            state.PlayerCivilization.RemoveCity(abyssCity);
+            controller.OnCityDestroyed(abyssCity.Position, state.PlayerCivilization.Index);
+
+            Assert.True(gate.Built);
+            Assert.NotEmpty(state.Layers[LayerState.PandemoniumZ].Map.Tiles);
+        }
     }
 }
