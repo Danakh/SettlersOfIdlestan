@@ -228,9 +228,9 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             TEMPLE_DOMINION_LEVEL_BONUS,
             /// <summary>Points de pourcentage de chance de débordement supplémentaires par niveau, pour le Dominion uniquement (base : 10%/niveau, voir CorruptionController.ProcessSpread). Base = 0.</summary>
             DOMINION_SPREAD_CHANCE,
-            /// <summary>Probabilité (0-1) qu'un Dominion situé sur un hex d'une ville possédant un Temple ne perde pas de niveau lors d'une annulation mutuelle avec la Corruption (la Corruption, elle, perd toujours le sien). Base = 0.0.</summary>
+            /// <summary>Réduction <b>multiplicative</b> (0-1), appliquée une fois <b>par Os Divin purifié sur l'île courante</b> (RunRecord.DivineBonesPurified), du risque qu'un Dominion situé sur un hex d'une ville possédant un Temple perde un niveau lors d'une annulation mutuelle avec la Corruption (la Corruption, elle, perd toujours le sien) : risque = (1 − valeur)^Os, chance de résister = 1 − 0,9^Os avec 0,1 (voir CorruptionController.IsDominionSpared). Base = 0.0 ; Terre Consacrée 0,1 (soit −10%/Os).</summary>
             TEMPLE_DOMINION_PROTECTION_CHANCE,
-            /// <summary>Probabilité (0-1) qu'une réduction de Corruption infligée par un Temple ou par l'annulation mutuelle du Dominion retire 2 niveaux d'un coup au lieu d'un seul (voir CorruptionController.ReduceCorruption). Base = 0.0 ; Évangélisation 0,5.</summary>
+            /// <summary>Probabilité (0-1) <b>par Os Divin purifié sur l'île courante</b> (RunRecord.DivineBonesPurified) qu'une réduction de Corruption infligée par un Temple ou par l'annulation mutuelle du Dominion retire un niveau de plus. Au-delà de 100%, la tranche pleine garantit le second niveau et le reste est tiré pour un troisième (13 Os : second garanti, troisième à 30%) ; jamais plus de 3 niveaux d'un coup (voir CorruptionController.RollExtraCleanseLevels). Base = 0.0 ; Évangélisation 0,1 (soit 10%/Os).</summary>
             CORRUPTION_DOUBLE_CLEANSE_CHANCE,
             /// <summary>Flags que les routes du Vide déjà bâties ne comptent que pour moitié dans le coût exponentiel de la suivante (voir RoadController.GetVoidRouteResearchCost).</summary>
             VOID_ROUTE_COST_REDUCTION,

@@ -331,15 +331,15 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void Evangelisation_CorruptionDoubleCleanseChance_Half()
+    public void Evangelisation_CorruptionDoubleCleanseChance_TenPercentPerPurifiedBone()
     {
-        Assert.Equal(0.5, BuildAggregator(TechnologyId.Evangelisation).ApplyModifiers(ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, "", 0.0), 5);
+        Assert.Equal(0.1, BuildAggregator(TechnologyId.Evangelisation).ApplyModifiers(ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, "", 0.0), 5);
     }
 
     [Fact]
-    public void TerreConsacree_TempleDominionProtectionChance_Plus0Point5()
+    public void TerreConsacree_TempleDominionProtectionChance_TenPercentPerPurifiedBone()
     {
-        Assert.Equal(0.5, BuildAggregator(TechnologyId.TerreConsacree).ApplyModifiers(ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, "", 0.0), 5);
+        Assert.Equal(0.1, BuildAggregator(TechnologyId.TerreConsacree).ApplyModifiers(ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, "", 0.0), 5);
     }
 
     [Fact]

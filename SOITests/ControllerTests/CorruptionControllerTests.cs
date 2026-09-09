@@ -212,7 +212,9 @@ public class CorruptionControllerTests
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
         city.AddBuilding(new Temple { Level = 2 });
         state.AddFeature(new Corruption(landHex, level: 3));
-        // Chance forcée à 100% pour rendre le tirage d'Évangélisation déterministe.
+        // Chance forcée à 100% (1 Os Divin purifié × 100%/Os) pour rendre le second niveau de
+        // l'Évangélisation déterministe, sans reliquat pour un troisième.
+        state.RunRecord.DivineBonesPurified = 1;
         state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
         {
             new Modifier(Modifier.ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, Modifier.EType.ADDITIVE, 1.0),
@@ -235,6 +237,7 @@ public class CorruptionControllerTests
         var (state, city, landHex) = CreateSingleLandHexCitySetup();
         city.AddBuilding(new Temple { Level = 2 });
         state.AddFeature(new Corruption(landHex, level: 1));
+        state.RunRecord.DivineBonesPurified = 1;
         state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
         {
             new Modifier(Modifier.ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, Modifier.EType.ADDITIVE, 1.0),
@@ -574,8 +577,10 @@ public class CorruptionControllerTests
         var corruption = new Corruption(b, level: 5);
         state.AddFeature(dominion);
         state.AddFeature(corruption);
-        // Chance forcée à 100% pour rendre le tirage d'Évangélisation déterministe. Le Dominion, lui,
-        // perd toujours son point unique (Terre Consacrée non acquise).
+        // Chance forcée à 100% (1 Os Divin purifié × 100%/Os) pour rendre le second niveau de
+        // l'Évangélisation déterministe. Le Dominion, lui, perd toujours son point unique (Terre
+        // Consacrée non acquise).
+        state.RunRecord.DivineBonesPurified = 1;
         state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
         {
             new Modifier(Modifier.ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, Modifier.EType.ADDITIVE, 1.0),
@@ -609,6 +614,7 @@ public class CorruptionControllerTests
         { CivilizationIndex = 0 };
         city.AddBuilding(new Temple { Level = 1 });
         state.PlayerCivilization.AddCity(city);
+        state.RunRecord.DivineBonesPurified = 1;
         state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
         {
             new Modifier(Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, Modifier.EType.ADDITIVE, 1.0),
@@ -636,6 +642,7 @@ public class CorruptionControllerTests
         state.AddFeature(dominion);
 
         // Chance de protection maximale mais aucune ville avec Temple : la protection ne s'applique pas.
+        state.RunRecord.DivineBonesPurified = 1;
         state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
         {
             new Modifier(Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, Modifier.EType.ADDITIVE, 1.0),

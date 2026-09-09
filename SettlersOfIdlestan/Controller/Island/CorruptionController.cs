@@ -19,14 +19,14 @@ namespace SettlersOfIdlestan.Controller.Island;
 /// 1. <see cref="ProcessTempleProduction"/> — chaque Temple de niveau 2-4 (atteignable uniquement une
 ///    fois le pouvoir divin Foi débloqué, voir AscensionController.GetModifiers — BUILDING_MAX_LEVEL
 ///    "Temple" +3) cible un hex aléatoire parmi les 3 hexes touchant sa ville : réduit la Corruption
-///    d'un point si elle y est présente (de deux sur un tirage réussi d'Évangélisation, voir
+///    d'un point si elle y est présente (de deux ou trois sur un tirage réussi d'Évangélisation, voir
 ///    <see cref="ReduceCorruption"/>), sinon pose ou augmente le Dominion d'un point (plafonné à
 ///    <see cref="TempleDominionCapPerLevel"/> × niveau effectif du Temple). Le niveau effectif est le
 ///    niveau réel augmenté de TEMPLE_DOMINION_LEVEL_BONUS (Ziggourat +1), ce qui abaisse aussi d'autant
 ///    le niveau à partir duquel un Temple produit — voir <see cref="ProducesDominion"/>.
 /// 2. <see cref="ProcessSpread"/> — chaque hex de Corruption ou de Dominion (toutes couches confondues)
 ///    a niveau×10% de chance de déborder sur un voisin aléatoire : annulation mutuelle (-1/-1, la
-///    Corruption perdant 2 points sur un tirage réussi d'Évangélisation) si ce
+///    Corruption perdant 2 ou 3 points sur un tirage réussi d'Évangélisation) si ce
 ///    voisin porte le statut opposé, propagation (+1 voisin, source inchangée) si le voisin partage le
 ///    même statut (un voisin vide compte comme statut identique de niveau 0) avec un écart de niveau
 ///    &gt; 2. Un voisin vide peut donc se voir semer une nouvelle poche à niveau 1 si la source est assez
@@ -79,6 +79,9 @@ public class CorruptionController
 
     private const int SpreadChancePercentPerLevel = 10;
     private const int SpreadSameStatusLevelGap = 2;
+
+    /// <summary>Niveaux de Corruption que l'Évangélisation peut retirer au-delà du premier (voir <see cref="RollExtraCleanseLevels"/>) : 2 au plus, soit 3 points d'un coup.</summary>
+    private const int MaxExtraCleanseLevels = 2;
 
     /// <summary>Malus de base appliqué aux chances d'action du Dominion par couche franchie sous la surface (÷2 Inframonde, ÷4 Abysses, ÷8 Pandémonium), avant réduction par DOMINION_LAYER_PENALTY_REDUCTION.</summary>
     private const double DominionLayerPenaltyBase = 2.0;
@@ -405,12 +408,20 @@ public class CorruptionController
     /// <summary>
     /// Vrai si le Dominion de cet hex échappe (tirage aléatoire) à la perte de niveau d'une annulation
     /// mutuelle avec la Corruption : recherche Terre Consacrée (TEMPLE_DOMINION_PROTECTION_CHANCE) et
-    /// hex touchant une ville du joueur possédant un Temple.
+    /// hex touchant une ville du joueur possédant un Temple. Le modificateur est une réduction
+    /// <b>multiplicative</b> du risque de perdre le niveau, appliquée une fois par Os Divin purifié
+    /// sur l'île courante (0,1 = −10%/Os) : le risque vaut (1 − 0,1)^Os, donc la chance de résister
+    /// 1 − 0,9^Os — 10% à 1 Os, 65% à 10, 88% à 20, jamais tout à fait 100%. Sans purification, la
+    /// recherche ne protège rien.
     /// </summary>
     private bool IsDominionSpared(HexCoord hex)
     {
-        double chance = _state!.PlayerCivilization.ModifierAggregator
+        double perBone = _state!.PlayerCivilization.ModifierAggregator
             .ApplyModifiers(Modifier.ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, "", 0.0);
+        int bones = _state.RunRecord.DivineBonesPurified;
+        if (perBone <= 0 || bones <= 0) return false;
+
+        double chance = 1.0 - Math.Pow(Math.Max(0.0, 1.0 - perBone), bones);
         if (chance <= 0) return false;
 
         // Index hexagone → villes (voir Civilization.GetCitiesAdjacentTo) plutôt qu'un balayage des
@@ -480,8 +491,8 @@ public class CorruptionController
     }
 
     /// <summary>
-    /// Réduit la Corruption d'un point, ou de deux d'un coup sur un tirage réussi de
-    /// CORRUPTION_DOUBLE_CLEANSE_CHANCE (Évangélisation, 50%). N'est utilisé que pour les deux
+    /// Réduit la Corruption d'un point, ou de deux (voire trois) d'un coup sur un tirage réussi de
+    /// CORRUPTION_DOUBLE_CLEANSE_CHANCE (Évangélisation). N'est utilisé que pour les deux
     /// mécaniques que la recherche vise — la production de Temple (<see cref="ApplyTempleActionOnHex"/>)
     /// et l'annulation mutuelle avec le Dominion (<see cref="ProcessSpread"/>) : la décroissance sous
     /// les monuments passe toujours par <see cref="ReduceLevel"/>, elle, et retire toujours un point.
@@ -492,16 +503,46 @@ public class CorruptionController
     /// </summary>
     private void ReduceCorruption(IslandFeature corruption)
     {
-        double chance = _state!.PlayerCivilization.ModifierAggregator
-            .ApplyModifiers(Modifier.ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, "", 0.0);
-        bool doubled = chance > 0 && _prng!.Next(100) < (int)Math.Round(chance * 100);
+        int extra = RollExtraCleanseLevels();
 
         ReduceLevel(corruption);
 
         // Le premier point peut avoir vidé la poche : ReduceLevel l'a alors retirée de l'état (et
         // enregistré son pic), il n'y a plus rien à retirer.
-        if (doubled && GetLevel(corruption) > 0)
+        while (extra-- > 0 && GetLevel(corruption) > 0)
             ReduceLevel(corruption);
+    }
+
+    /// <summary>
+    /// Nombre de niveaux de Corruption retirés <b>en plus</b> du premier (0 à
+    /// <see cref="MaxExtraCleanseLevels"/>) par l'Évangélisation. Le modificateur est une chance
+    /// <b>par Os Divin purifié</b> sur l'île courante (0,1 = 10%/Os) : le total est dépensé point par
+    /// point, chaque tranche pleine de 100% garantissant un niveau supplémentaire et le reste étant
+    /// tiré au sort. À 13 Os purifiés (130%), le second point est donc acquis et le troisième tombe
+    /// 30% du temps. Aucun tirage n'est consommé quand il n'y a rien d'aléatoire à décider.
+    /// </summary>
+    private int RollExtraCleanseLevels()
+    {
+        double perBone = _state!.PlayerCivilization.ModifierAggregator
+            .ApplyModifiers(Modifier.ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, "", 0.0);
+        if (perBone <= 0) return 0;
+
+        double chance = perBone * _state.RunRecord.DivineBonesPurified;
+        int extra = 0;
+        while (extra < MaxExtraCleanseLevels && chance > 0)
+        {
+            if (chance >= 1.0)
+            {
+                extra++;
+                chance -= 1.0;
+                continue;
+            }
+
+            if (_prng!.Next(100) < (int)Math.Round(chance * 100)) extra++;
+            break;
+        }
+
+        return extra;
     }
 
     private void ReduceLevel(IslandFeature feature)

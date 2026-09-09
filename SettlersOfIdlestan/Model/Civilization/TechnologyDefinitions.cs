@@ -836,26 +836,29 @@ public static class TechnologyDefinitions
             tier: 12, line: 5,
             requiresDominionUnlock: true),
 
-        // La parole divine frappe deux fois plus fort : 50% de chance qu'une réduction de Corruption
-        // par un Temple ou par l'annulation mutuelle du Dominion retire 2 niveaux d'un coup
-        // (voir CorruptionController.ReduceCorruption).
+        // La parole divine frappe deux fois plus fort : 10% de chance par Os Divin purifié qu'une
+        // réduction de Corruption par un Temple ou par l'annulation mutuelle du Dominion retire un
+        // niveau de plus. Au-delà de 100% (10 Os), le second niveau est garanti et le surplus tire un
+        // troisième niveau — effet volontairement absent de l'infobulle
+        // (voir CorruptionController.RollExtraCleanseLevels).
         // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.Evangelisation,
             "tech_evangelisation_name", "tech_evangelisation_desc",
             cost: 6687500000,
             prerequisites: new[] { TechnologyId.DogmeDeLEmprise },
-            modifiers: new Modifier[] { new(ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, EType.ADDITIVE, 0.5) },
+            modifiers: new Modifier[] { new(ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, EType.ADDITIVE, 0.1) },
             tier: 13, line: 5,
             requiresDominionUnlock: true),
 
-        // 50% de chance que le Dominion sur les hexs d'une ville avec Temple ne perde pas de niveau
-        // face à la Corruption (l'annulation reste totale pour la Corruption).
+        // Chaque Os Divin purifié réduit de 10% (multiplicatif) le risque que le Dominion sur les hexs
+        // d'une ville avec Temple perde un niveau face à la Corruption : risque = 0,9^Os, soit une
+        // chance de résister de 1 − 0,9^Os (l'annulation reste totale pour la Corruption).
         // Baissée de 2 tiers (coût / 16).
         new(TechnologyId.TerreConsacree,
             "tech_terre_consacree_name", "tech_terre_consacree_desc",
             cost: 6687500000,
             prerequisites: new[] { TechnologyId.DogmeDeLEmprise },
-            modifiers: new Modifier[] { new(ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, EType.ADDITIVE, 0.5) },
+            modifiers: new Modifier[] { new(ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, EType.ADDITIVE, 0.1) },
             tier: 13, line: 6,
             requiresDominionUnlock: true),
 
