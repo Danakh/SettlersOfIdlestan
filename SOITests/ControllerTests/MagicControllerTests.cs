@@ -689,6 +689,72 @@ namespace SOITests.ControllerTests
         }
 
         [Fact]
+        public void Upkeep_IsPaidByInstalmentsAcrossTheCycle()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 100);
+
+            controller.LaunchRitual(RitualId.Growth); // reste 50
+
+            // Entretien de 2 cristaux par cycle = 0,2 par seconde : les arrondis s'accumulent et le
+            // premier cristal n'est prélevé qu'au cinquième versement.
+            clock.SimulateAdvance(MagicController.UpkeepPaymentIntervalTicks * 4);
+            Assert.Equal(50, civ.GetResourceQuantity(Resource.Crystal));
+
+            clock.SimulateAdvance(MagicController.UpkeepPaymentIntervalTicks);
+            Assert.Equal(49, civ.GetResourceQuantity(Resource.Crystal));
+        }
+
+        [Fact]
+        public void Upkeep_RitualSurvivesShortShortageAndPaysDebtBack()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state);
+            GrantCrystalStorage(civ, 1000);
+            civ.AddResource(Resource.Crystal, 50); // juste le coût de lancement
+
+            controller.LaunchRitual(RitualId.Growth); // reste 0
+
+            // Quatre secondes sans le moindre cristal : la dette atteint 0,8, sous le seuil
+            // d'effondrement (1 cristal ici, plancher du seuil de 50 % d'un coût de cycle de 2).
+            clock.SimulateAdvance(MagicController.UpkeepPaymentIntervalTicks * 4);
+            Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
+
+            // Les cristaux reviennent : le versement suivant solde la dette accumulée.
+            civ.AddResource(Resource.Crystal, 10);
+            clock.SimulateAdvance(MagicController.UpkeepPaymentIntervalTicks);
+
+            Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
+            Assert.Equal(9, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(0.0, controller.GetActiveRitual(RitualId.Growth)!.UpkeepDebt, 3);
+        }
+
+        [Fact]
+        public void Upkeep_RitualCollapsesOnlyAfterFiveMissedInstalments()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth);
+            AddMageTower(state);
+            civ.AddResource(Resource.Crystal, 50);
+
+            controller.LaunchRitual(RitualId.Growth); // reste 0
+
+            clock.SimulateAdvance(MagicController.UpkeepPaymentIntervalTicks * 4);
+            Assert.NotNull(controller.GetActiveRitual(RitualId.Growth));
+
+            clock.SimulateAdvance(MagicController.UpkeepPaymentIntervalTicks);
+            Assert.Null(controller.GetActiveRitual(RitualId.Growth));
+            Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.RitualCollapsed);
+        }
+
+        [Fact]
         public void Upkeep_RitualPowerDecreasesWhenTowerLevelsAreLost()
         {
             // Le budget de puissance de base (1) ne dépend plus des tours : perdre la seule tour

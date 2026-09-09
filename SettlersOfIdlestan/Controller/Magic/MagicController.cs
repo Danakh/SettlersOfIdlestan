@@ -18,7 +18,8 @@ namespace SettlersOfIdlestan.Controller.Magic
     /// <summary>
     /// Gère les rituels magiques : lancement (coût en cristaux = base × puissance²),
     /// entretien par cycle (base × puissance²), effet linéaire (× puissance) via
-    /// <see cref="MagicModifierProvider"/>, effondrement quand les cristaux manquent.
+    /// <see cref="MagicModifierProvider"/>, effondrement quand la dette d'entretien s'accumule
+    /// faute de cristaux.
     /// Le nombre de Tours de Mages limite le nombre de rituels actifs ; la somme de
     /// leurs niveaux limite la puissance totale.
     /// Gère aussi la génération passive de cristaux des Cercles de Fées,
@@ -26,8 +27,28 @@ namespace SettlersOfIdlestan.Controller.Magic
     /// </summary>
     public class MagicController
     {
-        /// <summary>Durée d'un cycle d'entretien des rituels (1000 ticks = 10 s).</summary>
+        /// <summary>
+        /// Durée d'un cycle d'entretien des rituels (1000 ticks = 10 s) : c'est l'unité dans laquelle
+        /// <see cref="GetUpkeepCost"/> est exprimé, pas la cadence des prélèvements — ceux-ci ont lieu
+        /// toutes les <see cref="UpkeepPaymentIntervalTicks"/> (voir <see cref="ProcessUpkeep"/>).
+        /// </summary>
         public const long UpkeepIntervalTicks = 1000L;
+
+        /// <summary>
+        /// Intervalle entre deux versements d'entretien (100 ticks = 1 s). Chaque versement prélève
+        /// <see cref="UpkeepInstalmentRatio"/> du coût d'un cycle : un achat qui vide le stock ne fait
+        /// donc plus s'effondrer les rituels d'un coup, il ne laisse qu'un versement impayé de plus.
+        /// </summary>
+        public const long UpkeepPaymentIntervalTicks = 100L;
+
+        /// <summary>Part du coût d'un cycle prélevée à chaque versement (10 % par seconde).</summary>
+        public const double UpkeepInstalmentRatio = UpkeepPaymentIntervalTicks / (double)UpkeepIntervalTicks;
+
+        /// <summary>
+        /// Part du coût d'un cycle que la dette d'entretien (<see cref="ActiveRitual.UpkeepDebt"/>) doit
+        /// atteindre pour que le rituel s'effondre : 50 %, soit cinq versements manqués d'affilée.
+        /// </summary>
+        public const double UpkeepDebtCollapseRatio = 0.5;
 
         /// <summary>Intervalle entre deux ajustements de puissance des rituels automatisés (100 ticks = 1 s).</summary>
         public const long RitualAutomationIntervalTicks = 100L;
@@ -845,29 +866,23 @@ namespace SettlersOfIdlestan.Controller.Magic
             foreach (var active in _state.Magic.ActiveRituals.ToList())
             {
                 long lastTick = active.LastUpkeepTick;
-                long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, UpkeepIntervalTicks);
+                long instalments = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, UpkeepPaymentIntervalTicks);
                 active.LastUpkeepTick = lastTick;
-                if (cycles <= 0) continue;
+                if (instalments <= 0) continue;
 
                 var def = RitualDefinitions.Get(active.Id);
                 if (def == null) continue;
 
-                // Rejoué cycle par cycle (pas une multiplication directe) : le stock de cristaux peut
-                // s'épuiser avant d'avoir consommé tous les cycles dus, ce qui doit effondrer le rituel
-                // dès le cycle fautif plutôt qu'après coup.
-                for (long i = 0; i < cycles; i++)
+                // Rejoué versement par versement (pas une multiplication directe) : le stock de cristaux
+                // peut s'épuiser avant d'avoir consommé tous les versements dus, et la dette doit alors
+                // s'accumuler versement après versement pour effondrer le rituel dès celui qui franchit
+                // le seuil, plutôt qu'après coup.
+                for (long i = 0; i < instalments; i++)
                 {
-                    int upkeep = GetUpkeepCost(def, active.Power);
-                    if (civ.GetResourceQuantity(Resource.Crystal) >= upkeep)
-                    {
-                        if (upkeep > 0) civ.RemoveResource(Resource.Crystal, upkeep);
-                    }
-                    else
-                    {
-                        CollapseRitual(active);
-                        changed = true;
-                        break;
-                    }
+                    if (PayUpkeepInstalment(civ, def, active)) continue;
+                    CollapseRitual(active);
+                    changed = true;
+                    break;
                 }
             }
 
@@ -887,6 +902,43 @@ namespace SettlersOfIdlestan.Controller.Magic
 
             if (changed) NotifyRitualsChanged();
         }
+
+        /// <summary>
+        /// Prélève un versement d'entretien (une seconde) sur les cristaux du joueur. La part due —
+        /// <see cref="UpkeepInstalmentRatio"/> du coût d'un cycle — s'ajoute à la dette du rituel
+        /// (<see cref="ActiveRitual.UpkeepDebt"/>), dont on paie la partie entière dans la limite du
+        /// stock disponible ; le reste, arrondi sous le cristal entier comme versement manqué faute de
+        /// cristaux, demeure en dette et sera prélevé au versement suivant.
+        /// Retourne false quand la dette a atteint le seuil d'effondrement, c'est-à-dire quand le rituel
+        /// est réellement resté impayé cinq secondes d'affilée — un simple achat qui vide le stock ne
+        /// coûte qu'un versement de retard, rattrapé dès que les cristaux reviennent.
+        /// </summary>
+        private bool PayUpkeepInstalment(Civilization civ, RitualDefinition def, ActiveRitual active)
+        {
+            int cycleCost = GetUpkeepCost(def, active.Power);
+            if (cycleCost <= 0)
+            {
+                active.UpkeepDebt = 0;
+                return true;
+            }
+
+            double due = active.UpkeepDebt + cycleCost * UpkeepInstalmentRatio;
+            int paid = Math.Min((int)Math.Floor(due), civ.GetResourceQuantity(Resource.Crystal));
+            if (paid > 0) civ.RemoveResource(Resource.Crystal, paid);
+            active.UpkeepDebt = due - paid;
+
+            return active.UpkeepDebt < GetUpkeepCollapseDebt(cycleCost);
+        }
+
+        /// <summary>
+        /// Dette d'entretien à partir de laquelle le rituel s'effondre : <see cref="UpkeepDebtCollapseRatio"/>
+        /// du coût d'un cycle, mais jamais moins d'un cristal. Sur un entretien d'un seul cristal par
+        /// cycle, la moitié du coût passerait sous le simple report d'arrondi — inférieur à 1 cristal par
+        /// construction, puisque chaque versement paie tout ce qu'il peut en cristaux entiers — et le
+        /// rituel s'effondrerait alors qu'il est payé rubis sur l'ongle.
+        /// </summary>
+        private static double GetUpkeepCollapseDebt(int cycleCost)
+            => Math.Max(cycleCost * UpkeepDebtCollapseRatio, 1.0);
 
         private void CollapseRitual(ActiveRitual active)
         {

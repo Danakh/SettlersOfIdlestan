@@ -4,7 +4,8 @@ using System.Collections.Generic;
 namespace SettlersOfIdlestan.Model.Magic;
 
 /// <summary>
-/// Un rituel actuellement actif : puissance courante et tick du dernier entretien payé.
+/// Un rituel actuellement actif : puissance courante, tick du dernier versement d'entretien payé
+/// et dette d'entretien en attente.
 /// </summary>
 [Serializable]
 public class ActiveRitual
@@ -12,6 +13,15 @@ public class ActiveRitual
     public RitualId Id { get; set; }
     public int Power { get; set; } = 1;
     public long LastUpkeepTick { get; set; }
+
+    /// <summary>
+    /// Entretien dû mais pas encore prélevé, en cristaux. L'entretien est payé par versements d'une
+    /// seconde (voir <c>MagicController.ProcessUpkeep</c>) : la fraction de cristal qu'un versement
+    /// ne peut pas prélever — arrondi sous le cristal entier comme versement manqué faute de stock —
+    /// reste ici et s'ajoute au versement suivant. Le rituel ne s'effondre que lorsque cette dette
+    /// atteint <c>MagicController.UpkeepDebtCollapseRatio</c> du coût d'un cycle complet.
+    /// </summary>
+    public double UpkeepDebt { get; set; }
 
     /// <summary>
     /// [Legacy v0.21] Ancien emplacement du drapeau d'automatisation, remplacé depuis par
