@@ -655,13 +655,13 @@ public static class TechnologyDefinitions
 
         // Baissée de 2 tiers (coût / 16). Ne dépend plus que de PacteAbyssal, Secrets of the Rift
         // (SecretsDeLaFaille) ayant été supprimée. Remontée d'un tier (coût ×4) en reprenant la place
-        // de Communion Abyssale (supprimée) : son bonus n'est plus additif mais composé, +30% de
+        // de Communion Abyssale (supprimée) : son bonus n'est plus additif mais composé, +20% de
         // prestige par Os Divin purifié sur l'île (voir PrestigeController.GetDivineBonesPrestigeMultiplier).
         new(TechnologyId.TheologieDeLAscension,
             "tech_theologie_de_l_ascension_name", "tech_theologie_de_l_ascension_desc",
             cost: 1675000000,
             prerequisites: new[] { TechnologyId.PacteAbyssal },
-            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE, EType.ADDITIVE, 0.3) },
+            modifiers: new Modifier[] { new(ECategory.PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE, EType.ADDITIVE, 0.2) },
             tier: 12, line: 6),
 
         // === Capstones des branches existantes (tiers 10-11 depuis la baisse de 2 tiers) ===

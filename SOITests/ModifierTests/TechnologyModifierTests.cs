@@ -256,9 +256,9 @@ public class TechnologyModifierTests
     }
 
     [Fact]
-    public void TheologieDeLAscension_PrestigeGainPerPurifiedDivineBone_Plus0Point3()
+    public void TheologieDeLAscension_PrestigeGainPerPurifiedDivineBone_Plus0Point2()
     {
-        Assert.Equal(0.3, BuildAggregator(TechnologyId.TheologieDeLAscension).ApplyModifiers(ECategory.PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE, "", 0.0), 5);
+        Assert.Equal(0.2, BuildAggregator(TechnologyId.TheologieDeLAscension).ApplyModifiers(ECategory.PRESTIGE_GAIN_PER_PURIFIED_DIVINE_BONE, "", 0.0), 5);
     }
 
     [Fact]
