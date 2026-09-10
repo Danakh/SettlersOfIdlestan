@@ -994,6 +994,7 @@ namespace SettlersOfIdlestan.Controller
         /// </summary>
         public bool HasResearchActionAvailable()
         {
+            if (_civ.IsNpc) return false;
             if (!_researchController.IsResearchUnlocked()) return false;
 
             bool isAnyInProgress = TechnologyDefinitions.All
@@ -1013,9 +1014,22 @@ namespace SettlersOfIdlestan.Controller
         /// <summary>
         /// Starts the cheapest available research if none is active, and queues the next cheapest
         /// while the research queue still has a free slot. No-ops when research is not unlocked.
+        ///
+        /// <para>Sans effet pour une civilisation PNJ : <see cref="ResearchController"/> est une
+        /// instance unique liée à la recherche du <b>joueur</b> (une seule PrestigeState /
+        /// TechnologyTree dans le jeu), donc un autoplayer PNJ qui passe ici lance et enfile des
+        /// recherches dans l'arbre du joueur. La stratégie PNJ écarte déjà l'objectif de recherche
+        /// (<c>includeResearch: false</c>, voir <see cref="CivilizationAutoplayerPriorities.Unified"/>),
+        /// mais <see cref="TryBuildImperialPortOnce"/> appelle cette méthode directement et
+        /// contournait ce filtre : le premier PNJ arrivé à l'étape du Port Impérial démarrait la
+        /// recherche disponible la moins chère du joueur (Archivage, 330 — la première répétable de
+        /// l'arbre) alors que le joueur n'en avait lancé aucune, et vidait au passage sa répétition
+        /// en cours (voir <see cref="ResearchController.EnqueueResearch"/>). Le garde-fou est ici, au
+        /// point de mutation, plutôt qu'au seul appelant fautif.</para>
         /// </summary>
         public bool TryResearchOnce()
         {
+            if (_civ.IsNpc) return false;
             if (!_researchController.IsResearchUnlocked()) return false;
 
             bool didSomething = false;

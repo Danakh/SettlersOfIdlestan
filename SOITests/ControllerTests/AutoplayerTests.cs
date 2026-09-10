@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SOITests.TestUtilities;
@@ -91,5 +92,80 @@ namespace SOITests.ControllerTests
 
             SaveUtils.SaveAndReloadAndAssertEqual(mainController, "5HexsMapWithTwoCities");
         }
+
+        /// <summary>
+        /// Une civilisation PNJ ne doit jamais toucher à la recherche : le ResearchController est une
+        /// instance unique liée à l'arbre du JOUEUR (une seule PrestigeState dans le jeu), donc un
+        /// autoplayer PNJ qui appelle TryResearchOnce lance une recherche chez le joueur. La stratégie
+        /// PNJ écarte déjà l'objectif de recherche (includeResearch: false), mais
+        /// TryBuildImperialPortOnce appelait TryResearchOnce directement : le premier PNJ arrivé à
+        /// l'étape du Port Impérial démarrait la recherche disponible la moins chère du joueur
+        /// (Archivage, 330 — la première répétable de l'arbre) alors que le joueur n'en avait lancé
+        /// aucune. Le contrôle sur la civ du joueur garantit que le montage démarrerait bien une
+        /// recherche sans le garde-fou.
+        /// </summary>
+        [Fact]
+        public void TryResearchOnce_DoesNothing_ForNpcCivilization()
+        {
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+
+            var map = new IslandMap(new[]
+            {
+                new HexTile(a, TerrainType.Forest),
+                new HexTile(b, TerrainType.Hill),
+                new HexTile(c, TerrainType.Plain),
+            });
+
+            var player = new Civilization { Index = 0 };
+            var npc = new Civilization { Index = 1, IsNpc = true };
+            var state = new WorldState(map, new System.Collections.Generic.List<Civilization> { player, npc },
+                AtlasController.InvalidIslandId);
+
+            var vertex = Vertex.Create(a, b, c);
+            new IslandMapGenerator(new GamePRNG(42)).PopulatePlayerCivilization(map, player, vertex);
+
+            var clock = new GameClock();
+            clock.Start();
+            var mainController = new MainGameController();
+            mainController.SetGame(new MainGameState(state, clock, new GamePRNG(42)));
+
+            // Système de recherche débloqué (vertex de prestige en jeu réel) : sans lui TryResearchOnce
+            // sort avant même le garde-fou et le test ne prouverait rien.
+            player.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(Modifier.ECategory.UNLOCK_RESEARCH_SYSTEM, Modifier.EType.ADDITIVE, 1),
+            }));
+
+            var research = mainController.ResearchController;
+            Assert.True(research.IsResearchUnlocked());
+
+            var npcAuto = MakeAutoplayer(npc, map, state, mainController);
+            Assert.False(npcAuto.TryResearchOnce(), "Un PNJ ne doit pas piloter la recherche du joueur");
+            Assert.False(npcAuto.HasResearchActionAvailable());
+            Assert.Null(research.ActiveResearch);
+            Assert.Empty(research.GetResearchQueue());
+
+            var playerAuto = MakeAutoplayer(player, map, state, mainController);
+            Assert.True(playerAuto.TryResearchOnce(), "Le joueur, lui, doit bien démarrer une recherche");
+            Assert.NotNull(research.ActiveResearch);
+        }
+
+        private static CivilizationAutoplayer MakeAutoplayer(
+            Civilization civ, IslandMap map, WorldState state, MainGameController mainController)
+            => new(
+                civ, map,
+                mainController.RoadController,
+                mainController.HarvestController,
+                mainController.BuildingController,
+                mainController.CityBuilderController,
+                mainController.TradeController,
+                mainController.ResearchController,
+                mainController.PrestigeController,
+                mainController.PrestigeMapController,
+                state,
+                mainController.CurrentMainState?.PrestigeState,
+                mainController.PerformPrestige);
     }
 }
