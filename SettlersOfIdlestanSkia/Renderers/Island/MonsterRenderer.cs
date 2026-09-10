@@ -41,6 +41,8 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         public float AttackAnimProgress = 1f;
         public SKPoint HomePos;
         public SKPoint TargetPos;
+        /// <summary>Figé au déclenchement, comme HomePos/TargetPos : l'attaque en cours partait-elle de loin (boules de feu, icône immobile) ou d'une ruée ?</summary>
+        public bool AttackWasRanged;
         public Resource? FlyingResource;
         public float ResourceFlyProgress = 1f;
     }
@@ -119,7 +121,10 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
     /// <summary>
     /// Une boule de feu par coup porté, cible par cible (voir MonsterFeature.LastAttackImpacts) :
     /// une salve de zone en lance une sur chacune de ses cibles, une salve concentrée en lance
-    /// autant que de coups sur la même — les deux se distinguent donc à l'œil. Émise depuis la
+    /// autant que de coups sur la même — les deux se distinguent donc à l'œil. Seuls les impacts
+    /// marqués <c>Ranged</c> donnent un tir : le Dieu démon mène deux attaques de front, et sa ruée
+    /// au corps-à-corps peut tomber sur le même tick que son déluge de boules de feu — elle
+    /// s'affiche alors en élan de l'icône pendant que les autres cibles sont bombardées. Émise depuis la
     /// relecture de LastAttackTick et non sur un événement du contrôleur comme les tirs des villes :
     /// côté modèle une attaque de monstre ne s'observe pas autrement, exactement comme le reste de
     /// cette animation.
@@ -136,6 +141,7 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
         for (int i = 0; i < impacts.Count; i++)
         {
             var impact = impacts[i];
+            if (!impact.Ranged) continue;
             SKPoint to;
             bool targetVisible;
             if (impact.Vertex != null)
@@ -267,8 +273,11 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
                 // Attaque à distance : le monstre ne bouge pas (voir plus bas, sa position reste
                 // normalPos), le tir est matérialisé par des boules de feu vers ses cibles.
                 // AttackAnimProgress continue de courir : c'est lui qui cadence l'envol des
-                // ressources volées.
-                if (monster.HasRangedAttack && monster.Found && monster.Position.Z == context.CurrentLayer)
+                // ressources volées. EmitRangedAttack est appelé quoi qu'il arrive et ne retient
+                // que les impacts tirés de loin : un monstre à plusieurs attaques peut ruer sur une
+                // ville et bombarder les autres dans la même volée.
+                v.AttackWasRanged = monster.LastAttackWasRanged;
+                if (monster.Found && monster.Position.Z == context.CurrentLayer)
                     EmitRangedAttack(monster, normalPos, visibleMap);
             }
             if (v.AttackAnimProgress < 1f)
@@ -301,8 +310,8 @@ public class MonsterRenderer : HexBasedRenderer, IGameRenderer
             if (svgName == null) continue;
 
             SKPoint pos;
-            // Un tireur reste sur son hex : seul l'élan du corps-à-corps déplace l'icône.
-            if (v.AttackAnimProgress < 1f && !monster.HasRangedAttack)
+            // Un tir laisse l'icône sur son hex : seul l'élan du corps-à-corps la déplace.
+            if (v.AttackAnimProgress < 1f && !v.AttackWasRanged)
             {
                 float t = v.AttackAnimProgress;
                 pos = t < 0.5f

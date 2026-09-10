@@ -54,16 +54,21 @@ public class Tentacle : MonsterFeature
     /// <summary>Frappe à distance : ne rend pas les coups aux autres monstres et lance une boule de feu au lieu de se jeter sur la ville.</summary>
     public override bool HasRangedAttack => true;
 
-    /// <summary>Coups de la salve concentrée, un intervalle d'attaque sur deux (voir AlternatesAttackPatterns).</summary>
+    /// <summary>Coups de la salve concentrée, un intervalle d'attaque sur deux (voir GetAttack).</summary>
     public const int TentacleFocusedAttackStrikes = 5;
 
     /// <summary>
-    /// Balaie tout ce qui l'entoure un intervalle, se concentre sur une seule cible le suivant : à
-    /// portée 3, la salve de zone touche facilement plusieurs villes et l'Aventurier en même temps,
-    /// et la salve concentrée transforme n'importe laquelle d'entre elles en cible prioritaire.
+    /// Une seule attaque, mais de motif alterné : elle balaie tout ce qui l'entoure un intervalle et
+    /// se concentre sur une seule cible le suivant. À portée 3, la salve de zone touche facilement
+    /// plusieurs villes et l'Aventurier en même temps, et la salve concentrée transforme n'importe
+    /// laquelle d'entre elles en cible prioritaire. C'est ce qui la distingue du Dieu démon, qui mène
+    /// les deux salves de front à des cadences séparées (voir DemonGod.GetAttack).
     /// </summary>
-    public override bool AlternatesAttackPatterns => true;
-    public override int FocusedAttackStrikes => TentacleFocusedAttackStrikes;
+    public override MonsterAttack GetAttack(int index) => base.GetAttack(index) with
+    {
+        Pattern = MonsterAttackPattern.Alternating,
+        Strikes = TentacleFocusedAttackStrikes,
+    };
 
     /// <summary>
     /// Vrai quand la mort de cette Tentacule vient réellement de faire surgir le Portail du

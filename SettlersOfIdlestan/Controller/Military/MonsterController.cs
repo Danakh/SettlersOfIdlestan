@@ -153,6 +153,11 @@ public class MonsterFeatureController
         if (m.LastHpRegenTick == 0) m.LastHpRegenTick = now;
         if (m.LastMovedTick == 0) m.LastMovedTick = now;
         if (m.LastAttackTick == 0) m.LastAttackTick = now;
+        // Complète les cadences par attaque : un monstre neuf n'en a aucune, et une sauvegarde
+        // antérieure à une attaque nouvellement déclarée (le déluge du Dieu démon) n'en a qu'une
+        // partie. Les cases ajoutées repartent de LastAttackTick, pour que l'attaque nouvelle ne
+        // frappe pas à l'instant même du chargement.
+        m.EnsureAttackSlots(now);
     }
 
     private void OnFeatureRemoved(object? sender, IslandFeature feature)
@@ -263,7 +268,7 @@ public class MonsterFeatureController
             monster.LastMovedTick = currentTick;
         }
 
-        monster.LastAttackTick = currentTick;
+        monster.ResetAttackCooldowns(currentTick);
     }
 
     /// <summary>
@@ -298,8 +303,23 @@ public class MonsterFeatureController
         bool preyInRange = monster.AttacksOtherMonsters && monster.AttackRangeInHexes > 0 && HasPreyInRange(monster);
         if (monster.CanMove && !preyInRange)
             due = Math.Min(due, monster.LastMovedTick + Math.Max(1L, monster.MovementIntervalTicks));
-        if (monster.AttackRangeInHexes > 0)
-            due = Math.Min(due, monster.LastAttackTick + Math.Max(1L, monster.AttackIntervalTicks));
+        return Math.Min(due, NextAttackDueTick(monster));
+    }
+
+    /// <summary>
+    /// Prochaine échéance parmi TOUTES les attaques déclarées par le monstre (voir
+    /// <see cref="MonsterFeature.GetAttack"/>) : chacune tient sa propre cadence, la plus proche
+    /// décide du prochain pas de simulation. long.MaxValue si le monstre n'attaque pas.
+    /// </summary>
+    private static long NextAttackDueTick(MonsterFeature monster)
+    {
+        long due = long.MaxValue;
+        for (int i = 0; i < monster.AttackCount; i++)
+        {
+            var attack = monster.GetAttack(i);
+            if (attack.RangeInHexes <= 0) continue;
+            due = Math.Min(due, monster.GetAttackSlotTick(i) + Math.Max(1L, attack.IntervalTicks));
+        }
         return due;
     }
 
@@ -333,12 +353,12 @@ public class MonsterFeatureController
             moved = true;
         }
 
-        if (!moved && monster.AttackRangeInHexes > 0)
+        if (!moved && monster.MaxAttackRangeInHexes > 0)
         {
             if (monster.AttacksOtherMonsters)
                 AttackNearbyMonster(monster, stepTick);
             else
-                AttackNearbyMilitaryTarget(monster, stepTick);
+                AttackNearbyMilitaryTargets(monster, stepTick);
         }
     }
 
@@ -419,18 +439,26 @@ public class MonsterFeatureController
         m.Position.DistanceTo(hunter.Position) <= hunter.AttackRangeInHexes &&
         IsVisibleToPlayer(m.Position));
 
+    /// <summary>
+    /// Le chasseur (Aventurier) n'a qu'une attaque, la principale : il n'a pas besoin de la boucle
+    /// multi-attaques de <see cref="AttackNearbyMilitaryTargets"/>, mais passe par la même
+    /// description pour que sa cadence et ses dégâts se lisent au même endroit.
+    /// </summary>
     private void AttackNearbyMonster(MonsterFeature monster, long currentTick)
     {
         if (_state == null) return;
-        if (currentTick - monster.LastAttackTick < monster.AttackIntervalTicks) return;
+        var attack = monster.GetAttack(0);
+        if (currentTick - monster.GetAttackSlotTick(0) < Math.Max(1L, attack.IntervalTicks)) return;
+        monster.SetAttackSlotTick(0, currentTick);
         monster.LastAttackTick = currentTick;
         monster.LastAttackImpacts.Clear();
+        monster.LastAttackWasRanged = attack.IsRanged;
 
         // Un chasseur ne doit jamais engager un monstre que le joueur ne voit pas (brouillard de guerre).
         var target = _monsters.FirstOrDefault(m =>
             m != monster && !m.AttacksOtherMonsters && m.Hp > 0 &&
             m.Position.HasSameZ(monster.Position) &&
-            m.Position.DistanceTo(monster.Position) <= monster.AttackRangeInHexes &&
+            m.Position.DistanceTo(monster.Position) <= attack.RangeInHexes &&
             IsVisibleToPlayer(m.Position));
         if (target == null)
         {
@@ -439,20 +467,22 @@ public class MonsterFeatureController
         }
 
         monster.LastAttackTargetHex = target.Position;
-        monster.LastAttackImpacts.Add(new MonsterAttackImpact(null, target.Position, 1));
+        monster.LastAttackImpacts.Add(new MonsterAttackImpact(null, target.Position, 1, attack.IsRanged));
 
-        StrikeMonsterTarget(monster, target, currentTick);
+        StrikeMonsterTarget(monster, attack, target, currentTick);
     }
 
     /// <summary>
-    /// Un coup porté par un monstre à un autre. La cible rend le sien dans le même échange — sauf
-    /// contre un tireur (<see cref="MonsterFeature.HasRangedAttack"/>), qui frappe hors d'atteinte.
+    /// Un coup porté par un monstre à un autre. La cible rend le sien dans le même échange — sauf si
+    /// l'attaque employée frappe à distance (<see cref="MonsterAttack.IsRanged"/>), hors d'atteinte
+    /// d'une riposte. C'est bien l'attaque et non l'attaquant qui décide : le Dieu démon encaisse le
+    /// coup en retour de sa ruée, mais pas de son déluge de boules de feu.
     /// Retire du monde celui des deux qui tombe.
     /// </summary>
-    private void StrikeMonsterTarget(MonsterFeature attacker, MonsterFeature target, long currentTick)
+    private void StrikeMonsterTarget(MonsterFeature attacker, MonsterAttack attack, MonsterFeature target, long currentTick)
     {
-        target.Hp -= MonsterFeature.ApplyArmorReduction(attacker.AttackDamage, target.Armor, _prng!);
-        if (!attacker.HasRangedAttack)
+        target.Hp -= MonsterFeature.ApplyArmorReduction(attack.Damage, target.Armor, _prng!);
+        if (!attack.IsRanged)
             attacker.Hp -= MonsterFeature.ApplyArmorReduction(target.AttackDamage, attacker.Armor, _prng!);
 
         if (target.Hp <= 0) RemoveDeadMonster(target, currentTick);
@@ -610,7 +640,7 @@ public class MonsterFeatureController
         monster.LastAttackedByMilitaryTick = currentTick; // grâce après mouvement
         if (movedSteps > 0)
         {
-            monster.LastAttackTick = currentTick;
+            monster.ResetAttackCooldowns(currentTick);
             monster.LastAttackTargetVertex = null;
         }
     }
@@ -722,95 +752,131 @@ public class MonsterFeatureController
 
     // ── Attaque des cibles militaires ─────────────────────────────────────────
 
-    private void AttackNearbyMilitaryTarget(MonsterFeature monster, long currentTick)
+    /// <summary>
+    /// Déclenche, à cette échéance, chacune des attaques déclarées par le monstre dont la cadence est
+    /// écoulée (voir <see cref="MonsterFeature.GetAttack"/>). Une seule pour presque tous ; deux pour
+    /// le Dieu démon, dont la ruée et le déluge de boules de feu tombent ensemble un cycle sur trois
+    /// — d'où l'accumulation des impacts sur toute la volée plutôt qu'un effacement par attaque :
+    /// l'animation doit montrer les deux, pas seulement la dernière.
+    /// </summary>
+    private void AttackNearbyMilitaryTargets(MonsterFeature monster, long currentTick)
     {
         if (_state == null) return;
-        if (currentTick - monster.LastAttackTick < monster.AttackIntervalTicks) return;
 
-        monster.LastAttackImpacts.Clear();
+        bool fired = false;
+        for (int i = 0; i < monster.AttackCount; i++)
+        {
+            if (monster.Hp <= 0) break; // tué par une contre-attaque portée par l'attaque précédente
+            var attack = monster.GetAttack(i);
+            if (attack.RangeInHexes <= 0) continue;
+            if (currentTick - monster.GetAttackSlotTick(i) < Math.Max(1L, attack.IntervalTicks)) continue;
+
+            // Le pas de simulation courant peut n'être dû que pour la régénération ou le
+            // déplacement : la volée précédente ne s'efface qu'une fois la première attaque
+            // réellement déclenchée, sinon son animation disparaîtrait avant d'avoir été jouée.
+            if (!fired)
+            {
+                monster.LastAttackImpacts.Clear();
+                monster.LastAttackResourcesString = null;
+                fired = true;
+            }
+
+            monster.SetAttackSlotTick(i, currentTick);
+            PerformAttack(monster, attack, currentTick);
+        }
+
+        if (fired)
+        {
+            monster.LastAttackTick = currentTick;
+            SetPrimaryAttackTarget(monster);
+        }
+    }
+
+    /// <summary>Une attaque, dans le motif qu'elle déclare — alternance résolue au passage.</summary>
+    private void PerformAttack(MonsterFeature monster, MonsterAttack attack, long currentTick)
+    {
+        var pattern = attack.Pattern;
 
         // Alternance zone / concentrée : le motif est choisi ET basculé quoi qu'il advienne ensuite,
         // y compris si aucune cible n'est à portée (voir MonsterFeature.NextAttackIsAreaSweep).
-        bool areaSweep = false;
-        if (monster.AlternatesAttackPatterns)
+        if (pattern == MonsterAttackPattern.Alternating)
         {
-            areaSweep = monster.NextAttackIsAreaSweep;
-            monster.NextAttackIsAreaSweep = !areaSweep;
+            pattern = monster.NextAttackIsAreaSweep ? MonsterAttackPattern.AreaSweep : MonsterAttackPattern.Focused;
+            monster.NextAttackIsAreaSweep = !monster.NextAttackIsAreaSweep;
         }
 
-        if (areaSweep) { AreaSweepAttack(monster, currentTick); return; }
+        if (pattern == MonsterAttackPattern.AreaSweep) AreaSweepAttack(monster, attack, currentTick);
+        else FocusedAttack(monster, attack, currentTick);
+    }
 
-        monster.LastAttackTick = currentTick;
-        monster.LastAttackResourcesString = null;
+    /// <summary>Salve concentrée : <see cref="MonsterAttack.Strikes"/> coups sur une seule cible.</summary>
+    private void FocusedAttack(MonsterFeature monster, MonsterAttack attack, long currentTick)
+    {
+        var target = FindAttackTarget(monster, attack.RangeInHexes);
+        if (target == null) return;
 
-        var target = FindAttackTarget(monster);
-        if (target != null)
+        int strikes = Math.Max(1, attack.Strikes);
+        int landed = 0;
+        for (int i = 0; i < strikes; i++)
         {
-            int strikes = monster.AlternatesAttackPatterns ? Math.Max(1, monster.FocusedAttackStrikes) : 1;
-            int landed = 0;
-            for (int i = 0; i < strikes; i++)
-            {
-                var outcome = ApplyMonsterAttack(monster, target, currentTick);
-                if (outcome == MonsterAttackOutcome.NoEffect) break;
-                landed++;
-                // Cible unique : une ville détruite au 2e coup n'en encaisse pas 3 de plus, et la
-                // salve ne se reporte pas sur une autre — c'est tout l'intérêt de l'alternance.
-                if (outcome == MonsterAttackOutcome.TargetDestroyed) break;
-            }
-            if (landed > 0)
-                monster.LastAttackImpacts.Add(new MonsterAttackImpact(target.Position, null, landed));
+            var outcome = ApplyMonsterAttack(monster, attack, target, currentTick);
+            if (outcome == MonsterAttackOutcome.NoEffect) break;
+            landed++;
+            // Cible unique : une ville détruite au 2e coup n'en encaisse pas 3 de plus, et la
+            // salve ne se reporte pas sur une autre — c'est tout l'intérêt d'une salve concentrée.
+            if (outcome == MonsterAttackOutcome.TargetDestroyed) break;
         }
-
-        SetPrimaryAttackTarget(monster);
+        if (landed > 0)
+            monster.LastAttackImpacts.Add(new MonsterAttackImpact(target.Position, null, landed, attack.IsRanged));
     }
 
     /// <summary>
     /// Salve de zone : un coup sur CHAQUE cible à portée — emplacements militaires (villes, Flottes
     /// de Guerre, Camps Mobiles) puis monstres « amis » du joueur (Aventurier, Titan d'Acier — voir
     /// <see cref="MonsterFeature.AttacksOtherMonsters"/>), qu'aucun monstre n'attaquait jusqu'ici.
-    /// Voir <see cref="MonsterFeature.AlternatesAttackPatterns"/>.
+    /// Voir <see cref="MonsterAttackPattern.AreaSweep"/>.
     /// </summary>
-    private void AreaSweepAttack(MonsterFeature monster, long currentTick)
+    private void AreaSweepAttack(MonsterFeature monster, MonsterAttack attack, long currentTick)
     {
-        monster.LastAttackTick = currentTick;
-        monster.LastAttackResourcesString = null;
-
         // Les deux listes de cibles sont figées avant le premier coup : détruire une ville modifie
         // MilitaryVertices, et tuer un monstre retire une entrée de _monsters — itérer directement
         // dessus reviendrait à modifier la collection en cours de parcours.
-        var vertexTargets = CollectMilitaryTargetsInRange(monster);
+        var vertexTargets = CollectMilitaryTargetsInRange(monster, attack.RangeInHexes);
         for (int i = 0; i < vertexTargets.Count; i++)
         {
             var target = vertexTargets[i];
             if (!IsTargetStillPresent(target)) continue;
-            if (ApplyMonsterAttack(monster, target, currentTick) == MonsterAttackOutcome.NoEffect) continue;
-            monster.LastAttackImpacts.Add(new MonsterAttackImpact(target.Position, null, 1));
+            if (ApplyMonsterAttack(monster, attack, target, currentTick) == MonsterAttackOutcome.NoEffect) continue;
+            monster.LastAttackImpacts.Add(new MonsterAttackImpact(target.Position, null, 1, attack.IsRanged));
         }
 
-        var monsterTargets = CollectFriendlyMonstersInRange(monster);
+        var monsterTargets = CollectFriendlyMonstersInRange(monster, attack.RangeInHexes);
         for (int i = 0; i < monsterTargets.Count; i++)
         {
             if (monster.Hp <= 0) break; // tué par une contre-attaque en cours de balayage
             var target = monsterTargets[i];
             if (target.Hp <= 0) continue;
             // Impact enregistré avant le coup : la cible peut être retirée du monde juste après.
-            monster.LastAttackImpacts.Add(new MonsterAttackImpact(null, target.Position, 1));
-            StrikeMonsterTarget(monster, target, currentTick);
+            monster.LastAttackImpacts.Add(new MonsterAttackImpact(null, target.Position, 1, attack.IsRanged));
+            StrikeMonsterTarget(monster, attack, target, currentTick);
         }
-
-        SetPrimaryAttackTarget(monster);
     }
 
     /// <summary>
     /// Reporte la première cible touchée dans <see cref="MonsterFeature.LastAttackTargetVertex"/> /
     /// <see cref="MonsterFeature.LastAttackTargetHex"/> : l'animation classique (élan du monstre,
     /// envol des ressources volées) ne connaît qu'une cible, et n'anime rien si les deux sont nuls.
+    /// C'est aussi elle qui décide si l'icône s'élance ou reste en place à cracher des boules de feu
+    /// (<see cref="MonsterFeature.LastAttackWasRanged"/>) — les attaques étant jouées dans l'ordre
+    /// de leur déclaration, la ruée du Dieu démon reste bien la première même quand son déluge tombe
+    /// sur le même tick.
     /// </summary>
     private static void SetPrimaryAttackTarget(MonsterFeature monster)
     {
         var impacts = monster.LastAttackImpacts;
         monster.LastAttackTargetVertex = impacts.Count > 0 ? impacts[0].Vertex : null;
         monster.LastAttackTargetHex = impacts.Count > 0 ? impacts[0].Hex : null;
+        monster.LastAttackWasRanged = impacts.Count > 0 && impacts[0].Ranged;
         if (impacts.Count == 0) monster.LastAttackResourcesString = null;
     }
 
@@ -819,10 +885,10 @@ public class MonsterFeatureController
     /// son hex propre est le cas <c>radius = 0</c> — mais sans priorité : la salve de zone les frappe
     /// tous, l'ordre n'a pas d'importance.
     /// </summary>
-    private List<IMilitaryVertex> CollectMilitaryTargetsInRange(MonsterFeature monster)
+    private List<IMilitaryVertex> CollectMilitaryTargetsInRange(MonsterFeature monster, int rangeInHexes)
     {
         var targets = new List<IMilitaryVertex>();
-        int radius = Math.Max(0, monster.AttackRangeInHexes - 1);
+        int radius = Math.Max(0, rangeInHexes - 1);
         foreach (var civ in _state!.Civilizations)
         {
             if (IsImmuneTo(civ, monster)) continue;
@@ -840,7 +906,7 @@ public class MonsterFeatureController
     /// face à un autre monstre. Pas de filtre de visibilité — contrairement au chasseur, qui ne doit
     /// pas engager une proie que le joueur ne voit pas, un monstre attaqué appartient au joueur.
     /// </summary>
-    private List<MonsterFeature> CollectFriendlyMonstersInRange(MonsterFeature monster)
+    private List<MonsterFeature> CollectFriendlyMonstersInRange(MonsterFeature monster, int rangeInHexes)
     {
         var targets = new List<MonsterFeature>();
         for (int i = 0; i < _monsters.Count; i++)
@@ -848,7 +914,7 @@ public class MonsterFeatureController
             var candidate = _monsters[i];
             if (candidate == monster || !candidate.AttacksOtherMonsters || candidate.Hp <= 0) continue;
             if (!candidate.Position.HasSameZ(monster.Position)) continue;
-            if (candidate.Position.DistanceTo(monster.Position) > monster.AttackRangeInHexes) continue;
+            if (candidate.Position.DistanceTo(monster.Position) > rangeInHexes) continue;
             targets.Add(candidate);
         }
         return targets;
@@ -869,7 +935,7 @@ public class MonsterFeatureController
     /// Cherche un emplacement militaire (ville, Flotte de Guerre, Camp Mobile — voir
     /// <see cref="IMilitaryVertex"/>) à attaquer, tous types confondus.
     /// </summary>
-    private IMilitaryVertex? FindAttackTarget(MonsterFeature monster)
+    private IMilitaryVertex? FindAttackTarget(MonsterFeature monster, int rangeInHexes)
     {
         // Priorité : emplacements militaires dont un hex coïncide avec la position du monstre
         foreach (var civ in _state!.Civilizations)
@@ -881,9 +947,9 @@ public class MonsterFeatureController
                     return vertices[i];
         }
 
-        // Portée étendue : tout hex à AttackRangeInHexes - 1 du monstre ou moins (portée 1 = son seul
+        // Portée étendue : tout hex à rangeInHexes - 1 du monstre ou moins (portée 1 = son seul
         // hex, déjà traité ci-dessus ; portée 2 = ses voisins ; portée 3 = deux anneaux, etc.).
-        int radius = monster.AttackRangeInHexes - 1;
+        int radius = rangeInHexes - 1;
         if (radius <= 0) return null;
 
         foreach (var civ in _state.Civilizations)
@@ -934,13 +1000,12 @@ public class MonsterFeatureController
         TargetDestroyed,
     }
 
-    private MonsterAttackOutcome ApplyMonsterAttack(MonsterFeature monster, IMilitaryVertex target, long tick)
+    private MonsterAttackOutcome ApplyMonsterAttack(MonsterFeature monster, MonsterAttack attack, IMilitaryVertex target, long tick)
     {
-        monster.LastAttackTick = tick;
         var civ = _state!.GetCivilization(target.CivilizationIndex);
         if (civ == null) return MonsterAttackOutcome.NoEffect;
 
-        if (!monster.IgnoresPalisade && target is City palisadeCheck && palisadeCheck.FindBuilding(BuildingType.Palisade) is { Level: > 0 })
+        if (!attack.IgnoresPalisade && target is City palisadeCheck && palisadeCheck.FindBuilding(BuildingType.Palisade) is { Level: > 0 })
         {
             monster.LastAttackTargetVertex = null;
             monster.LastAttackResourcesString = null;
@@ -950,7 +1015,7 @@ public class MonsterFeatureController
         bool didSomething = false;
 
         // ── Dégâts en cascade ────────────────────────────────────────────────
-        int damage = monster.AttackDamage;
+        int damage = attack.Damage;
 
         // Réductions de dégâts, avant répartition sur la cascade : Protection contre les Démons
         // (vertex de prestige, MONSTER_DAMAGE_REDUCTION) sur toutes les cibles, Sanctuaire de
@@ -1028,10 +1093,10 @@ public class MonsterFeatureController
         }
 
         // ── Ressources volées ────────────────────────────────────────────────
-        if (monster.AttackResources > 0)
+        if (attack.Resources > 0)
         {
-            var stolen = new List<string>(monster.AttackResources);
-            for (int i = 0; i < monster.AttackResources; i++)
+            var stolen = new List<string>(attack.Resources);
+            for (int i = 0; i < attack.Resources; i++)
             {
                 var stealable = Enum.GetValues<Resource>()
                     .Where(r => civ.GetResourceQuantity(r) > 0)

@@ -117,8 +117,8 @@ public abstract class MonsterFeature : IslandFeature
     public virtual int AttackResources => 0;
 
     /// <summary>
-    /// Opt-in : ce monstre frappe à distance au lieu de se jeter sur sa cible. Deux conséquences,
-    /// l'une de règle et l'autre d'affichage :
+    /// Opt-in : l'attaque principale de ce monstre frappe à distance au lieu de se jeter sur sa
+    /// cible. Deux conséquences, l'une de règle et l'autre d'affichage :
     /// <list type="bullet">
     /// <item>il ne rend pas les coups quand un autre monstre le prend pour cible (voir
     /// MonsterFeatureController.StrikeMonsterTarget) — il frappe de loin, on ne l'atteint pas ;</item>
@@ -127,9 +127,15 @@ public abstract class MonsterFeature : IslandFeature
     /// </list>
     /// N'influe ni sur <see cref="AttackRangeInHexes"/> ni sur le choix de la cible : un monstre au
     /// corps-à-corps peut déjà avoir une portée 2, et un tireur peut frapper un hex adjacent.
+    ///
+    /// <para>Comme les autres propriétés <c>Attack*</c> ci-dessus, ne décrit que l'attaque
+    /// principale (indice 0) : un monstre qui en déclare plusieurs porte l'information par attaque
+    /// dans <see cref="MonsterAttack.IsRanged"/>.</para>
     /// </summary>
     [JsonIgnore]
     public virtual bool HasRangedAttack => false;
+
+    /// <summary>Tick de la dernière attaque portée, toutes attaques déclarées confondues — repère d'animation (voir MonsterRenderer) et grâce après déplacement, pas un compte à rebours : la cadence, elle, est tenue par attaque dans <see cref="AttackSlotTicks"/>.</summary>
     public long LastAttackTick { get; set; } = 0;
     public Vertex? LastAttackTargetVertex { get; set; } = null;
     /// <summary>Hex cible de la dernière attaque contre un autre monstre (Aventurier), pour l'animation.</summary>
@@ -148,27 +154,106 @@ public abstract class MonsterFeature : IslandFeature
     [JsonIgnore]
     public List<MonsterAttackImpact> LastAttackImpacts { get; } = new();
 
-    // ── Attaques alternées : zone / concentrée (opt-in) ─────────────────────
+    // ── Attaques déclarées ──────────────────────────────────────────────────
     /// <summary>
-    /// Opt-in : ce monstre alterne à chaque intervalle d'attaque entre une salve de ZONE — un coup
-    /// sur chacune des cibles à portée, emplacements militaires comme monstres « amis » du joueur —
-    /// et une salve CONCENTRÉE de <see cref="FocusedAttackStrikes"/> coups sur une cible unique.
-    /// false = un coup, une cible, le cas de tous les autres monstres.
+    /// Nombre d'attaques distinctes déclarées par ce monstre. 1 par défaut : les propriétés
+    /// <c>Attack*</c> ci-dessus la décrivent entièrement. Un monstre qui en déclare plusieurs
+    /// (le Dieu démon : une ruée au corps-à-corps et un déluge de boules de feu) redéfinit aussi
+    /// <see cref="GetAttack"/> pour décrire les suivantes ; chacune a sa propre cadence, tenue
+    /// indépendamment dans <see cref="AttackSlotTicks"/>.
     /// </summary>
     [JsonIgnore]
-    public virtual bool AlternatesAttackPatterns => false;
-
-    /// <summary>Nombre de coups de la salve concentrée (voir <see cref="AlternatesAttackPatterns"/>).</summary>
-    [JsonIgnore]
-    public virtual int FocusedAttackStrikes => 1;
+    public virtual int AttackCount => 1;
 
     /// <summary>
-    /// Vrai si la prochaine attaque est la salve de zone. Basculé à chaque intervalle d'attaque, y
-    /// compris quand aucune cible n'est à portée — sinon un monstre isolé garderait sa salve en
-    /// réserve et frapperait deux fois de suite de la même façon en retrouvant une cible. Persisté
-    /// pour que l'alternance ne reparte pas de zéro au chargement d'une sauvegarde.
+    /// Description de l'attaque n° <paramref name="index"/>. L'implémentation par défaut relit les
+    /// propriétés <c>Attack*</c> du monstre — c'est ce qui permet à tous les monstres à attaque
+    /// unique de ne rien redéfinir ici. Une redéfinition part utilement de
+    /// <c>base.GetAttack(index) with { ... }</c> pour ne changer que ce qui diffère.
+    /// </summary>
+    public virtual MonsterAttack GetAttack(int index) => new(
+        MonsterAttackPattern.Focused,
+        AttackIntervalTicks,
+        AttackRangeInHexes,
+        AttackDamage,
+        Strikes: 1,
+        AttackResources,
+        HasRangedAttack,
+        IgnoresPalisade);
+
+    /// <summary>Portée de la plus longue des attaques déclarées : 0 = ce monstre n'attaque pas du tout.</summary>
+    [JsonIgnore]
+    public int MaxAttackRangeInHexes
+    {
+        get
+        {
+            int max = 0;
+            for (int i = 0; i < AttackCount; i++)
+                max = Math.Max(max, GetAttack(i).RangeInHexes);
+            return max;
+        }
+    }
+
+    /// <summary>
+    /// Tick de la dernière frappe de chaque attaque déclarée, indexé comme <see cref="GetAttack"/> :
+    /// c'est lui qui tient les cadences, séparément pour chacune. Persisté pour qu'un chargement de
+    /// sauvegarde ne remette pas toutes les attaques du monstre en phase.
+    ///
+    /// <para>Peut être plus court que <see cref="AttackCount"/> — sauvegarde antérieure à cette
+    /// attaque, ou monstre tout juste créé : les cases manquantes retombent sur
+    /// <see cref="LastAttackTick"/> et sont complétées par <see cref="EnsureAttackSlots"/> à la
+    /// création comme au chargement (voir MonsterFeatureController.SeedNeverTriggeredCooldowns).</para>
+    /// </summary>
+    public List<long> AttackSlotTicks { get; set; } = new();
+
+    /// <summary>Tick de la dernière frappe de l'attaque n° <paramref name="index"/>.</summary>
+    public long GetAttackSlotTick(int index) =>
+        index >= 0 && index < AttackSlotTicks.Count ? AttackSlotTicks[index] : LastAttackTick;
+
+    /// <summary>Enregistre la frappe de l'attaque n° <paramref name="index"/> au tick donné.</summary>
+    public void SetAttackSlotTick(int index, long tick)
+    {
+        while (AttackSlotTicks.Count <= index) AttackSlotTicks.Add(tick);
+        AttackSlotTicks[index] = tick;
+    }
+
+    /// <summary>Complète les cases manquantes de <see cref="AttackSlotTicks"/> (voir sa documentation).</summary>
+    public void EnsureAttackSlots(long now)
+    {
+        long seed = LastAttackTick != 0 ? LastAttackTick : now;
+        while (AttackSlotTicks.Count < AttackCount) AttackSlotTicks.Add(seed);
+    }
+
+    /// <summary>Relance le compte à rebours de TOUTES les attaques déclarées (grâce après déplacement, repos d'un monstre encore caché).</summary>
+    public void ResetAttackCooldowns(long now)
+    {
+        LastAttackTick = now;
+        for (int i = 0; i < AttackSlotTicks.Count; i++) AttackSlotTicks[i] = now;
+        EnsureAttackSlots(now);
+    }
+
+    /// <summary>
+    /// Vrai si la prochaine frappe d'une attaque <see cref="MonsterAttackPattern.Alternating"/> est
+    /// la salve de zone. Basculé à chaque intervalle d'attaque, y compris quand aucune cible n'est à
+    /// portée — sinon un monstre isolé garderait sa salve en réserve et frapperait deux fois de suite
+    /// de la même façon en retrouvant une cible. Persisté pour que l'alternance ne reparte pas de
+    /// zéro au chargement d'une sauvegarde.
+    ///
+    /// <para>Un seul drapeau pour le monstre entier, et non un par attaque : aucun monstre ne déclare
+    /// deux attaques alternées — celui qui veut deux motifs simultanés en déclare simplement deux,
+    /// chacune de motif fixe, ce que fait le Dieu démon.</para>
     /// </summary>
     public bool NextAttackIsAreaSweep { get; set; } = true;
+
+    /// <summary>
+    /// Vrai si la dernière attaque portée l'a été à distance : l'icône reste alors sur son hex et le
+    /// tir est matérialisé par des boules de feu (voir MonsterRenderer). Relu de la première cible
+    /// touchée (MonsterFeatureController.SetPrimaryAttackTarget), la seule que connaisse l'animation
+    /// de ruée. Hors sauvegarde, comme <see cref="LastAttackImpacts"/> dont il est tiré : purement
+    /// visuel et reconstruit à chaque attaque.
+    /// </summary>
+    [JsonIgnore]
+    public bool LastAttackWasRanged { get; set; }
 
     /// <summary>
     /// Opt-in : ce monstre est « ami » et combat les autres monstres au lieu des villes

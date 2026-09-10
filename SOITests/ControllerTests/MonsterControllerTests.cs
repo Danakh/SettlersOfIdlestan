@@ -400,6 +400,184 @@ namespace SOITests.ControllerTests
             Assert.True(tentacle.NextAttackIsAreaSweep);
         }
 
+        // ── Deux attaques de front (Dieu démon) ────────────────────────────────
+
+        /// <summary>
+        /// Même décor que <see cref="AlternatingAttackSetup"/>, mais avec le Dieu démon au centre :
+        /// deux villes (l'une sur son hex, l'autre à deux anneaux — hors de sa portée 2) et un
+        /// Aventurier voisin. Les soldats sont assez nombreux pour absorber toute la volée, si bien
+        /// que la cascade de dégâts ne touche jamais l'Hôtel de Ville : c'est le décompte de soldats
+        /// qui mesure ici les coups reçus.
+        /// </summary>
+        private static (GameClock clock, DemonGod boss, City onHex, City twoRings, Adventurer adventurer)
+            DemonGodAttackSetup()
+        {
+            var adventurerHex = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+
+            var tiles = new List<HexTile>
+            {
+                new(Center, TerrainType.Desert),
+                new(NE, TerrainType.Plain),
+                new(NW, TerrainType.Plain),
+                new(adventurerHex, TerrainType.Plain),
+            };
+            foreach (var hex in VertexAtRing2) tiles.Add(new HexTile(hex, TerrainType.Plain));
+
+            var civ = new Civilization { Index = 0 };
+            var onHex = new City(Vertex.Create(Center, NE, NW)) { CivilizationIndex = 0, Soldiers = 10_000 };
+            onHex.AddBuilding(new TownHall { Level = 5 });
+            var twoRings = new City(Vertex.Create(VertexAtRing2[0], VertexAtRing2[1], VertexAtRing2[2]))
+            {
+                CivilizationIndex = 0,
+                Soldiers = 10_000,
+            };
+            twoRings.AddBuilding(new TownHall { Level = 5 });
+            civ.AddCity(onHex);
+            civ.AddCity(twoRings);
+
+            var state = new WorldState(new IslandMap(tiles), new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+            var boss = new DemonGod(Center) { Found = true };
+            var adventurer = new Adventurer(adventurerHex)
+            {
+                Found = true,
+                LastMovedTick = long.MaxValue / 2,
+                LastAttackTick = long.MaxValue / 2,
+            };
+            state.AddFeature(boss);
+            state.AddFeature(adventurer);
+
+            var clock = new GameClock();
+            clock.Start();
+            var controller = new MonsterFeatureController();
+            controller.Initialize(state, clock, new GamePRNG());
+            return (clock, boss, onHex, twoRings, adventurer);
+        }
+
+        /// <summary>Deux attaques distinctes, chacune avec sa cadence — la seconde une fois et demie plus lente.</summary>
+        [Fact]
+        public void DemonGod_DeclaresARushAndASlowerFireballSweep()
+        {
+            var boss = new DemonGod(Center);
+
+            Assert.Equal(2, boss.AttackCount);
+
+            var rush = boss.GetAttack(0);
+            Assert.Equal(MonsterAttackPattern.Focused, rush.Pattern);
+            Assert.False(rush.IsRanged);
+            Assert.Equal(DemonGod.DemonGodAttackIntervalTicks, rush.IntervalTicks);
+
+            var sweep = boss.GetAttack(1);
+            Assert.Equal(MonsterAttackPattern.AreaSweep, sweep.Pattern);
+            Assert.True(sweep.IsRanged);
+            Assert.Equal(2, sweep.RangeInHexes);
+            Assert.Equal(rush.IntervalTicks * 3 / 2, sweep.IntervalTicks);
+
+            // La ruée frappe deux fois plus fort que le déluge, à tous les niveaux.
+            Assert.Equal(sweep.Damage * 2, rush.Damage);
+            var leveled = new DemonGod(Center, level: 4);
+            Assert.Equal(leveled.GetAttack(1).Damage * 2, leveled.GetAttack(0).Damage);
+        }
+
+        /// <summary>
+        /// Au premier intervalle, seule la ruée est due (le déluge est une fois et demie plus lent) :
+        /// une seule cible encaisse, et l'Aventurier — que seule la salve de zone atteint — est
+        /// épargné.
+        /// </summary>
+        [Fact]
+        public void DemonGod_RushFiresAloneOnTheFirstInterval()
+        {
+            var (clock, boss, onHex, _, adventurer) = DemonGodAttackSetup();
+            int rushDamage = boss.GetAttack(0).Damage;
+            int adventurerHp = adventurer.Hp;
+
+            clock.SimulateAdvance(DemonGod.DemonGodAttackIntervalTicks);
+
+            Assert.Equal(10_000 - rushDamage, onHex.Soldiers);
+            Assert.Equal(adventurerHp, adventurer.Hp);
+            var impact = Assert.Single(boss.LastAttackImpacts);
+            Assert.Equal(onHex.Position, impact.Vertex);
+            Assert.False(impact.Ranged);
+            Assert.False(boss.LastAttackWasRanged);
+        }
+
+        /// <summary>
+        /// Le déluge balaie tout ce qui est à portée 2 — la ville posée sur son hex ET l'Aventurier
+        /// voisin, que la ruée seule n'atteint jamais (elle ne vise que des emplacements militaires)
+        /// — mais pas la ville à deux anneaux, hors de portée. Il tire de loin : aucun coup en
+        /// retour de l'Aventurier balayé, alors que celui-ci rendrait le sien à un assaillant au
+        /// corps-à-corps.
+        /// </summary>
+        [Fact]
+        public void DemonGod_FireballSweepHitsEveryTargetInRangeWithoutReturnBlow()
+        {
+            var (clock, boss, onHex, twoRings, adventurer) = DemonGodAttackSetup();
+            int rushDamage = boss.GetAttack(0).Damage;
+            int sweepDamage = boss.GetAttack(1).Damage;
+            int bossHp = boss.Hp;
+            int adventurerHp = adventurer.Hp;
+            Assert.True(adventurer.AttackDamage > 0);
+
+            // Une ruée à T, puis le déluge à 1,5 T — la ruée suivante n'est due qu'à 2 T.
+            clock.SimulateAdvance(DemonGod.DemonGodAreaAttackIntervalTicks);
+
+            Assert.Equal(10_000 - rushDamage - sweepDamage, onHex.Soldiers);
+            Assert.Equal(10_000, twoRings.Soldiers);
+            Assert.Equal(adventurerHp - sweepDamage, adventurer.Hp);
+
+            // Deux cibles balayées, toutes deux bombardées : l'icône ne s'élance pas.
+            Assert.Equal(2, boss.LastAttackImpacts.Count);
+            Assert.All(boss.LastAttackImpacts, i => Assert.True(i.Ranged));
+            Assert.True(boss.LastAttackWasRanged);
+
+            Assert.Equal(bossHp, boss.Hp);
+        }
+
+        /// <summary>
+        /// Un cycle sur trois, les deux cadences retombent sur le même tick : le déluge s'ajoute
+        /// alors à la ruée au lieu de la remplacer — ce qui distingue le boss de la Tentacule, dont
+        /// les deux salves ne peuvent jamais tomber ensemble. La ruée reste le premier impact de la
+        /// volée : c'est elle qui donne son élan à l'icône, le déluge n'étant que des boules de feu.
+        /// </summary>
+        [Fact]
+        public void DemonGod_BothAttacksLandTogetherEveryThirdCycle()
+        {
+            var (clock, boss, onHex, _, _) = DemonGodAttackSetup();
+            int rushDamage = boss.GetAttack(0).Damage;
+            int sweepDamage = boss.GetAttack(1).Damage;
+            int bossHp = boss.Hp;
+
+            // Ruées à T, 2 T et 3 T ; déluges à 1,5 T et 3 T — les deux dernières sur le même tick.
+            clock.SimulateAdvance(DemonGod.DemonGodAttackIntervalTicks * 3);
+
+            Assert.Equal(10_000 - 3 * rushDamage - 2 * sweepDamage, onHex.Soldiers);
+
+            // La dernière volée porte les deux attaques : la ruée d'abord, puis le déluge sur
+            // chacune de ses cibles (la ville et l'Aventurier).
+            Assert.Equal(3, boss.LastAttackImpacts.Count);
+            Assert.False(boss.LastAttackImpacts[0].Ranged);
+            Assert.Equal(onHex.Position, boss.LastAttackImpacts[0].Vertex);
+            Assert.All(boss.LastAttackImpacts.Skip(1), i => Assert.True(i.Ranged));
+            Assert.False(boss.LastAttackWasRanged);
+
+            Assert.Equal(bossHp, boss.Hp);
+        }
+
+        /// <summary>
+        /// Une sauvegarde d'avant le déluge n'a qu'une cadence enregistrée : la case manquante
+        /// repart de la dernière attaque connue, et non de zéro — sans quoi le déluge frapperait à
+        /// l'instant même du chargement.
+        /// </summary>
+        [Fact]
+        public void DemonGod_MissingAttackSlotResumesFromTheLastKnownAttack()
+        {
+            var boss = new DemonGod(Center) { Found = true, LastAttackTick = 500 };
+            Assert.Empty(boss.AttackSlotTicks);
+
+            boss.EnsureAttackSlots(now: 900);
+
+            Assert.Equal(new List<long> { 500, 500 }, boss.AttackSlotTicks);
+        }
+
         // ── Renforcement par la Corruption (Tentacule) ─────────────────────────
 
         /// <summary>Un seul hex, le monstre dessus, et le contrôleur branché sur l'horloge.</summary>
