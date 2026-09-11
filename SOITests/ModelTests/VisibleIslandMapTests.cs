@@ -1,6 +1,7 @@
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using Xunit;
@@ -76,6 +77,48 @@ public class VisibleIslandMapTests
     }
 
     [Fact]
+    public void Constructor_WithCityVisionRangeBonus_ExposesRadius2WithoutWatchtower()
+    {
+        // Oeil de Dieu (CITY_VISION_RANGE) : une ville sans Tour de Guet passe du rayon 1 au rayon 2.
+        var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var ne = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var nw = new HexCoord(-1, 1, IslandMap.SurfaceLayer);
+        var distance2 = new HexCoord(0, 2, IslandMap.SurfaceLayer);
+        var distance3 = new HexCoord(0, 3, IslandMap.SurfaceLayer);
+        var map = CreateMap(center, ne, nw, distance2, distance3);
+        var civilization = new Civilization();
+        civilization.AddCity(new City(Vertex.Create(center, ne, nw)));
+        GrantVisionRangeBonus(civilization, 1);
+
+        var visibleMap = new VisibleIslandMap(map, civilization, watchtowerVisionBonus: false);
+
+        Assert.True(visibleMap.HasTile(distance2));
+        Assert.False(visibleMap.HasTile(distance3));
+    }
+
+    [Fact]
+    public void Constructor_WithCityVisionRangeBonusAndWatchtower_StacksToRadius3()
+    {
+        // Le bonus s'ajoute au rayon de la Tour de Guet (2), pas à la place : rayon 3.
+        var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var ne = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var nw = new HexCoord(-1, 1, IslandMap.SurfaceLayer);
+        var distance3 = new HexCoord(0, 3, IslandMap.SurfaceLayer);
+        var distance4 = new HexCoord(0, 4, IslandMap.SurfaceLayer);
+        var map = CreateMap(center, ne, nw, distance3, distance4);
+        var civilization = new Civilization();
+        var city = new City(Vertex.Create(center, ne, nw));
+        city.AddBuilding(new Watchtower { Level = 1 });
+        civilization.AddCity(city);
+        GrantVisionRangeBonus(civilization, 1);
+
+        var visibleMap = new VisibleIslandMap(map, civilization, watchtowerVisionBonus: false);
+
+        Assert.True(visibleMap.HasTile(distance3));
+        Assert.False(visibleMap.HasTile(distance4));
+    }
+
+    [Fact]
     public void Constructor_WithCity_ExposesHexesTouchingCity()
     {
         var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
@@ -135,6 +178,12 @@ public class VisibleIslandMapTests
 
         Assert.Empty(visibleMap.Tiles);
     }
+
+    private static void GrantVisionRangeBonus(Civilization civilization, int bonus)
+        => civilization.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(Modifier.ECategory.CITY_VISION_RANGE, Modifier.EType.ADDITIVE, bonus),
+        }));
 
     private static IslandMap CreateMap(params HexCoord[] coords)
     {

@@ -1295,6 +1295,24 @@ public class AscensionControllerTests
     }
 
     [Fact]
+    public void GetModifiers_EyeOfGod_GrantsCityVisionRangeBonus()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.CITY_VISION_RANGE);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+
+        var modifier = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.CITY_VISION_RANGE));
+        Assert.Equal("", modifier.SubCategory);
+        Assert.Equal(Modifier.EType.ADDITIVE, modifier.Type);
+        Assert.Equal(1, modifier.Value);
+    }
+
+    [Fact]
     public void GetModifiers_Faith_GrantsFlatTempleBonusRegardlessOfRace()
     {
         var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);

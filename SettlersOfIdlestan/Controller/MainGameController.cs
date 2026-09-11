@@ -532,7 +532,8 @@ namespace SettlersOfIdlestan.Controller
             // pendant cette attente laisserait AscensionController non initialisé et
             // IsAscensionPending retomberait à faux, perdant la trace du choix de race en cours.
             AscensionController.Initialize(WorldState, Clock, CurrentMainState!.PRNG, HarvestController, CurrentMainState!.GodState,
-                CityBuilderController, MaritimeBeaconController, WarFleetController, MobileCampController, RoadController);
+                CityBuilderController, MaritimeBeaconController, WarFleetController, MobileCampController, RoadController,
+                AutoExtendController);
 
             if (WorldState != null)
             {
@@ -623,7 +624,7 @@ namespace SettlersOfIdlestan.Controller
                 GreatLighthouseController.Initialize(WorldState, Clock, HarvestController);
                 ObservatoryController.Initialize(WorldState, Clock, HarvestController);
                 NecropolisController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
-                DeepestMineController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState);
+                DeepestMineController.Initialize(WorldState, Clock, HarvestController, CurrentMainState!.GodState, AutoExtendController);
                 SteelTitanController.Initialize(WorldState, Clock, HarvestController);
                 SurfaceBreachController.Initialize(WorldState, Clock, HarvestController);
                 CorruptionSpireController.Initialize(WorldState, Clock, HarvestController);
@@ -644,8 +645,10 @@ namespace SettlersOfIdlestan.Controller
                 CityBuilderController.OnCityRelocated -= OnCityRelocatedDestroyNearbyCamps;
                 RoadController.OnRoadBuilt -= OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt -= OnRoadBuiltExtendMap;
+                CityBuilderController.OnCityBuilt -= OnCityBuiltExtendMapToVision;
                 BuildingController.OnBuildingBuilt += OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
+                CityBuilderController.OnCityBuilt += OnCityBuiltExtendMapToVision;
                 CityBuilderController.OnCityDestroyed += OnCityDestroyedHandler;
                 CityBuilderController.OnCityRelocated += OnCityRelocatedDestroyNearbyCamps;
                 RoadController.OnRoadBuilt += OnRoadBuiltExtendMap;
@@ -677,6 +680,13 @@ namespace SettlersOfIdlestan.Controller
 
                 WorldState.CivilizationRemoved -= OnCivilizationRemoved;
                 WorldState.CivilizationRemoved += OnCivilizationRemoved;
+
+                // Rattrapage au chargement : une partie reprise avec Oeil de Dieu et un Inframonde
+                // déjà ouvert doit voir sa carte étendue au rayon de vision courant, y compris pour
+                // les sauvegardes antérieures à ce mécanisme. Sans effet sur une île neuve, dont
+                // aucune couche auto-extensible n'existe encore. Voir
+                // AutoExtendController.TryExtendMapsToPlayerVision pour la liste des sources.
+                AutoExtendController.TryExtendMapsToPlayerVision();
             }
         }
 
@@ -711,6 +721,19 @@ namespace SettlersOfIdlestan.Controller
 
         private void OnRoadBuiltExtendMap(object? sender, RoadAutoBuiltEventArgs e)
             => AutoExtendController.TryExtendMapAfterRoad(e.CivilizationIndex, e.RoadPosition);
+
+        /// <summary>
+        /// Une ville neuve voit d'emblée aussi loin que le bonus de vision du joueur le permet
+        /// (Oeil de Dieu) : sous terre, la carte doit pousser jusque-là — une route ne génère que les
+        /// 3 hexagones de chacun de ses sommets. Voir
+        /// <see cref="AutoExtendController.TryExtendMapsToPlayerVision"/> pour la liste des sources.
+        /// </summary>
+        private void OnCityBuiltExtendMapToVision(object? sender, OutpostAutoBuiltEventArgs e)
+        {
+            var playerCiv = CurrentMainState?.CurrentWorldState?.PlayerCivilization;
+            if (playerCiv == null || e.CivilizationIndex != playerCiv.Index) return;
+            AutoExtendController.TryExtendMapsToPlayerVision();
+        }
 
         /// <summary>
         /// Seule la civilisation propriétaire du bâtiment voit son cache de production invalidé. Avec

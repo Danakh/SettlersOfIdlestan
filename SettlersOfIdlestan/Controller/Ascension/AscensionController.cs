@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Generator;
@@ -135,6 +135,7 @@ public class AscensionController : IModifierProvider
     private WarFleetController? _warFleetController;
     private MobileCampController? _mobileCampController;
     private RoadController? _roadController;
+    private Island.AutoExtendController? _autoExtendController;
 
     public event Action? OnModifiersChanged;
 
@@ -173,10 +174,16 @@ public class AscensionController : IModifierProvider
     /// dont dépend le cache de <see cref="RoadController"/> pour décider d'un HIT. Omis, la marche
     /// transforme le terrain sans jamais rafraîchir les routes constructibles affichées.
     /// </param>
+    /// <param name="autoExtendController">
+    /// Optionnel : requis uniquement pour que l'achat d'Oeil de Dieu étende immédiatement les couches
+    /// souterraines à son nouveau rayon de vision (voir
+    /// <see cref="Island.AutoExtendController.TryExtendMapsToPlayerVision"/>). Omis, le pouvoir est
+    /// acquis sans que la carte de l'Inframonde ne pousse.
+    /// </param>
     public void Initialize(WorldState? state, GameClock? clock, GamePRNG prng, HarvestController harvestController, GodState godState,
         CityBuilderController? cityBuilderController = null, MaritimeBeaconController? maritimeBeaconController = null,
         WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null,
-        RoadController? roadController = null)
+        RoadController? roadController = null, Island.AutoExtendController? autoExtendController = null)
     {
         if (_clock != null)
             _clock.Advanced -= OnClockAdvanced;
@@ -197,6 +204,7 @@ public class AscensionController : IModifierProvider
         _warFleetController = warFleetController;
         _mobileCampController = mobileCampController;
         _roadController = roadController;
+        _autoExtendController = autoExtendController;
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -267,6 +275,22 @@ public class AscensionController : IModifierProvider
             RestoreRepeatableResearchToBest();
 
         OnModifiersChanged?.Invoke();
+
+        // Oeil de Dieu élargit le rayon de vision de chaque ville (CITY_VISION_RANGE). Les deux appels
+        // viennent après OnModifiersChanged, pour que l'agrégateur de la civilisation soit déjà
+        // invalidé quand on le relit.
+        if (id == AscensionPowerId.EyeOfGod && _state != null)
+        {
+            // Sans quoi le cache de visibilité resterait figé à l'ancien rayon jusqu'à la prochaine
+            // mutation route/ville/bâtiment. C'est aussi ce recalcul qui fait pousser les îles de
+            // l'Abysse, dont l'anneau de Void passe à portée de vue (voir AutoExtendController.OnHexesRevealed).
+            _state.Visibility.RecalculateFor(_state.PlayerCivilization.Index);
+
+            // Dans l'Inframonde, rien à révéler tant que rien n'est généré : la carte n'existe que là
+            // où les routes l'ont fait pousser.
+            _autoExtendController?.TryExtendMapsToPlayerVision();
+        }
+
         return true;
     }
 
@@ -912,6 +936,12 @@ public class AscensionController : IModifierProvider
 
         if (IsPowerUnlocked(AscensionPowerId.MemoryOfGod))
             yield return new Modifier(Modifier.ECategory.REPEATABLE_RESEARCH_SCALING_REDUCTION, Modifier.EType.ADDITIVE, 0.5);
+
+        // Oeil de Dieu : au-delà de la révélation d'écran (AscensionState.IsEyeOfGodActive, purement
+        // visuelle), chaque ville voit un hexagone plus loin. Le bonus s'ajoute au rayon de base comme
+        // à celui de la Tour de Guet (voir VisibleIslandMap).
+        if (IsPowerUnlocked(AscensionPowerId.EyeOfGod))
+            yield return new Modifier(Modifier.ECategory.CITY_VISION_RANGE, Modifier.EType.ADDITIVE, 1);
 
         if (IsPowerUnlocked(AscensionPowerId.HornOfPlenty))
         {

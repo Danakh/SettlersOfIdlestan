@@ -29,8 +29,12 @@ public class WorldVisibility
     /// </summary>
     public event Action<int, int, IReadOnlyList<HexCoord>>? HexesRevealed;
 
-    /// <summary>Grand Phare niveau 1+ : les Tours de Guet voient 1 hex plus loin (rayon 3 au lieu de 2).</summary>
-    private bool WatchtowerVisionBonus
+    /// <summary>
+    /// Grand Phare niveau 1+ : les Tours de Guet voient 1 hex plus loin (rayon 3 au lieu de 2).
+    /// Public car l'auto-extension des couches souterraines doit générer le terrain jusqu'au même
+    /// rayon que celui affiché (voir AutoExtendController.TryExtendMapsToPlayerVision).
+    /// </summary>
+    public bool WatchtowerVisionBonus
         => _world.Features.OfType<GreatLighthouse>().FirstOrDefault()?.Level >= 1;
 
     /// <summary>Rebuilds visibility for every civilization on every layer.</summary>

@@ -64,6 +64,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CITY_ATTACK_RANGE,
             /// <summary>Flat bonus added to the reinforcement range (in edges). SubCategory unused.</summary>
             REINFORCEMENT_RANGE,
+            /// <summary>Bonus additif au rayon de vision (en hexagones) de chaque ville de la civilisation, cumulé
+            /// avec le rayon de base (1, ou 2 avec une Tour de Guet, 3 avec le bonus du Grand Phare) — voir
+            /// VisibleIslandMap. SubCategory unused. Accordé par le pouvoir divin Oeil de Dieu.</summary>
+            CITY_VISION_RANGE,
             /// <summary>Flags that wonder construction is unlocked for the civilization.</summary>
             UNLOCK_WONDERS,
             /// <summary>Flags that an advanced resource is discovered and visible. SubCategory = Resource enum name.</summary>

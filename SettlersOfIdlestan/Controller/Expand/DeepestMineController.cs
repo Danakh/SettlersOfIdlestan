@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -26,13 +26,22 @@ namespace SettlersOfIdlestan.Controller.Island
         public event EventHandler? OnDeepestMineDug;
 
         private GodState? _godState;
+        private AutoExtendController? _autoExtendController;
 
         internal DeepestMineController() { }
 
-        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null, GodState? godState = null)
+        /// <param name="autoExtendController">
+        /// Optionnel : requis uniquement pour que l'Inframonde naisse directement au rayon de vision de
+        /// son avant-poste quand le joueur a déjà un bonus de vision (Oeil de Dieu) — voir
+        /// <see cref="AutoExtendController.TryExtendMapsToPlayerVision"/>. Omis, la couche s'ouvre sur
+        /// son seul triangle de départ.
+        /// </param>
+        internal void Initialize(WorldState? state, GameClock? clock = null, HarvestController? harvestController = null,
+            GodState? godState = null, AutoExtendController? autoExtendController = null)
         {
             InitializeCore(state, clock, harvestController);
             _godState = godState;
+            _autoExtendController = autoExtendController;
         }
 
         protected override void OnClockAdvancedExtra()
@@ -88,6 +97,10 @@ namespace SettlersOfIdlestan.Controller.Island
             PrestigeMapController.GrantNewCityBuildings(_state, outpost, playerCiv);
 
             _state.Visibility.RecalculateFor(playerCiv.Index);
+
+            // L'avant-poste peut déjà voir plus loin que le triangle de départ (Oeil de Dieu) : la
+            // couche naît alors à ce rayon plutôt qu'à ses 3 hexagones.
+            _autoExtendController?.TryExtendMapsToPlayerVision();
         }
 
         /// <summary>

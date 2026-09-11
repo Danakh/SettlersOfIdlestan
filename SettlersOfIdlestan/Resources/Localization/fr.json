@@ -1575,7 +1575,7 @@
   "ascension_power_hornofplenty_name": "Corne d'Abondance",
   "ascension_power_hornofplenty_desc": "Ajoute +100% de rendement à toute récolte automatique, dans toutes vos villes et quel que soit le bâtiment — cumulable avec les autres bonus de rendement, qui peuvent porter la récolte au-delà du double. S'y ajoute une manne divine de 20 unités de chaque ressource de base (Nourriture, Bois, Brique, Pierre) versée chaque seconde à la civilisation.",
   "ascension_power_eyeofgod_name": "Oeil de Dieu",
-  "ascension_power_eyeofgod_desc": "Révèle toute la carte de surface, tout l'arbre de recherche et toute la carte de prestige.",
+  "ascension_power_eyeofgod_desc": "Révèle toute la carte de surface, tout l'arbre de recherche et toute la carte de prestige. +1 de portée de vision pour toutes les villes (cumulatif avec la Tour de Guet).",
   "ascension_power_memoryofgod_name": "Mémoire de Dieu",
   "ascension_power_memoryofgod_desc": "Réduit de 50% la croissance du coût des recherches répétables (×1,5 par relance au lieu de ×2), et les préserve de l'Ascension : chaque nouveau cycle repart au meilleur palier jamais atteint.",
   "ascension_power_walkofgod_name": "Marche de Dieu",

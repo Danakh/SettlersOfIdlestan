@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using Xunit;
@@ -74,6 +75,30 @@ namespace SOITests.ControllerTests
             // L'Abysse reste un territoire exclusivement joueur (voir "Rework abysses") : aucune
             // civilisation NPC n'est générée sur les nouvelles îles, contrairement à l'Inframonde.
             Assert.Empty(state.Civilizations.Where(c => c.IsNpc));
+        }
+
+        [Fact]
+        public void OnHexesRevealed_GeneratesNewIsland_WhenCityVisionRangeBonusRevealsVoid()
+        {
+            // Oeil de Dieu (CITY_VISION_RANGE) porte le rayon de vision à 2 sans Tour de Guet : le Void
+            // devient visible, donc l'Abysse pousse une île — c'est ainsi que le bonus de vision
+            // provoque l'expansion sur cette couche, et non en générant du terrain hexagone par hexagone.
+            var (state, city, voidHex) = CreateAbyssSetup(new GamePRNG(1));
+            var map = state.Layers[LayerState.AbyssZ].Map;
+
+            Assert.False(state.Visibility.GetForZ(LayerState.AbyssZ)[city.CivilizationIndex].HasTile(voidHex));
+
+            var civ = state.GetCivilization(city.CivilizationIndex)!;
+            civ.AddCustomAggregator(new StaticModifierProvider(new[]
+            {
+                new Modifier(Modifier.ECategory.CITY_VISION_RANGE, Modifier.EType.ADDITIVE, 1),
+            }));
+            state.Visibility.RecalculateFor(city.CivilizationIndex);
+
+            Assert.True(state.Visibility.GetForZ(LayerState.AbyssZ)[city.CivilizationIndex].HasTile(voidHex));
+
+            var beyondVoid = voidHex.Neighbors().Where(n => !ArrivalSet.Contains(n));
+            Assert.Contains(beyondVoid, n => map.HasTile(n) && map.GetTile(n)!.TerrainType != TerrainType.Void);
         }
 
         [Fact]

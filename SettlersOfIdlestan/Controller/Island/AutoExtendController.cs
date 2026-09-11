@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Buildings;
@@ -132,6 +132,111 @@ public class AutoExtendController
     {
         try { TrySpawnBorderMonsters(e.CurrentTick); }
         catch (Exception ex) { GameLog.Error(nameof(AutoExtendController), nameof(TrySpawnBorderMonsters), ex); }
+    }
+
+    // ── Extension au rayon de vision des villes ──────────────────────────────
+
+    /// <summary>
+    /// Génère le terrain des couches auto-étendues jusqu'au rayon de vision des villes du joueur :
+    /// une ville qui voit plus loin que la carte ne s'étend (Tour de Guet, Grand Phare, Oeil de Dieu
+    /// — voir <see cref="Model.IslandMap.VisibleIslandMap.GetCityVisionRadius"/>) pousse la frontière
+    /// d'autant au lieu de contempler le vide.
+    ///
+    /// <para>L'Abysse est exclue : elle ne se peuple pas hexagone par hexagone mais par îles entières
+    /// au-delà d'un hex de Void devenu visible (voir <see cref="OnHexesRevealed"/>). Le rayon de vision
+    /// l'étend donc déjà, par ce chemin-là ; y rouler du terrain d'Inframonde casserait ses anneaux
+    /// de Void. Le Pandémonium, île fixe, n'est pas auto-extensible du tout.</para>
+    ///
+    /// <para><b>Appelée depuis chaque source</b> qui peut faire bouger la frontière, jamais
+    /// périodiquement (la passe parcourt les villes du joueur) : ouverture de l'Inframonde
+    /// (DeepestMineController.TryInitializeUnderworld), fondation d'une ville
+    /// (MainGameController.OnCityBuiltExtendMapToVision) et achat d'un pouvoir divin
+    /// (AscensionController.PurchasePower), plus une passe au démarrage de chaque île
+    /// (MainGameController.InitializeControllersForCurrentIsland) qui couvre le chargement d'une
+    /// sauvegarde, les races qui démarrent sous terre et les sauvegardes antérieures à ce mécanisme.
+    /// Idempotente : la rappeler pour rien ne coûte qu'un parcours.</para>
+    ///
+    /// <para><b>Ce que cette liste suppose :</b> sur les couches concernées, le rayon d'une ville
+    /// déjà posée ne change plus. C'est vrai aujourd'hui parce que les Tours de Guet y sont interdites
+    /// (voir <see cref="Model.Buildings.Watchtower.IsAvailableInLayer"/>) : le rayon ne vient que du
+    /// modifier civ-wide CITY_VISION_RANGE, et le bonus du Grand Phare ne porte que sur les Tours de
+    /// Guet. <b>Si les Tours de Guet sont un jour autorisées dans l'Inframonde</b>, il faut ajouter un
+    /// appel quand l'une d'elles est construite ou améliorée — et pas depuis
+    /// <c>BuildingController.BuildBuilding</c>, que plusieurs chemins court-circuitent (bâtiments de
+    /// départ d'une ville, bâtiment racial de l'Ascension, vertex de prestige, Conquête Divine,
+    /// générateur de PNJ) : le point fiable est <see cref="Model.Civilization.City.BuildingsChanged"/>,
+    /// comme pour les caches dérivés de la civilisation. Le Grand Phare niveau 1 devient alors une
+    /// source lui aussi.</para>
+    /// </summary>
+    public void TryExtendMapsToPlayerVision()
+    {
+        if (_state == null || _prng == null) return;
+
+        var playerCiv = _state.PlayerCivilization;
+        int visionRangeBonus = VisibleIslandMap.GetVisionRangeBonus(playerCiv);
+        bool watchtowerVisionBonus = _state.Visibility.WatchtowerVisionBonus;
+
+        foreach (var layerState in _state.Layers.Values)
+        {
+            if (!layerState.AutoExtend || layerState.ArrivalVertex == null) continue;
+            int z = layerState.Map.Z;
+            if (z == LayerState.AbyssZ) continue;
+
+            ExtendLayerToPlayerVision(layerState, z, playerCiv, watchtowerVisionBonus, visionRangeBonus);
+        }
+    }
+
+    /// <summary>
+    /// Pose les hexagones manquants à portée de vue des villes du joueur sur une couche, puis traite
+    /// les nouveaux hexagones exactement comme ceux nés d'une route (voir
+    /// <see cref="TryExtendMapAfterRoad"/>) : visibilité recalculée, puis habitants et civilisation
+    /// agressive tirés hexagone par hexagone.
+    /// </summary>
+    private void ExtendLayerToPlayerVision(
+        LayerState layerState, int z, Civilization playerCiv, bool watchtowerVisionBonus, int visionRangeBonus)
+    {
+        var map = layerState.Map;
+        var cities = playerCiv.Cities;
+
+        List<HexCoord>? newHexes = null;
+        HashSet<HexCoord>? playerVisibleHexesBefore = null;
+
+        for (int i = 0; i < cities.Count; i++)
+        {
+            var city = cities[i];
+            if (!map.IsOnSameLayer(city.Position)) continue;
+
+            int radius = VisibleIslandMap.GetCityVisionRadius(city, watchtowerVisionBonus, visionRangeBonus);
+            // Rayon 1 = les 3 hexagones du sommet, forcément déjà posés puisque la ville y est bâtie.
+            if (radius <= 1) continue;
+
+            foreach (var hex in VisibleIslandMap.GetHexesWithinRadius(city.Position, radius))
+            {
+                if (map.HasTile(hex)) continue;
+
+                if (newHexes == null)
+                {
+                    // Snapshot pris avant la toute première tuile ajoutée : TrySpawnAggressiveCivilization
+                    // compare le voisinage de chaque nouvel hexagone à ce que le joueur voyait avant.
+                    playerVisibleHexesBefore = GetPlayerVisibleHexCoords(layerState);
+                    newHexes = new List<HexCoord>();
+                    EnsureRiverPlanned(layerState);
+                }
+
+                map.AddTile(new HexTile(hex, RollTerrainForHex(hex, layerState)));
+                newHexes.Add(hex);
+            }
+        }
+
+        if (newHexes == null) return;
+
+        _state!.Visibility.RecalculateForLayer(playerCiv.Index, z);
+
+        foreach (var newHex in newHexes)
+        {
+            TrySpawnUnderworldDenizen(newHex, layerState, z);
+            TrySpawnAggressiveCivilization(newHex, layerState, playerVisibleHexesBefore!, z);
+        }
     }
 
     /// <summary>

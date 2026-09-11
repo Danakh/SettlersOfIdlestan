@@ -8,7 +8,8 @@ namespace SettlersOfIdlestan.Model.IslandMap;
 /// Island map filtered to the tiles visible to a civilization.
 /// A tile is visible when it touches one of the civilization's cities or roads.
 /// Cities with a Watchtower reveal hexes within a radius of 2 instead of 1 (3 with the
-/// Great Lighthouse's level 1 bonus).
+/// Great Lighthouse's level 1 bonus). CITY_VISION_RANGE (Oeil de Dieu) s'ajoute à ce rayon,
+/// Tour de Guet ou non.
 /// For roads, tiles touching either endpoint vertex are visible too.
 /// </summary>
 public class VisibleIslandMap : IslandMap
@@ -18,12 +19,41 @@ public class VisibleIslandMap : IslandMap
     {
     }
 
+    /// <summary>
+    /// Bonus de rayon de vision de la civilisation (Oeil de Dieu — voir
+    /// <see cref="Model.GameplayModifier.Modifier.ECategory.CITY_VISION_RANGE"/>). À lire une seule
+    /// fois par carte plutôt qu'à chaque ville.
+    /// </summary>
+    public static int GetVisionRangeBonus(CivilizationModel civilization)
+        => civilization.ModifierAggregator.ApplyModifiers(
+            Model.GameplayModifier.Modifier.ECategory.CITY_VISION_RANGE, "", 0);
+
+    /// <summary>
+    /// Rayon de vision d'une ville, en anneaux d'hexagones autour de son sommet : 1 de base, 2 avec
+    /// une Tour de Guet (3 si le Grand Phare niveau 1 la renforce — <paramref name="watchtowerVisionBonus"/>),
+    /// plus <paramref name="visionRangeBonus"/>.
+    ///
+    /// <para>Seul point où ce calcul existe : l'auto-extension des couches souterraines génère le
+    /// terrain jusqu'à ce même rayon (voir AutoExtendController.TryExtendMapsToPlayerVision), et deux
+    /// formules divergentes y feraient voir au joueur un anneau que la carte n'a pas généré, ou
+    /// l'inverse.</para>
+    /// </summary>
+    public static int GetCityVisionRadius(Model.Civilization.City city, bool watchtowerVisionBonus, int visionRangeBonus)
+    {
+        bool hasWatchtower = city.FindBuilding(BuildingType.Watchtower) is { Level: > 0 };
+        return (hasWatchtower ? (watchtowerVisionBonus ? 3 : 2) : 1) + visionRangeBonus;
+    }
+
     private static IEnumerable<HexTile> GetVisibleTiles(IslandMap sourceMap, CivilizationModel civilization, bool watchtowerVisionBonus)
     {
         if (sourceMap == null) throw new ArgumentNullException(nameof(sourceMap));
         if (civilization == null) throw new ArgumentNullException(nameof(civilization));
 
         var visibleHexes = new HashSet<HexCoord>();
+
+        // Bonus de vision de la civilisation (Oeil de Dieu), lu une fois pour toute la carte : il
+        // s'ajoute au rayon de chaque ville, avec ou sans Tour de Guet.
+        int visionBonus = GetVisionRangeBonus(civilization);
 
         // Ensembles de travail du BFS, alloués une fois pour toute la carte au lieu d'une paire par
         // source. Seul le cas rayon ≥ 2 (Tour de Guet) les utilise ; voir AddVertexHexesWithRadius.
@@ -36,8 +66,7 @@ public class VisibleIslandMap : IslandMap
             if (!sourceMap.IsOnSameLayer(city.Position))
                 continue;
 
-            bool hasWatchtower = city.FindBuilding(BuildingType.Watchtower) is { Level: > 0 };
-            int radius = hasWatchtower ? (watchtowerVisionBonus ? 3 : 2) : 1;
+            int radius = GetCityVisionRadius(city, watchtowerVisionBonus, visionBonus);
             AddVertexHexesWithRadius(visibleHexes, city.Position, radius, ref visited, ref frontier, ref next);
         }
 
@@ -57,6 +86,23 @@ public class VisibleIslandMap : IslandMap
             .Select(sourceMap.GetTile)
             .Where(tile => tile != null)
             .Cast<HexTile>();
+    }
+
+    /// <summary>
+    /// Hexagones à <paramref name="radius"/> anneaux du sommet donné — exactement l'ensemble qu'une
+    /// ville de ce rayon rend visible. Alloue ses propres ensembles de travail : réservé aux appels
+    /// ponctuels (auto-extension des couches souterraines, voir
+    /// AutoExtendController.TryExtendMapsToPlayerVision) ; le calcul de visibilité lui-même passe par
+    /// la surcharge privée, qui réutilise les siens d'une source à l'autre.
+    /// </summary>
+    public static HashSet<HexCoord> GetHexesWithinRadius(Vertex vertex, int radius)
+    {
+        var hexes = new HashSet<HexCoord>();
+        HashSet<HexCoord>? visited = null;
+        HashSet<HexCoord>? frontier = null;
+        HashSet<HexCoord>? next = null;
+        AddVertexHexesWithRadius(hexes, vertex, radius, ref visited, ref frontier, ref next);
+        return hexes;
     }
 
     /// <summary>

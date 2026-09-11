@@ -1575,7 +1575,7 @@
   "ascension_power_hornofplenty_name": "Horn of Plenty",
   "ascension_power_hornofplenty_desc": "Grants +100% yield to every automatic harvest, in all your cities and whatever the building — stacks with the other yield bonuses, which can push a harvest beyond double. On top of that, a divine bounty of 20 units of each basic resource (Food, Wood, Brick, Stone) is granted to the civilization every second.",
   "ascension_power_eyeofgod_name": "Eye of God",
-  "ascension_power_eyeofgod_desc": "Reveals the entire surface map, the whole technology tree and the entire prestige map.",
+  "ascension_power_eyeofgod_desc": "Reveals the entire surface map, the whole technology tree and the entire prestige map. +1 vision range for every city (stacks with the Watchtower).",
   "ascension_power_memoryofgod_name": "Memory of God",
   "ascension_power_memoryofgod_desc": "Reduces the cost growth of repeatable research by 50% (×1.5 per relaunch instead of ×2), and shields them from Ascension: every new cycle starts back at the highest rank ever reached.",
   "ascension_power_walkofgod_name": "Walk of God",
