@@ -78,6 +78,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 // — ou qu'une Ascension l'a remis à zéro.
                 bones.EssenceAlreadyCollected = _godState.DivineEssence;
                 bones.UnlockedPowersBonus = _godState.AscensionState.UnlockedPowers.Count;
+                bones.DemonGodCapBonus = _godState.DivineEssenceCapBonusFromDemonGod;
 
                 var investmentCost = bones.GetInvestmentCost(playerCiv);
 

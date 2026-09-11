@@ -770,6 +770,11 @@ public sealed record ModalPopupSnapshot(
     public const string IdCorruptSave = "corruptSave";
     public const string IdGameOver    = "gameOver";
     public const string IdDemoEnd     = "demoEnd";
+
+    /// Felicitations pour le tout premier Dieu demon abattu — la partie peut etre consideree
+    /// comme gagnee. Portee par GameScreen, et la seule des siennes a n'apparaitre qu'une fois
+    /// dans une partie (voir DemonGodVictoryPopupRenderer).
+    public const string IdDemonGodVictory = "demonGodVictory";
     public const string IdRestartIsland = "restartIsland";
 
     /// Confirmation de perte d'essences divines avant un prestige. Portee par le popup Prestige

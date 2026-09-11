@@ -503,15 +503,26 @@ public class AscensionController : IModifierProvider
     /// fraîchement apparu), plus 1 par pouvoir divin déjà débloqué (GodState.AscensionState.UnlockedPowers,
     /// cross-prestige — voir DivineBonesController.ProcessInvestment, qui applique le même bonus au
     /// plafond propre à chaque Os Divins), ce second terme étant lui-même plafonné au niveau de
-    /// corruption (voir DivineBones.GetPowersBonus, source unique de cette règle). Pour l'augmenter,
-    /// il faut donc soit prestige pour relever la corruption, soit débloquer de nouveaux pouvoirs
-    /// divins tant que leur contribution n'est pas déjà saturée par la corruption.
+    /// corruption (voir DivineBones.GetPowersBonus, source unique de cette règle), plus enfin le
+    /// niveau de chaque Dieu démon abattu depuis le dernier prestige
+    /// (GodState.DivineEssenceCapBonusFromDemonGod, sans écrêtage). Pour l'augmenter, il faut donc
+    /// prestige pour relever la corruption, débloquer de nouveaux pouvoirs divins tant que leur
+    /// contribution n'est pas déjà saturée par la corruption, ou abattre le boss du Pandémonium.
     /// </summary>
-    public int GetDivineEssenceCap()
+    public int GetDivineEssenceCap() => GetDivineEssenceCap(_godState);
+
+    /// <summary>
+    /// Même plafond que <see cref="GetDivineEssenceCap()"/>, calculé depuis un GodState quelconque —
+    /// tout ce dont il dépend y vit déjà. Source unique de la formule : c'est par ici que passent les
+    /// appelants qui n'ont pas de AscensionController sous la main (voir
+    /// PandemoniumGateController.RegisterDemonGodDefeat, qui doit écrêter l'essence de la victoire).
+    /// </summary>
+    public static int GetDivineEssenceCap(GodState? godState)
     {
-        int corruptionLevel = Math.Max(0, _godState?.PrestigeState?.CurrentCorruptionLevel ?? 0);
-        int unlockedPowers = _godState?.AscensionState.UnlockedPowers.Count ?? 0;
-        return corruptionLevel + DivineBones.GetPowersBonus(corruptionLevel, unlockedPowers);
+        int corruptionLevel = Math.Max(0, godState?.PrestigeState?.CurrentCorruptionLevel ?? 0);
+        int unlockedPowers = godState?.AscensionState.UnlockedPowers.Count ?? 0;
+        int demonGodBonus = Math.Max(0, godState?.DivineEssenceCapBonusFromDemonGod ?? 0);
+        return corruptionLevel + DivineBones.GetPowersBonus(corruptionLevel, unlockedPowers) + demonGodBonus;
     }
 
     /// <summary>
@@ -657,6 +668,10 @@ public class AscensionController : IModifierProvider
         godState.TotalGodPointsEarned += godPointsGained;
         godState.DivineEssence = 0;
         godState.DivineEssenceReliquaryFloor = 0;
+        // Le bonus de plafond arraché aux Dieux démons ne dure que le temps d'un cycle de prestige,
+        // comme l'essence qu'il autorisait — voir GodState.DivineEssenceCapBonusFromDemonGod. Le
+        // record de niveau (HighestDemonGodLevelDefeated), lui, survit à l'Ascension.
+        godState.DivineEssenceCapBonusFromDemonGod = 0;
         godState.AscensionState.AscensionsPerformed++;
 
         // La race qui accomplit l'Ascension marque l'histoire : son bâtiment racial devient un
@@ -1562,7 +1577,7 @@ public class AscensionController : IModifierProvider
 
         monster.KilledByCivilizationIndex = _state.PlayerCivilization.Index;
         _state.RemoveFeature(monster);
-        _state.EventLog.Add(monster.RemovedEventType);
+        _state.EventLog.Add(monster.RemovedEventType, monster.RemovedEventMessage, monster.RemovedEventIsToast);
     }
 
     private void StrikeCitiesAdjacentTo(HexCoord hex)

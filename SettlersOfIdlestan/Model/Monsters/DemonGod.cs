@@ -81,8 +81,37 @@ public class DemonGod : MonsterFeature
             IsRanged = true,
         };
 
+    /// <summary>
+    /// Bilan de la mort de ce Dieu démon — null tant qu'il vit, et tant que son retrait n'est pas
+    /// une mort au combat (vidage d'une couche perdue, voir PandemoniumGateController.OnCityDestroyed).
+    /// Posé par <c>PandemoniumGateController.RegisterDemonGodDefeat</c>, notifié pendant
+    /// <c>WorldState.RemoveFeature</c> — donc avant que l'appelant ne journalise
+    /// <see cref="RemovedEventType"/>, sur le modèle de <c>Tentacle.OpenedPandemoniumGate</c>.
+    /// C'est ce qui permet au journal de distinguer les trois annonces sans que chacun des sites qui
+    /// tuent un monstre ait à connaître le boss.
+    ///
+    /// Hors sauvegarde : le boss quitte le monde dans la foulée, l'information ne vit que le temps
+    /// de la journalisation.
+    /// </summary>
+    [JsonIgnore]
+    public DemonGodDefeat? Defeat { get; set; }
+
     public override GameEventType DiscoveredEventType => GameEventType.DemonGodDiscovered;
-    public override GameEventType RemovedEventType => GameEventType.DemonGodDefeated;
+
+    public override GameEventType RemovedEventType => Defeat switch
+    {
+        { IsFirstEver: true } => GameEventType.DemonGodDefeatedFirst,
+        { BeatsRecord: true } => GameEventType.DemonGodDefeatedRecord,
+        _ => GameEventType.DemonGodDefeated,
+    };
+
+    /// <summary>Niveau abattu, essence divine réellement reçue, record en vigueur — voir <see cref="DemonGodDefeat"/>.</summary>
+    public override string? RemovedEventMessage => Defeat is { } d
+        ? GameLogEntry.JoinMessageArgs(Level, d.EssenceGained, d.RecordLevel)
+        : null;
+
+    /// <summary>La mort du boss est l'événement le plus rare du jeu : elle sort toujours en toast.</summary>
+    public override bool RemovedEventIsToast => Defeat != null;
 
     public override string? SvgIconResourceName => "Resources.icons.military.kraken.svg";
     public override float IconSizeFactor => 2.2f;
@@ -96,3 +125,21 @@ public class DemonGod : MonsterFeature
     [JsonConstructor]
     public DemonGod() : base() { Hp = MaxHp; }
 }
+
+/// <summary>
+/// Bilan d'une victoire sur le Dieu démon, calculé une fois pour toutes par
+/// <c>PandemoniumGateController.RegisterDemonGodDefeat</c> et consommé aussi bien par le journal
+/// (<see cref="DemonGod.RemovedEventMessage"/>) que par la modale de victoire de l'interface.
+/// </summary>
+/// <param name="Level">Niveau du Dieu démon abattu.</param>
+/// <param name="EssenceGained">Essence divine réellement créditée — le niveau du boss, écrêté par
+/// le plafond d'essence divine tel qu'il vient d'être relevé de ce même niveau.</param>
+/// <param name="RecordLevel">Record après cette victoire (GodState.HighestDemonGodLevelDefeated).</param>
+/// <param name="IsFirstEver">Toute première victoire de la partie : c'est elle qui ouvre la modale.</param>
+/// <param name="BeatsRecord">Le niveau abattu dépasse tous les précédents.</param>
+public readonly record struct DemonGodDefeat(
+    int Level,
+    int EssenceGained,
+    int RecordLevel,
+    bool IsFirstEver,
+    bool BeatsRecord);

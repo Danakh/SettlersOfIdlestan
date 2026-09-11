@@ -38,6 +38,15 @@ public class RunRecord
     /// </summary>
     public int MaxCorruptionLevelCleared { get; set; }
 
+    /// <summary>
+    /// Vrai une fois le Dieu démon abattu <b>sur cette île</b>. C'est le verrou de fin de branche :
+    /// le Portail du Pandémonium disparaît avec lui et aucune Tentacule de l'Abysse n'en fera surgir
+    /// un autre d'ici le prochain prestige (voir PandemoniumGateController.RegisterDemonGodDefeat et
+    /// OnFeatureRemoved) — le boss d'un cycle ne se combat donc qu'une fois. Vit ici plutôt que dans
+    /// le GodState : il se réinitialise exactement quand il faut, à chaque nouvelle île.
+    /// </summary>
+    public bool DemonGodDefeated { get; set; }
+
     /// <summary>Nombre de fois que chaque type de bâtiment a été construit ce run (clé = BuildingType.ToString()).</summary>
     public Dictionary<string, int> BuildingCounts { get; set; } = new();
 

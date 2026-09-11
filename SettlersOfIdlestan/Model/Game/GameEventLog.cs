@@ -92,7 +92,28 @@ public enum GameEventType
     TentacleDiscovered,
     TentacleDefeated,
     DemonGodDiscovered,
+
+    /// <summary>
+    /// Dieu démon abattu alors que le joueur en avait déjà vaincu un d'un niveau au moins égal :
+    /// une victoire de plus, sans record. Message = niveau du boss, essence divine reçue et record
+    /// en cours (voir DemonGod.RemovedEventMessage).
+    /// </summary>
     DemonGodDefeated,
+
+    /// <summary>
+    /// Tout premier Dieu démon abattu de la partie — le joueur peut considérer qu'il a gagné. Seul
+    /// des trois à ouvrir la modale de victoire (voir GameScreen). Même message que
+    /// <see cref="DemonGodDefeated"/>.
+    /// </summary>
+    DemonGodDefeatedFirst,
+
+    /// <summary>
+    /// Dieu démon abattu à un niveau supérieur à tous les précédents : le record
+    /// (GodState.HighestDemonGodLevelDefeated) vient d'être battu. Même message que
+    /// <see cref="DemonGodDefeated"/>.
+    /// </summary>
+    DemonGodDefeatedRecord,
+
     PandemoniumGatePlaced,
     PandemoniumGateBuilt,
 
@@ -164,7 +185,37 @@ public enum GameEventType
     TentacleDefeatedNoGate,
 }
 
-public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false);
+/// <param name="Message">
+/// Complément figé à l'instant de la journalisation, quand le libellé de l'événement ne suffit pas
+/// (un niveau, un montant, une clé de localisation...). Une entrée qui en porte plusieurs les
+/// assemble avec <see cref="GameLogEntry.JoinMessageArgs"/> et les relit avec
+/// <see cref="GameLogEntry.SplitMessageArgs"/>.
+/// </param>
+public record GameLogEntry(GameEventType Type, string? Message = null, bool Toast = false)
+{
+    /// <summary>Séparateur des valeurs d'un message multi-valeurs — absent de tout nombre formaté.</summary>
+    private const char ArgSeparator = '|';
+
+    /// <summary>Assemble plusieurs valeurs en un seul <see cref="Message"/>.</summary>
+    public static string JoinMessageArgs(params object[] args) => string.Join(ArgSeparator, args);
+
+    /// <summary>
+    /// Relit un <see cref="Message"/> assemblé par <see cref="JoinMessageArgs"/>. Renvoie toujours
+    /// au moins <paramref name="expectedCount"/> éléments, complétés par "?" : une sauvegarde
+    /// antérieure à l'ajout d'une valeur garde ses anciennes entrées de journal, et l'affichage ne
+    /// doit pas tomber dessus.
+    /// </summary>
+    public static string[] SplitMessageArgs(string? message, int expectedCount)
+    {
+        var parts = (message ?? "").Split(ArgSeparator);
+        if (parts.Length >= expectedCount) return parts;
+
+        var padded = new string[expectedCount];
+        for (int i = 0; i < expectedCount; i++)
+            padded[i] = i < parts.Length && parts[i].Length > 0 ? parts[i] : "?";
+        return padded;
+    }
+}
 
 public class GameEventLog
 {

@@ -119,7 +119,7 @@ public class MonsterFeatureController
         foreach (var adventurer in orphaned)
         {
             _state.RemoveFeature(adventurer);
-            _state.EventLog.Add(adventurer.RemovedEventType);
+            _state.EventLog.Add(adventurer.RemovedEventType, adventurer.RemovedEventMessage, adventurer.RemovedEventIsToast);
         }
     }
 
@@ -493,7 +493,7 @@ public class MonsterFeatureController
     private void RemoveDeadMonster(MonsterFeature dead, long currentTick)
     {
         _state!.RemoveFeature(dead);
-        _state.EventLog.Add(dead.RemovedEventType);
+        _state.EventLog.Add(dead.RemovedEventType, dead.RemovedEventMessage, dead.RemovedEventIsToast);
         if (dead is Adventurer deadAdventurer)
             StartAdventurerRespawnCooldown(deadAdventurer, currentTick);
     }

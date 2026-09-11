@@ -82,6 +82,30 @@ namespace SettlersOfIdlestan.Model.Prestige
         public int TotalDivineEssenceEarned { get; set; }
 
         /// <summary>
+        /// Niveau du plus haut Dieu démon jamais vaincu, tous cycles confondus — 0 tant qu'aucun ne
+        /// l'a été. Seule donnée de la partie qui ne soit remise à zéro ni par le prestige ni par
+        /// l'Ascension : c'est le record du joueur, et c'est lui qui distingue les trois annonces de
+        /// mort du boss (première victoire, victoire sans record, record battu — voir
+        /// PandemoniumGateController.RegisterDemonGodDefeat) et qui décide de l'affichage unique de
+        /// la modale de victoire.
+        /// </summary>
+        public int HighestDemonGodLevelDefeated { get; set; }
+
+        /// <summary>
+        /// Bonus au plafond d'essence divine (<see cref="AscensionController.GetDivineEssenceCap"/>,
+        /// DivineBones.GetEssenceCap) apporté par le Dieu démon vaincu <b>pendant le cycle de prestige
+        /// courant</b> : sa victoire ajoute le niveau du boss abattu. Un cycle n'en offre jamais plus
+        /// d'un — le Portail du Pandémonium disparaît avec son maître et aucun autre ne s'ouvre
+        /// jusqu'au prestige suivant (voir RunRecord.DemonGodDefeated). Contrairement à
+        /// <see cref="HighestDemonGodLevelDefeated"/>, ce bonus ne dure que le temps du prestige —
+        /// remis à zéro en même temps que <see cref="DivineEssence"/> par
+        /// PrestigeController.PerformPrestige et par AscensionController.PerformAscension, dont il
+        /// suit exactement la durée de vie : l'essence qu'il autorise disparaissant au prestige, le
+        /// plafond qui la portait n'a aucune raison de lui survivre.
+        /// </summary>
+        public int DivineEssenceCapBonusFromDemonGod { get; set; }
+
+        /// <summary>
         /// Essences divines conservées par le Reliquaire (Reliquaire Sacré/Renforcé), en dehors de
         /// <see cref="DivineEssence"/> : recalculée à chaque prestige comme le minimum entre
         /// Civilization.DivineEssenceKeptOnPrestige et le total détenu avant ce prestige

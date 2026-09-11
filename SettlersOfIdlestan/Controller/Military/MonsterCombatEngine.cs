@@ -128,7 +128,7 @@ internal class MonsterCombatEngine
         foreach (var m in deadMonsters)
         {
             _state.RemoveFeature(m);
-            _state.EventLog.Add(m.RemovedEventType);
+            _state.EventLog.Add(m.RemovedEventType, m.RemovedEventMessage, m.RemovedEventIsToast);
         }
     }
 
@@ -285,7 +285,7 @@ internal class MonsterCombatEngine
         foreach (var m in deadMonsters.Distinct())
         {
             _state.RemoveFeature(m);
-            _state.EventLog.Add(m.RemovedEventType);
+            _state.EventLog.Add(m.RemovedEventType, m.RemovedEventMessage, m.RemovedEventIsToast);
         }
     }
 }

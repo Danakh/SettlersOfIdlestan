@@ -107,7 +107,8 @@ public class EventLogFilter
         GameEventType.MajorDemonDiscovered or GameEventType.MajorDemonDefeated => EventLogCategory.MajorDemon,
         GameEventType.TentacleDiscovered or GameEventType.TentacleDefeated
             or GameEventType.TentacleDiscoveredNoGate or GameEventType.TentacleDefeatedNoGate => EventLogCategory.Tentacle,
-        GameEventType.DemonGodDiscovered or GameEventType.DemonGodDefeated => EventLogCategory.DemonGod,
+        GameEventType.DemonGodDiscovered or GameEventType.DemonGodDefeated
+            or GameEventType.DemonGodDefeatedFirst or GameEventType.DemonGodDefeatedRecord => EventLogCategory.DemonGod,
         GameEventType.AdventurerDiscovered or GameEventType.AdventurerDefeated => EventLogCategory.Adventurer,
         GameEventType.TreasureTroveDiscovered or GameEventType.TreasureTroveClaimed => EventLogCategory.TreasureTrove,
         _ => null,

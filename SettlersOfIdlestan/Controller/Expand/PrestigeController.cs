@@ -522,6 +522,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             mainGameState.GodState.DivineEssenceReliquaryFloor = Math.Min(
                 totalEssenceBeforePrestige, GetDivineEssenceReliquaryCapacity(mainGameState.GodState));
             mainGameState.GodState.DivineEssence = 0;
+            // Le bonus de plafond arraché aux Dieux démons de ce cycle disparaît avec les essences
+            // qu'il autorisait — voir GodState.DivineEssenceCapBonusFromDemonGod. Le record de niveau
+            // (HighestDemonGodLevelDefeated), lui, ne bouge jamais.
+            mainGameState.GodState.DivineEssenceCapBonusFromDemonGod = 0;
 
             mainGameState.PrestigeState.PrestigePoints += points;
             mainGameState.PrestigeState.TotalPrestigePointsEarned += points;

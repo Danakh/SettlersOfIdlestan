@@ -1218,7 +1218,7 @@ namespace SettlersOfIdlestan.Controller.Magic
                 foreach (var m in deadMonsters)
                 {
                     _state.RemoveFeature(m);
-                    _state.EventLog.Add(m.RemovedEventType);
+                    _state.EventLog.Add(m.RemovedEventType, m.RemovedEventMessage, m.RemovedEventIsToast);
                 }
 
                 if (!anyTarget) break;

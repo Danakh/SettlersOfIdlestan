@@ -21,6 +21,11 @@ namespace SettlersOfIdlestan.Controller.Expand
     /// de lui-même sur l'hex de la Tentacule abattue (<see cref="OnFeatureRemoved"/>). Un seul
     /// portail existe par île — une deuxième Tentacule tuée n'en ouvre pas un second, que le
     /// premier soit déjà bâti ou non.
+    ///
+    /// Gère aussi le dénouement de la couche qu'il ouvre : la mort du Dieu démon, sa récompense et
+    /// son record (<see cref="RegisterDemonGodDefeat"/>). Le boss vit et meurt dans le Pandémonium,
+    /// dont ce contrôleur est le seul propriétaire ; les moteurs de combat qui l'abattent, eux, sont
+    /// plusieurs et ne connaissent pas le GodState.
     /// </summary>
     public class PandemoniumGateController : MonumentControllerBase<PandemoniumGate>
     {
@@ -32,6 +37,13 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         public event EventHandler? OnPandemoniumGatePlaced;
         public event EventHandler? OnPandemoniumGateBuilt;
+
+        /// <summary>
+        /// Le Dieu démon vient d'être abattu, récompense déjà versée et record déjà mis à jour. Porte
+        /// le bilan complet de la victoire (voir <see cref="DemonGodDefeat"/>) : l'interface s'en sert
+        /// pour ouvrir la modale de victoire à la toute première.
+        /// </summary>
+        public event EventHandler<DemonGodDefeat>? OnDemonGodDefeated;
 
         internal PandemoniumGateController() { }
 
@@ -69,12 +81,83 @@ namespace SettlersOfIdlestan.Controller.Expand
         private void OnFeatureRemoved(object? sender, IslandFeature feature)
         {
             if (_state == null) return;
+
+            // Le boss du Pandémonium tombe par le même chemin : sa mort est notifiée ici, et non
+            // depuis les moteurs de combat, qui sont plusieurs à tuer des monstres et n'ont à
+            // connaître ni le GodState ni l'essence divine.
+            if (feature is DemonGod demonGod)
+            {
+                if (demonGod.Hp <= 0) RegisterDemonGodDefeat(demonGod);
+                return;
+            }
+
             if (feature is not Tentacle tentacle) return;
             if (tentacle.Hp > 0) return;
             if (tentacle.Position.Z != LayerState.AbyssZ) return;
             if (HasPandemoniumGate(_state)) return;
+            // Boss déjà abattu sur cette île : la branche est close jusqu'au prochain prestige, et
+            // les Tentacules de l'Abysse tuées ensuite ne rouvrent plus rien.
+            if (_state.RunRecord.DemonGodDefeated) return;
 
             tentacle.OpenedPandemoniumGate = PlaceMonument(tentacle.Position) != null;
+        }
+
+        /// <summary>
+        /// Verse la récompense d'un Dieu démon abattu, puis marque le boss pour que l'entrée de
+        /// journal que l'appelant ajoute juste après (<see cref="DemonGod.RemovedEventType"/>) dise
+        /// laquelle des trois victoires c'était.
+        ///
+        /// <para>La récompense tient en deux temps, dans cet ordre : le niveau du boss relève le
+        /// plafond d'essence divine du cycle en cours (GodState.DivineEssenceCapBonusFromDemonGod,
+        /// remis à zéro au prestige comme à l'Ascension), puis la même quantité d'essence divine est
+        /// créditée <b>sous ce plafond fraîchement relevé</b> — un joueur qui n'avait pas déjà saturé
+        /// son plafond touche donc l'intégralité du niveau, et celui qui l'avait saturé touche
+        /// exactement de quoi le saturer de nouveau. L'écrêtage suit la règle des Os Divins (voir
+        /// DivineBonesController.GrantPurificationEssence) : le plafond ne compte que
+        /// GodState.DivineEssence, jamais les essences du Reliquaire.</para>
+        ///
+        /// <para>Le record, lui, est cross-prestige ET cross-Ascension
+        /// (GodState.HighestDemonGodLevelDefeated) : c'est la seule trace permanente de la victoire,
+        /// et ce qui fait que la modale de félicitations ne s'ouvre qu'une fois dans une partie.</para>
+        /// </summary>
+        private void RegisterDemonGodDefeat(DemonGod demonGod)
+        {
+            if (_godState == null || _state == null) return;
+
+            int level = Math.Max(1, demonGod.Level);
+            int previousRecord = _godState.HighestDemonGodLevelDefeated;
+            bool isFirstEver = previousRecord <= 0;
+            bool beatsRecord = level > previousRecord;
+
+            _godState.DivineEssenceCapBonusFromDemonGod += level;
+
+            int cap = Ascension.AscensionController.GetDivineEssenceCap(_godState);
+            int gained = Math.Clamp(cap - _godState.DivineEssence, 0, level);
+            _godState.DivineEssence += gained;
+            _godState.TotalDivineEssenceEarned += gained;
+
+            if (beatsRecord) _godState.HighestDemonGodLevelDefeated = level;
+
+            // Fin de la branche pour ce cycle : le Portail du Pandémonium s'efface avec son maître,
+            // et le drapeau interdit à toute Tentacule de l'Abysse d'en faire surgir un autre
+            // (voir OnFeatureRemoved). Le boss d'un cycle ne se combat donc qu'une fois : c'est le
+            // prestige, et lui seul, qui en dresse un nouveau — plus haut, sur une île neuve.
+            // Retrait sûr depuis ce gestionnaire : WorldState.RemoveFeature a déjà sorti le boss de
+            // sa liste avant de nous notifier, et tous les sites qui tuent un monstre matérialisent
+            // leur liste de morts avant de retirer quoi que ce soit.
+            _state.RunRecord.DemonGodDefeated = true;
+            foreach (var gate in _state.Features.OfType<PandemoniumGate>().ToList())
+                _state.RemoveFeature(gate);
+
+            var defeat = new DemonGodDefeat(
+                Level: level,
+                EssenceGained: gained,
+                RecordLevel: _godState.HighestDemonGodLevelDefeated,
+                IsFirstEver: isFirstEver,
+                BeatsRecord: beatsRecord);
+
+            demonGod.Defeat = defeat;
+            OnDemonGodDefeated?.Invoke(this, defeat);
         }
 
         /// <summary>
@@ -203,7 +286,13 @@ namespace SettlersOfIdlestan.Controller.Expand
                 // panneau pour le message de reconstruction.
             }
 
-            _state.EventLog.Add(GameEventType.PandemoniumGateLost, toast: true);
+            // Rien à annoncer quand le boss est déjà tombé : le portail est parti avec lui (voir
+            // RegisterDemonGodDefeat) et aucun ne se rouvrira d'ici le prestige — l'arène vidée
+            // ci-dessus ne contenait que les Tentacules qui lui ont survécu, et le joueur n'a donc
+            // aucun accès à reconquérir. Un portail absent ne suffit pas à le déduire : perdre
+            // l'Abysse d'abord l'emporte lui aussi, et cette perte-là, elle, est bien à annoncer.
+            if (!_state.RunRecord.DemonGodDefeated)
+                _state.EventLog.Add(GameEventType.PandemoniumGateLost, toast: true);
             _state.Visibility.Recalculate();
         }
     }

@@ -63,6 +63,26 @@ public abstract class IslandFeature
     public abstract GameEventType RemovedEventType { get; }
 
     /// <summary>
+    /// Message porté par l'entrée de journal de <see cref="RemovedEventType"/> — null pour la
+    /// quasi-totalité des features, dont l'annonce de disparition est un texte fixe. Sert aux
+    /// annonces qui doivent citer des valeurs figées à l'instant du retrait (voir DemonGod, dont la
+    /// mort chiffre le niveau du boss, l'essence divine reçue et le record) : le journal garde ces
+    /// entrées longtemps après que la feature a quitté le monde, il ne peut donc pas aller relire
+    /// les nombres, et l'appelant qui journalise ne les connaît pas.
+    /// Plusieurs valeurs se sérialisent avec <see cref="GameLogEntry.JoinMessageArgs"/>.
+    /// </summary>
+    [JsonIgnore]
+    public virtual string? RemovedEventMessage => null;
+
+    /// <summary>
+    /// True si la disparition de cette feature mérite en plus un toast, comme
+    /// MonumentControllerBase.PlacedEventIsToast pour la pose. Faux par défaut : une mort de
+    /// monstre ordinaire n'interrompt pas le joueur.
+    /// </summary>
+    [JsonIgnore]
+    public virtual bool RemovedEventIsToast => false;
+
+    /// <summary>
     /// True si cette feature bloque la récolte sur son hex.
     /// </summary>
     [JsonIgnore]

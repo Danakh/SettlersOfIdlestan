@@ -6,6 +6,7 @@ v0.22
 • The Healing Potion becomes the Strength Potion: instead of saving a soldier, every soldier going on the attack drinks one and has a 50% chance to deal 1 extra damage. Purely offensive consumable — a city under monster attack spends none
 • Builders Guild automation extended to the Abyss: with the Void Cartography research, automatic roads and outposts in the Abyss (toggles separate from the surface and Underworld ones). Void routes, which cost research points, still have to be built by hand
 • New Purified Prestige action: from corruption level 2 on, a Prestige can bring the world's corruption back down by one level — the first way to lower it without an Ascension. No Corruption Spire required, but the prestige multiplier drops accordingly, and below level 4 the Abyss Gate goes back out of reach
+• Slaying the Pandemonium's demon god is now a victory: the first time, the game congratulates you and you may consider it won — nothing stops you from carrying on to bring it down at a higher level. The victory raises the current cycle's divine essence cap by the level of the boss slain and grants you that much divine essence, and your best level defeated is kept for the whole game, Ascensions included. The Pandemonium Gate vanishes along with its master and no Abyss Tentacle will open another: it takes a prestige to raise a new demon god, higher, on a fresh island
 
 ---
 

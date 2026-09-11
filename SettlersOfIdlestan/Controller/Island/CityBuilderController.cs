@@ -933,7 +933,7 @@ namespace SettlersOfIdlestan.Controller.Island
                 .ToList();
             foreach (var trove in claimedTroves)
             {
-                _state!.EventLog.Add(trove.RemovedEventType);
+                _state!.EventLog.Add(trove.RemovedEventType, trove.RemovedEventMessage, trove.RemovedEventIsToast);
                 _state.RemoveFeature(trove);
                 civ.AddResource(Resource.Gold, 100);
                 _state.RunRecord.TreasuresTroveClaimed++;

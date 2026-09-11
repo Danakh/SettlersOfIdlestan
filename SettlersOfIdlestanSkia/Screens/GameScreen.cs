@@ -62,6 +62,14 @@ public sealed class GameScreen : IDisposable
     private RestartIslandPopupRenderer? _restartIslandPopup;
     private DebugPanelRenderer? _debugPanelRenderer;
     private DemoEndPopupRenderer? _demoEndPopup;
+    private DemonGodVictoryPopupRenderer? _demonGodVictoryPopup;
+
+    /// <summary>
+    /// Bilan de la premiere victoire sur le Dieu demon, en attente d'ouverture de sa modale. Comme
+    /// <see cref="_gameOverPending"/> : le controleur nous notifie au beau milieu d'un tick, la
+    /// modale s'ouvre a la frame suivante pour ne pas remuer l'interface pendant que le modele tourne.
+    /// </summary>
+    private SettlersOfIdlestan.Model.Monsters.DemonGodDefeat? _demonGodVictoryPending;
     private bool _prestigeTransitionPending;
     private bool _demoReplayPending;
     private PrestigeCorruptionShift _pendingCorruptionShift;
@@ -415,8 +423,10 @@ public sealed class GameScreen : IDisposable
 
         _gameOverPopup = new GameOverPopupRenderer(_localizationService, HandleGameOverRestart);
         _demoEndPopup  = new DemoEndPopupRenderer(_localizationService, DoDemoReplay);
+        _demonGodVictoryPopup = new DemonGodVictoryPopupRenderer(_localizationService);
 
         _gameControllerService.MainGameController.CityBuilderController.OnCityDestroyed += OnCityDestroyedCheckGameOver;
+        _gameControllerService.MainGameController.PandemoniumGateController.OnDemonGodDefeated += OnDemonGodDefeated;
     }
 
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
@@ -437,6 +447,7 @@ public sealed class GameScreen : IDisposable
         if (_corruptSavePopup?.IsOpen == true) return _corruptSavePopup.GetSnapshot();
         if (_gameOverPopup?.IsOpen    == true) return _gameOverPopup.GetSnapshot();
         if (_demoEndPopup?.IsOpen     == true) return _demoEndPopup.GetSnapshot();
+        if (_demonGodVictoryPopup?.IsOpen == true) return _demonGodVictoryPopup.GetSnapshot();
 
         // Puis les modales portées par l'overlay (confirmations du popup de prestige : montée de
         // corruption, perte d'essences) : même forme, même vue, donc même chaîne.
@@ -453,6 +464,7 @@ public sealed class GameScreen : IDisposable
             case ModalPopupSnapshot.IdCorruptSave: _corruptSavePopup?.InvokeButton(buttonKey); break;
             case ModalPopupSnapshot.IdGameOver:    _gameOverPopup?.InvokeButton(buttonKey);    break;
             case ModalPopupSnapshot.IdDemoEnd:     _demoEndPopup?.InvokeButton(buttonKey);     break;
+            case ModalPopupSnapshot.IdDemonGodVictory: _demonGodVictoryPopup?.InvokeButton(buttonKey); break;
             case ModalPopupSnapshot.IdPrestigeEssenceLoss:
             case ModalPopupSnapshot.IdPrestigeCorruptionWarning:
             case ModalPopupSnapshot.IdPrestigePurifyConfirm:
@@ -764,6 +776,14 @@ public sealed class GameScreen : IDisposable
             _gameOverPopup?.Open();
         }
 
+        // Contrairement a la fin de partie, la victoire ne met pas l'horloge en pause : rien n'est
+        // perdu, le joueur referme et poursuit exactement la ou il en etait.
+        if (_demonGodVictoryPending is { } demonGodVictory)
+        {
+            _demonGodVictoryPending = null;
+            _demonGodVictoryPopup?.Open(demonGodVictory);
+        }
+
         if (_gameControllerService.CurrentGameState is { } tutorialState)
             _tutorialService?.Update(tutorialState);
 
@@ -912,6 +932,7 @@ public sealed class GameScreen : IDisposable
         if (_corruptSavePopup?.IsOpen  == true) return;
         if (_gameOverPopup?.IsOpen     == true) return;
         if (_demoEndPopup?.IsOpen      == true) return;
+        if (_demonGodVictoryPopup?.IsOpen == true) return;
         if (_introRenderer?.IsActive   == true) return;
 
         _isPointerDown        = true;
@@ -933,6 +954,7 @@ public sealed class GameScreen : IDisposable
         if (_corruptSavePopup?.IsOpen == true) return;
         if (_gameOverPopup?.IsOpen   == true) return;
         if (_demoEndPopup?.IsOpen    == true) return;
+        if (_demonGodVictoryPopup?.IsOpen == true) return;
         if (_introRenderer?.IsActive == true) return;
 
         if (_isPointerDown && !_isPanSuppressedAtStart && (_overlayRenderer?.IsIslandTabActive ?? true)
@@ -956,6 +978,7 @@ public sealed class GameScreen : IDisposable
         if (_corruptSavePopup?.IsOpen == true) return;
         if (_gameOverPopup?.IsOpen   == true) return;
         if (_demoEndPopup?.IsOpen    == true) return;
+        if (_demonGodVictoryPopup?.IsOpen == true) return;
         if (_introRenderer?.IsActive == true) return;
 
         bool wasPanning = _isPanning && pointerId == _activePanPointerId;
@@ -1229,6 +1252,18 @@ public sealed class GameScreen : IDisposable
             ShowEventToast(entry);
     }
 
+    /// <summary>
+    /// Toast des trois annonces de mort du Dieu demon — meme decoupage du message que le journal
+    /// (voir EventLogRenderer.DemonGodDefeatedContent) : niveau du boss, essence divine recue, record.
+    /// </summary>
+    private (string Title, string Body, NotificationIcon Icon) DemonGodDefeatedToast(GameLogEntry entry, string keyPrefix)
+    {
+        var args = GameLogEntry.SplitMessageArgs(entry.Message, 3);
+        return (_localizationService.GetFormated(keyPrefix + "_title", args[0], args[1], args[2]),
+            _localizationService.GetFormated(keyPrefix + "_body", args[0], args[1], args[2]),
+            NotificationIcon.Achievement);
+    }
+
     private void ShowEventToast(GameLogEntry entry)
     {
         if (_notificationToastRenderer == null) return;
@@ -1322,6 +1357,9 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_demon_god_discovered_title"),
                 _localizationService.Get("event_demon_god_discovered_body"),
                 NotificationIcon.StoreFail),
+            GameEventType.DemonGodDefeated => DemonGodDefeatedToast(entry, "event_demon_god_defeated"),
+            GameEventType.DemonGodDefeatedFirst => DemonGodDefeatedToast(entry, "event_demon_god_defeated_first"),
+            GameEventType.DemonGodDefeatedRecord => DemonGodDefeatedToast(entry, "event_demon_god_defeated_record"),
             GameEventType.PandemoniumGatePlaced => (
                 _localizationService.Get("event_pandemonium_gate_placed_title"),
                 _localizationService.Get("event_pandemonium_gate_placed_body"),
@@ -1386,6 +1424,16 @@ public sealed class GameScreen : IDisposable
         var playerCiv = _gameControllerService.PlayerCivilization;
         if (playerCiv != null && playerCiv.Cities.Count == 0)
             _gameOverPending = true;
+    }
+
+    /// <summary>
+    /// Premiere victoire sur le Dieu demon uniquement : les suivantes n'ont que leur toast et leur
+    /// entree de journal (voir PandemoniumGateController.RegisterDemonGodDefeat, qui a deja mis a
+    /// jour le record permanent quand il nous notifie).
+    /// </summary>
+    private void OnDemonGodDefeated(object? sender, SettlersOfIdlestan.Model.Monsters.DemonGodDefeat defeat)
+    {
+        if (defeat.IsFirstEver) _demonGodVictoryPending = defeat;
     }
 
     private void HandleGameOverRestart()
@@ -1600,6 +1648,7 @@ public sealed class GameScreen : IDisposable
         _hardResetPopup?.Dispose();
         _restartIslandPopup?.Dispose();
         _demoEndPopup?.Dispose();
+        _demonGodVictoryPopup?.Dispose();
         _constructionInteractionService?.Cleanup();
         _militaryInteractionService?.Cleanup();
         _renderService.Dispose();

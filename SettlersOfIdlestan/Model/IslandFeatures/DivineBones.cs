@@ -70,6 +70,15 @@ public class DivineBones : Monument
     /// </summary>
     public int UnlockedPowersBonus { get; set; } = 0;
 
+    /// <summary>
+    /// Bonus de plafond apporté par les Dieux démons vaincus depuis le dernier prestige
+    /// (GodState.DivineEssenceCapBonusFromDemonGod), resynchronisé à chaque tick par
+    /// DivineBonesController comme <see cref="UnlockedPowersBonus"/> et stocké ici pour la même
+    /// raison. S'ajoute tel quel dans <see cref="GetEssenceCap"/> : contrairement au bonus des
+    /// pouvoirs divins, il n'est pas écrêté par le niveau de corruption.
+    /// </summary>
+    public int DemonGodCapBonus { get; set; } = 0;
+
     public const long BaseCrystalCost = 250;
 
     /// <summary>Coût en Mithril (indépendant du coût en Cristal depuis sa réduction de moitié).</summary>
@@ -86,9 +95,12 @@ public class DivineBones : Monument
     /// cependant plafonné au niveau de corruption (voir <see cref="GetPowersBonus"/>) : les pouvoirs
     /// divins ne peuvent donc jamais, à eux seuls, faire plus que doubler le plafond de corruption.
     /// Pour en obtenir davantage, il faut donc soit prestige pour relever la corruption, soit
-    /// débloquer un nouveau pouvoir divin, tant que ce second levier n'est pas déjà saturé.
+    /// débloquer un nouveau pouvoir divin, tant que ce second levier n'est pas déjà saturé — ou
+    /// abattre le Dieu démon du Pandémonium, dont le niveau s'ajoute sans écrêtage pour le reste du
+    /// cycle de prestige (voir <see cref="DemonGodCapBonus"/>).
     /// </summary>
-    public int GetEssenceCap() => Math.Max(0, CorruptionLevel) + GetPowersBonus(CorruptionLevel, UnlockedPowersBonus);
+    public int GetEssenceCap() =>
+        Math.Max(0, CorruptionLevel) + GetPowersBonus(CorruptionLevel, UnlockedPowersBonus) + Math.Max(0, DemonGodCapBonus);
 
     /// <summary>
     /// Part du plafond d'essence divine (<see cref="GetEssenceCap"/>, AscensionController.GetDivineEssenceCap)

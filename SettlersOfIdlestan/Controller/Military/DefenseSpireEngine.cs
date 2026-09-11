@@ -96,7 +96,7 @@ internal sealed class DefenseSpireEngine
         foreach (var m in deadMonsters.Distinct())
         {
             _state.RemoveFeature(m);
-            _state.EventLog.Add(m.RemovedEventType);
+            _state.EventLog.Add(m.RemovedEventType, m.RemovedEventMessage, m.RemovedEventIsToast);
         }
     }
 

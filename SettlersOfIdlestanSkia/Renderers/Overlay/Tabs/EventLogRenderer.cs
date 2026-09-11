@@ -97,6 +97,20 @@ public sealed class EventLogRenderer : IDisposable
         if (Enum.TryParse<EventLogCategory>(key, out var category)) filter.ToggleCategory(category);
     }
 
+    /// <summary>
+    /// Les trois annonces de mort du Dieu démon (première victoire, victoire sans record, record
+    /// battu) ne different que par leur texte : elles partagent le niveau du boss, l'essence divine
+    /// reçue et le record, figés dans le message a l'instant du retrait (voir
+    /// DemonGod.RemovedEventMessage). Le titre du record cite le niveau, d'ou le GetFormated des deux.
+    /// </summary>
+    private (EventLogTone Tone, string Title, string Body) DemonGodDefeatedContent(GameLogEntry entry, string keyPrefix)
+    {
+        var args = GameLogEntry.SplitMessageArgs(entry.Message, 3);
+        return (EventLogTone.Success,
+            _localization.GetFormated(keyPrefix + "_title", args[0], args[1], args[2]),
+            _localization.GetFormated(keyPrefix + "_body", args[0], args[1], args[2]));
+    }
+
     private (EventLogTone Tone, string Title, string Body) GetEntryContent(GameLogEntry entry) => entry.Type switch
     {
         GameEventType.RuntimeError => (
@@ -335,10 +349,9 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Discovery,
             _localization.Get("event_demon_god_discovered_title"),
             _localization.Get("event_demon_god_discovered_body")),
-        GameEventType.DemonGodDefeated => (
-            EventLogTone.Success,
-            _localization.Get("event_demon_god_defeated_title"),
-            _localization.Get("event_demon_god_defeated_body")),
+        GameEventType.DemonGodDefeated => DemonGodDefeatedContent(entry, "event_demon_god_defeated"),
+        GameEventType.DemonGodDefeatedFirst => DemonGodDefeatedContent(entry, "event_demon_god_defeated_first"),
+        GameEventType.DemonGodDefeatedRecord => DemonGodDefeatedContent(entry, "event_demon_god_defeated_record"),
         GameEventType.PandemoniumGatePlaced => (
             EventLogTone.Reward,
             _localization.Get("event_pandemonium_gate_placed_title"),
