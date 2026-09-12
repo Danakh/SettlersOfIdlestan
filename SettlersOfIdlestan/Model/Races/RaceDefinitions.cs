@@ -22,10 +22,12 @@ namespace SettlersOfIdlestan.Model.Races;
 /// (Main, Mémoire, Marche, Bras, Construction, Magie Divine) chaque pouvoir relie exactement 2 races, chaque race en requiert 3
 /// (voir le commentaire sur leurs définitions ci-dessous).</para>
 ///
-/// <para>Advanced (Géants, Garudas, Sirènes, Elfes noirs) : graphe complet à 4 sommets sur 6 pouvoirs
-/// plus profonds (Œil de Dieu, Inventaire Divin, Poing de Dieu, Présence de Dieu, Corne d'Abondance,
-/// Purification Supérieure) — chaque pouvoir relie exactement 2 races, chaque race en requiert 3
-/// (voir le commentaire sur leurs définitions ci-dessous).</para>
+/// <para>Advanced (Géants, Garudas, Sirènes, Elfes noirs) : graphe complet à 4 sommets sur les 6
+/// pouvoirs de <b>second rang</b> — le deuxième pouvoir de chacune des 6 colonnes, et eux seuls
+/// (Inventaire Divin, Œil de Dieu, Purification Supérieure, Poing de Dieu, Conquête Divine, Rituels
+/// Divins) — chaque pouvoir relie exactement 2 races, chaque race en requiert 3 (voir le commentaire
+/// sur leurs définitions ci-dessous). Aucun pouvoir de troisième rang n'entre dans un déblocage de
+/// race : les 6 arêtes du graphe consomment exactement les 6 pouvoirs de second rang.</para>
 ///
 /// <para>Les stubs éventuels (<see cref="RaceDefinition.IsImplemented"/> faux) sont déclarés pour
 /// l'UI et la sérialisation mais n'apparaissent jamais dans AscensionController.GetSelectableRaces.</para>
@@ -175,9 +177,9 @@ public static class RaceDefinitions
         // villes standard (3), portée d'attaque +1, portée encore étendue par le Trône des Vents.
         // En échange : -1 de niveau max sur la production, la recherche et la magie
         // (GarudaLightBuildings) et défense -3. Déblocage : Œil de Dieu (partagé avec les Géants),
-        // Corne d'Abondance (partagé avec les Sirènes — abondance des cieux et des flots, vents
-        // porteurs comme courants nourriciers), Présence de Dieu (partagé avec les Elfes noirs — l'un
-        // purifie la Corruption depuis le ciel, l'autre la repousse depuis l'Inframonde).
+        // Conquête Divine (partagé avec les Sirènes — les deux essaiment loin de leurs villes, par le
+        // vol ou par la mer, et tiennent leurs avant-postes), Rituels Divins (partagé avec les Elfes
+        // noirs — les rites des cieux et ceux des profondeurs).
         new RaceDefinition(RaceId.Garuda, RaceTier.Advanced,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.ThroneOfWinds,
@@ -187,7 +189,7 @@ public static class RaceDefinitions
                 .Append(new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3))
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.ThroneOfWinds), EType.ADDITIVE, 1))
                 .ToArray(),
-            requiredPowers: new[] { AscensionPowerId.EyeOfGod, AscensionPowerId.HornOfPlenty, AscensionPowerId.PresenceOfGod }),
+            requiredPowers: new[] { AscensionPowerId.EyeOfGod, AscensionPowerId.DivineConquest, AscensionPowerId.DivineRituals }),
 
         // Sirènes : peuple des flots — essaime densément le long du littoral (villes à distance 2
         // les unes des autres, jusqu'à 2 arêtes de la côte au lieu du contact direct). Seules les
@@ -198,7 +200,7 @@ public static class RaceDefinitions
         // guildes, bâtiments raciaux…) pour elles. Voir
         // BuildingController.GetMaxLevel(Building, Civilization, City) et
         // CityBuilderController.GetVerticesWithinRangeOfTerrain. Déblocage : Inventaire Divin
-        // (partagé avec les Géants), Corne d'Abondance (partagé avec les Garudas), Purification
+        // (partagé avec les Géants), Conquête Divine (partagé avec les Garudas), Purification
         // Supérieure (partagé avec les Elfes noirs — les deux peuples vivent en marge du monde de
         // surface, proches des reliques enfouies).
         new RaceDefinition(RaceId.Mermaid, RaceTier.Advanced,
@@ -213,7 +215,7 @@ public static class RaceDefinitions
                 new Modifier(ECategory.INLAND_CITY_LEVEL_CAP, nameof(TerrainType.Water), EType.ADDITIVE, 2),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.PearlGrotto), EType.ADDITIVE, 1),
             },
-            requiredPowers: new[] { AscensionPowerId.DivineInventory, AscensionPowerId.HornOfPlenty, AscensionPowerId.GreaterPurification }),
+            requiredPowers: new[] { AscensionPowerId.DivineInventory, AscensionPowerId.DivineConquest, AscensionPowerId.GreaterPurification }),
 
         // Elfes noirs : peuple des profondeurs — commencent dans l'Inframonde sur un triangle
         // Caverne aux champignons / Colline / Montagne, seul trio couvrant l'économie de base sous
@@ -224,8 +226,8 @@ public static class RaceDefinitions
         // vertex de prestige offert donne la nourriture — sans CultureFongique, volontairement laissée
         // entre les deux comme premier objectif économique. Trolls et ogres les épargnent (Pacte des
         // Profondeurs), les autres monstres non. Aucun malus chiffré : le départ souterrain fait
-        // office de contrainte. Déblocage : Poing de Dieu (partagé avec les Géants), Présence de
-        // Dieu (partagé avec les Garudas), Purification Supérieure (partagé avec les Sirènes).
+        // office de contrainte. Déblocage : Poing de Dieu (partagé avec les Géants), Rituels Divins
+        // (partagé avec les Garudas), Purification Supérieure (partagé avec les Sirènes).
         new RaceDefinition(RaceId.DarkElf, RaceTier.Advanced,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.SpiderShrine,
@@ -240,7 +242,7 @@ public static class RaceDefinitions
             startsInUnderworld: true,
             underworldStartTerrains: new[] { TerrainType.MushroomCave, TerrainType.Hill, TerrainType.Mountain },
             freePrestigeVertices: new[] { PrestigeMap.MushroomCultureVertex },
-            requiredPowers: new[] { AscensionPowerId.FistOfGod, AscensionPowerId.PresenceOfGod, AscensionPowerId.GreaterPurification }),
+            requiredPowers: new[] { AscensionPowerId.FistOfGod, AscensionPowerId.DivineRituals, AscensionPowerId.GreaterPurification }),
     };
 
     public static RaceDefinition Get(RaceId id)

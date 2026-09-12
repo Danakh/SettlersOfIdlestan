@@ -61,20 +61,19 @@ public class RaceSystemTests
     }
 
     /// <summary>
-    /// Les pouvoirs divins plus profonds requis par les 4 races avancées (voir RaceDefinitions.All) :
-    /// Œil de Dieu, Inventaire Divin, Purification Supérieure, Poing de Dieu (2e pouvoir de leur
-    /// colonne), la Corne d'Abondance (3e pouvoir de la colonne 0) et Présence de Dieu (3e pouvoir de
-    /// la colonne 2, en bout de la branche Marche de Dieu). Suppose UnlockFirstRow déjà appelée
-    /// (chaque pouvoir exige le précédent de sa colonne).
+    /// Les 6 pouvoirs de second rang — le 2e pouvoir de chacune des 6 colonnes — dont sont tirées
+    /// les combinaisons des 4 races avancées (voir RaceDefinitions.All) : Inventaire Divin, Œil de
+    /// Dieu, Purification Supérieure, Poing de Dieu, Conquête Divine et Rituels Divins. Suppose
+    /// UnlockFirstRow déjà appelée (chaque pouvoir exige le précédent de sa colonne).
     /// </summary>
     private static void UnlockSecondRow(AscensionController ascension)
     {
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.HornOfPlenty));
         Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.GreaterPurification));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConquest));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineRituals));
     }
 
     /// <summary>
@@ -128,7 +127,7 @@ public class RaceSystemTests
     /// graphe complet à 4 sommets : chaque pouvoir est partagé par exactement 2 races. Acheter
     /// uniquement la combinaison des Géants (Œil, Inventaire Divin, Poing de Dieu) ne débloque donc ni
     /// les Garudas, ni les Sirènes, ni les Elfes noirs — Œil de Dieu, commun aux Géants et aux
-    /// Garudas, ne suffit pas à débloquer ces derniers sans Corne d'Abondance et Présence de Dieu.
+    /// Garudas, ne suffit pas à débloquer ces derniers sans Conquête Divine et Rituels Divins.
     /// </summary>
     [Fact]
     public void IsRaceUnlocked_EachAdvancedRaceHasItsOwnIndependentCombination()
@@ -149,6 +148,44 @@ public class RaceSystemTests
         Assert.DoesNotContain(RaceId.Garuda, races);
         Assert.DoesNotContain(RaceId.Mermaid, races);
         Assert.DoesNotContain(RaceId.DarkElf, races);
+    }
+
+    /// <summary>
+    /// Règle de structure des races avancées : chacune requiert exactement 3 pouvoirs, tous de
+    /// second rang (le 2e pouvoir de leur colonne — jamais un pouvoir de premier ou de troisième
+    /// rang), et les 6 pouvoirs de second rang sont tous employés, chacun par exactement 2 races
+    /// différentes. Les 4 races et les 6 pouvoirs forment ainsi un graphe complet à 4 sommets, où
+    /// chaque paire de races partage exactement un pouvoir.
+    /// </summary>
+    [Fact]
+    public void RaceDefinitions_AdvancedRaces_RequireExactlyTheSixSecondRankPowersEachSharedByTwoRaces()
+    {
+        var secondRankPowers = AscensionPowerDefinitions.All
+            .Where(d => d.Column != AscensionPowerDefinition.FoundationColumn)
+            .Select(d => d.Column)
+            .Distinct()
+            .Select(AscensionPowerDefinitions.GetColumn)
+            .Where(column => column.Count > 1)
+            .Select(column => column[1].Id)
+            .ToHashSet();
+
+        var advanced = RaceDefinitions.All.Where(r => r.Tier == RaceTier.Advanced).ToList();
+
+        foreach (var race in advanced)
+        {
+            Assert.Equal(3, race.RequiredPowers.Count);
+            Assert.Equal(3, race.RequiredPowers.Distinct().Count());
+            Assert.All(race.RequiredPowers, power => Assert.Contains(power, secondRankPowers));
+        }
+
+        // Chaque pouvoir de second rang sert à exactement 2 races — aucun inemployé, aucun à 1 ou 3.
+        foreach (var power in secondRankPowers)
+            Assert.Equal(2, advanced.Count(r => r.RequiredPowers.Contains(power)));
+
+        // Corollaire : deux races avancées quelconques partagent exactement un pouvoir.
+        for (int i = 0; i < advanced.Count; i++)
+            for (int j = i + 1; j < advanced.Count; j++)
+                Assert.Single(advanced[i].RequiredPowers.Intersect(advanced[j].RequiredPowers));
     }
 
     [Fact]

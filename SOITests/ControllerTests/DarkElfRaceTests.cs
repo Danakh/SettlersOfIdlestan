@@ -49,11 +49,13 @@ public class DarkElfRaceTests
         // GrantFreePrestigeVertices ne verse ni les 3 voisins du vertex central, ni le vertex racial
         // des Elfes noirs (MushroomCultureVertex) — même s'ils ascensionnent en Elfe noir, pas en Nain.
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
-        // Combinaison propre aux Elfes noirs (voir RaceDefinitions.All) : Poing de Dieu, Présence de
-        // Dieu, Purification Supérieure.
+        // Combinaison propre aux Elfes noirs (voir RaceDefinitions.All) : Poing de Dieu,
+        // Purification Supérieure, Rituels Divins — tous de second rang, donc précédés du premier
+        // pouvoir de leur colonne (Magie Divine pour les Rituels).
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.GreaterPurification));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagic));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineRituals));
 
         controller.PerformAscension(RaceId.DarkElf);
         return controller;
