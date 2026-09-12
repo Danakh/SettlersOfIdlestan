@@ -53,55 +53,66 @@ public sealed class AutomationRenderer : IDisposable
     internal const string PinKeyRestrictSoldierProductionPandemonium = "RestrictSoldierProductionPandemonium";
 
     /// <summary>
-    /// Famille de chaque cle d'epinglage, pour styler differemment les bascules du panneau
-    /// civilisation. Reprend exactement le classement des sections de <see cref="BuildColumns"/> :
-    /// "buildings" -> Construction, "behaviors" -> Behavior, "controls" -> Activation. Table
-    /// separee plutot que deduite de BuildColumns (comme PlayerCivilizationPanelRenderer le fait
-    /// deja pour les libelles avec AutomationPinLocalizationRoots) car ce panneau ne connait une
-    /// bascule que par sa cle, jamais par la RowModel qui l'a produite. Un test verrouille
-    /// l'accord entre les deux.
+    /// Ordre d'affichage canonique des bascules, et famille de chacune. Reprend exactement l'ordre
+    /// des lignes de <see cref="BuildColumns"/>, section par section : "buildings" -> Construction,
+    /// "behaviors" -> Behavior, "controls" -> Activation. C'est la seule source de verite de cet
+    /// ordre pour le panneau civilisation, qui ne connait une bascule que par sa cle, jamais par la
+    /// RowModel qui l'a produite : sans elle il affichait les bascules epinglees dans l'ordre
+    /// d'iteration du HashSet d'epinglage, donc dans un ordre sans rapport avec celui de l'ecran
+    /// d'automatisation. <c>AutomationPinKeyTests</c> verrouille l'accord entre cette table et
+    /// BuildColumns (couverture ET ordre).
     /// </summary>
+    public static readonly IReadOnlyList<(string Key, AutomationCategory Category)> PinKeyDisplayOrder =
+    [
+        // Les quatre routes puis les quatre avant-postes, chaque groupe par palier de profondeur.
+        (PinKeyRoad, AutomationCategory.Construction),
+        (PinKeyRoadUnderworld, AutomationCategory.Construction),
+        (PinKeyRoadAbyss, AutomationCategory.Construction),
+        (PinKeyRoadPandemonium, AutomationCategory.Construction),
+        (PinKeyOutpost, AutomationCategory.Construction),
+        (PinKeyOutpostUnderworld, AutomationCategory.Construction),
+        (PinKeyOutpostAbyss, AutomationCategory.Construction),
+        (PinKeyOutpostPandemonium, AutomationCategory.Construction),
+        (PinKeyTownHall, AutomationCategory.Construction),
+        (PinKeyProduction, AutomationCategory.Construction),
+        (PinKeyArtisan, AutomationCategory.Construction),
+        (PinKeyLibrary, AutomationCategory.Construction),
+        (PinKeyMarket, AutomationCategory.Construction),
+        (PinKeySeaport, AutomationCategory.Construction),
+        (PinKeyMilBuildings, AutomationCategory.Construction),
+        (PinKeyGrandTemple, AutomationCategory.Construction),
+        (PinKeyMithrilMine, AutomationCategory.Construction),
+        (PinKeyArcaneTower, AutomationCategory.Construction),
+
+        (PinKeyMilReinforce, AutomationCategory.Behavior),
+        (PinKeyMilVendetta, AutomationCategory.Behavior),
+        (PinKeyMonumentInvestment, AutomationCategory.Behavior),
+        (PinKeyAbundanceAutoCast, AutomationCategory.Behavior),
+
+        (PinKeyBarracks, AutomationCategory.Activation),
+        (PinKeyArsenal, AutomationCategory.Activation),
+        (PinKeyRestrictSoldierProduction, AutomationCategory.Activation),
+        (PinKeyRestrictSoldierProductionUnderworld, AutomationCategory.Activation),
+        (PinKeyRestrictSoldierProductionAbyss, AutomationCategory.Activation),
+        (PinKeyRestrictSoldierProductionPandemonium, AutomationCategory.Activation),
+        (PinKeyLaboratory, AutomationCategory.Activation),
+        (PinKeySmelter, AutomationCategory.Activation),
+        (PinKeyWeaponSmith, AutomationCategory.Activation),
+        (PinKeyArmorSmith, AutomationCategory.Activation),
+        (PinKeyAlchimistHut, AutomationCategory.Activation),
+        (PinKeyDefenseSpire, AutomationCategory.Activation),
+        (PinKeyMithrilGreatForge, AutomationCategory.Activation),
+    ];
+
+    /// <summary>Famille de chaque cle d'epinglage, pour styler differemment les bascules du panneau
+    /// civilisation. Projection de <see cref="PinKeyDisplayOrder"/>.</summary>
     public static readonly IReadOnlyDictionary<string, AutomationCategory> PinKeyCategories =
-        new Dictionary<string, AutomationCategory>
-        {
-            [PinKeyRoad] = AutomationCategory.Construction,
-            [PinKeyRoadUnderworld] = AutomationCategory.Construction,
-            [PinKeyOutpost] = AutomationCategory.Construction,
-            [PinKeyOutpostUnderworld] = AutomationCategory.Construction,
-            [PinKeyRoadAbyss] = AutomationCategory.Construction,
-            [PinKeyOutpostAbyss] = AutomationCategory.Construction,
-            [PinKeyRoadPandemonium] = AutomationCategory.Construction,
-            [PinKeyOutpostPandemonium] = AutomationCategory.Construction,
-            [PinKeyTownHall] = AutomationCategory.Construction,
-            [PinKeyProduction] = AutomationCategory.Construction,
-            [PinKeyArtisan] = AutomationCategory.Construction,
-            [PinKeyLibrary] = AutomationCategory.Construction,
-            [PinKeyMarket] = AutomationCategory.Construction,
-            [PinKeySeaport] = AutomationCategory.Construction,
-            [PinKeyMilBuildings] = AutomationCategory.Construction,
-            [PinKeyGrandTemple] = AutomationCategory.Construction,
-            [PinKeyMithrilMine] = AutomationCategory.Construction,
-            [PinKeyArcaneTower] = AutomationCategory.Construction,
+        PinKeyDisplayOrder.ToDictionary(e => e.Key, e => e.Category);
 
-            [PinKeyMilReinforce] = AutomationCategory.Behavior,
-            [PinKeyMilVendetta] = AutomationCategory.Behavior,
-            [PinKeyMonumentInvestment] = AutomationCategory.Behavior,
-            [PinKeyAbundanceAutoCast] = AutomationCategory.Behavior,
-
-            [PinKeyBarracks] = AutomationCategory.Activation,
-            [PinKeyArsenal] = AutomationCategory.Activation,
-            [PinKeyLaboratory] = AutomationCategory.Activation,
-            [PinKeySmelter] = AutomationCategory.Activation,
-            [PinKeyWeaponSmith] = AutomationCategory.Activation,
-            [PinKeyArmorSmith] = AutomationCategory.Activation,
-            [PinKeyAlchimistHut] = AutomationCategory.Activation,
-            [PinKeyDefenseSpire] = AutomationCategory.Activation,
-            [PinKeyMithrilGreatForge] = AutomationCategory.Activation,
-            [PinKeyRestrictSoldierProduction] = AutomationCategory.Activation,
-            [PinKeyRestrictSoldierProductionUnderworld] = AutomationCategory.Activation,
-            [PinKeyRestrictSoldierProductionAbyss] = AutomationCategory.Activation,
-            [PinKeyRestrictSoldierProductionPandemonium] = AutomationCategory.Activation,
-        };
+    /// <summary>Rang d'affichage de chaque cle d'epinglage, pour trier les bascules du panneau
+    /// civilisation comme l'ecran d'automatisation. Projection de <see cref="PinKeyDisplayOrder"/>.</summary>
+    public static readonly IReadOnlyDictionary<string, int> PinKeyRanks =
+        PinKeyDisplayOrder.Select((e, i) => (e.Key, Index: i)).ToDictionary(e => e.Key, e => e.Index);
 
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
@@ -262,13 +273,15 @@ public sealed class AutomationRenderer : IDisposable
 
         var buildings = new List<RowModel>
         {
+            // Les quatre routes puis les quatre avant-postes, chaque groupe par palier de profondeur
+            // (surface, Inframonde, Abysse, Pandemonium) : ordre verrouille par PinKeyDisplayOrder.
             Row(PinKeyRoad, "automation_road", unlocks[PinKeyRoad], settings.RoadAutomationEnabled),
             Row(PinKeyRoadUnderworld, "automation_road_underworld", unlocks[PinKeyRoadUnderworld], settings.RoadAutomationEnabledUnderworld),
+            Row(PinKeyRoadAbyss, "automation_road_abyss", unlocks[PinKeyRoadAbyss], settings.RoadAutomationEnabledAbyss),
+            Row(PinKeyRoadPandemonium, "automation_road_pandemonium", unlocks[PinKeyRoadPandemonium], settings.RoadAutomationEnabledPandemonium),
             Row(PinKeyOutpost, "automation_outpost", unlocks[PinKeyOutpost], settings.OutpostAutomationEnabled),
             Row(PinKeyOutpostUnderworld, "automation_outpost_underworld", unlocks[PinKeyOutpostUnderworld], settings.OutpostAutomationEnabledUnderworld),
-            Row(PinKeyRoadAbyss, "automation_road_abyss", unlocks[PinKeyRoadAbyss], settings.RoadAutomationEnabledAbyss),
             Row(PinKeyOutpostAbyss, "automation_outpost_abyss", unlocks[PinKeyOutpostAbyss], settings.OutpostAutomationEnabledAbyss),
-            Row(PinKeyRoadPandemonium, "automation_road_pandemonium", unlocks[PinKeyRoadPandemonium], settings.RoadAutomationEnabledPandemonium),
             Row(PinKeyOutpostPandemonium, "automation_outpost_pandemonium", unlocks[PinKeyOutpostPandemonium], settings.OutpostAutomationEnabledPandemonium),
             Row(PinKeyTownHall, "automation_townhall", unlocks[PinKeyTownHall], settings.TownHallAutomationEnabled, TownHallTypes),
             Row(PinKeyProduction, "automation_production", unlocks[PinKeyProduction], settings.ProductionBuildingAutomationEnabled, ProductionTypes),
@@ -301,7 +314,7 @@ public sealed class AutomationRenderer : IDisposable
         if (divineMagicActive)
             behaviors.Add(Row(PinKeyAbundanceAutoCast, "automation_abundance_autocast", unlocks[PinKeyAbundanceAutoCast], settings.AbundanceAutoCastEnabled));
 
-        var right = new List<SectionModel> { new("automation_header_behaviors", behaviors) };
+        var right = new List<SectionModel> { new("automation_header_behaviors", InDisplayOrder(behaviors)) };
 
         // Controles batiments : une ligne par type effectivement bati.
         var controls = new List<RowModel>();
@@ -344,10 +357,21 @@ public sealed class AutomationRenderer : IDisposable
         BuildingControl<MithrilGreatForge>(PinKeyMithrilGreatForge, "building_mithrilgreatforge_name", "tooltip_toggle_mithrilgreatforge");
 
         if (controls.Count > 0)
-            right.Add(new SectionModel("automation_header_controls", controls));
+            right.Add(new SectionModel("automation_header_controls", InDisplayOrder(controls)));
 
-        return ([new SectionModel("automation_header_buildings", buildings)], right);
+        return ([new SectionModel("automation_header_buildings", InDisplayOrder(buildings))], right);
     }
+
+    /// <summary>
+    /// Classe les lignes d'une section selon <see cref="PinKeyDisplayOrder"/>, seule source de
+    /// verite de l'ordre d'affichage — partagee avec les bascules epinglees du panneau
+    /// civilisation, qui ne connaissent une ligne que par sa cle. L'ordre litteral des lignes
+    /// ci-dessus reprend deja cette table (il se lit mieux a cote des reglages qu'il expose) ;
+    /// ce tri est ce qui garantit que les deux ecrans ne peuvent pas diverger. Une cle absente de
+    /// la table part en fin de section plutot que de disparaitre.
+    /// </summary>
+    private static List<RowModel> InDisplayOrder(List<RowModel> rows) =>
+        rows.OrderBy(r => PinKeyRanks.TryGetValue(r.Key, out var rank) ? rank : int.MaxValue).ToList();
 
     /// <summary>
     /// Un bâtiment est-il débloqué pour cette civilisation ? Règle générale de toutes les listes de

@@ -1,6 +1,7 @@
 using System.Reflection;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
+using SettlersOfIdlestanSkia.Services;
 using Xunit;
 
 namespace SOIUITests;
@@ -59,6 +60,42 @@ public class AutomationPinKeyTests
         Assert.True(
             AutomationRenderer.PinKeyCategories.ContainsKey(pinKey),
             $"L'automatisme « {pinKey} » peut etre epingle mais n'a pas de famille declaree dans "
-            + "AutomationRenderer.PinKeyCategories : le panneau civilisation ne saurait pas le styler.");
+            + "AutomationRenderer.PinKeyDisplayOrder : le panneau civilisation ne saurait ni le "
+            + "styler ni le classer comme l'ecran d'automatisation.");
+    }
+
+    /// <summary>
+    /// L'ordre d'affichage etant partage entre l'ecran d'automatisation et les bascules epinglees
+    /// du panneau civilisation, il doit rester groupe par famille : la vue du panneau s'appuie sur
+    /// ce classement pour styler chaque bascule, et un rang qui entrelacerait deux familles
+    /// disperserait les styles au milieu de la liste.
+    /// </summary>
+    [Fact]
+    public void L_ordre_d_affichage_est_groupe_par_famille()
+    {
+        var seen = new List<AutomationCategory>();
+        foreach (var (_, category) in AutomationRenderer.PinKeyDisplayOrder)
+        {
+            if (seen.Count > 0 && seen[^1] == category) continue;
+            Assert.DoesNotContain(category, seen);
+            seen.Add(category);
+        }
+    }
+
+    /// Les huit reglages de routes et d'avant-postes se suivent, chaque groupe classe par palier
+    /// de profondeur (surface, Inframonde, Abysse, Pandemonium).
+    [Fact]
+    public void Les_routes_puis_les_avant_postes_se_suivent_par_palier()
+    {
+        var keys = AutomationRenderer.PinKeyDisplayOrder.Select(e => e.Key).ToList();
+        string[] expected =
+        [
+            "Road", "RoadUnderworld", "RoadAbyss", "RoadPandemonium",
+            "Outpost", "OutpostUnderworld", "OutpostAbyss", "OutpostPandemonium",
+        ];
+
+        int start = keys.IndexOf(expected[0]);
+        Assert.InRange(start, 0, keys.Count - expected.Length);
+        Assert.Equal(expected, keys.Skip(start).Take(expected.Length));
     }
 }

@@ -463,9 +463,21 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         bool hasBarracks, bool hasArsenal, bool hasLabs, bool hasSmelters,
         bool hasWeaponSmiths, bool hasArmorSmiths, bool hasAlchimistHuts, bool hasDefenseSpires,
         bool hasMithrilGreatForges,
-        IReadOnlyDictionary<string, bool> structuralUnlocks, int freePerCitySoldierQuota)
+        IReadOnlyDictionary<string, bool> structuralUnlocks, int freePerCitySoldierQuota,
+        bool divineMagicActive)
     {
         if (worldState == null) return false;
+
+        // Mêmes conditions d'affichage que l'écran d'automatisation (AutomationRenderer.BuildColumns) :
+        // une bascule que cet écran ne montre pas ne doit pas rester épinglée ici.
+        var restrictLayerZ = RestrictSoldierProductionLayerZ(key);
+        if (restrictLayerZ != null)
+            return freePerCitySoldierQuota > 0 && (hasBarracks || hasArsenal)
+                   && worldState.Layers.ContainsKey(restrictLayerZ.Value);
+
+        // Sans le pouvoir divin Magie Divine, l'auto-cast ne peut jamais se déclencher : l'écran
+        // d'automatisation masque entièrement sa ligne plutôt que de la verrouiller.
+        if (key == AutomationRenderer.PinKeyAbundanceAutoCast && !divineMagicActive) return false;
 
         return key switch
         {
@@ -478,11 +490,6 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             AutomationRenderer.PinKeyAlchimistHut => hasAlchimistHuts,
             AutomationRenderer.PinKeyDefenseSpire => hasDefenseSpires,
             AutomationRenderer.PinKeyMithrilGreatForge => hasMithrilGreatForges,
-            AutomationRenderer.PinKeyRestrictSoldierProduction or
-            AutomationRenderer.PinKeyRestrictSoldierProductionUnderworld or
-            AutomationRenderer.PinKeyRestrictSoldierProductionAbyss or
-            AutomationRenderer.PinKeyRestrictSoldierProductionPandemonium =>
-                freePerCitySoldierQuota > 0 && (hasBarracks || hasArsenal),
             // Bascules structurelles (guildes, techs...) : masquees si le deblocage a ete perdu.
             _ => structuralUnlocks.GetValueOrDefault(key, true),
         };
@@ -1010,13 +1017,15 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         // requis apres une Ascension, par ex.) ne doit pas rester affichee ici.
         var structuralUnlocks = AutomationRenderer.ComputeStructuralUnlocks(civ);
         int freePerCitySoldierQuota = (int)civ.ModifierAggregator.ApplyModifiers(ECategory.SOLDIER_FOOD_FREE_PER_CITY, "", 0.0);
+        bool divineMagicActive = _gameControllerService.CurrentGameState?.GodState.AscensionState.IsDivineMagicActive ?? false;
 
         var toggles = new List<CivToggleSnapshot>();
         foreach (var key in pinned)
         {
             if (!IsKeyShowable(key, worldState, hasBarracks, hasArsenal, hasLabs, hasSmelters,
                     hasWeaponSmiths, hasArmorSmiths, hasAlchimistHuts, hasDefenseSpires,
-                    hasMithrilGreatForges, structuralUnlocks, freePerCitySoldierQuota))
+                    hasMithrilGreatForges, structuralUnlocks, freePerCitySoldierQuota,
+                    divineMagicActive))
                 continue;
 
             var (value, nameKey, tooltipKey) = ResolvePinnedToggle(key, civ, worldState);
@@ -1025,10 +1034,14 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
                 CanDemobilize: IsRestrictSoldierProductionKey(key)));
         }
 
-        // Regroupees par famille (construction, comportement, activation) plutot que dans l'ordre
-        // d'epinglage : c'est ce classement que la vue s'appuie dessus pour styler chaque bascule,
-        // et regrouper les bascules de meme style les rend plus faciles a parcourir d'un coup d'oeil.
-        toggles = toggles.OrderBy(t => t.Category).ToList();
+        // Classees comme l'ecran d'automatisation (AutomationRenderer.PinKeyDisplayOrder), et non
+        // dans l'ordre d'epinglage — qui est celui d'iteration d'un HashSet, donc sans rapport avec
+        // celui sous lequel le joueur a vu ces bascules. Ce rang regroupe deja les bascules par
+        // famille (construction, comportement, activation), classement dont la vue se sert pour
+        // styler chaque bascule. Une cle absente de la table part en fin de liste.
+        toggles = toggles
+            .OrderBy(t => AutomationRenderer.PinKeyRanks.TryGetValue(t.Key, out var rank) ? rank : int.MaxValue)
+            .ToList();
 
         // Même règle que Render : sans action ni bascule, le panneau n'a rien à montrer.
         if (iconActions.Count == 0 && actions.Count == 0 && toggles.Count == 0)
