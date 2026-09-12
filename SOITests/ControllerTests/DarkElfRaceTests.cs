@@ -52,8 +52,8 @@ public class DarkElfRaceTests
         // Combinaison propre aux Elfes noirs (voir RaceDefinitions.All) : Poing de Dieu, Présence de
         // Dieu, Purification Supérieure.
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.GreaterPurification));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
 
         controller.PerformAscension(RaceId.DarkElf);
         return controller;

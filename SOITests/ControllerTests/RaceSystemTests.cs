@@ -62,9 +62,9 @@ public class RaceSystemTests
 
     /// <summary>
     /// Les pouvoirs divins plus profonds requis par les 4 races avancées (voir RaceDefinitions.All) :
-    /// Œil de Dieu, Inventaire Divin, Présence de Dieu, Poing de Dieu (2e pouvoir de leur colonne), la
-    /// Corne d'Abondance (3e pouvoir de la colonne 0) et Purification Supérieure (3e pouvoir de la
-    /// colonne 2, déplacée en bout de la branche Marche de Dieu). Suppose UnlockFirstRow déjà appelée
+    /// Œil de Dieu, Inventaire Divin, Purification Supérieure, Poing de Dieu (2e pouvoir de leur
+    /// colonne), la Corne d'Abondance (3e pouvoir de la colonne 0) et Présence de Dieu (3e pouvoir de
+    /// la colonne 2, en bout de la branche Marche de Dieu). Suppose UnlockFirstRow déjà appelée
     /// (chaque pouvoir exige le précédent de sa colonne).
     /// </summary>
     private static void UnlockSecondRow(AscensionController ascension)
@@ -72,8 +72,8 @@ public class RaceSystemTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
         Assert.True(ascension.PurchasePower(AscensionPowerId.HornOfPlenty));
         Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
-        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.GreaterPurification));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
         Assert.True(ascension.PurchasePower(AscensionPowerId.FistOfGod));
     }
 

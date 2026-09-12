@@ -56,6 +56,8 @@ public class AscensionControllerTests
     private static void UnlockPresenceOfGod(AscensionController ascension)
     {
         UnlockWalkOfGod(ascension);
+        // La Présence est le 3e pouvoir de la colonne : la Purification Supérieure la précède.
+        Assert.True(ascension.PurchasePower(AscensionPowerId.GreaterPurification));
         Assert.True(ascension.PurchasePower(AscensionPowerId.PresenceOfGod));
     }
 
@@ -1076,14 +1078,19 @@ public class AscensionControllerTests
     }
 
     [Fact]
-    public void PresenceOfGod_RequiresWalkOfGodFirstInColumn()
+    public void PresenceOfGod_RequiresWalkOfGodThenGreaterPurificationFirstInColumn()
     {
         var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
         Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
 
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.GreaterPurification));
         Assert.False(ascension.CanPurchasePower(AscensionPowerId.PresenceOfGod));
 
         Assert.True(ascension.PurchasePower(AscensionPowerId.WalkOfGod));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.GreaterPurification));
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.PresenceOfGod));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.GreaterPurification));
         Assert.True(ascension.CanPurchasePower(AscensionPowerId.PresenceOfGod));
     }
 

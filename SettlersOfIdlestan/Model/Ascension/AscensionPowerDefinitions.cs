@@ -33,11 +33,11 @@ public static class AscensionPowerDefinitions
         new AscensionPowerDefinition(AscensionPowerId.WalkOfGod,
             "ascension_power_walkofgod_name", "ascension_power_walkofgod_desc", column: 2, godPointCost: 2),
 
-        new AscensionPowerDefinition(AscensionPowerId.PresenceOfGod,
-            "ascension_power_presenceofgod_name", "ascension_power_presenceofgod_desc", column: 2, godPointCost: 5),
-
         new AscensionPowerDefinition(AscensionPowerId.GreaterPurification,
-            "ascension_power_greaterpurification_name", "ascension_power_greaterpurification_desc", column: 2, godPointCost: 10),
+            "ascension_power_greaterpurification_name", "ascension_power_greaterpurification_desc", column: 2, godPointCost: 5),
+
+        new AscensionPowerDefinition(AscensionPowerId.PresenceOfGod,
+            "ascension_power_presenceofgod_name", "ascension_power_presenceofgod_desc", column: 2, godPointCost: 10),
 
         new AscensionPowerDefinition(AscensionPowerId.ArmOfGod,
             "ascension_power_armofgod_name", "ascension_power_armofgod_desc", column: 3, godPointCost: 2),
