@@ -235,8 +235,25 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// <summary>Budget total de puissance, arrondi à l'inférieur.</summary>
         public int TotalPowerBudget => (int)Math.Floor(TotalPowerBudgetExact);
 
+        /// <summary>
+        /// Magie Éternelle (pouvoir divin, voir <see cref="AscensionState.IsEternalMagicActive"/>) :
+        /// +1 rituel simultané (porté par un modificateur RITUAL_MAX_COUNT dans AscensionController),
+        /// seuls les <see cref="EternalMagicBudgetedRitualCount"/> rituels les plus puissants consomment
+        /// du budget de puissance (voir <see cref="ComputeBudgetedPower"/>), cooldowns des sorts divisés
+        /// par <see cref="EternalMagicCooldownDivisor"/> (voir <see cref="GetSpellCooldownTicks"/>) et
+        /// lancement gratuit en cristaux dès qu'une charge est disponible (voir <see cref="GetNextCastCost"/>).
+        /// </summary>
+        public bool IsEternalMagicActive => _godState?.AscensionState.IsEternalMagicActive == true;
+
+        /// <summary>Nombre de rituels — les plus puissants — qui consomment encore du budget de puissance
+        /// sous Magie Éternelle ; tous les autres sont gratuits.</summary>
+        public const int EternalMagicBudgetedRitualCount = 3;
+
+        /// <summary>Diviseur appliqué au cooldown de tous les sorts sous Magie Éternelle.</summary>
+        public const long EternalMagicCooldownDivisor = 2L;
+
         /// <summary>Puissance actuellement consommée par les rituels actifs.</summary>
-        public int UsedPower => _state?.Magic.ActiveRituals.Sum(r => r.Power) ?? 0;
+        public int UsedPower => ComputeBudgetedPower(excludeAutomated: false);
 
         /// <summary>
         /// Puissance consommée par les seuls rituels non automatisés. Sert de référence au lancement et
@@ -247,8 +264,55 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// ferait dépasser le budget total, donc le bouton + ne doit pas être bloqué par la puissance déjà
         /// occupée par l'automatisation.
         /// </summary>
-        public int UsedPowerByNonAutomatedRituals
-            => _state?.Magic.ActiveRituals.Where(r => !IsRitualAutomated(r.Id)).Sum(r => r.Power) ?? 0;
+        public int UsedPowerByNonAutomatedRituals => ComputeBudgetedPower(excludeAutomated: true);
+
+        /// <summary>
+        /// Puissance comptée dans le budget pour les rituels actifs — la somme de leurs puissances, ou
+        /// sous Magie Éternelle celle des <see cref="EternalMagicBudgetedRitualCount"/> puissances les
+        /// plus élevées seulement, les rituels plus faibles ne coûtant alors rien.
+        /// </summary>
+        /// <param name="excludeAutomated">Ignorer les rituels automatisés (voir <see cref="UsedPowerByNonAutomatedRituals"/>).</param>
+        /// <param name="projectedId">
+        /// Rituel dont on veut projeter une puissance différente de la sienne — celle de
+        /// <paramref name="projectedPower"/> — pour savoir ce que coûterait un lancement ou une montée en
+        /// puissance. S'il n'est pas actif, il est compté en plus des rituels en cours. Indispensable sous
+        /// Magie Éternelle, où un rituel supplémentaire à puissance 1 ne coûte souvent rien du tout et où
+        /// un simple « +1 » sur le total serait donc faux.
+        /// </param>
+        private int ComputeBudgetedPower(bool excludeAutomated, RitualId? projectedId = null, int projectedPower = 0)
+        {
+            if (_state == null) return 0;
+
+            int total = 0;
+            // Les trois plus grandes puissances rencontrées, décroissantes : leur somme est le budget
+            // consommé sous Magie Éternelle (EternalMagicBudgetedRitualCount vaut 3).
+            int first = 0, second = 0, third = 0;
+
+            bool projectedSeen = false;
+            var actives = _state.Magic.ActiveRituals;
+            for (int i = 0; i < actives.Count; i++)
+            {
+                var active = actives[i];
+                if (excludeAutomated && IsRitualAutomated(active.Id)) continue;
+                bool isProjected = projectedId.HasValue && active.Id == projectedId.Value;
+                projectedSeen |= isProjected;
+                AccumulatePower(isProjected ? projectedPower : active.Power, ref total, ref first, ref second, ref third);
+            }
+            // Rituel projeté pas encore lancé : il s'ajoute aux rituels en cours.
+            if (projectedId.HasValue && !projectedSeen)
+                AccumulatePower(projectedPower, ref total, ref first, ref second, ref third);
+
+            return IsEternalMagicActive ? first + second + third : total;
+        }
+
+        /// <summary>Ajoute une puissance au total et tient à jour les trois plus grandes rencontrées.</summary>
+        private static void AccumulatePower(int power, ref int total, ref int first, ref int second, ref int third)
+        {
+            total += power;
+            if (power > first) { third = second; second = first; first = power; }
+            else if (power > second) { third = second; second = power; }
+            else if (power > third) third = power;
+        }
 
         /// <summary>
         /// Rituels armés pour l'ajustement automatique de puissance (case « auto »). Portés par les
@@ -369,7 +433,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (!IsMagicUnlocked() || !IsRitualKnown(id)) return false;
             if (GetActiveRitual(id) != null) return false;
             if (_state!.Magic.ActiveRituals.Count >= MaxActiveRituals) return false;
-            if (UsedPowerByNonAutomatedRituals + 1 > TotalPowerBudget) return false;
+            if (ComputeBudgetedPower(excludeAutomated: true, id, 1) > TotalPowerBudget) return false;
             return civ.GetResourceQuantity(Resource.Crystal) >= GetLaunchCost(def, 1);
         }
 
@@ -422,8 +486,8 @@ namespace SettlersOfIdlestan.Controller.Magic
             var civ = GetPlayerCiv();
             var active = GetActiveRitual(id);
             if (civ == null || active == null) return false;
-            int used = IsRitualAutomated(id) ? UsedPower : UsedPowerByNonAutomatedRituals;
-            if (used + 1 > TotalPowerBudget) return false;
+            int projected = ComputeBudgetedPower(excludeAutomated: !IsRitualAutomated(id), id, active.Power + 1);
+            if (projected > TotalPowerBudget) return false;
             return civ.GetResourceQuantity(Resource.Crystal) >= GetPowerIncreaseCost(id);
         }
 
@@ -575,24 +639,39 @@ namespace SettlersOfIdlestan.Controller.Magic
         }
 
         /// <summary>
+        /// Durée effective d'un cycle de cooldown du sort : <see cref="SpellDefinition.CooldownTicks"/>,
+        /// divisé par <see cref="EternalMagicCooldownDivisor"/> sous Magie Éternelle (voir
+        /// <see cref="IsEternalMagicActive"/>). Seule source de la durée du cooldown — affichage compris,
+        /// pour que l'infobulle annonce le cycle réellement joué par <see cref="ProcessSpellExhaustion"/>.
+        /// </summary>
+        public long GetSpellCooldownTicks(SpellId id)
+        {
+            var def = SpellDefinitions.Get(id);
+            if (def == null || def.CooldownTicks <= 0) return 0;
+            return IsEternalMagicActive
+                ? Math.Max(1L, def.CooldownTicks / EternalMagicCooldownDivisor)
+                : def.CooldownTicks;
+        }
+
+        /// <summary>
         /// Fraction écoulée (0 à 1) du cycle de cooldown en cours vers le retrait du prochain cran
         /// d'épuisement. Le cooldown tourne en continu dès que le sort est connu, même à 0 cran.
         /// </summary>
         public double GetSpellCooldownRatio(SpellId id)
         {
-            var def = SpellDefinitions.Get(id);
-            if (def == null || def.CooldownTicks <= 0 || _clock == null || _state == null) return 0.0;
+            long cooldown = GetSpellCooldownTicks(id);
+            if (cooldown <= 0 || _clock == null || _state == null) return 0.0;
             long lastTick = _state.Magic.SpellCooldownLastTick.TryGetValue(id, out var t) ? t : _clock.CurrentTick;
-            return Math.Clamp((double)(_clock.CurrentTick - lastTick) / def.CooldownTicks, 0.0, 1.0);
+            return Math.Clamp((double)(_clock.CurrentTick - lastTick) / cooldown, 0.0, 1.0);
         }
 
         /// <summary>Ticks restants avant le retrait du prochain cran d'épuisement.</summary>
         public long GetSpellCooldownRemainingTicks(SpellId id)
         {
-            var def = SpellDefinitions.Get(id);
-            if (def == null || _clock == null || _state == null) return 0;
+            long cooldown = GetSpellCooldownTicks(id);
+            if (cooldown <= 0 || _clock == null || _state == null) return 0;
             long lastTick = _state.Magic.SpellCooldownLastTick.TryGetValue(id, out var t) ? t : _clock.CurrentTick;
-            return Math.Clamp(def.CooldownTicks - (_clock.CurrentTick - lastTick), 0, def.CooldownTicks);
+            return Math.Clamp(cooldown - (_clock.CurrentTick - lastTick), 0, cooldown);
         }
 
         /// <summary>
@@ -638,6 +717,29 @@ namespace SettlersOfIdlestan.Controller.Magic
         /// si la rangée de cercles de charges doit être affichée.</summary>
         public int GetSpellMaxCharges(SpellId id) => IsDivineMagicActive ? MaxSpellCharges : 0;
 
+        /// <summary>
+        /// Coût en cristaux du prochain lancement de ce sort : <see cref="GetSpellCost"/>, ou 0 sous
+        /// Magie Éternelle (<see cref="IsEternalMagicActive"/>) quand une charge est disponible — c'est
+        /// alors elle que <see cref="RegisterSpellCast"/> consommera, et le sort ne coûte rien. À utiliser
+        /// partout où l'on décide ou prélève un lancement (y compris l'Abondance automatique, qui passe
+        /// par <see cref="CanCastSpell"/> et <see cref="CastSpell"/>) ; <see cref="GetSpellCost"/> reste
+        /// le coût nu, indépendant des charges.
+        /// </summary>
+        public int GetNextCastCost(SpellDefinition def)
+            => IsEternalMagicActive && GetSpellCharges(def.Id) > 0 ? 0 : GetSpellCost(def);
+
+        /// <summary>
+        /// Prélève le coût du lancement à venir (voir <see cref="GetNextCastCost"/>), s'il y en a un :
+        /// un lancement rendu gratuit par une charge ne prélève rien, et Civilization.RemoveResource
+        /// refuse une quantité nulle. À appeler avant <see cref="RegisterSpellCast"/>, qui consomme
+        /// justement la charge qui rendait le sort gratuit.
+        /// </summary>
+        private void PayCastCost(Civilization civ, SpellDefinition def)
+        {
+            int cost = GetNextCastCost(def);
+            if (cost > 0) civ.RemoveResource(Resource.Crystal, cost);
+        }
+
         /// <summary>Enregistre un lancement réussi : consomme une charge disponible sans épuisement
         /// (voir <see cref="GetSpellCharges"/>), sinon ajoute un cran d'épuisement qui fait doubler le coût.</summary>
         private void RegisterSpellCast(SpellId id)
@@ -663,7 +765,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (def.TargetKind == SpellTargetKind.AllyCity && GetAllyCityTargets().Count == 0) return false;
             if (def.TargetKind == SpellTargetKind.BuildableVertex && GetBuildableCityTargets().Count == 0) return false;
             if (def.TargetKind == SpellTargetKind.VoidRoad && GetVoidBridgeTargets().Count == 0) return false;
-            return civ.GetResourceQuantity(Resource.Crystal) >= GetSpellCost(def);
+            return civ.GetResourceQuantity(Resource.Crystal) >= GetNextCastCost(def);
         }
 
         /// <summary>
@@ -678,7 +780,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (def.TargetKind == SpellTargetKind.AllyCity && GetAllyCityTargets().Count == 0) return "spell_blocked_no_ally_city";
             if (def.TargetKind == SpellTargetKind.BuildableVertex && GetBuildableCityTargets().Count == 0) return "spell_blocked_no_buildable_vertex";
             if (def.TargetKind == SpellTargetKind.VoidRoad && GetVoidBridgeTargets().Count == 0) return "spell_blocked_no_void_road";
-            if (civ.GetResourceQuantity(Resource.Crystal) < GetSpellCost(def)) return "spell_blocked_crystals";
+            if (civ.GetResourceQuantity(Resource.Crystal) < GetNextCastCost(def)) return "spell_blocked_crystals";
             return null;
         }
 
@@ -690,7 +792,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (!CanCastSpell(id)) return false;
             var civ = GetPlayerCiv()!;
 
-            civ.RemoveResource(Resource.Crystal, GetSpellCost(def));
+            PayCastCost(civ, def);
             civ.AddResource(Resource.Gold, def.GoldReward);
             RegisterSpellCast(id);
             return true;
@@ -715,7 +817,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             var city = _state!.FindCityAt(cityVertex);
             if (city == null || city.CivilizationIndex != civ.Index) return false;
 
-            civ.RemoveResource(Resource.Crystal, GetSpellCost(def));
+            PayCastCost(civ, def);
             int effectiveMaxSoldiers = city.MaxSoldiers + civ.GetCityMaxSoldiersBonus(city.Position.Z);
             city.Soldiers = Math.Min(effectiveMaxSoldiers, city.Soldiers + def.TroopReward);
             RegisterSpellCast(id);
@@ -759,7 +861,7 @@ namespace SettlersOfIdlestan.Controller.Magic
             catch (InvalidOperationException) { return false; }
             catch (ArgumentException) { return false; }
 
-            civ.RemoveResource(Resource.Crystal, GetSpellCost(def));
+            PayCastCost(civ, def);
 
             var townHall = city.Buildings.FirstOrDefault(b => b.Type == BuildingType.TownHall);
             if (townHall == null)
@@ -863,10 +965,10 @@ namespace SettlersOfIdlestan.Controller.Magic
             if (!GetVoidBridgeTargets().Any(e => e.Equals(edge))) return false;
             var civ = GetPlayerCiv()!;
 
-            int cost = GetSpellCost(def);
+            int cost = GetNextCastCost(def);
             if (!_roadController.BuildVoidBridge(civ.Index, edge)) return false;
 
-            civ.RemoveResource(Resource.Crystal, cost);
+            if (cost > 0) civ.RemoveResource(Resource.Crystal, cost);
             RegisterSpellCast(id);
             return true;
         }
@@ -913,13 +1015,31 @@ namespace SettlersOfIdlestan.Controller.Magic
             }
             while (UsedPower > TotalPowerBudget && _state.Magic.ActiveRituals.Count > 0)
             {
-                var last = _state.Magic.ActiveRituals[^1];
-                if (last.Power > 1) last.Power--;
-                else CollapseRitual(last);
+                var toReduce = GetRitualToReduceOverBudget();
+                if (toReduce.Power > 1) toReduce.Power--;
+                else CollapseRitual(toReduce);
                 changed = true;
             }
 
             if (changed) NotifyRitualsChanged();
+        }
+
+        /// <summary>
+        /// Rituel que l'excédent de budget de puissance doit amputer : le dernier lancé, ou sous Magie
+        /// Éternelle le plus puissant. Les rituels hors des <see cref="EternalMagicBudgetedRitualCount"/>
+        /// plus puissants ne consomment alors aucun budget : les réduire ne ferait jamais repasser
+        /// <see cref="UsedPower"/> sous le plafond, et la boucle appelante les démonterait tous avant
+        /// d'atteindre celui qui coûte réellement.
+        /// </summary>
+        private ActiveRitual GetRitualToReduceOverBudget()
+        {
+            var actives = _state!.Magic.ActiveRituals;
+            if (!IsEternalMagicActive) return actives[^1];
+
+            var strongest = actives[0];
+            for (int i = 1; i < actives.Count; i++)
+                if (actives[i].Power > strongest.Power) strongest = actives[i];
+            return strongest;
         }
 
         /// <summary>
@@ -1253,7 +1373,7 @@ namespace SettlersOfIdlestan.Controller.Magic
                 if (!IsSpellKnown(def.Id)) continue;
 
                 long lastTick = _state.Magic.SpellCooldownLastTick.TryGetValue(def.Id, out var t) ? t : 0;
-                long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, def.CooldownTicks, coldStartOnZero: true);
+                long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, GetSpellCooldownTicks(def.Id), coldStartOnZero: true);
                 _state.Magic.SpellCooldownLastTick[def.Id] = lastTick;
                 if (cycles <= 0) continue;
 

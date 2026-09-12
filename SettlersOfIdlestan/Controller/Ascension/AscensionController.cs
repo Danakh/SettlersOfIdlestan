@@ -992,6 +992,14 @@ public class AscensionController : IModifierProvider
             yield return new Modifier(Modifier.ECategory.RITUAL_COST_SCALING_REDUCTION, Modifier.EType.ADDITIVE, 0.2);
         }
 
+        // Magie Éternelle : seul le rituel simultané supplémentaire passe par un modificateur. Les trois
+        // autres effets (budget de puissance limité aux rituels les plus puissants, cooldowns des sorts
+        // divisés par deux, sorts lancés avec une charge gratuits) sont lus directement dans
+        // MagicController depuis AscensionState.IsEternalMagicActive, comme Magie Divine et Rituels
+        // Divins le font déjà pour leurs propres règles.
+        if (IsPowerUnlocked(AscensionPowerId.EternalMagic))
+            yield return new Modifier(Modifier.ECategory.RITUAL_MAX_COUNT, Modifier.EType.ADDITIVE, 1);
+
         // Jalon Ferveur Studieuse (AscensionMilestoneId.ResearchProduction) : double la génération de
         // points de recherche (base 1.0, soit +100% additionné aux autres sources — voir
         // Civilization.ResearchProductionSpeed), quadruple leur vitesse d'investissement dans la

@@ -1772,5 +1772,182 @@ namespace SOITests.ControllerTests
             Assert.False(controller.CanCastSpell(SpellId.VoidBridge));
             Assert.Equal("spell_blocked_no_void_road", controller.GetSpellBlockedReasonKey(SpellId.VoidBridge));
         }
+
+        // ── Magie Éternelle ──────────────────────────────────────────────────
+
+        /// <summary>GodState de test avec toute la colonne magie débloquée, Magie Éternelle comprise.</summary>
+        private static GodState CreateEternalMagicGodState()
+        {
+            var godState = new GodState();
+            godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.DivineMagic);
+            godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.DivineRituals);
+            godState.AscensionState.UnlockedPowers.Add(AscensionPowerId.EternalMagic);
+            return godState;
+        }
+
+        /// <summary>
+        /// Décor à quatre rituels connus, budget et cristaux larges : de quoi observer la règle des
+        /// trois rituels les plus puissants.
+        /// </summary>
+        private static (WorldState state, GameClock clock, MagicController controller) CreateFourRitualSetup(
+            GodState godState, int flatPower)
+        {
+            var (state, clock, controller) = CreateSetup(godState);
+            var civ = state.PlayerCivilization;
+            UnlockMagic(civ, RitualId.Growth, RitualId.ArdentForge, RitualId.Clairvoyance, RitualId.MartialBlessing);
+            GrantCrystalStorage(civ, 1000000);
+            civ.AddResource(Resource.Crystal, 1000000);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.RITUAL_FLAT_POWER, EType.ADDITIVE, flatPower),
+                new(ECategory.RITUAL_MAX_COUNT, EType.ADDITIVE, 3),
+            }));
+            return (state, clock, controller);
+        }
+
+        [Fact]
+        public void EternalMagic_OnlyThreeStrongestRitualsConsumePowerBudget()
+        {
+            var (_, _, controller) = CreateFourRitualSetup(CreateEternalMagicGodState(), flatPower: 20);
+
+            Assert.True(controller.LaunchRitual(RitualId.Growth));
+            Assert.True(controller.LaunchRitual(RitualId.ArdentForge));
+            Assert.True(controller.LaunchRitual(RitualId.Clairvoyance));
+            Assert.True(controller.LaunchRitual(RitualId.MartialBlessing));
+
+            // Quatre rituels de puissance 1 : le quatrième ne coûte rien.
+            Assert.Equal(3, controller.UsedPower);
+
+            // Montée à 4/3/2/1 : seules les trois plus fortes puissances sont comptées.
+            for (int i = 0; i < 3; i++) Assert.True(controller.IncreaseRitualPower(RitualId.Growth));
+            for (int i = 0; i < 2; i++) Assert.True(controller.IncreaseRitualPower(RitualId.ArdentForge));
+            Assert.True(controller.IncreaseRitualPower(RitualId.Clairvoyance));
+
+            Assert.Equal(4 + 3 + 2, controller.UsedPower);
+        }
+
+        [Fact]
+        public void EternalMagic_AllowsLaunchingFourthRitualWithSaturatedBudget()
+        {
+            // Budget de 3 exactement : trois rituels de puissance 1 le saturent, et le quatrième
+            // passe quand même puisqu'il ne consomme aucun budget.
+            var (_, _, controller) = CreateFourRitualSetup(CreateEternalMagicGodState(), flatPower: 2);
+            Assert.Equal(3, controller.TotalPowerBudget);
+
+            Assert.True(controller.LaunchRitual(RitualId.Growth));
+            Assert.True(controller.LaunchRitual(RitualId.ArdentForge));
+            Assert.True(controller.LaunchRitual(RitualId.Clairvoyance));
+            Assert.Equal(3, controller.UsedPower);
+
+            Assert.True(controller.CanLaunchRitual(RitualId.MartialBlessing));
+            Assert.True(controller.LaunchRitual(RitualId.MartialBlessing));
+            Assert.Equal(3, controller.UsedPower);
+
+            // Le budget reste saturé pour une montée en puissance : le rituel gratuit rejoindrait
+            // alors les trois plus puissants.
+            Assert.False(controller.CanIncreaseRitualPower(RitualId.MartialBlessing));
+        }
+
+        [Fact]
+        public void WithoutEternalMagic_EveryRitualConsumesPowerBudget()
+        {
+            var (_, _, controller) = CreateFourRitualSetup(CreateDivineRitualsGodState(), flatPower: 20);
+
+            Assert.True(controller.LaunchRitual(RitualId.Growth));
+            Assert.True(controller.LaunchRitual(RitualId.ArdentForge));
+            Assert.True(controller.LaunchRitual(RitualId.Clairvoyance));
+            Assert.True(controller.LaunchRitual(RitualId.MartialBlessing));
+
+            Assert.Equal(4, controller.UsedPower);
+        }
+
+        [Fact]
+        public void EternalMagic_HalvesSpellCooldown()
+        {
+            var (state, clock, controller) = CreateSetup(CreateEternalMagicGodState());
+            UnlockSpells(state.PlayerCivilization, SpellId.Abundance);
+            var def = SpellDefinitions.Get(SpellId.Abundance)!;
+
+            Assert.Equal(def.CooldownTicks / 2, controller.GetSpellCooldownTicks(SpellId.Abundance));
+
+            clock.SimulateAdvance(1, chunkTicks: 1); // amorce le suivi (coldStartOnZero)
+            clock.SimulateAdvance(def.CooldownTicks / 2, chunkTicks: def.CooldownTicks / 2);
+
+            // Un demi-cooldown suffit désormais à créditer une charge.
+            Assert.Equal(1, controller.GetSpellCharges(SpellId.Abundance));
+        }
+
+        [Fact]
+        public void EternalMagic_CastWithChargeCostsNoCrystal()
+        {
+            var (state, _, controller) = CreateSetup(CreateEternalMagicGodState());
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            GrantCrystalStorage(civ, 10000);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 2000),
+            }));
+            civ.AddResource(Resource.Crystal, 10);
+            var def = SpellDefinitions.Get(SpellId.Abundance)!;
+            int goldBefore = civ.GetResourceQuantity(Resource.Gold);
+            state.Magic.SpellCharges[SpellId.Abundance] = 1;
+
+            // 10 cristaux seulement, pour un sort qui en coûte 50 : la charge le rend gratuit.
+            Assert.Equal(0, controller.GetNextCastCost(def));
+            Assert.True(controller.CanCastSpell(SpellId.Abundance));
+            Assert.True(controller.CastSpell(SpellId.Abundance));
+
+            Assert.Equal(10, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(goldBefore + 1000, civ.GetResourceQuantity(Resource.Gold));
+            Assert.Equal(0, controller.GetSpellCharges(SpellId.Abundance));
+            Assert.Equal(0, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+
+            // Charge consommée : le lancement suivant repasse au coût plein.
+            Assert.Equal(def.CrystalCost, controller.GetNextCastCost(def));
+            Assert.False(controller.CanCastSpell(SpellId.Abundance));
+        }
+
+        [Fact]
+        public void EternalMagic_AbundanceAutoCastConsumesNoCrystal()
+        {
+            var (state, clock, controller) = CreateSetup(CreateEternalMagicGodState());
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            civ.AddCustomAggregator(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.STORAGE_CAPACITY_BASIC, EType.ADDITIVE, 2000),
+            }));
+            state.AutomationSettings.AbundanceAutoCastEnabled = true;
+            int goldBefore = civ.GetResourceQuantity(Resource.Gold);
+
+            clock.SimulateAdvance(1, chunkTicks: 1);
+            clock.SimulateAdvance(6000 * 20, chunkTicks: 6000 * 20);
+
+            // Aucun cristal en stock, et pourtant le sort part dès la cinquième charge.
+            Assert.Equal(0, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(MagicController.MaxSpellCharges - 1, controller.GetSpellCharges(SpellId.Abundance));
+            Assert.Equal(0, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+            Assert.Equal(goldBefore + 1000, civ.GetResourceQuantity(Resource.Gold));
+        }
+
+        [Fact]
+        public void EternalMagic_CastWithoutChargeStillCostsCrystals()
+        {
+            var (state, _, controller) = CreateSetup(CreateEternalMagicGodState());
+            var civ = state.PlayerCivilization;
+            UnlockSpells(civ, SpellId.Abundance);
+            GrantCrystalStorage(civ, 10000);
+            civ.AddResource(Resource.Crystal, 100);
+            var def = SpellDefinitions.Get(SpellId.Abundance)!;
+
+            Assert.Equal(0, controller.GetSpellCharges(SpellId.Abundance));
+            Assert.Equal(def.CrystalCost, controller.GetNextCastCost(def));
+
+            Assert.True(controller.CastSpell(SpellId.Abundance));
+
+            Assert.Equal(100 - def.CrystalCost, civ.GetResourceQuantity(Resource.Crystal));
+            Assert.Equal(1, controller.GetSpellExhaustionStacks(SpellId.Abundance));
+        }
     }
 }

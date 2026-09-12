@@ -1615,6 +1615,8 @@
   "ascension_power_divinemagic_desc": "► Les sorts peuvent accumuler jusqu'à 5 charges de lancement quand leur cooldown arrive à son terme sans épuisement accumulé\n► Lancer un sort avec une charge disponible la consomme sans accumuler d'épuisement\n► Chaque prestige recrédite 1 charge par sort\n► Débloque l'automatisation Abondance automatique : le sort est lancé dès sa cinquième charge",
   "ascension_power_divinerituals_name": "Rituels Divins",
   "ascension_power_divinerituals_desc": "► Débloque l'automatisation des rituels : la case \"Auto\" lance le rituel et ajuste sa puissance selon les cristaux disponibles\n► Un rituel supplémentaire peut être actif en même temps\n► Budget de puissance maximal augmenté de 25%\n► Scaling du coût des rituels (lancement et entretien) réduit de 20%",
+  "ascension_power_eternalmagic_name": "Magie Éternelle",
+  "ascension_power_eternalmagic_desc": "► Un rituel supplémentaire peut être actif en même temps\n► Seuls les 3 rituels les plus puissants consomment du budget de puissance : tous les autres sont gratuits\n► Cooldown de tous les sorts divisé par 2\n► Un sort lancé avec une charge disponible ne coûte aucun cristal (Abondance automatique comprise)",
   "ascension_power_unlock_button": "Débloquer",
   "ascension_power_unlocked_label": "Débloqué",
   "ascension_power_locked_tooltip": "Débloquez d'abord le pouvoir situé juste en dessous dans la colonne",

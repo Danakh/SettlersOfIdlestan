@@ -2252,4 +2252,28 @@ public class AscensionControllerTests
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineRituals));
         Assert.True(godState.AscensionState.IsDivineRitualsActive);
     }
+
+    [Fact]
+    public void EternalMagic_RequiresDivineRitualsFirstAndGrantsAnotherSimultaneousRitual()
+    {
+        var (_, _, _, ascension, godState) = CreateTestSetup(godPoints: 100);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagic));
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.EternalMagic));
+        Assert.False(godState.AscensionState.IsEternalMagicActive);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineRituals));
+        int ritualsBefore = ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.RITUAL_MAX_COUNT)
+            .Sum(m => (int)m.Value);
+
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.EternalMagic));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EternalMagic));
+
+        Assert.True(godState.AscensionState.IsEternalMagicActive);
+        Assert.Equal(ritualsBefore + 1, ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.RITUAL_MAX_COUNT)
+            .Sum(m => (int)m.Value));
+    }
 }

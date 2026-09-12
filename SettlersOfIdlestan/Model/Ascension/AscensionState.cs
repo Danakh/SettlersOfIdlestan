@@ -25,6 +25,15 @@ public class AscensionState
     /// RITUAL_TOTAL_POWER, RITUAL_COST_SCALING_REDUCTION).</summary>
     public bool IsDivineRitualsActive => UnlockedPowers.Contains(AscensionPowerId.DivineRituals);
 
+    /// <summary>
+    /// Magie Éternelle : +1 rituel actif simultané (RITUAL_MAX_COUNT, voir
+    /// AscensionController.GetModifiers), seuls les MagicController.EternalMagicBudgetedRitualCount
+    /// rituels les plus puissants consomment du budget de puissance, cooldowns des sorts divisés par
+    /// MagicController.EternalMagicCooldownDivisor, et tout sort lancé avec une charge disponible ne
+    /// coûte aucun cristal — voir MagicController.IsEternalMagicActive.
+    /// </summary>
+    public bool IsEternalMagicActive => UnlockedPowers.Contains(AscensionPowerId.EternalMagic);
+
     /// <summary>Purification Supérieure : la Nécropole récolte les Os Divins sur lesquels elle est
     /// bâtie au lieu de les détruire (voir NecropolisController.PlaceNecropolis).</summary>
     public bool IsGreaterPurificationActive => UnlockedPowers.Contains(AscensionPowerId.GreaterPurification);

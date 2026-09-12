@@ -173,7 +173,9 @@ public sealed class RitualsRenderer : IDisposable
         var spells = new List<SpellRowSnapshot>();
         foreach (var def in magic.GetKnownSpells())
         {
-            int spellCost = magic.GetSpellCost(def);
+            // Coût réellement prélevé au prochain lancement : 0 sous Magie Éternelle quand une charge
+            // est disponible (voir MagicController.GetNextCastCost).
+            int spellCost = magic.GetNextCastCost(def);
             bool canCast = magic.CanCastSpell(def.Id);
             string? blockedReasonKey = canCast ? null : magic.GetSpellBlockedReasonKey(def.Id);
 
@@ -187,7 +189,8 @@ public sealed class RitualsRenderer : IDisposable
             // l'infobulle dit ce que le cycle en cours va réellement produire.
             string cooldownTooltip = _localization.GetFormated(
                 stacks > 0 ? "spell_cooldown_tooltip" : "spell_cooldown_charge_tooltip",
-                FormatSpellDuration(magic.GetSpellCooldownRemainingTicks(def.Id)), FormatSpellDuration(def.CooldownTicks));
+                FormatSpellDuration(magic.GetSpellCooldownRemainingTicks(def.Id)),
+                FormatSpellDuration(magic.GetSpellCooldownTicks(def.Id)));
 
             string chargesTooltip = _localization.GetFormated("spell_charges_tooltip", charges, maxCharges);
 
