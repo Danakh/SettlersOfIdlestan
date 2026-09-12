@@ -259,10 +259,11 @@ public class AscensionControllerTests
         ascension.ApplyPermanentUniqueBuildingToCivilization();
 
         // WarRoom : UNIT_PRODUCTION_SPEED +0.5 (base 1.0). Academy accordée à son niveau max absolu
-        // (5, voir Academy.GetAbsoluteMaxLevel) : RESEARCH_PRODUCTION_SPEED +0.1*5 = +0.5 (base 1.0).
+        // (6, voir Academy.GetAbsoluteMaxLevel — 5 par les vertex de prestige, plus 1 par le pouvoir
+        // divin Magisterium Divin) : RESEARCH_PRODUCTION_SPEED +0.1*6 = +0.6 (base 1.0).
         // Les deux doivent s'appliquer.
         Assert.Equal(1.5, civ.UnitProductionSpeed, precision: 5);
-        Assert.Equal(1.5, civ.ResearchProductionSpeed, precision: 5);
+        Assert.Equal(1.6, civ.ResearchProductionSpeed, precision: 5);
     }
 
     [Fact]
@@ -2220,6 +2221,85 @@ public class AscensionControllerTests
 
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
         Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineConquest));
+    }
+
+    // ── Magisterium Divin ───────────────────────────────────────────────────
+    // L'octroi de la Bibliothèque et de la Tour de Mages vit dans CityBuilderController.CreateCityAt
+    // (voir CityBuilderControllerTests), et le +1 de niveau max dans AscensionBuildingMaxLevelGrants
+    // (voir BuildingMaxLevelCalculatorTests). Ces tests-ci couvrent le drapeau, la réduction du coût
+    // des Monuments et l'ordre de déblocage de la colonne.
+
+    [Fact]
+    public void GetModifiers_DivineMagisterium_GrantsNewCityFlagAndHalvesMonumentInvestment()
+    {
+        var (_, _, civ, ascension, _) = CreateTestSetup(godPoints: 100);
+        civ.AddCustomAggregator(ascension);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConquest));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.NEW_CITY_DIVINE_MAGISTERIUM);
+        Assert.Equal(0.0, civ.MonumentCostReduction, precision: 5);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagisterium));
+
+        Assert.Contains(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.NEW_CITY_DIVINE_MAGISTERIUM);
+        Assert.Equal(AscensionController.DivineMagisteriumMonumentCostReduction, civ.MonumentCostReduction, precision: 5);
+    }
+
+    /// <summary>
+    /// Le Temple est le seul bâtiment que deux pouvoirs se partagent : Foi +3 et Magisterium Divin
+    /// +1 doivent se cumuler à 4, pas se remplacer.
+    /// </summary>
+    [Fact]
+    public void GetModifiers_DivineMagisterium_TempleBonusStacksWithFaith()
+    {
+        var (_, _, civ, ascension, _) = CreateTestSetup(godPoints: 100);
+        civ.AddCustomAggregator(ascension);
+        var temple = BuildingFactory.Create(BuildingType.Temple)!;
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.Equal(1 + 3, civ.GetBuildingMaxLevel(temple));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConquest));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagisterium));
+
+        Assert.Equal(1 + 3 + 1, civ.GetBuildingMaxLevel(temple));
+    }
+
+    [Fact]
+    public void GetModifiers_DivineMagisterium_RaisesMaxLevelOfEveryResearchAndMagicBuilding()
+    {
+        var (_, _, civ, ascension, _) = CreateTestSetup(godPoints: 100);
+        civ.AddCustomAggregator(ascension);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConquest));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineMagisterium));
+
+        // Ces sept bâtiments sont tous verrouillés par défaut (GetDefaultMaxLevel() == 0) : le pouvoir
+        // seul les porte donc exactement à 1, sans rien débloquer d'autre.
+        foreach (var type in new[]
+                 {
+                     BuildingType.Library, BuildingType.Laboratory, BuildingType.Academy,
+                     BuildingType.MageTower, BuildingType.AlchimistHut, BuildingType.ArcaneTower,
+                     BuildingType.DefenseSpire,
+                 })
+            Assert.Equal(1, civ.GetBuildingMaxLevel(BuildingFactory.Create(type)!));
+    }
+
+    [Fact]
+    public void DivineMagisterium_RequiresDivineConquestFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConstruction));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.DivineMagisterium));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.DivineConquest));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineMagisterium));
     }
 
     [Fact]

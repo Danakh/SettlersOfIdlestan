@@ -39,7 +39,16 @@ public class ArcaneTower : Building, IUniqueBuilding
         { Resource.Gold,    60 },
     };
 
-    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet();
+    // Chaque niveau coûte son rang en coûts de construction (niveau 2 = deux fois le coût initial) et
+    // double d'autant la génération passive de Cristal. Le niveau 2 n'est ouvert que par le pouvoir
+    // divin Magisterium Divin (voir AscensionBuildingMaxLevelGrants).
+    public override ResourceSet GetUpgradeCost(int level) => new ResourceSet
+    {
+        { Resource.Stone,   80 * level },
+        { Resource.Glass,   30 * level },
+        { Resource.Crystal, 20 * level },
+        { Resource.Gold,    60 * level },
+    };
 
     public IEnumerable<Modifier> GetUniqueBuildingModifiers()
     {

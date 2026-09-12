@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
@@ -27,9 +28,9 @@ namespace SettlersOfIdlestan.Model.Buildings;
 ///    Guilde des Artisans -> Forge, Guilde des Recolteurs -> Scierie/Briqueterie/Carriere/Moulin),
 ///    lus directement via IUniqueBuilding.GetUniqueBuildingModifiers() sur un prototype de niveau 1
 ///    plutot que dupliques ici.
-///  - Pouvoirs divins d'Ascension : un seul aujourd'hui accorde BUILDING_MAX_LEVEL (Foi -> Temple
-///    +3, voir AscensionController.GetModifiers()) ; a maintenir a la main si un futur pouvoir en
-///    ajoute un autre (couvert par le meme test).
+///  - Pouvoirs divins d'Ascension : lus dans AscensionBuildingMaxLevelGrants, la table que
+///    AscensionController.GetModifiers() consulte elle aussi pour emettre ces memes bonus — rien a
+///    maintenir a la main ici quand un pouvoir en ajoute un.
 ///
 ///  - Bonus de race (RaceDefinitions) : le MEILLEUR parmi toutes les races pour ce type de
 ///    batiment, jamais en dessous de 0. Un seul choix de race est actif par partie (mutuellement
@@ -84,7 +85,7 @@ public static class BuildingMaxLevelCalculator
             sum += prestigeMap.Hexes.Sum(h =>
                 h.PerVertexModifiers.Where(m => Matches(m, subCategory)).Sum(m => (int)m.Value) * h.AdjacentVertices.Count);
             sum += uniqueBuildingModifiers.Where(m => Matches(m, subCategory)).Sum(m => (int)m.Value);
-            sum += GetAscensionBonus(subCategory);
+            sum += AscensionBuildingMaxLevelGrants.GetTheoreticalBonus(type);
             sum += raceBonusBySubCategory.GetValueOrDefault(subCategory);
 
             result[type] = sum;
@@ -107,11 +108,6 @@ public static class BuildingMaxLevelCalculator
         }
         return modifiers;
     }
-
-    /// <summary>Foi (pouvoir divin d'Ascension) accorde Temple +3 — seule source d'Ascension
-    /// touchant BUILDING_MAX_LEVEL aujourd'hui (voir AscensionController.GetModifiers()).</summary>
-    private static int GetAscensionBonus(string subCategory) =>
-        subCategory == nameof(BuildingType.Temple) ? 3 : 0;
 
     /// <summary>Meilleur bonus racial pour chaque type de batiment, jamais negatif : un seul choix
     /// de race est actif par partie, donc pour un type donne on retient la valeur de la race la

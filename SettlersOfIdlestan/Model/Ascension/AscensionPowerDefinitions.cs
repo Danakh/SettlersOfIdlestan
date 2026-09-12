@@ -57,6 +57,9 @@ public static class AscensionPowerDefinitions
         new AscensionPowerDefinition(AscensionPowerId.DivineConquest,
             "ascension_power_divineconquest_name", "ascension_power_divineconquest_desc", column: 4, godPointCost: 5),
 
+        new AscensionPowerDefinition(AscensionPowerId.DivineMagisterium,
+            "ascension_power_divinemagisterium_name", "ascension_power_divinemagisterium_desc", column: 4, godPointCost: 10),
+
         new AscensionPowerDefinition(AscensionPowerId.DivineMagic,
             "ascension_power_divinemagic_name", "ascension_power_divinemagic_desc", column: 5, godPointCost: 2),
 

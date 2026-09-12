@@ -54,6 +54,16 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             /// une Caserne niveau 1, et jusqu'à 20 soldats en garnison (moins si la capacité maximale de la ville
             /// est inférieure). Voir CityBuilderController.GrantDivineConquestGarrison. SubCategory unused.</summary>
             NEW_CITY_DIVINE_CONQUEST,
+            /// <summary>Pouvoir divin Magisterium Divin (AscensionPowerId.DivineMagisterium) : chaque nouvel
+            /// avant-poste du joueur reçoit une Bibliothèque et une Tour de Mages de niveau 1, à condition que
+            /// le bâtiment soit débloqué pour la civilisation (niveau max &gt; 0), disponible sur la couche et que
+            /// ses prérequis de terrain soient remplis — le niveau de ville requis, lui, est passé outre comme
+            /// pour tous les dons divins (une ville qui vient de naître est niveau 1). Voir
+            /// CityBuilderController.GrantDivineMagisteriumBuildings. Les deux autres effets du pouvoir ne
+            /// passent pas par cette catégorie : le +1 de niveau max des bâtiments de recherche et de magie est
+            /// émis en BUILDING_MAX_LEVEL depuis AscensionBuildingMaxLevelGrants, et la réduction du coût des
+            /// Monuments en MONUMENT_COST_REDUCTION. SubCategory unused.</summary>
+            NEW_CITY_DIVINE_MAGISTERIUM,
             /// <summary>Flat bonus added to the city defense score. SubCategory unused.</summary>
             CITY_DEFENSE,
             /// <summary>Modificateur en pourcentage du score de défense, appliqué en dernier — après le bonus plat

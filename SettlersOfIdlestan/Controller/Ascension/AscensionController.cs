@@ -51,6 +51,14 @@ public class AscensionController : IModifierProvider
     public const int OmniscienceFreeResearchStockPercent = 10;
 
     /// <summary>
+    /// Fraction du coût d'investissement de tous les Monuments effacée par Magisterium Divin
+    /// (MONUMENT_COST_REDUCTION, voir Monument.GetInvestmentCost) : 0,5 = deux fois moins cher.
+    /// S'additionne aux autres sources de réduction — avec l'Atelier des Colosses (-25%), le coût
+    /// tombe au quart.
+    /// </summary>
+    public const double DivineMagisteriumMonumentCostReduction = 0.5;
+
+    /// <summary>
     /// Bâtiments uniques non-raciaux toujours choisissables comme bâtiment permanent d'Ascension
     /// (voir <see cref="SelectPermanentUniqueBuilding"/>) : un bâtiment accordé ainsi ne vit dans
     /// aucune ville (voir Civilization.SetAscensionGrantedUniqueBuildings) — seule une instance
@@ -939,11 +947,16 @@ public class AscensionController : IModifierProvider
 
     public IEnumerable<Modifier> GetModifiers()
     {
+        // Tous les bonus de niveau max accordés par les pouvoirs divins viennent de la même table que
+        // celle lue par BuildingMaxLevelCalculator pour le plafond théorique : un bonus ajouté d'un
+        // seul des deux côtés donnait un plafond de preset d'automatisation faux, sans erreur.
+        foreach (var grant in AscensionBuildingMaxLevelGrants.All)
+            if (IsPowerUnlocked(grant.Power))
+                yield return new Modifier(Modifier.ECategory.BUILDING_MAX_LEVEL,
+                    BuildingTypeNames.Of(grant.Type), Modifier.EType.ADDITIVE, grant.Bonus);
+
         if (IsPowerUnlocked(AscensionPowerId.Faith))
-        {
-            yield return new Modifier(Modifier.ECategory.BUILDING_MAX_LEVEL, "Temple", Modifier.EType.ADDITIVE, 3);
             yield return new Modifier(Modifier.ECategory.UNLOCK_DOMINION, Modifier.EType.ADDITIVE, 1.0);
-        }
 
         if (IsPowerUnlocked(AscensionPowerId.DivineInventory))
             yield return new Modifier(Modifier.ECategory.STORAGE_CAPACITY_MULTIPLIER, Modifier.EType.ADDITIVE, 5.0);
@@ -994,6 +1007,18 @@ public class AscensionController : IModifierProvider
 
         if (IsPowerUnlocked(AscensionPowerId.DivineConquest))
             yield return new Modifier(Modifier.ECategory.NEW_CITY_DIVINE_CONQUEST, Modifier.EType.ADDITIVE, 1.0);
+
+        // Magisterium Divin : le +1 de niveau max de chaque bâtiment de recherche et de magie est déjà
+        // parti plus haut (AscensionBuildingMaxLevelGrants). Restent la Bibliothèque et la Tour de Mages
+        // offertes à chaque avant-poste — un drapeau, tout le comportement vit dans
+        // CityBuilderController.GrantDivineMagisteriumBuildings — et la moitié du coût d'investissement
+        // de tous les Monuments, qui s'additionne aux autres réductions (Atelier des Colosses, -25%).
+        if (IsPowerUnlocked(AscensionPowerId.DivineMagisterium))
+        {
+            yield return new Modifier(Modifier.ECategory.NEW_CITY_DIVINE_MAGISTERIUM, Modifier.EType.ADDITIVE, 1.0);
+            yield return new Modifier(Modifier.ECategory.MONUMENT_COST_REDUCTION, Modifier.EType.ADDITIVE,
+                DivineMagisteriumMonumentCostReduction);
+        }
 
         if (IsPowerUnlocked(AscensionPowerId.DivineRituals))
         {

@@ -78,8 +78,37 @@ public class DefenseSpireTests
 
         clock.SimulateAdvance(DefenseSpire.AttackIntervalTicks);
 
-        Assert.Equal(10 - DefenseSpire.DamagePerAttack, bandit.Hp);
+        Assert.Equal(10 - DefenseSpire.DamagePerAttackPerLevel, bandit.Hp);
         Assert.Equal(100 - DefenseSpire.CrystalCostPerAttack, civ.GetResourceQuantity(Resource.Crystal));
+    }
+
+    /// <summary>
+    /// Niveau 2 (ouvert par le pouvoir divin Magisterium Divin) : 2 dégâts par tir, toujours pour
+    /// 1 Cristal — seuls les dégâts montent avec le niveau, pas le coût du tir.
+    /// </summary>
+    [Fact]
+    public void Spire_Niveau2_InfligeDeuxDegatsPourLeMemeCristal()
+    {
+        var (state, clock, _, civ, _) = CreateSetup(spireLevel: 2);
+        var bandit = AddBandit(state, Range2);
+
+        clock.SimulateAdvance(DefenseSpire.AttackIntervalTicks);
+
+        Assert.Equal(10 - 2 * DefenseSpire.DamagePerAttackPerLevel, bandit.Hp);
+        Assert.Equal(100 - DefenseSpire.CrystalCostPerAttack, civ.GetResourceQuantity(Resource.Crystal));
+    }
+
+    /// <summary>Le niveau 2 perce l'armure comme le niveau 1 : les 2 dégâts passent entiers.</summary>
+    [Fact]
+    public void Spire_Niveau2_IgnoreLArmure()
+    {
+        var (state, clock, _, _, _) = CreateSetup(spireLevel: 2);
+        var demon = new DemonGod(Range2, 0) { Hp = 300, Found = true };
+        state.AddFeature(demon);
+
+        clock.SimulateAdvance(DefenseSpire.AttackIntervalTicks);
+
+        Assert.Equal(300 - 2 * DefenseSpire.DamagePerAttackPerLevel, demon.Hp);
     }
 
     /// <summary>La spire ne mobilise personne : c'est ce qui la distingue d'une garnison.</summary>
@@ -120,11 +149,11 @@ public class DefenseSpireTests
         var demon = new DemonGod(Range2, 0) { Hp = 300, Found = true };
         state.AddFeature(demon);
         var prng = new GamePRNG();
-        Assert.Equal(0, MonsterFeature.ApplyArmorReduction(DefenseSpire.DamagePerAttack, demon.Armor, prng));
+        Assert.Equal(0, MonsterFeature.ApplyArmorReduction(DefenseSpire.DamagePerAttackPerLevel, demon.Armor, prng));
 
         clock.SimulateAdvance(DefenseSpire.AttackIntervalTicks);
 
-        Assert.Equal(300 - DefenseSpire.DamagePerAttack, demon.Hp);
+        Assert.Equal(300 - DefenseSpire.DamagePerAttackPerLevel, demon.Hp);
     }
 
     [Fact]

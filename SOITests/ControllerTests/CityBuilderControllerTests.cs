@@ -101,6 +101,38 @@ public class CityBuilderControllerTests
         return (state, civ, v1, vMiddle, v2);
     }
 
+    /// <summary>Même ruban que <see cref="RibbonIsland"/>, mais avec une Grotte de Cristal sur h4 :
+    /// vMiddle y touche donc le terrain qu'exige la Tour de Mages.</summary>
+    private static (WorldState state, Civilization civ, Vertex v1, Vertex vMiddle, Vertex v2) CrystalCaveRibbonIsland()
+    {
+        var h1 = H(0, 0);
+        var h2 = H(1, 0);
+        var h3 = H(0, 1);
+        var h4 = H(1, 1);
+        var h5 = H(0, 2);
+
+        var map = new IslandMap(new HexTile[]
+        {
+            new(h1, TerrainType.Plain),
+            new(h2, TerrainType.Plain),
+            new(h3, TerrainType.Plain),
+            new(h4, TerrainType.CrystalCave),
+            new(h5, TerrainType.Plain),
+        });
+
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        var v1 = Vertex.Create(h1, h2, h3);
+        var vMiddle = Vertex.Create(h2, h3, h4);
+        var v2 = Vertex.Create(h3, h4, h5);
+
+        civ.AddRoad(new Road(Edge.Create(h2, h3)) { CivilizationIndex = 0 });
+        civ.AddRoad(new Road(Edge.Create(h3, h4)) { CivilizationIndex = 0 });
+
+        return (state, civ, v1, vMiddle, v2);
+    }
+
     /// <summary>Fournisseur de modifiers de test à valeurs fixes — voir TradeControllerTests, même patron.</summary>
     private sealed class FlatModifierProvider : IModifierProvider
     {
@@ -538,5 +570,76 @@ public class CityBuilderControllerTests
 
         Assert.NotNull(city);
         Assert.Equal(2, city!.Buildings.Single(b => b.Type == BuildingType.Palisade).Level);
+    }
+
+    // ── Magisterium Divin ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Débloque la Bibliothèque et la Tour de Mages comme le feraient la recherche et le vertex de
+    /// prestige, et active Magisterium Divin.
+    /// </summary>
+    private static void ActivateDivineMagisterium(Civilization civ, bool unlockBuildings = true)
+    {
+        var modifiers = new List<Modifier>
+        {
+            new(ECategory.NEW_CITY_DIVINE_MAGISTERIUM, EType.ADDITIVE, 1),
+        };
+        if (unlockBuildings)
+        {
+            modifiers.Add(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Library), EType.ADDITIVE, 1));
+            modifiers.Add(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.MageTower), EType.ADDITIVE, 1));
+        }
+        civ.AddCustomAggregator(new FlatModifierProvider(modifiers.ToArray()));
+    }
+
+    [Fact]
+    public void BuildCity_DivineMagisteriumActive_GrantsLibraryAndMageTowerDespiteCityLevel()
+    {
+        // vMiddle touche une Grotte de Cristal : la Tour de Mages y a ses prérequis. Les deux
+        // bâtiments exigent normalement une ville de niveau 2 et 4 — un avant-poste naît niveau 1,
+        // et le don divin passe outre ce seul critère.
+        var (state, civ, _, vMiddle, _) = CrystalCaveRibbonIsland();
+        ActivateDivineMagisterium(civ);
+        GrantBasicResourcesForCityConstruction(civ);
+
+        var city = Controller(state).BuildCity(0, vMiddle);
+
+        Assert.NotNull(city);
+        Assert.Equal(0, city!.Level);
+        Assert.Equal(1, city.Buildings.Single(b => b.Type == BuildingType.Library).Level);
+        Assert.Equal(1, city.Buildings.Single(b => b.Type == BuildingType.MageTower).Level);
+    }
+
+    [Fact]
+    public void BuildCity_DivineMagisteriumActive_GrantsNothingWhileBuildingsAreLocked()
+    {
+        // Sans la recherche ni le vertex qui les ouvrent (niveau max 0), le pouvoir ne doit rien
+        // offrir : sinon chaque avant-poste naîtrait avec une Tour de Mages — donc un rituel de plus
+        // — sans avoir jamais touché au Secret de la Magie.
+        var (state, civ, _, vMiddle, _) = CrystalCaveRibbonIsland();
+        ActivateDivineMagisterium(civ, unlockBuildings: false);
+        GrantBasicResourcesForCityConstruction(civ);
+
+        var city = Controller(state).BuildCity(0, vMiddle);
+
+        Assert.NotNull(city);
+        Assert.DoesNotContain(city!.Buildings, b => b.Type == BuildingType.Library);
+        Assert.DoesNotContain(city.Buildings, b => b.Type == BuildingType.MageTower);
+    }
+
+    [Fact]
+    public void BuildCity_DivineMagisteriumActive_SkipsMageTowerWithoutCrystalCaveOrFairyCircle()
+    {
+        // La Bibliothèque n'exige aucun terrain ; la Tour de Mages, si (voir
+        // MageTower.HasBuildPrerequisites) — le don divin ne lève pas ce prérequis-là.
+        var (state, civ, _, vMiddle, _) = RibbonIsland();
+        ActivateDivineMagisterium(civ);
+        GrantBasicResourcesForCityConstruction(civ);
+
+        var city = Controller(state).BuildCity(0, vMiddle);
+
+        Assert.NotNull(city);
+        Assert.Contains(city!.Buildings, b => b.Type == BuildingType.Library);
+        Assert.DoesNotContain(city.Buildings, b => b.Type == BuildingType.MageTower);
     }
 }

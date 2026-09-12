@@ -460,6 +460,49 @@ public class Civilization
     }
 
     /// <summary>
+    /// Niveau maximum de ce bâtiment pour cette civilisation : son plafond par défaut plus tous les
+    /// bonus BUILDING_MAX_LEVEL actifs (recherche, prestige, bâtiments uniques, pouvoirs divins,
+    /// race). 0 signifie « verrouillé » — c'est la réponse à « ce type est-il débloqué ? », que
+    /// posent aussi bien les listes de l'interface que l'automatisation des guildes.
+    ///
+    /// <para>Bonus et malus additifs sont sommés séparément : les malus raciaux (RaceDefinitions,
+    /// ex. Gobelins -1 sur les bâtiments standards) s'appliquent en dernier et sont plafonnés pour ne
+    /// jamais rendre inconstructible un bâtiment qui aurait été atteignable sans eux — un bâtiment
+    /// jamais débloqué par ailleurs (base + bonus &lt;= 0, ex. Bibliothèque avant sa recherche) reste
+    /// à 0, inchangé par le malus.</para>
+    ///
+    /// <para>Vit ici, et non dans BuildingController, parce que son cache y vit déjà
+    /// (<see cref="TryGetCachedMaxLevel"/>, invalidé par ModifierAggregator.Changed) et parce que les
+    /// contrôleurs qui n'ont pas de BuildingController sous la main doivent pouvoir poser la question
+    /// sans en réécrire la règle (voir CityBuilderController.GrantDivineMagisteriumBuildings).
+    /// BuildingController.GetMaxLevel s'y délègue et reste le point d'entrée habituel, avec ses
+    /// surcharges par type et par ville.</para>
+    /// </summary>
+    public int GetBuildingMaxLevel(Building building)
+    {
+        if (_maxLevelCache.TryGetValue(building.Type, out int cached))
+            return cached;
+
+        string subCategory = BuildingTypeNames.Of(building.Type);
+        var modifiers = ModifierAggregator.GetActiveModifiersUnfiltered(ECategory.BUILDING_MAX_LEVEL);
+
+        int bonus = 0, malus = 0;
+        for (int i = 0; i < modifiers.Count; i++)
+        {
+            var modifier = modifiers[i];
+            if (!modifier.IsActive || modifier.SubCategory != subCategory) continue;
+            int amount = (int)modifier.Value;
+            if (amount < 0) malus -= amount; else bonus += amount;
+        }
+
+        int beforeMalus = building.GetDefaultMaxLevel() + bonus;
+        int value = beforeMalus > 0 ? Math.Max(1, beforeMalus - malus) : beforeMalus;
+
+        _maxLevelCache[building.Type] = value;
+        return value;
+    }
+
+    /// <summary>
     /// Ajoute un provider supplémentaire à l'agrégateur (prestige, NPC bonuses…).
     /// Les providers par défaut (TechnologyTree, UniqueBuildingsModifierProvider) sont toujours présents.
     /// </summary>

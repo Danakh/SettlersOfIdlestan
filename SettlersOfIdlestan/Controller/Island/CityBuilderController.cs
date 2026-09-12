@@ -801,6 +801,9 @@ namespace SettlersOfIdlestan.Controller.Island
 
                 if (civ.ModifierAggregator.HasModifier(ECategory.NEW_CITY_DIVINE_CONQUEST))
                     GrantDivineConquestGarrison(city, civ);
+
+                if (civ.ModifierAggregator.HasModifier(ECategory.NEW_CITY_DIVINE_MAGISTERIUM))
+                    GrantDivineMagisteriumBuildings(city, vertexMap, civ, _state);
             }
 
             _state.Visibility.RecalculateFor(civilizationIndex);
@@ -884,6 +887,51 @@ namespace SettlersOfIdlestan.Controller.Island
 
             granted.Level = 1;
             city.AddBuilding(granted);
+        }
+
+        /// <summary>
+        /// Bâtiments de savoir tentés par Magisterium Divin (voir
+        /// <see cref="GrantDivineMagisteriumBuildings"/>) : un de recherche, un de magie.
+        /// </summary>
+        private static readonly BuildingType[] DivineMagisteriumBuildingTypes =
+        {
+            BuildingType.Library, BuildingType.MageTower,
+        };
+
+        /// <summary>
+        /// Pouvoir divin Magisterium Divin (ECategory.NEW_CITY_DIVINE_MAGISTERIUM) : accorde à la ville
+        /// une Bibliothèque et une Tour de Mages de niveau 1.
+        ///
+        /// <para>Trois conditions, et pas une de plus. Le bâtiment doit être <b>débloqué</b> pour la
+        /// civilisation (<see cref="Civilization.GetBuildingMaxLevel"/> &gt; 0) : sans ce test, chaque
+        /// avant-poste naîtrait avec une Bibliothèque avant même la recherche qui l'ouvre, et avec une
+        /// Tour de Mages — donc un rituel de plus — sans avoir jamais touché au Secret de la Magie. Il
+        /// doit exister sur la couche (<see cref="Building.IsAvailableInLayer"/>). Et ses prérequis
+        /// propres doivent être remplis (<see cref="Building.HasBuildPrerequisites"/>) : c'est ce qui
+        /// réserve la Tour de Mages aux villes touchant une Grotte de Cristal ou un Cercle de Fées
+        /// découvert, exactement comme une construction à la main.</para>
+        ///
+        /// <para>Le niveau de ville requis (<c>AvailableAtLevel</c> : 2 pour la Bibliothèque, 4 pour la
+        /// Tour de Mages) est en revanche passé outre — d'où l'absence d'appel à
+        /// <see cref="Building.IsBuildingAvailableForCity"/>, qui ne teste que lui. Un avant-poste naît
+        /// niveau 1 : l'exiger reviendrait à n'accorder jamais ni l'un ni l'autre. C'est la même
+        /// licence que prennent déjà les autres dons divins (voir
+        /// <see cref="GrantDivineConstructionMarket"/>).</para>
+        /// </summary>
+        private static void GrantDivineMagisteriumBuildings(City city, IslandMap map, Civilization civ, WorldState state)
+        {
+            foreach (var bt in DivineMagisteriumBuildingTypes)
+            {
+                if (city.Buildings.Any(b => b.Type == bt)) continue;
+
+                var building = BuildingFactory.Create(bt);
+                if (building == null || !building.IsAvailableInLayer(map.Z)) continue;
+                if (civ.GetBuildingMaxLevel(building) <= 0) continue;
+                if (!building.HasBuildPrerequisites(city, state)) continue;
+
+                building.Level = 1;
+                city.AddBuilding(building);
+            }
         }
 
         /// <summary>

@@ -41,7 +41,7 @@ public class BuildingMaxLevelCalculatorTests
     /// </summary>
     [Theory]
     [InlineData(BuildingType.MushroomFarm, 4)]  // 0 (défaut) + 2 (vertex Culture Fongique) + 2 (Géant, meilleur que Garuda/Gobelin -1)
-    [InlineData(BuildingType.MageTower, 6)]     // 0 (défaut) + 1+1+2 (3 vertex) + 2 (Géant, meilleur que Garuda/Gobelin -1)
+    [InlineData(BuildingType.MageTower, 7)]     // 0 (défaut) + 1+1+2 (3 vertex) + 1 (Magisterium Divin) + 2 (Géant, meilleur que Garuda/Gobelin -1)
     public void TheoreticalMaxLevel_IgnoresRacePenaltyWhenNoRaceGrantsABonus(BuildingType type, int expected)
     {
         Assert.Equal(expected, BuildingMaxLevelCalculator.GetTheoreticalMaxLevel(type));
@@ -75,10 +75,10 @@ public class BuildingMaxLevelCalculatorTests
             expected += unique.GetUniqueBuildingModifiers().Where(Matches).Sum(m => (int)m.Value);
         }
 
-        // Foi (pouvoir divin d'Ascension) accorde Temple +3 — seule source d'Ascension touchant
-        // BUILDING_MAX_LEVEL aujourd'hui (voir AscensionController.GetModifiers(), et le test
-        // OnlyFaithGrantsBuildingMaxLevelAmongAscensionPowers ci-dessous qui garde ce fait à jour).
-        if (subCategory == nameof(BuildingType.Temple)) expected += 3;
+        // Pouvoirs divins d'Ascension : la table AscensionBuildingMaxLevelGrants est la source unique
+        // de ces bonus ; le test AscensionPowers_GrantExactlyTheBuildingMaxLevelGrantsTable ci-dessous
+        // vérifie que le contrôleur n'en émet pas un seul en dehors d'elle.
+        expected += AscensionBuildingMaxLevelGrants.All.Where(g => g.Type == type).Sum(g => g.Bonus);
 
         // Bonus de race : le meilleur parmi toutes les races pour ce type, jamais negatif — un
         // seul choix de race est actif par partie, donc jamais deux bonus de races differentes
@@ -95,12 +95,14 @@ public class BuildingMaxLevelCalculatorTests
     }
 
     /// <summary>
-    /// Garde-fou spécifique sur le seul fait codé en dur du calculateur
-    /// (BuildingMaxLevelCalculator.GetAscensionBonus) : si un futur pouvoir divin ajoute un bonus
-    /// BUILDING_MAX_LEVEL sans mise à jour correspondante, ce test échoue.
+    /// Garde-fou sur la table AscensionBuildingMaxLevelGrants, seule source des bonus de niveau max
+    /// accordés par les pouvoirs divins : si un pouvoir en émet un hors de la table, le calculateur
+    /// (qui ne lit que la table) sous-évaluerait le plafond théorique sans la moindre erreur — les
+    /// plafonds des presets d'automatisation seraient alors faux. Tous les pouvoirs sont débloqués
+    /// ici, donc GetModifiers() doit rendre exactement la table, ligne pour ligne.
     /// </summary>
     [Fact]
-    public void OnlyFaithGrantsBuildingMaxLevelAmongAscensionPowers()
+    public void AscensionPowers_GrantExactlyTheBuildingMaxLevelGrantsTable()
     {
         var state = IslandTestFactory.CreateSevenHexIslandState();
         var godState = new GodState();
@@ -115,13 +117,38 @@ public class BuildingMaxLevelCalculatorTests
         var raceModifiers = new HashSet<SettlersOfIdlestan.Model.GameplayModifier.Modifier>(
             RaceDefinitions.Get(ascension.SelectedRace).Modifiers);
 
-        var buildingMaxLevelGrants = ascension.GetModifiers()
+        var emitted = ascension.GetModifiers()
             .Where(m => m.Category == ECategory.BUILDING_MAX_LEVEL)
             .Where(m => !raceModifiers.Contains(m))
+            .Select(m => (m.SubCategory, Value: (int)m.Value))
+            .OrderBy(g => g.SubCategory).ThenBy(g => g.Value)
             .ToList();
 
-        var grant = Assert.Single(buildingMaxLevelGrants);
-        Assert.Equal(nameof(BuildingType.Temple), grant.SubCategory);
-        Assert.Equal(3, grant.Value);
+        var expected = AscensionBuildingMaxLevelGrants.All
+            .Select(g => (SubCategory: BuildingTypeNames.Of(g.Type), Value: g.Bonus))
+            .OrderBy(g => g.SubCategory).ThenBy(g => g.Value)
+            .ToList();
+
+        Assert.Equal(expected, emitted);
+    }
+
+    /// <summary>
+    /// Un bonus de niveau max n'a de sens que si le palier qu'il ouvre se paie : un
+    /// GetUpgradeCost() vide à ce niveau offrirait l'amélioration, silencieusement. Vérifié pour
+    /// chaque type touché par la table (la Spire de Défense, la Tour des Arcanes et l'Académie
+    /// n'avaient aucun coût défini au-delà de leur ancien plafond).
+    /// </summary>
+    [Fact]
+    public void EveryAscensionGrantedLevelHasAnUpgradeCost()
+    {
+        foreach (var type in AscensionBuildingMaxLevelGrants.All.Select(g => g.Type).Distinct())
+        {
+            var prototype = BuildingFactory.Create(type)!;
+            int max = prototype.GetAbsoluteMaxLevel();
+
+            for (int level = 2; level <= max; level++)
+                Assert.True(prototype.GetUpgradeCost(level).Count > 0,
+                    $"{type} niveau {level} (plafond absolu {max}) n'a aucun coût d'amélioration.");
+        }
     }
 }

@@ -30,6 +30,7 @@ public enum AscensionPowerId
     WrathOfGod,
     DivineConstruction,
     DivineConquest,
+    DivineMagisterium,
     DivineMagic,
     DivineRituals,
     EternalMagic,

@@ -79,8 +79,9 @@ internal sealed class DefenseSpireEngine
                 }
                 civ.RemoveResource(Resource.Crystal, DefenseSpire.CrystalCostPerAttack);
 
-                // Dégâts bruts : la Spire perce les armures (pas de MonsterFeature.ApplyArmorReduction).
-                target.Hp -= DefenseSpire.DamagePerAttack;
+                // Dégâts bruts : la Spire perce les armures (pas de MonsterFeature.ApplyArmorReduction),
+                // et en inflige un par niveau — le niveau 2 n'existe qu'avec Magisterium Divin.
+                target.Hp -= spire.GetDamage();
                 spire.LastAttackTick = currentTick;
                 onSpireAttackedMonster(new SoldierAttackEventArgs(city.Position, target.Position));
 

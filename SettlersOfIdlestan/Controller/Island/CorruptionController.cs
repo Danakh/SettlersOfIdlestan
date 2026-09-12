@@ -17,9 +17,9 @@ namespace SettlersOfIdlestan.Controller.Island;
 /// Gère la lutte Corruption/Dominion. La Corruption et le Dominion sont <b>passifs</b> : un hex déjà
 /// posé ne déborde jamais de lui-même. Seules les <b>sources</b> sont simulées, toutes au rythme de
 /// <see cref="ProductionIntervalTicks"/> (10 s), et chacune produit un point par intervalle.
-/// 1. <see cref="ProcessTempleProduction"/> — chaque Temple de niveau 2-4 (atteignable uniquement une
-///    fois le pouvoir divin Foi débloqué, voir AscensionController.GetModifiers — BUILDING_MAX_LEVEL
-///    "Temple" +3) produit du Dominion depuis les 3 hexes touchant sa ville, plafonné à
+/// 1. <see cref="ProcessTempleProduction"/> — chaque Temple au-delà du niveau 1 (atteignable
+///    uniquement via les pouvoirs divins Foi +3 et Magisterium Divin +1, voir
+///    AscensionBuildingMaxLevelGrants) produit du Dominion depuis les 3 hexes touchant sa ville, plafonné à
 ///    <see cref="TempleDominionCapPerLevel"/> × niveau effectif du Temple. Le niveau effectif est le
 ///    niveau réel augmenté de TEMPLE_DOMINION_LEVEL_BONUS (Ziggourat +1), ce qui abaisse aussi d'autant
 ///    le niveau à partir duquel un Temple produit — voir <see cref="ProducesDominion"/>.

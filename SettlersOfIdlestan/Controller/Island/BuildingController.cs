@@ -1067,34 +1067,13 @@ namespace SettlersOfIdlestan.Controller.Island
             return probe == null ? 0 : GetMaxLevel(probe, civ);
         }
 
-        public int GetMaxLevel(Building building, Civilization civ)
-        {
-            if (civ.TryGetCachedMaxLevel(building.Type, out int cached))
-                return cached;
-
-            string subCategory = BuildingTypeNames.Of(building.Type);
-            var modifiers = civ.ModifierAggregator.GetActiveModifiersUnfiltered(ECategory.BUILDING_MAX_LEVEL);
-
-            // Bonus et malus additifs sommés séparément : les malus raciaux (RaceDefinitions, ex.
-            // Gobelins -1 sur les bâtiments standards) s'appliquent en dernier et sont plafonnés pour
-            // ne jamais rendre inconstructible un bâtiment qui aurait été atteignable sans eux — un
-            // bâtiment jamais débloqué par ailleurs (base + bonus <= 0, ex. Bibliothèque avant sa
-            // recherche) reste à 0, inchangé par le malus.
-            int bonus = 0, malus = 0;
-            for (int i = 0; i < modifiers.Count; i++)
-            {
-                var modifier = modifiers[i];
-                if (!modifier.IsActive || modifier.SubCategory != subCategory) continue;
-                int amount = (int)modifier.Value;
-                if (amount < 0) malus -= amount; else bonus += amount;
-            }
-
-            int beforeMalus = building.GetDefaultMaxLevel() + bonus;
-            int value = beforeMalus > 0 ? Math.Max(1, beforeMalus - malus) : beforeMalus;
-
-            civ.SetCachedMaxLevel(building.Type, value);
-            return value;
-        }
+        /// <summary>
+        /// Niveau max civ-wide d'un bâtiment. Le calcul (et son cache) vit sur la civilisation —
+        /// voir <see cref="Civilization.GetBuildingMaxLevel"/> : les contrôleurs qui n'ont pas de
+        /// BuildingController sous la main doivent pouvoir poser la même question sans réécrire la
+        /// règle des malus raciaux.
+        /// </summary>
+        public int GetMaxLevel(Building building, Civilization civ) => civ.GetBuildingMaxLevel(building);
 
         /// <summary>
         /// Niveau max pour un bâtiment d'une ville précise. Identique à <see cref="GetMaxLevel(Building, Civilization)"/>

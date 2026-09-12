@@ -38,6 +38,8 @@ public class Academy : Building, IUniqueBuilding
         3 => new ResourceSet { { Resource.Brick, 350 }, { Resource.Stone, 175 }, { Resource.Glass, 100 } },
         4 => new ResourceSet { { Resource.Brick, 550 }, { Resource.Stone, 275 }, { Resource.Glass, 160 } },
         5 => new ResourceSet { { Resource.Brick, 800 }, { Resource.Stone, 400 }, { Resource.Glass, 240 } },
+        // Niveau 6 : seul le pouvoir divin Magisterium Divin y donne accès (voir AscensionBuildingMaxLevelGrants).
+        6 => new ResourceSet { { Resource.Brick, 1200 }, { Resource.Stone, 600 }, { Resource.Glass, 360 } },
         _ => new ResourceSet()
     };
 
