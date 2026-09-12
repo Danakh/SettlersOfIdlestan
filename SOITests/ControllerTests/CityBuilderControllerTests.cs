@@ -440,14 +440,46 @@ public class CityBuilderControllerTests
         civ.AddCity(new City(abyssTarget) { CivilizationIndex = 0 });
         civ.AddCity(new City(Vertex.Create(ha3, ha4, ha5)) { CivilizationIndex = 0 });
 
-        // 2 villes d'Abysses -> surcharge en Math.Pow(2, 2) = 4 -> multiplicateur 1 + 1.0 * 4 = 5.
+        // 2 villes d'Abysses -> surcharge en Math.Pow(2, 2) = 4, avec le facteur exponentiel
+        // additionnel 2^(2/20) ~ 1.0718 (doublement tous les 20 villes) -> multiplicateur
+        // 1 + 1.0 * 4 * 1.0718 ~ 5.2871.
         var cost = Controller(state).NewCityBuildingCostFor(abyssTarget, civ);
 
-        Assert.Equal(50, cost[Resource.Gold]);
-        Assert.Equal(25, cost[Resource.Crystal]);
-        Assert.Equal(50, cost[Resource.Brick]);
-        Assert.Equal(50, cost[Resource.Wood]);
-        Assert.Equal(75, cost[Resource.Food]);
+        Assert.Equal(53, cost[Resource.Gold]);
+        Assert.Equal(26, cost[Resource.Crystal]);
+        Assert.Equal(53, cost[Resource.Brick]);
+        Assert.Equal(53, cost[Resource.Wood]);
+        Assert.Equal(79, cost[Resource.Food]);
+    }
+
+    [Fact]
+    public void NewCityBuildingCostFor_AbyssCities_DoublesEvery20Cities()
+    {
+        var (state, civ, v1, _, _) = RibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+
+        Vertex? target = null;
+        for (int i = 0; i < 20; i++)
+        {
+            int q = i * 10; // Espacé pour que les triangles de villes successives ne partagent aucun hexagone.
+            var vertex = Vertex.Create(
+                new HexCoord(q, 0, LayerState.AbyssZ),
+                new HexCoord(q + 1, 0, LayerState.AbyssZ),
+                new HexCoord(q, 1, LayerState.AbyssZ));
+            civ.AddCity(new City(vertex) { CivilizationIndex = 0 });
+            target ??= vertex;
+        }
+
+        // 20 villes d'Abysse -> surcharge en Math.Pow(20, 2) = 400, avec le facteur exponentiel
+        // additionnel 2^(20/20) = 2 (doublement tous les 20 villes) ->
+        // multiplicateur 1 + 1.0 * 400 * 2 = 801.
+        var cost = Controller(state).NewCityBuildingCostFor(target!, civ);
+
+        Assert.Equal(8010, cost[Resource.Gold]);
+        Assert.Equal(4005, cost[Resource.Crystal]);
+        Assert.Equal(8010, cost[Resource.Brick]);
+        Assert.Equal(8010, cost[Resource.Wood]);
+        Assert.Equal(12015, cost[Resource.Food]);
     }
 
     [Fact]

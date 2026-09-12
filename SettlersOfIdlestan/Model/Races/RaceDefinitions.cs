@@ -170,7 +170,8 @@ public static class RaceDefinitions
             requiredPowers: new[] { AscensionPowerId.EyeOfGod, AscensionPowerId.DivineInventory, AscensionPowerId.FistOfGod }),
 
         // Garudas : seigneurs du vent — le Vol fonde des villes sans route (jusqu'à 3 arêtes d'une
-        // ville, voir CityBuilderController.AddFlightCandidateVertices) ; distance minimale entre
+        // ville, en surface comme dans l'Abysse mais pas dans l'Inframonde, voir
+        // CityBuilderController.AddFlightCandidateVertices) ; distance minimale entre
         // villes standard (3), portée d'attaque +1, portée encore étendue par le Trône des Vents.
         // En échange : -1 de niveau max sur la production et la recherche (GarudaLightBuildings — la
         // magie en est exclue) et défense -20 %. Déblocage : Œil de Dieu (partagé avec les Géants),

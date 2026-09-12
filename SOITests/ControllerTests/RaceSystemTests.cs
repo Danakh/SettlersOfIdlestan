@@ -982,19 +982,86 @@ public class RaceSystemTests
         Assert.Contains(vertices, v => v.Equals(v3));
     }
 
+    /// <summary>
+    /// Recopie le ruban de <see cref="RoadlessRibbonIsland"/> sur la couche <paramref name="z"/> et
+    /// y pose une ville de la civilisation. Rend le vertex voisin attendu (v2 du ruban, à distance
+    /// 2 de la ville, donc dans la portée de vol et au-delà de la distance minimale).
+    /// </summary>
+    private static Vertex AddRoadlessRibbonLayerWithCity(WorldState state, Civilization civ, int z)
+    {
+        var h1 = new HexCoord(0, 0, z);
+        var h2 = new HexCoord(1, 0, z);
+        var h3 = new HexCoord(0, 1, z);
+        var h4 = new HexCoord(1, 1, z);
+        var h5 = new HexCoord(0, 2, z);
+        var h6 = new HexCoord(1, 2, z);
+
+        var map = new IslandMap(new HexTile[]
+        {
+            new(h1, TerrainType.Plain),
+            new(h2, TerrainType.Plain),
+            new(h3, TerrainType.Plain),
+            new(h4, TerrainType.Plain),
+            new(h5, TerrainType.Plain),
+            new(h6, TerrainType.Plain),
+        }, z);
+        state.AddLayer(z, new LayerState(map));
+
+        civ.AddCity(new City(Vertex.Create(h1, h2, h3)) { CivilizationIndex = 0 });
+        return Vertex.Create(h3, h4, h5);
+    }
+
     [Fact]
-    public void GetBuildableVertices_Flight_SurfaceOnly()
+    public void GetBuildableVertices_Flight_ExcludesUnderworld()
     {
         var (state, civ, _, _, _, _, _) = RoadlessRibbonIsland();
 
-        // Ville d'Inframonde : le Vol ne part que des villes de surface — aucun candidat.
-        var hu1 = new HexCoord(0, 0, LayerState.UnderworldZ);
-        var hu2 = new HexCoord(1, 0, LayerState.UnderworldZ);
-        var hu3 = new HexCoord(0, 1, LayerState.UnderworldZ);
-        civ.AddCity(new City(Vertex.Create(hu1, hu2, hu3)) { CivilizationIndex = 0 });
+        // Ville d'Inframonde : galeries creusées, on n'y vole pas — aucun candidat.
+        AddRoadlessRibbonLayerWithCity(state, civ, LayerState.UnderworldZ);
         AddFlightModifiers(civ);
 
         Assert.Empty(Controller(state).GetBuildableVertices(0));
+    }
+
+    [Fact]
+    public void GetBuildableVertices_Flight_WorksInAbyss()
+    {
+        var (state, civ, _, _, _, _, _) = RoadlessRibbonIsland();
+
+        // Le gouffre de l'Abysse laisse assez de hauteur pour voler : la ville d'Abysse fournit
+        // des candidats sans route, sur sa propre couche.
+        var expected = AddRoadlessRibbonLayerWithCity(state, civ, LayerState.AbyssZ);
+        AddFlightModifiers(civ);
+
+        var vertices = Controller(state).GetBuildableVertices(0);
+
+        Assert.Contains(vertices, v => v.Equals(expected));
+        Assert.All(vertices, v => Assert.Equal(LayerState.AbyssZ, v.Z));
+    }
+
+    [Fact]
+    public void GetBuildableVertices_Flight_DoesNotCrossLayers()
+    {
+        var (state, civ, v1, _, v2, v3, _) = RoadlessRibbonIsland();
+        civ.AddCity(new City(v1) { CivilizationIndex = 0 });
+
+        // Couche Abysse présente mais sans ville : la ville de surface n'y projette rien.
+        var h1 = new HexCoord(0, 0, LayerState.AbyssZ);
+        var h2 = new HexCoord(1, 0, LayerState.AbyssZ);
+        var h3 = new HexCoord(0, 1, LayerState.AbyssZ);
+        state.AddLayer(LayerState.AbyssZ, new LayerState(new IslandMap(new HexTile[]
+        {
+            new(h1, TerrainType.Plain),
+            new(h2, TerrainType.Plain),
+            new(h3, TerrainType.Plain),
+        }, LayerState.AbyssZ)));
+        AddFlightModifiers(civ);
+
+        var vertices = Controller(state).GetBuildableVertices(0);
+
+        Assert.Contains(vertices, v => v.Equals(v2));
+        Assert.Contains(vertices, v => v.Equals(v3));
+        Assert.All(vertices, v => Assert.Equal(IslandMap.SurfaceLayer, v.Z));
     }
 
     [Fact]

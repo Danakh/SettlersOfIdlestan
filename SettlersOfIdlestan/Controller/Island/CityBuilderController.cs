@@ -398,42 +398,55 @@ namespace SettlersOfIdlestan.Controller.Island
         }
 
         /// <summary>
-        /// Vol (CITY_PLACEMENT_FLYING, Garudas) : ajoute au bassin de candidats les vertex de
-        /// surface atteignables en volant, c'est-à-dire à au plus <paramref name="flightRange"/>
-        /// arêtes d'une ville de surface de la civilisation, sans exiger de route. Le survol de
-        /// l'eau est permis (le parcours traverse les vertex tout-eau) mais on ne se pose que sur
-        /// un vertex touchant au moins un hex terrestre. Strictement limité à la surface : les
-        /// villes d'Inframonde/Abysse ne génèrent aucun candidat (le BFS ne part que des villes de
-        /// surface et reste sur leur couche — les vertex adjacents partagent le Z). Les filtres
+        /// Couches où le Vol peut opérer : la surface, à ciel ouvert, et l'Abysse, dont le gouffre
+        /// laisse assez de hauteur pour voler. L'Inframonde, réseau de galeries creusées, en reste
+        /// exclu (voir <see cref="AddFlightCandidateVertices"/>).
+        /// </summary>
+        private static readonly int[] FlightCapableLayers = { IslandMap.SurfaceLayer, LayerState.AbyssZ };
+
+        /// <summary>
+        /// Vol (CITY_PLACEMENT_FLYING, Garudas) : ajoute au bassin de candidats les vertex
+        /// atteignables en volant, c'est-à-dire à au plus <paramref name="flightRange"/> arêtes
+        /// d'une ville de la civilisation posée sur une couche volable, sans exiger de route. Le
+        /// survol de l'eau est permis (le parcours traverse les vertex tout-eau) mais on ne se pose
+        /// que sur un vertex touchant au moins un hex terrestre. Chaque couche est parcourue
+        /// séparément, depuis ses seules villes : le Vol ne franchit jamais une couche, et
+        /// l'Inframonde n'en fait pas partie (voir <see cref="FlightCapableLayers"/>). Les filtres
         /// avals (occupation, distances, terrain racial) s'appliquent ensuite normalement.
         /// BFS à ordre stable (Queue + List) : le résultat alimente le choix PRNG des avant-postes
         /// automatiques, l'ordre doit être déterministe.
         /// </summary>
         private void AddFlightCandidateVertices(List<Vertex> vertices, HashSet<Vertex> known, Civilization civ, int flightRange, City? excludingCity)
         {
-            var map = _state!.GetMapForZ(IslandMap.SurfaceLayer);
-            if (map == null) return;
-
+            // Un seul ensemble de visite pour toutes les couches : deux vertex de Z différents ne
+            // sont jamais égaux, aucune collision possible d'une couche à l'autre.
             var visited = new HashSet<Vertex>();
             var queue = new Queue<(Vertex Vertex, int Depth)>();
 
-            foreach (var city in civ.Cities)
+            for (int i = 0; i < FlightCapableLayers.Length; i++)
             {
-                if (city == excludingCity || city.Position.Z != IslandMap.SurfaceLayer) continue;
-                if (visited.Add(city.Position))
-                    queue.Enqueue((city.Position, 0));
-            }
+                int z = FlightCapableLayers[i];
+                var map = _state!.GetMapForZ(z);
+                if (map == null) continue;
 
-            while (queue.Count > 0)
-            {
-                var (vertex, depth) = queue.Dequeue();
-                if (depth >= flightRange) continue;
-                foreach (var neighbor in vertex.GetAdjacentVertices())
+                foreach (var city in civ.Cities)
                 {
-                    if (!visited.Add(neighbor)) continue;
-                    queue.Enqueue((neighbor, depth + 1));
-                    if (TouchesLand(map, neighbor) && known.Add(neighbor))
-                        vertices.Add(neighbor);
+                    if (city == excludingCity || city.Position.Z != z) continue;
+                    if (visited.Add(city.Position))
+                        queue.Enqueue((city.Position, 0));
+                }
+
+                while (queue.Count > 0)
+                {
+                    var (vertex, depth) = queue.Dequeue();
+                    if (depth >= flightRange) continue;
+                    foreach (var neighbor in vertex.GetAdjacentVertices())
+                    {
+                        if (!visited.Add(neighbor)) continue;
+                        queue.Enqueue((neighbor, depth + 1));
+                        if (TouchesLand(map, neighbor) && known.Add(neighbor))
+                            vertices.Add(neighbor);
+                    }
                 }
             }
         }
@@ -1110,7 +1123,10 @@ namespace SettlersOfIdlestan.Controller.Island
             {
                 cost[Resource.Gold] = 10;
                 cost[Resource.Crystal] = 5;
-                multiplier = 1.0 + 1.0 * (effectiveSurfaceOverCostCapped + effectiveUnderworldOverCostCapped + effectiveAbyssOverCost);
+                // Facteur exponentiel additionnel : le coût des villes d'Abysse double tous les 20
+                // villes d'Abysse/Pandémonium, en plus de la progression existante en Math.Pow(...,2).
+                double abyssExponentialFactor = Math.Pow(2, abyssCities / 20.0);
+                multiplier = 1.0 + 1.0 * (effectiveSurfaceOverCostCapped + effectiveUnderworldOverCostCapped + effectiveAbyssOverCost * abyssExponentialFactor);
             }
             else if (targetVertex.Z == LayerState.UnderworldZ)
             {
