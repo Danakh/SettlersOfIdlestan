@@ -36,6 +36,12 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// <summary>Dernier tick de génération plate, non persisté — voir PassiveGenerationEngine pour le même patron.</summary>
         private long _lastFlatResearchGenTick;
 
+        /// <summary>Intervalle de l'achat automatique gratuit d'Omniscience de Dieu : 100 ticks = 1 seconde, une recherche par cycle.</summary>
+        public const long OmniscienceFreeResearchIntervalTicks = 100L;
+
+        /// <summary>Dernier tick d'achat automatique gratuit, non persisté — même patron que <see cref="_lastFlatResearchGenTick"/>.</summary>
+        private long _lastOmniscienceGrantTick;
+
         public event EventHandler<TechnologyId>? OnResearchCompleted;
 
         // Convenience accessors for renderers — go through PrestigeState so the source is explicit.
@@ -65,6 +71,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             // sauvegarde) : le seeder au tick courant plutôt qu'à 0, sinon TickCooldown calcule un
             // nombre de cycles de rattrapage proportionnel à tout le tick courant (voir PassiveGenerationEngine).
             _lastFlatResearchGenTick = clock?.CurrentTick ?? 0;
+            _lastOmniscienceGrantTick = clock?.CurrentTick ?? 0;
             if (prestigeState != null)
                 foreach (var id in prestigeState.TechnologyTree.CompletedTechnologies)
                 {
@@ -110,6 +117,8 @@ namespace SettlersOfIdlestan.Controller.Expand
             catch (Exception ex) { GameLog.Error(nameof(ResearchController), nameof(ProduceResearchPoints), ex); }
             try { AdvanceActiveResearch(); }
             catch (Exception ex) { GameLog.Error(nameof(ResearchController), nameof(AdvanceActiveResearch), ex); }
+            try { GrantFreeOmniscienceResearch(); }
+            catch (Exception ex) { GameLog.Error(nameof(ResearchController), nameof(GrantFreeOmniscienceResearch), ex); }
         }
 
         private void ProduceResearchPoints()
@@ -315,6 +324,89 @@ namespace SettlersOfIdlestan.Controller.Expand
                 tree.LoopResearch = queued;
         }
 
+        /// <summary>
+        /// Omniscience de Dieu (AUTO_FREE_RESEARCH_STOCK_PERCENT) : une fois par seconde, la
+        /// recherche disponible la moins chère dont le coût effectif ne dépasse pas ce pourcentage du
+        /// stock courant de points est complétée d'office, <em>sans dépenser un seul point</em> — le
+        /// stock n'est jamais entamé, seule la recherche active continue de le consommer normalement.
+        /// La plus chère d'abord serait un gâchis : c'est le bas de l'arbre qu'on veut voir se remplir
+        /// tout seul, et chaque complétion ouvre les suivantes dès le cycle d'après.
+        /// </summary>
+        private void GrantFreeOmniscienceResearch()
+        {
+            if (_state == null || _clock == null || Tree == null) return;
+            var tree = Tree;
+
+            double percent = _state.PlayerCivilization.ModifierAggregator.ApplyModifiers(
+                Modifier.ECategory.AUTO_FREE_RESEARCH_STOCK_PERCENT, "", 0.0);
+            if (percent <= 0) return;
+
+            long now = _clock.CurrentTick;
+            long lastTick = _lastOmniscienceGrantTick;
+            long cycles = TickCooldown.ConsumeElapsedCycles(now, ref lastTick, OmniscienceFreeResearchIntervalTicks, coldStartOnZero: true);
+            _lastOmniscienceGrantTick = lastTick;
+            if (cycles <= 0) return;
+
+            // Rejoué cycle par cycle (pas une sélection en bloc) : compléter une recherche en rend
+            // d'autres disponibles au cycle suivant, exactement comme si le joueur avait attendu.
+            // La boucle s'arrête d'elle-même dès qu'aucune candidate ne passe le seuil, donc un gros
+            // saut de temps ne la fait pas tourner pour rien.
+            for (long i = 0; i < cycles; i++)
+            {
+                long threshold = (long)(tree.ResearchPoints * percent / 100.0);
+                if (threshold <= 0) return;
+
+                var candidate = FindCheapestFreeResearchCandidate(threshold);
+                if (candidate == null) return;
+
+                GrantResearchFree(tree, candidate.Value);
+            }
+        }
+
+        /// <summary>
+        /// Recherche disponible la moins chère dont le coût effectif (réductions comprises, comme
+        /// pour un achat normal) tient sous <paramref name="threshold"/>, ou null s'il n'y en a
+        /// aucune. S'appuie sur <see cref="GetStatus"/> : une recherche déjà complétée, en cours,
+        /// verrouillée (prérequis, prestige, Dominion, Omniscience) ou masquée par le mode démo n'est
+        /// jamais candidate.
+        /// </summary>
+        private TechnologyId? FindCheapestFreeResearchCandidate(long threshold)
+        {
+            TechnologyId? best = null;
+            long bestCost = long.MaxValue;
+
+            foreach (var tech in TechnologyDefinitions.All)
+            {
+                if (GetStatus(tech.Id) != TechnologyStatus.Available) continue;
+
+                long cost = GetEffectiveCost(tech);
+                if (cost > threshold || cost >= bestCost) continue;
+
+                best = tech.Id;
+                bestCost = cost;
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Complète une recherche sans en payer le coût. Le coût de BASE est tout de même comptabilisé
+        /// dans <see cref="_totalBaseResearchCostCompleted"/> : <see cref="Initialize"/> le recalcule
+        /// depuis les recherches complétées, donc ne pas le compter ici ferait sauter le plafond de
+        /// points (<see cref="MaxResearchPoints"/>) au premier rechargement de la sauvegarde.
+        /// </summary>
+        private void GrantResearchFree(TechnologyTree tree, TechnologyId id)
+        {
+            var tech = TechnologyDefinitions.Get(id);
+            if (tech == null) return;
+
+            _totalBaseResearchCostCompleted += tech.Cost;
+            tree.CompleteResearch(id);
+            // Elle ne peut plus être lancée : la laisser en file bloquerait une place pour rien.
+            tree.ResearchQueue.Remove(id);
+            OnResearchCompleted?.Invoke(this, id);
+        }
+
         public bool IsDemoLocked(TechnologyId id)
             => _settings?.DemoMode == true && (TechnologyDefinitions.Get(id)?.Tier ?? 0) >= 4;
 
@@ -338,6 +430,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (!ArePrerequisitesMet(tree, tech)) return false;
             if (!IsPrestigeRequirementMet(id)) return false;
             if (!IsDominionRequirementMet(id)) return false;
+            if (!IsOmniscienceRequirementMet(id)) return false;
 
             tree.ActiveResearch = id;
             tree.ActiveResearchConsumed = 0;
@@ -486,6 +579,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             if (tree.ActiveResearch == id) return false;
             if (!IsPrestigeRequirementMet(id)) return false;
             if (!IsDominionRequirementMet(id)) return false;
+            if (!IsOmniscienceRequirementMet(id)) return false;
             return ArePrerequisitesMet(tree, tech) || WillBeAvailableAfterActiveResearch(tree, tech);
         }
 
@@ -525,7 +619,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             var tech = TechnologyDefinitions.Get(id);
             if (tech == null || !ArePrerequisitesMet(tree, tech) || !IsPrestigeRequirementMet(id)
-                || !IsDominionRequirementMet(id)) return TechnologyStatus.Inactive;
+                || !IsDominionRequirementMet(id) || !IsOmniscienceRequirementMet(id)) return TechnologyStatus.Inactive;
 
             return TechnologyStatus.Available;
         }
@@ -608,6 +702,18 @@ namespace SettlersOfIdlestan.Controller.Expand
                 Modifier.ECategory.UNLOCK_DOMINION) == true;
         }
 
+        /// <summary>
+        /// Vrai si la recherche n'exige pas l'Omniscience, ou si le pouvoir divin Omniscience de Dieu
+        /// est débloqué (UNLOCK_OMNISCIENCE) — même verrou que <see cref="IsDominionRequirementMet"/>.
+        /// </summary>
+        private bool IsOmniscienceRequirementMet(TechnologyId id)
+        {
+            var tech = TechnologyDefinitions.Get(id);
+            if (tech == null || !tech.RequiresOmniscienceUnlock) return true;
+            return _state?.PlayerCivilization.ModifierAggregator.HasModifier(
+                Modifier.ECategory.UNLOCK_OMNISCIENCE) == true;
+        }
+
         public bool ShouldDisplay(TechnologyId id)
         {
             if (Tree == null) return false;
@@ -628,6 +734,7 @@ namespace SettlersOfIdlestan.Controller.Expand
 
             if (!IsPrestigeRequirementMet(id)) return false;
             if (!IsDominionRequirementMet(id)) return false;
+            if (!IsOmniscienceRequirementMet(id)) return false;
 
             var techDef = TechnologyDefinitions.Get(id);
             if (techDef == null) return false;
@@ -658,6 +765,7 @@ namespace SettlersOfIdlestan.Controller.Expand
             None,
             PrestigeVertex,
             Dominion,
+            Omniscience,
             Prerequisite,
         }
 
@@ -676,6 +784,8 @@ namespace SettlersOfIdlestan.Controller.Expand
                 return (LockReason.PrestigeVertex, FindUnlockingPrestigeVertexKey(id));
             if (!IsDominionRequirementMet(id))
                 return (LockReason.Dominion, null);
+            if (!IsOmniscienceRequirementMet(id))
+                return (LockReason.Omniscience, null);
 
             var tree = Tree;
             var tech = TechnologyDefinitions.Get(id);

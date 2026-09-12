@@ -44,6 +44,13 @@ public class AscensionController : IModifierProvider
     public const int HornOfPlentyPassiveGenerationPerCycle = 20;
 
     /// <summary>
+    /// Seuil, en pourcentage du stock courant de points de recherche, en dessous duquel Omniscience
+    /// de Dieu complète gratuitement une recherche disponible par seconde — sans en dépenser un seul
+    /// point (voir ResearchController.GrantFreeOmniscienceResearch).
+    /// </summary>
+    public const int OmniscienceFreeResearchStockPercent = 10;
+
+    /// <summary>
     /// Bâtiments uniques non-raciaux toujours choisissables comme bâtiment permanent d'Ascension
     /// (voir <see cref="SelectPermanentUniqueBuilding"/>) : un bâtiment accordé ainsi ne vit dans
     /// aucune ville (voir Civilization.SetAscensionGrantedUniqueBuildings) — seule une instance
@@ -942,6 +949,17 @@ public class AscensionController : IModifierProvider
         // à celui de la Tour de Guet (voir VisibleIslandMap).
         if (IsPowerUnlocked(AscensionPowerId.EyeOfGod))
             yield return new Modifier(Modifier.ECategory.CITY_VISION_RANGE, Modifier.EType.ADDITIVE, 1);
+
+        // Omniscience de Dieu : ouvre les recherches qui l'exigent (UNLOCK_OMNISCIENCE, même verrou
+        // que Foi pour le Dominion) et achète d'office, une par seconde et sans dépenser un point,
+        // toute recherche disponible coûtant moins de OmniscienceFreeResearchStockPercent % du stock
+        // courant (voir ResearchController.GrantFreeOmniscienceResearch).
+        if (IsPowerUnlocked(AscensionPowerId.OmniscienceOfGod))
+        {
+            yield return new Modifier(Modifier.ECategory.UNLOCK_OMNISCIENCE, Modifier.EType.ADDITIVE, 1.0);
+            yield return new Modifier(Modifier.ECategory.AUTO_FREE_RESEARCH_STOCK_PERCENT, Modifier.EType.ADDITIVE,
+                OmniscienceFreeResearchStockPercent);
+        }
 
         if (IsPowerUnlocked(AscensionPowerId.HornOfPlenty))
         {

@@ -370,6 +370,10 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             CONSUMABLE_RESERVE_FRACTION,
             /// <summary>Flags que le monument Titan d'Acier peut être posé (voir SteelTitanController). SubCategory unused.</summary>
             UNLOCK_STEEL_TITAN,
+            /// <summary>Flags que l'Omniscience divine est acquise pour la civilisation (octroyée par le pouvoir divin Omniscience de Dieu). Verrouille les recherches marquées requiresOmniscienceUnlock, exactement comme UNLOCK_DOMINION le fait pour celles du Dominion (voir Technology.RequiresOmniscienceUnlock et ResearchController). SubCategory unused.</summary>
+            UNLOCK_OMNISCIENCE,
+            /// <summary>Pourcentage du stock courant de points de recherche en dessous duquel une recherche disponible est complétée gratuitement, sans dépenser un seul point, à raison d'une par seconde (voir ResearchController.GrantFreeOmniscienceResearch). Base = 0 (aucun achat automatique) ; 10 = toute recherche coûtant moins de 10% du stock. SubCategory unused. Accordé par le pouvoir divin Omniscience de Dieu.</summary>
+            AUTO_FREE_RESEARCH_STOCK_PERCENT,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

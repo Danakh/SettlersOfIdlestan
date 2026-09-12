@@ -750,7 +750,8 @@ public static class TechnologyDefinitions
             prerequisites: new[] { TechnologyId.CreusetDuDominion },
             modifiers: new Modifier[] { new(ECategory.INVESTMENT_SPEED_VERY_HIGH_STOCK_BONUS, EType.ADDITIVE, 9.0) },
             tier: 12, line: 1,
-            requiresDominionUnlock: true),
+            requiresDominionUnlock: true,
+            requiresOmniscienceUnlock: true),
 
         // Baissée d'un tier (coût / 4).
         new(TechnologyId.Omniscience,
@@ -874,7 +875,8 @@ public static class TechnologyDefinitions
             prerequisites: new[] { TechnologyId.DogmeDeLEmprise },
             modifiers: new Modifier[] { new(ECategory.TEMPLE_DOMINION_PROTECTION_CHANCE, EType.ADDITIVE, 0.1) },
             tier: 13, line: 6,
-            requiresDominionUnlock: true),
+            requiresDominionUnlock: true,
+            requiresOmniscienceUnlock: true),
 
         // Chaque Temple ajoute un bonus fixe de défense à sa ville selon son niveau (+1/3/6/10,
         // voir Temple.GetDefenseBonusForLevel et MilitaryController.GetDefenseScore). Accélère aussi
@@ -894,6 +896,38 @@ public static class TechnologyDefinitions
             },
             tier: 11, line: 8,
             requiresDominionUnlock: true),
+
+        // === Recherches de l'Omniscience ===
+        // Cachées tant que le pouvoir divin Omniscience de Dieu n'est pas débloqué
+        // (requiresOmniscienceUnlock), au même titre que les Grands Travaux du Dominion et la Terre
+        // Consacrée ci-dessus.
+
+        // Suite de Vendetta. Son effet reste à implémenter : la recherche n'a volontairement aucun
+        // modificateur pour l'instant, elle n'est là que pour tenir sa place dans l'arbre.
+        new(TechnologyId.Blitz,
+            "tech_blitz_name", "tech_blitz_desc",
+            cost: 104687500,
+            prerequisites: new[] { TechnologyId.Vendetta },
+            modifiers: Array.Empty<Modifier>(),
+            tier: 10, line: 9,
+            requiresOmniscienceUnlock: true),
+
+        // Jonction de la Sagesse Souterraine et du Cœur de la Terre : +50% de chance de doubler la
+        // récolte des bâtiments à Cristal (Tour de Mages, Hutte d'Alchimie) et de la Mine de Mithril.
+        // Même barème que les autres HARVEST_PRODUCTION_BONUS : au-delà de 100% la partie entière est
+        // garantie et seul le reste est tiré au sort (voir HarvestController).
+        new(TechnologyId.FilonsProfonds,
+            "tech_filons_profonds_name", "tech_filons_profonds_desc",
+            cost: 418750000,
+            prerequisites: new[] { TechnologyId.SagesseSouterraine, TechnologyId.CoeurDeLaTerre },
+            modifiers: new Modifier[]
+            {
+                new(ECategory.HARVEST_PRODUCTION_BONUS, "MageTower", EType.ADDITIVE, 50),
+                new(ECategory.HARVEST_PRODUCTION_BONUS, "AlchimistHut", EType.ADDITIVE, 50),
+                new(ECategory.HARVEST_PRODUCTION_BONUS, "MithrilMine", EType.ADDITIVE, 50),
+            },
+            tier: 11, line: 0,
+            requiresOmniscienceUnlock: true),
 
     };
 

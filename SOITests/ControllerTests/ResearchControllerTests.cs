@@ -839,4 +839,133 @@ public class ResearchControllerTests
         Assert.False(ctrl.IsLoopEnabled(TechnologyId.MasterHarvest));
         Assert.Equal(new[] { TechnologyId.Fortifications }, ctrl.GetResearchQueue());
     }
+
+    // ── Omniscience de Dieu ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Monte un contrôleur dont la civilisation porte les modificateurs donnés — le pouvoir divin
+    /// Omniscience de Dieu passe par les mêmes catégories (voir AscensionController.GetModifiers).
+    /// </summary>
+    private static (ResearchController ctrl, PrestigeState prestigeState, GameClock clock) BuildScenario(
+        params Modifier[] modifiers)
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.AddCustomAggregator(new StaticModifierProvider(modifiers));
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+        civ.TechnologyTree = prestigeState.TechnologyTree;
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+        return (ctrl, prestigeState, clock);
+    }
+
+    private static Modifier FreeResearchModifier(double percent)
+        => new(Modifier.ECategory.AUTO_FREE_RESEARCH_STOCK_PERCENT, Modifier.EType.ADDITIVE, percent);
+
+    private static Modifier OmniscienceUnlockModifier()
+        => new(Modifier.ECategory.UNLOCK_OMNISCIENCE, Modifier.EType.ADDITIVE, 1);
+
+    /// <summary>
+    /// Omniscience de Dieu complète une recherche par seconde — la moins chère sous le seuil — sans
+    /// entamer le stock de points, qui reste intact.
+    /// </summary>
+    [Fact]
+    public void OmniscienceFreeResearch_CompletesCheapestAvailableResearch_WithoutSpendingPoints()
+    {
+        var (ctrl, prestigeState, clock) = BuildScenario(FreeResearchModifier(10));
+        var tree = prestigeState.TechnologyTree;
+        tree.ResearchPoints = 5_000; // seuil = 500 : les racines de l'arbre (100-120) passent
+
+        clock.SimulateAdvance(ResearchController.OmniscienceFreeResearchIntervalTicks); // sentinel
+        Assert.Empty(tree.CompletedTechnologies);
+
+        clock.SimulateAdvance(ResearchController.OmniscienceFreeResearchIntervalTicks);
+
+        // Une seule recherche par cycle, et la moins chère de celles qui passent le seuil.
+        Assert.Single(tree.CompletedTechnologies);
+        long granted = TechnologyDefinitions.Get(tree.CompletedTechnologies[0])!.Cost;
+        Assert.True(granted <= 500, $"La recherche offerte ({granted}) devrait tenir sous le seuil de 500.");
+        Assert.Equal(5_000, ctrl.ResearchPoints);
+
+        clock.SimulateAdvance(ResearchController.OmniscienceFreeResearchIntervalTicks);
+        Assert.Equal(2, tree.CompletedTechnologies.Count);
+        Assert.Equal(5_000, ctrl.ResearchPoints);
+    }
+
+    /// <summary>Une recherche trop chère pour le seuil n'est jamais offerte.</summary>
+    [Fact]
+    public void OmniscienceFreeResearch_IgnoresResearchAboveTheStockThreshold()
+    {
+        var (ctrl, prestigeState, clock) = BuildScenario(FreeResearchModifier(10));
+        prestigeState.TechnologyTree.ResearchPoints = 500; // seuil = 50 : aucune racine (100+) ne passe
+
+        clock.SimulateAdvance(ResearchController.OmniscienceFreeResearchIntervalTicks);
+        clock.SimulateAdvance(ResearchController.OmniscienceFreeResearchIntervalTicks);
+
+        Assert.Empty(prestigeState.TechnologyTree.CompletedTechnologies);
+        Assert.Equal(500, ctrl.ResearchPoints);
+    }
+
+    /// <summary>Sans le pouvoir, rien n'est offert, quel que soit le stock.</summary>
+    [Fact]
+    public void OmniscienceFreeResearch_DoesNothing_WithoutThePower()
+    {
+        var (_, prestigeState, clock) = BuildScenario();
+        prestigeState.TechnologyTree.ResearchPoints = 1_000_000;
+
+        clock.SimulateAdvance(ResearchController.OmniscienceFreeResearchIntervalTicks);
+        clock.SimulateAdvance(ResearchController.OmniscienceFreeResearchIntervalTicks);
+
+        Assert.Empty(prestigeState.TechnologyTree.CompletedTechnologies);
+    }
+
+    /// <summary>
+    /// Les recherches marquées requiresOmniscienceUnlock restent masquées tant que le pouvoir divin
+    /// Omniscience de Dieu n'est pas acquis, et l'infobulle nomme ce verrou-là.
+    /// </summary>
+    [Theory]
+    [InlineData(TechnologyId.Blitz)]
+    [InlineData(TechnologyId.FilonsProfonds)]
+    public void OmniscienceLockedResearch_IsHidden_UntilThePowerIsUnlocked(TechnologyId id)
+    {
+        var (locked, _, _) = BuildScenario();
+        Assert.False(locked.ShouldDisplay(id));
+        Assert.Equal(TechnologyStatus.Inactive, locked.GetStatus(id));
+        Assert.Equal(ResearchController.LockReason.Omniscience, locked.GetLockInfo(id).Reason);
+        Assert.False(locked.StartResearch(id));
+
+        var (unlocked, prestigeState, _) = BuildScenario(OmniscienceUnlockModifier());
+        foreach (var prereq in TechnologyDefinitions.Get(id)!.Prerequisites)
+            prestigeState.TechnologyTree.CompleteResearch(prereq);
+
+        Assert.Equal(TechnologyStatus.Available, unlocked.GetStatus(id));
+        Assert.True(unlocked.StartResearch(id));
+    }
+
+    /// <summary>
+    /// Les Grands Travaux du Dominion et la Terre Consacrée cumulent les deux verrous : Foi (Dominion)
+    /// puis Omniscience de Dieu.
+    /// </summary>
+    [Theory]
+    [InlineData(TechnologyId.GrandsTravauxDuDominion)]
+    [InlineData(TechnologyId.TerreConsacree)]
+    public void DominionResearch_AlsoRequiresOmniscience(TechnologyId id)
+    {
+        var dominionOnly = new Modifier(Modifier.ECategory.UNLOCK_DOMINION, Modifier.EType.ADDITIVE, 1);
+
+        var (withDominion, _, _) = BuildScenario(dominionOnly);
+        Assert.Equal(ResearchController.LockReason.Omniscience, withDominion.GetLockInfo(id).Reason);
+
+        var (withBoth, prestigeState, _) = BuildScenario(dominionOnly, OmniscienceUnlockModifier());
+        foreach (var prereq in TechnologyDefinitions.Get(id)!.Prerequisites)
+            prestigeState.TechnologyTree.CompleteResearch(prereq);
+
+        Assert.Equal(TechnologyStatus.Available, withBoth.GetStatus(id));
+    }
 }

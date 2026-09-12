@@ -1862,6 +1862,42 @@ public class AscensionControllerTests
         Assert.True(ascension.CanPurchasePower(AscensionPowerId.EyeOfGod));
     }
 
+    // ── Omniscience de Dieu ─────────────────────────────────────────────
+
+    [Fact]
+    public void OmniscienceOfGod_RequiresEyeOfGodFirstInColumn()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+
+        Assert.False(ascension.CanPurchasePower(AscensionPowerId.OmniscienceOfGod));
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+        Assert.True(ascension.CanPurchasePower(AscensionPowerId.OmniscienceOfGod));
+    }
+
+    [Fact]
+    public void GetModifiers_OmniscienceOfGod_UnlocksOmniscienceAndFreeResearchPurchase()
+    {
+        var (_, _, _, ascension, _) = CreateTestSetup(godPoints: 100);
+        Assert.True(ascension.PurchasePower(AscensionPowerId.Faith));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.MemoryOfGod));
+        Assert.True(ascension.PurchasePower(AscensionPowerId.EyeOfGod));
+
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.UNLOCK_OMNISCIENCE);
+        Assert.DoesNotContain(ascension.GetModifiers(), m => m.Category == Modifier.ECategory.AUTO_FREE_RESEARCH_STOCK_PERCENT);
+
+        Assert.True(ascension.PurchasePower(AscensionPowerId.OmniscienceOfGod));
+
+        Assert.Single(ascension.GetModifiers().Where(m => m.Category == Modifier.ECategory.UNLOCK_OMNISCIENCE));
+
+        var percent = Assert.Single(ascension.GetModifiers()
+            .Where(m => m.Category == Modifier.ECategory.AUTO_FREE_RESEARCH_STOCK_PERCENT));
+        Assert.Equal(Modifier.EType.ADDITIVE, percent.Type);
+        Assert.Equal(AscensionController.OmniscienceFreeResearchStockPercent, percent.Value);
+    }
+
     [Fact]
     public void GetModifiers_MemoryOfGod_HalvesRepeatableResearchScaling()
     {

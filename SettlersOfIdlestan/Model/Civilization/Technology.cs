@@ -187,6 +187,14 @@ public enum TechnologyId
     // Suite de la Nécropole Divine : le coût de Purification des Os Divins croît 10% moins vite avec
     // le nombre d'essences divines déjà collectées (voir ECategory.DIVINE_BONES_SCALING_REDUCTION).
     LiturgieFuneraire,
+    // Recherches de l'Omniscience — visibles uniquement une fois le pouvoir divin Omniscience de
+    // Dieu débloqué (RequiresOmniscienceUnlock, voir ResearchController).
+    // Suite de Vendetta. Effet à implémenter (voir TechnologyDefinitions) : la recherche existe déjà
+    // dans l'arbre pour que le pouvoir divin ouvre bien ses quatre portes.
+    Blitz,
+    // Jonction de la Sagesse Souterraine et du Cœur de la Terre : +50% de chance de doubler la
+    // production de Cristal (Tour de Mages, Hutte d'Alchimie) et de Mithril (Mine de Mithril).
+    FilonsProfonds,
     // Branche de la Théocratie (tiers 14-15) — recherches du Dominion, visibles uniquement une fois
     // le pouvoir divin Foi débloqué (RequiresDominionUnlock, voir ResearchController).
     DogmeDeLEmprise,
@@ -262,6 +270,13 @@ public class Technology
     public bool RequiresDominionUnlock { get; }
 
     /// <summary>
+    /// Vraie si la recherche reste cachée et inaccessible tant que le pouvoir divin Omniscience de
+    /// Dieu n'a pas été débloqué (modificateur UNLOCK_OMNISCIENCE) — même mécanique que
+    /// <see cref="RequiresDominionUnlock"/>, un cran plus haut dans l'arbre des pouvoirs divins.
+    /// </summary>
+    public bool RequiresOmniscienceUnlock { get; }
+
+    /// <summary>
     /// Vraie si la recherche peut être relancée indéfiniment une fois terminée. Chaque relance double
     /// le coût (par rapport au coût de base, voir ResearchController.GetEffectiveCost) et ses modificateurs
     /// s'accumulent une fois par complétion (voir TechnologyTree.RepeatCounts / RebuildModifiers).
@@ -278,7 +293,8 @@ public class Technology
         int tier,
         int line,
         bool requiresDominionUnlock = false,
-        bool repeatable = false)
+        bool repeatable = false,
+        bool requiresOmniscienceUnlock = false)
     {
         Id = id;
         NameKey = nameKey;
@@ -289,6 +305,7 @@ public class Technology
         Tier = tier;
         Line = line;
         RequiresDominionUnlock = requiresDominionUnlock;
+        RequiresOmniscienceUnlock = requiresOmniscienceUnlock;
         Repeatable = repeatable;
     }
 }

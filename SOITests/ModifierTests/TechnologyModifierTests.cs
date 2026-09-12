@@ -122,6 +122,19 @@ public class TechnologyModifierTests
         Assert.Equal(50, BuildAggregator(TechnologyId.Agriculture).ApplyModifiers(ECategory.HARVEST_PRODUCTION_BONUS, "Mill", 0));
     }
 
+    [Fact]
+    public void FilonsProfonds_HarvestProductionBonus_CrystalAndMithrilBuildings_Plus50()
+    {
+        var aggregator = BuildAggregator(TechnologyId.FilonsProfonds);
+
+        Assert.Equal(50, aggregator.ApplyModifiers(ECategory.HARVEST_PRODUCTION_BONUS, "MageTower", 0));
+        Assert.Equal(50, aggregator.ApplyModifiers(ECategory.HARVEST_PRODUCTION_BONUS, "AlchimistHut", 0));
+        Assert.Equal(50, aggregator.ApplyModifiers(ECategory.HARVEST_PRODUCTION_BONUS, "MithrilMine", 0));
+
+        // Ciblé : les autres bâtiments de récolte ne gagnent rien.
+        Assert.Equal(0, aggregator.ApplyModifiers(ECategory.HARVEST_PRODUCTION_BONUS, "Mine", 0));
+    }
+
     // ── STORAGE_CAPACITY_BASIC ────────────────────────────────────────────────
 
     [Fact]

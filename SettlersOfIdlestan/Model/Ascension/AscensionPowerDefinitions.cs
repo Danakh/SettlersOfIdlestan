@@ -30,6 +30,9 @@ public static class AscensionPowerDefinitions
         new AscensionPowerDefinition(AscensionPowerId.EyeOfGod,
             "ascension_power_eyeofgod_name", "ascension_power_eyeofgod_desc", column: 1, godPointCost: 5),
 
+        new AscensionPowerDefinition(AscensionPowerId.OmniscienceOfGod,
+            "ascension_power_omniscienceofgod_name", "ascension_power_omniscienceofgod_desc", column: 1, godPointCost: 10),
+
         new AscensionPowerDefinition(AscensionPowerId.WalkOfGod,
             "ascension_power_walkofgod_name", "ascension_power_walkofgod_desc", column: 2, godPointCost: 2),
 

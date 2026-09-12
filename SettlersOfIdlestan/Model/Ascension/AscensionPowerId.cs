@@ -18,6 +18,7 @@ public enum AscensionPowerId
     Faith,
     HandOfGod,
     EyeOfGod,
+    OmniscienceOfGod,
     WalkOfGod,
     ArmOfGod,
     DivineInventory,

@@ -411,6 +411,8 @@ public sealed class ResearchRenderer : IGameRenderer
                 $"{LockGlyph} " + _localization.GetFormated("tooltip_research_locked_prestige", _localization.Get(detailKey)),
             ResearchController.LockReason.Dominion =>
                 $"{LockGlyph} " + _localization.Get("tooltip_research_locked_dominion"),
+            ResearchController.LockReason.Omniscience =>
+                $"{LockGlyph} " + _localization.Get("tooltip_research_locked_omniscience"),
             ResearchController.LockReason.Prerequisite when detailKey != null =>
                 $"{LockGlyph} " + _localization.GetFormated("tooltip_research_locked_prerequisite", _localization.Get(detailKey)),
             _ => null,
