@@ -119,8 +119,11 @@ public class CityRenderer : HexBasedRenderer, IGameRenderer
             }
 
             IslandMap? mapForVisibility;
+            // Carte complète (débogage ou Œil de Dieu) : celle de la couche regardée, pas celle de la
+            // Surface — sinon aucune ville de l'Abysse ni du Pandémonium n'y figure et elles
+            // disparaissent de ces onglets (l'Inframonde a son propre chemin plus haut).
             if (DebugSettings.ShowFullMap || mainGameState.GodState.AscensionState.IsEyeOfGodActive)
-                mapForVisibility = worldState.GetMapForZ(IslandMap.SurfaceLayer);
+                mapForVisibility = worldState.CurrentViewedMap;
             else if (!worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var vm))
                 return;
             else

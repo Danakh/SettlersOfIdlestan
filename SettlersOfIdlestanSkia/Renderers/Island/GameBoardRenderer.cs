@@ -282,8 +282,12 @@ public class GameBoardRenderer : HexBasedRenderer, IGameRenderer
             if (worldState != null)
             {
                 IslandMap? mapToRender = null;
+                // Carte complète (débogage ou Œil de Dieu) : celle de la couche regardée, pas celle
+                // de la Surface. L'Inframonde a son propre chemin plus haut, mais l'Abysse et le
+                // Pandémonium passent ici — leur figer la Surface affichait l'île de surface sous
+                // l'onglet Abysse dès que l'Œil de Dieu était acquis.
                 if (DebugSettings.ShowFullMap || mgs.GodState.AscensionState.IsEyeOfGodActive)
-                    mapToRender = worldState.GetMapForZ(IslandMap.SurfaceLayer);
+                    mapToRender = worldState.CurrentViewedMap;
                 else if (worldState.Visibility.GetForZ(worldState.CurrentViewedLayer).TryGetValue(worldState.PlayerCivilization.Index, out var visibleMap))
                     mapToRender = visibleMap;
 
