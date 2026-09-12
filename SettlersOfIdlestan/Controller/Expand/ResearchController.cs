@@ -649,6 +649,59 @@ namespace SettlersOfIdlestan.Controller.Expand
             return true;
         }
 
+        /// <summary>
+        /// Raison pour laquelle une recherche reste masquée (ShouldDisplay == false). Sert à l'affichage
+        /// Oeil de Dieu / carte complète, qui révèle l'arbre entier et doit expliquer comment lever le verrou.
+        /// </summary>
+        public enum LockReason
+        {
+            None,
+            PrestigeVertex,
+            Dominion,
+            Prerequisite,
+        }
+
+        /// <summary>
+        /// Verrou courant de <paramref name="id"/>, évalué dans le même ordre que <see cref="ShouldDisplay"/>.
+        /// DetailKey : clé de localisation du vertex de prestige à acheter, ou de la recherche manquante ;
+        /// null pour les raisons qui n'ont rien à nommer. Retourne None dès que la recherche est visible
+        /// normalement, et pour un nœud masqué par le mode démo — celui-ci porte déjà son propre libellé.
+        /// </summary>
+        public (LockReason Reason, string? DetailKey) GetLockInfo(TechnologyId id)
+        {
+            if (ShouldDisplay(id)) return (LockReason.None, null);
+            if (IsDemoLocked(id)) return (LockReason.None, null);
+
+            if (!IsPrestigeRequirementMet(id))
+                return (LockReason.PrestigeVertex, FindUnlockingPrestigeVertexKey(id));
+            if (!IsDominionRequirementMet(id))
+                return (LockReason.Dominion, null);
+
+            var tree = Tree;
+            var tech = TechnologyDefinitions.Get(id);
+            if (tree == null || tech == null) return (LockReason.None, null);
+
+            foreach (var prereqId in tech.Prerequisites)
+            {
+                if (IsPrerequisiteSatisfied(tree, prereqId)) continue;
+                var prereqStatus = GetStatus(prereqId);
+                if (prereqStatus == TechnologyStatus.Available || prereqStatus == TechnologyStatus.InProgress) continue;
+                return (LockReason.Prerequisite, TechnologyDefinitions.Get(prereqId)?.NameKey);
+            }
+            return (LockReason.None, null);
+        }
+
+        /// <summary>Clé de localisation du vertex de prestige portant l'UNLOCK_RESEARCH de cette recherche (voir <see cref="IsPrestigeRequirementMet"/>).</summary>
+        private static string? FindUnlockingPrestigeVertexKey(TechnologyId id)
+        {
+            string techKey = id.ToString();
+            foreach (var vertex in PrestigeMapController.DefaultMap.Vertices)
+                foreach (var mod in vertex.Modifiers)
+                    if (mod.Category == Modifier.ECategory.UNLOCK_RESEARCH && mod.SubCategory == techKey)
+                        return vertex.LocalizationKey;
+            return null;
+        }
+
         private long GetEffectiveCost(Technology tech)
         {
             double reduction = _state?.PlayerCivilization.ResearchCostReduction ?? 0.0;

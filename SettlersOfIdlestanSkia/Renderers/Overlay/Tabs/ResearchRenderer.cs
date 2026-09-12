@@ -38,6 +38,9 @@ public sealed class ResearchRenderer : IGameRenderer
     private const float LoopBtnWidth = 34f;
     private const float LoopBtnHeight = 14f;
 
+    /// <summary>U+1F512 — rendu via la police de repli emoji (voir SkiaFonts.FallbackFor).</summary>
+    private const string LockGlyph = "\U0001F5DD";
+
     private readonly GameControllerService _gameControllerService;
     private readonly LocalizationService _localization;
     private readonly InputHandlingService _inputService;
@@ -69,6 +72,8 @@ public sealed class ResearchRenderer : IGameRenderer
 
     private readonly SKPaint _bgPaint = new() { Color = new SKColor(15, 17, 25, 230), Style = SKPaintStyle.Fill };
     private readonly SKPaint _inactiveNodePaint = new() { Color = new SKColor(55, 55, 65), Style = SKPaintStyle.Fill, IsAntialias = true };
+    // Nœud révélé par l'Oeil de Dieu mais encore verrouillé : un cran plus sombre que le nœud inactif.
+    private readonly SKPaint _lockedNodePaint = new() { Color = new SKColor(32, 32, 40), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _availableNodePaint = new() { Color = new SKColor(30, 60, 110), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _inProgressNodePaint = new() { Color = new SKColor(100, 60, 0), Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _completedNodePaint = new() { Color = new SKColor(20, 80, 30), Style = SKPaintStyle.Fill, IsAntialias = true };
@@ -229,6 +234,8 @@ public sealed class ResearchRenderer : IGameRenderer
             if (hoveredTech != null)
             {
                 var lines = new List<string> { _localization.Get(hoveredTech.DescKey) };
+                string? lockLine = FormatLockTooltip(ctrl, hoveredTech.Id);
+                if (lockLine != null) lines.Add(lockLine);
                 string? bonusLine = FormatRepeatableBonusTooltip(hoveredTech, ctrl.GetRepeatCount(hoveredTech.Id));
                 if (bonusLine != null) lines.Add(bonusLine);
                 string? divineBonesLine = FormatDivineBonesBonusTooltip(hoveredTech);
@@ -286,20 +293,22 @@ public sealed class ResearchRenderer : IGameRenderer
         _loopButtonRects.Clear();
         foreach (var tech in TechnologyDefinitions.All)
         {
-            if (!IsFullMapVisible() && !ctrl.ShouldDisplay(tech.Id)) continue;
+            bool displayed = ctrl.ShouldDisplay(tech.Id);
+            if (!displayed && !IsFullMapVisible()) continue;
             if (!_nodeRects.TryGetValue(tech.Id, out var rect)) continue;
             var status = ctrl.GetStatus(tech.Id);
-            DrawNode(canvas, tech, rect, status, ctrl);
+            // Révélé par l'Oeil de Dieu (ou la carte complète) alors qu'il resterait caché : nœud verrouillé.
+            DrawNode(canvas, tech, rect, status, ctrl, isLocked: !displayed);
         }
     }
 
-    private void DrawNode(SKCanvas canvas, Technology tech, SKRect rect, TechnologyStatus status, ResearchController ctrl)
+    private void DrawNode(SKCanvas canvas, Technology tech, SKRect rect, TechnologyStatus status, ResearchController ctrl, bool isLocked)
     {
         int queuePosition = ctrl.GetQueuePosition(tech.Id);
         bool isQueued    = queuePosition > 0;
         bool isDemoLocked = ctrl.IsDemoLocked(tech.Id);
 
-        var bgPaint = status switch
+        var bgPaint = isLocked ? _lockedNodePaint : status switch
         {
             TechnologyStatus.Completed => _completedNodePaint,
             TechnologyStatus.InProgress => _inProgressNodePaint,
@@ -335,6 +344,11 @@ public sealed class ResearchRenderer : IGameRenderer
         if (isDemoLocked)
         {
             subText = _localization.Get("demo_mode_research_locked");
+        }
+        else if (isLocked)
+        {
+            // Le coût n'a pas de sens tant que le verrou n'est pas levé : cadenas à la place du prix.
+            subText = LockGlyph;
         }
         else if (status == TechnologyStatus.Completed)
         {
@@ -381,6 +395,26 @@ public sealed class ResearchRenderer : IGameRenderer
             SkiaTextUtils.DrawText(canvas, loopLabel, loopRect.MidX, loopRect.MidY + 3.5f, SKTextAlign.Center, _smallFont, _textPaint);
             _loopButtonRects[tech.Id] = loopRect;
         }
+    }
+
+    /// <summary>
+    /// Ligne d'infobulle expliquant comment lever le verrou d'une recherche révélée par l'Oeil de Dieu
+    /// (ou la carte complète) : elle serait invisible sans ce pouvoir, sa description seule ne dit pas
+    /// ce qui la débloque. Retourne null pour une recherche visible normalement.
+    /// </summary>
+    private string? FormatLockTooltip(ResearchController ctrl, TechnologyId id)
+    {
+        var (reason, detailKey) = ctrl.GetLockInfo(id);
+        return reason switch
+        {
+            ResearchController.LockReason.PrestigeVertex when detailKey != null =>
+                $"{LockGlyph} " + _localization.GetFormated("tooltip_research_locked_prestige", _localization.Get(detailKey)),
+            ResearchController.LockReason.Dominion =>
+                $"{LockGlyph} " + _localization.Get("tooltip_research_locked_dominion"),
+            ResearchController.LockReason.Prerequisite when detailKey != null =>
+                $"{LockGlyph} " + _localization.GetFormated("tooltip_research_locked_prerequisite", _localization.Get(detailKey)),
+            _ => null,
+        };
     }
 
     /// <summary>

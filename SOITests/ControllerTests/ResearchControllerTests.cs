@@ -7,7 +7,9 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Prestige;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace SOITests.ControllerTests;
@@ -621,6 +623,68 @@ public class ResearchControllerTests
         prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Architecture);
 
         Assert.True(ctrl.ShouldDisplay(TechnologyId.ResearchMethods));
+    }
+
+    /// <summary>
+    /// GetLockInfo (infobulle des nœuds révélés par l'Oeil de Dieu) : une recherche cachée parce que
+    /// son prérequis n'est ni acquis ni disponible nomme ce prérequis, et le verrou disparaît dès que
+    /// la recherche redevient visible normalement.
+    /// </summary>
+    [Fact]
+    public void GetLockInfo_ReportsMissingPrerequisite_AndClearsWhenVisible()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState, settings: null, godState: null);
+
+        Assert.False(ctrl.ShouldDisplay(TechnologyId.ResearchMethods));
+        var (reason, detailKey) = ctrl.GetLockInfo(TechnologyId.ResearchMethods);
+        Assert.Equal(ResearchController.LockReason.Prerequisite, reason);
+        Assert.Equal(TechnologyDefinitions.Get(TechnologyId.Archivage)!.NameKey, detailKey);
+
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Architecture);
+        prestigeState.TechnologyTree.CompleteResearch(TechnologyId.Archivage);
+
+        Assert.True(ctrl.ShouldDisplay(TechnologyId.ResearchMethods));
+        Assert.Equal(ResearchController.LockReason.None, ctrl.GetLockInfo(TechnologyId.ResearchMethods).Reason);
+    }
+
+    /// <summary>
+    /// Une recherche dont l'UNLOCK_RESEARCH est porté par un vertex de prestige non acheté rapporte
+    /// ce vertex : c'est lui que l'infobulle doit nommer, pas le prérequis de recherche.
+    /// </summary>
+    [Fact]
+    public void GetLockInfo_ReportsPrestigeVertex_WhenUnlockResearchMissing()
+    {
+        var lockedTech = PrestigeMapController.DefaultMap.Vertices
+            .SelectMany(v => v.Modifiers.Select(m => (Vertex: v, Modifier: m)))
+            .First(x => x.Modifier.Category == Modifier.ECategory.UNLOCK_RESEARCH);
+
+        var techId = Enum.Parse<TechnologyId>(lockedTech.Modifier.SubCategory);
+
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState, settings: null, godState: null);
+
+        var (reason, detailKey) = ctrl.GetLockInfo(techId);
+        Assert.Equal(ResearchController.LockReason.PrestigeVertex, reason);
+        Assert.Equal(lockedTech.Vertex.LocalizationKey, detailKey);
     }
 
     /// <summary>
