@@ -320,6 +320,7 @@ public sealed class SkiaGameRuntime : IDisposable
     public void ToggleAutomationPin(string key) => _gameScreen?.ToggleAutomationPinFromHost(key);
     public void ToggleAutomationsGlobally() => _gameScreen?.ToggleAutomationsGloballyFromHost();
     public void DemobilizeAutomation(string key) => _gameScreen?.DemobilizeAutomationFromHost(key);
+    public void ToggleAutomationBlitz() => _gameScreen?.ToggleAutomationBlitzFromHost();
     public void SelectAutomationPreset(int preset) => _gameScreen?.SelectAutomationPresetFromHost(preset);
 
     public AutomationPresetPopupSnapshot GetAutomationPresetPopupSnapshot() =>

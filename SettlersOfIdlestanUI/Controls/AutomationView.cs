@@ -259,6 +259,23 @@ public sealed class AutomationView : UserControl
             demobilize.Classes.Add(GameControlStyles.ToneButton);
             demobilize.Click += (_, _) => { if (_row != null) _owner.Demobilize(_row); };
 
+            // Ligne Vendetta uniquement, recherche Blitz acquise : sous-reglage de la Vendetta (guerre
+            // declaree a toutes les civilisations sans attendre d'etre attaque). Meme bande docked
+            // Bottom que le bouton "Demobiliser" — les deux ne cohabitent jamais sur la meme carte.
+            var blitz = new CheckBox
+            {
+                FontSize = 11,
+                MinHeight = 0,
+                Padding = new Thickness(6, 0, 0, 0),
+                Margin = new Thickness(0, 8, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                [!ContentControl.ContentProperty] = new Binding(nameof(AutomationViewModel.BlitzToggleLabel)) { Source = owner },
+                [!IsVisibleProperty] = new Binding(nameof(AutomationRowViewModel.CanBlitz)),
+                [!ToggleButton.IsCheckedProperty] = new Binding(nameof(AutomationRowViewModel.BlitzOn)),
+                [!ToolTip.TipProperty] = new Binding(nameof(AutomationViewModel.BlitzToggleTooltip)) { Source = owner },
+            };
+            blitz.Click += (_, _) => _owner.ToggleBlitz();
+
             var name = new TextBlock
             {
                 FontSize = 13,
@@ -305,9 +322,11 @@ public sealed class AutomationView : UserControl
             DockPanel.SetDock(toggle, Dock.Left);
             DockPanel.SetDock(pin, Dock.Right);
             DockPanel.SetDock(demobilize, Dock.Bottom);
+            DockPanel.SetDock(blitz, Dock.Bottom);
             layout.Children.Add(toggle);
             layout.Children.Add(pin);
             layout.Children.Add(demobilize);
+            layout.Children.Add(blitz);
             layout.Children.Add(text);
 
             Child = layout;

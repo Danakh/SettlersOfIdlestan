@@ -189,8 +189,8 @@ public enum TechnologyId
     LiturgieFuneraire,
     // Recherches de l'Omniscience — visibles uniquement une fois le pouvoir divin Omniscience de
     // Dieu débloqué (RequiresOmniscienceUnlock, voir ResearchController).
-    // Suite de Vendetta. Effet à implémenter (voir TechnologyDefinitions) : la recherche existe déjà
-    // dans l'arbre pour que le pouvoir divin ouvre bien ses quatre portes.
+    // Suite de Vendetta : débloque la case Blitz de l'automatisation Vendetta, qui déclenche la
+    // guerre contre toutes les civilisations sans attendre d'être attaqué ni d'avoir raidé.
     Blitz,
     // Jonction de la Sagesse Souterraine et du Cœur de la Terre : +50% de chance de doubler la
     // production de Cristal (Tour de Mages, Hutte d'Alchimie) et de Mithril (Mine de Mithril).

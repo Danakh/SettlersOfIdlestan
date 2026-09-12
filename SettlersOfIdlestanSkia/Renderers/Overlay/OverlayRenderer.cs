@@ -373,6 +373,7 @@ public sealed class OverlayRenderer : IGameRenderer
     public void ToggleAutomationPinFromHost(string key) => _automationRenderer.TogglePinFromHost(key);
     public void ToggleAutomationsGloballyFromHost() => _automationRenderer.ToggleGlobalFromHost();
     public void DemobilizeAutomationFromHost(string key) => _automationRenderer.DemobilizeFromHost(key);
+    public void ToggleAutomationBlitzFromHost() => _automationRenderer.ToggleBlitzFromHost();
     public void SelectAutomationPresetFromHost(int preset) => _automationRenderer.SelectAutomationPresetFromHost(preset);
 
     /// <summary>Instantane du popup d'edition des presets d'automatisation pour une vue portee par l'hote.</summary>

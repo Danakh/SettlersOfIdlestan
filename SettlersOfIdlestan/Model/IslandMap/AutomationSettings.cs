@@ -123,6 +123,16 @@ public class AutomationSettings
     [JsonIgnore] public bool IsMilitaryVendettaAutomationActive => Active(MilitaryVendettaAutomationEnabled);
 
     /// <summary>
+    /// Option Blitz de la Vendetta (recherche Blitz, voir ECategory.UNLOCK_BLITZ) : la guerre n'attend
+    /// plus de déclencheur (attaque subie ou raid manuel) et vise toutes les civilisations à la fois —
+    /// chaque emplacement militaire attaque la ville ennemie la plus proche à sa portée, au lieu de
+    /// concentrer l'empire sur un raid unique (voir RaidEngine.ResolvePlayerBlitz).
+    /// Sous-réglage de la Vendetta : sans elle, il ne fait rien — d'où le ET dans IsMilitaryBlitzActive.
+    /// </summary>
+    public bool MilitaryBlitzEnabled { get; set; } = false;
+    [JsonIgnore] public bool IsMilitaryBlitzActive => IsMilitaryVendettaAutomationActive && MilitaryBlitzEnabled;
+
+    /// <summary>
     /// Démarre automatiquement (et relance après chaque palier franchi) l'investissement des
     /// Monuments (Merveille, Mine Profonde, Spire de Corruption, Faille des Abysses, Grand Phare)
     /// sur toutes les ressources de leur coût courant — mais seulement si la civilisation dispose
@@ -291,6 +301,7 @@ public class AutomationSettings
         ArcaneTowerBuildingAutomationEnabled = legacy.ArcaneTowerBuildingAutomationEnabled;
         MilitaryReinforcementAutomationEnabled = legacy.MilitaryReinforcementAutomationEnabled;
         MilitaryVendettaAutomationEnabled = legacy.MilitaryVendettaAutomationEnabled;
+        MilitaryBlitzEnabled = legacy.MilitaryBlitzEnabled;
         MonumentInvestmentAutomationEnabled = legacy.MonumentInvestmentAutomationEnabled;
         AbundanceAutoCastEnabled = legacy.AbundanceAutoCastEnabled;
         RestrictSoldierProductionToFreeSoldiersByLayer = new Dictionary<int, bool>(legacy.RestrictSoldierProductionToFreeSoldiersByLayer);

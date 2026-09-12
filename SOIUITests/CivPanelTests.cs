@@ -71,6 +71,31 @@ public class CivPanelViewModelTests
         Assert.Empty(vm.Toggles);
         Assert.False(vm.HasSeparator);
     }
+
+    /// <summary>
+    /// La case "Blitz" de la bascule Vendetta n'est pas figee a la creation de la ligne, contrairement
+    /// au bouton "Demobiliser" : la recherche Blitz peut etre acquise — et la case cochee ou decochee
+    /// depuis la page Automatisation — pendant que le panneau est a l'ecran, et les lignes epinglees
+    /// sont reutilisees tant que les cles ne changent pas (voir CivPanelViewModel.SyncToggles).
+    /// </summary>
+    [Fact]
+    public void La_case_blitz_suit_l_instantane_sur_une_ligne_deja_creee()
+    {
+        var toggle = new CivToggleViewModel(Toggle(canBlitz: false, blitzOn: false));
+        var changed = new List<string?>();
+        toggle.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        toggle.Apply(Toggle(canBlitz: true, blitzOn: true));
+
+        Assert.True(toggle.CanBlitz);
+        Assert.True(toggle.BlitzOn);
+        Assert.Contains(nameof(CivToggleViewModel.CanBlitz), changed);
+        Assert.Contains(nameof(CivToggleViewModel.BlitzOn), changed);
+    }
+
+    private static SkiaLayer.CivToggleSnapshot Toggle(bool canBlitz, bool blitzOn) =>
+        new("MilitaryVendetta", "Vendetta", true, "", SkiaLayer.AutomationCategory.Behavior,
+            CanDemobilize: false, CanBlitz: canBlitz, BlitzOn: blitzOn);
 }
 
 public class CivPanelViewTests
@@ -148,6 +173,32 @@ public class CivPanelViewTests
         Assert.True(button.IsEnabled);
         Assert.Equal(Color.FromRgb(70, 70, 78), Assert.IsType<SolidColorBrush>(button.Background).Color);
         Assert.Equal("Merveille\nSurface uniquement", ToolTip.GetTip(button));
+    }
+
+    /// <summary>
+    /// La case "Blitz" n'apparait que sur la bascule qui la porte (Vendetta, recherche acquise) :
+    /// c'est le meme raccourci que sur la page Automatisation, pas une case offerte a toutes les
+    /// bascules epinglees.
+    /// </summary>
+    [AvaloniaFact]
+    public void La_case_blitz_ne_s_affiche_que_sur_la_bascule_vendetta()
+    {
+        var (_, _, panel, vm) = BuildProbeWindow();
+
+        vm.Toggles.Add(new CivToggleViewModel(new SkiaLayer.CivToggleSnapshot(
+            "MilitaryVendetta", "Vendetta", true, "", SkiaLayer.AutomationCategory.Behavior,
+            CanDemobilize: false, CanBlitz: true, BlitzOn: true)));
+        vm.Toggles.Add(new CivToggleViewModel(new SkiaLayer.CivToggleSnapshot(
+            "MilitaryReinforcement", "Renfort", true, "", SkiaLayer.AutomationCategory.Behavior)));
+        Dispatcher.UIThread.RunJobs();
+
+        var boxes = panel.GetVisualDescendants().OfType<CheckBox>()
+            .Where(b => b.DataContext is CivToggleViewModel)
+            .ToList();
+
+        var visible = Assert.Single(boxes, b => b.IsVisible);
+        Assert.Equal("MilitaryVendetta", Assert.IsType<CivToggleViewModel>(visible.DataContext).Key);
+        Assert.True(visible.IsChecked);
     }
 
     private static (Window Window, ProbeMapControl Map, CivPanelView Panel, CivPanelViewModel ViewModel)

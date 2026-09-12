@@ -940,8 +940,19 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
             var (value, nameKey, tooltipKey) = ResolvePinnedToggle(key, civ, worldState);
             var category = AutomationRenderer.PinKeyCategories.GetValueOrDefault(key, AutomationCategory.Construction);
-            toggles.Add(new CivToggleSnapshot(key, _localization.Get(nameKey), value, _localization.Get(tooltipKey), category,
-                CanDemobilize: IsRestrictSoldierProductionKey(key)));
+
+            // Vendetta : la recherche Blitz lui ajoute ici la meme case qu'a la page Automatisation,
+            // et la meme ligne d'explication a son infobulle. Le Blitz n'est pas un automatisme a
+            // part (pas de cle d'epinglage a lui) : il suit la bascule Vendetta partout ou elle va.
+            bool canBlitz = key == AutomationRenderer.PinKeyMilVendetta
+                            && civ.TechnologyTree.IsCompleted(TechnologyId.Blitz);
+            string tooltip = _localization.Get(tooltipKey);
+            if (canBlitz) tooltip += $"\n{_localization.Get("automation_military_vendetta_note_blitz")}";
+
+            toggles.Add(new CivToggleSnapshot(key, _localization.Get(nameKey), value, tooltip, category,
+                CanDemobilize: IsRestrictSoldierProductionKey(key),
+                CanBlitz: canBlitz,
+                BlitzOn: canBlitz && worldState?.AutomationSettings.MilitaryBlitzEnabled == true));
         }
 
         // Classees comme l'ecran d'automatisation (AutomationRenderer.PinKeyDisplayOrder), et non
@@ -964,6 +975,8 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             ControlsTitle: _localization.Get("panel_civ_controls"),
             DemobilizeButtonLabel: _localization.Get("automation_demobilize_button"),
             DemobilizeButtonTooltip: _localization.Get("tooltip_demobilize"),
+            BlitzToggleLabel: _localization.Get("automation_blitz_toggle"),
+            BlitzToggleTooltip: _localization.Get("tooltip_blitz"),
             IconActions: iconActions,
             Actions: actions,
             Toggles: toggles);

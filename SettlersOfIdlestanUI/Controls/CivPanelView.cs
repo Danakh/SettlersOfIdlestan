@@ -307,11 +307,30 @@ public sealed class CivPanelView : UserControl
             demobilize.Classes.Add(GameControlStyles.ToneButton);
             demobilize.Click += (_, _) => { if (_toggle != null) _owner.Demobilize(_toggle); };
 
+            // Bascule Vendetta uniquement, recherche Blitz acquise : sous-reglage de la Vendetta,
+            // au meme endroit que le bouton "Demobiliser" des restrictions — les deux ne cohabitent
+            // jamais sur la meme ligne.
+            var blitz = new CheckBox
+            {
+                FontSize = 11,
+                MinHeight = 0,
+                Padding = new Thickness(6, 0, 0, 0),
+                Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                [!ContentControl.ContentProperty] = new Binding(nameof(CivPanelViewModel.BlitzToggleLabel)) { Source = owner },
+                [!IsVisibleProperty] = new Binding(nameof(CivToggleViewModel.CanBlitz)),
+                [!ToggleButton.IsCheckedProperty] = new Binding(nameof(CivToggleViewModel.BlitzOn)),
+                [!ToolTip.TipProperty] = new Binding(nameof(CivPanelViewModel.BlitzToggleTooltip)) { Source = owner },
+            };
+            blitz.Click += (_, _) => _owner.ToggleBlitz();
+
             var layout = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(square, Dock.Left);
             DockPanel.SetDock(demobilize, Dock.Right);
+            DockPanel.SetDock(blitz, Dock.Right);
             layout.Children.Add(square);
             layout.Children.Add(demobilize);
+            layout.Children.Add(blitz);
             layout.Children.Add(label);
             Child = layout;
         }

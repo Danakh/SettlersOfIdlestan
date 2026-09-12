@@ -86,6 +86,8 @@ public sealed class CivToggleViewModel : ViewModelBase
     private string _label;
     private bool? _isOn;
     private string _tooltip;
+    private bool _canBlitz;
+    private bool _blitzOn;
 
     public CivToggleViewModel(SkiaLayer.CivToggleSnapshot snapshot)
     {
@@ -95,6 +97,8 @@ public sealed class CivToggleViewModel : ViewModelBase
         _label = snapshot.Label;
         _isOn = snapshot.IsOn;
         _tooltip = snapshot.Tooltip;
+        _canBlitz = snapshot.CanBlitz;
+        _blitzOn = snapshot.BlitzOn;
     }
 
     public string Key { get; }
@@ -108,6 +112,12 @@ public sealed class CivToggleViewModel : ViewModelBase
     /// bascule. Fixe pour la duree de vie de la ligne, comme Category.
     public bool CanDemobilize { get; }
 
+    /// Bascule Vendetta : affiche la case "Blitz" a droite de la bascule. Contrairement a
+    /// CanDemobilize, cet etat peut changer sans que la ligne soit recreee — la recherche Blitz
+    /// peut etre acquise pendant que le panneau est a l'ecran.
+    public bool CanBlitz { get => _canBlitz; private set => SetProperty(ref _canBlitz, value); }
+    public bool BlitzOn { get => _blitzOn; private set => SetProperty(ref _blitzOn, value); }
+
     public string Label { get => _label; private set => SetProperty(ref _label, value); }
 
     /// Trois etats : tout actif, tout inactif, ou null pour un etat mixte.
@@ -120,6 +130,8 @@ public sealed class CivToggleViewModel : ViewModelBase
         Label = snapshot.Label;
         IsOn = snapshot.IsOn;
         Tooltip = snapshot.Tooltip;
+        CanBlitz = snapshot.CanBlitz;
+        BlitzOn = snapshot.BlitzOn;
     }
 }
 
@@ -138,6 +150,8 @@ public sealed class CivPanelViewModel : ViewModelBase
     private string _controlsTitle = "";
     private string _demobilizeButtonLabel = "";
     private string _demobilizeButtonTooltip = "";
+    private string _blitzToggleLabel = "";
+    private string _blitzToggleTooltip = "";
 
     public CivPanelViewModel(GameRuntimeHost host)
     {
@@ -171,6 +185,10 @@ public sealed class CivPanelViewModel : ViewModelBase
     public string DemobilizeButtonLabel { get => _demobilizeButtonLabel; private set => SetProperty(ref _demobilizeButtonLabel, value); }
     public string DemobilizeButtonTooltip { get => _demobilizeButtonTooltip; private set => SetProperty(ref _demobilizeButtonTooltip, value); }
 
+    /// Libelle et infobulle de la case "Blitz" de la bascule Vendetta (voir CivToggleViewModel.CanBlitz).
+    public string BlitzToggleLabel { get => _blitzToggleLabel; private set => SetProperty(ref _blitzToggleLabel, value); }
+    public string BlitzToggleTooltip { get => _blitzToggleTooltip; private set => SetProperty(ref _blitzToggleTooltip, value); }
+
     /// La section Actions n'apparait que si elle a du contenu — titre compris.
     public bool HasActions => IconActions.Count > 0 || Actions.Count > 0;
 
@@ -189,6 +207,8 @@ public sealed class CivPanelViewModel : ViewModelBase
         ControlsTitle = snapshot.ControlsTitle;
         DemobilizeButtonLabel = snapshot.DemobilizeButtonLabel;
         DemobilizeButtonTooltip = snapshot.DemobilizeButtonTooltip;
+        BlitzToggleLabel = snapshot.BlitzToggleLabel;
+        BlitzToggleTooltip = snapshot.BlitzToggleTooltip;
 
         SyncActions(IconActions, snapshot.IconActions);
         SyncActions(Actions, snapshot.Actions);
@@ -247,6 +267,14 @@ public sealed class CivPanelViewModel : ViewModelBase
     public void Demobilize(CivToggleViewModel toggle)
     {
         _host.DemobilizeCivPinned(toggle.Key);
+        Refresh();
+    }
+
+    /// Case "Blitz" de la bascule Vendetta epinglee : meme interrupteur que celui de la page
+    /// Automatisation (sous-reglage unique, sans cle de routage).
+    public void ToggleBlitz()
+    {
+        _host.ToggleAutomationBlitz();
         Refresh();
     }
 

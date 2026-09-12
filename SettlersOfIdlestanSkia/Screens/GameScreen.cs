@@ -526,6 +526,7 @@ public sealed class GameScreen : IDisposable
     public void ToggleAutomationPinFromHost(string key) => _overlayRenderer?.ToggleAutomationPinFromHost(key);
     public void ToggleAutomationsGloballyFromHost() => _overlayRenderer?.ToggleAutomationsGloballyFromHost();
     public void DemobilizeAutomationFromHost(string key) => _overlayRenderer?.DemobilizeAutomationFromHost(key);
+    public void ToggleAutomationBlitzFromHost() => _overlayRenderer?.ToggleAutomationBlitzFromHost();
     public void SelectAutomationPresetFromHost(int preset) => _overlayRenderer?.SelectAutomationPresetFromHost(preset);
 
     public AutomationPresetPopupSnapshot GetAutomationPresetPopupSnapshot() =>

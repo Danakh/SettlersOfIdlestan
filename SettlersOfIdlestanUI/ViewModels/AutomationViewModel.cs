@@ -32,6 +32,11 @@ public sealed class AutomationRowViewModel : ViewModelBase
     /// Ligne de restriction de production de soldats : affiche le bouton "Demobiliser".
     public bool CanDemobilize => _snapshot.CanDemobilize;
 
+    /// Ligne Vendetta, recherche Blitz acquise : affiche la case a cocher "Blitz", au meme endroit
+    /// que le bouton "Demobiliser".
+    public bool CanBlitz => _snapshot.CanBlitz;
+    public bool BlitzOn => _snapshot.BlitzOn;
+
     /// Une ligne verrouillee n'a pas de bascule : sa description porte la condition de deblocage.
     public bool HasToggle => !_snapshot.IsLocked;
 
@@ -49,6 +54,8 @@ public sealed class AutomationRowViewModel : ViewModelBase
         if (previous.IsOn != snapshot.IsOn) RaisePropertyChanged(nameof(IsOn));
         if (previous.IsPinned != snapshot.IsPinned) RaisePropertyChanged(nameof(IsPinned));
         if (previous.CanPin != snapshot.CanPin) RaisePropertyChanged(nameof(CanPin));
+        if (previous.CanBlitz != snapshot.CanBlitz) RaisePropertyChanged(nameof(CanBlitz));
+        if (previous.BlitzOn != snapshot.BlitzOn) RaisePropertyChanged(nameof(BlitzOn));
         if (previous.IsLocked != snapshot.IsLocked)
         {
             RaisePropertyChanged(nameof(IsLocked));
@@ -105,6 +112,8 @@ public sealed class AutomationViewModel : ViewModelBase
     private string _pinTooltip = "";
     private string _demobilizeButtonLabel = "";
     private string _demobilizeButtonTooltip = "";
+    private string _blitzToggleLabel = "";
+    private string _blitzToggleTooltip = "";
     private bool _showPresetBar;
     private int _activePreset = 1;
     private string _presetChangeButtonLabel = "";
@@ -121,6 +130,10 @@ public sealed class AutomationViewModel : ViewModelBase
     public string PinTooltip { get => _pinTooltip; private set => SetProperty(ref _pinTooltip, value); }
     public string DemobilizeButtonLabel { get => _demobilizeButtonLabel; private set => SetProperty(ref _demobilizeButtonLabel, value); }
     public string DemobilizeButtonTooltip { get => _demobilizeButtonTooltip; private set => SetProperty(ref _demobilizeButtonTooltip, value); }
+
+    /// Libelle et infobulle de la case "Blitz" de la ligne Vendetta (voir AutomationRowViewModel.CanBlitz).
+    public string BlitzToggleLabel { get => _blitzToggleLabel; private set => SetProperty(ref _blitzToggleLabel, value); }
+    public string BlitzToggleTooltip { get => _blitzToggleTooltip; private set => SetProperty(ref _blitzToggleTooltip, value); }
 
     /// Visible une fois TechnologyId.AutomationPreset debloquee.
     public bool ShowPresetBar { get => _showPresetBar; private set => SetProperty(ref _showPresetBar, value); }
@@ -151,6 +164,8 @@ public sealed class AutomationViewModel : ViewModelBase
         PinTooltip = snapshot.PinTooltip;
         DemobilizeButtonLabel = snapshot.DemobilizeButtonLabel;
         DemobilizeButtonTooltip = snapshot.DemobilizeButtonTooltip;
+        BlitzToggleLabel = snapshot.BlitzToggleLabel;
+        BlitzToggleTooltip = snapshot.BlitzToggleTooltip;
         ShowPresetBar = snapshot.PresetBarVisible;
         ActivePreset = snapshot.ActivePreset;
         PresetChangeButtonLabel = snapshot.PresetChangeButtonLabel;
@@ -195,6 +210,14 @@ public sealed class AutomationViewModel : ViewModelBase
     public void Demobilize(AutomationRowViewModel row)
     {
         _host.DemobilizeAutomation(row.Key);
+        Refresh();
+    }
+
+    /// Case "Blitz" de la ligne Vendetta : sous-reglage unique, sans cle de routage (voir
+    /// AutomationRenderer.ToggleBlitzFromHost).
+    public void ToggleBlitz()
+    {
+        _host.ToggleAutomationBlitz();
         Refresh();
     }
 

@@ -902,13 +902,15 @@ public static class TechnologyDefinitions
         // (requiresOmniscienceUnlock), au même titre que les Grands Travaux du Dominion et la Terre
         // Consacrée ci-dessus.
 
-        // Suite de Vendetta. Son effet reste à implémenter : la recherche n'a volontairement aucun
-        // modificateur pour l'instant, elle n'est là que pour tenir sa place dans l'arbre.
+        // Suite de Vendetta : ajoute la case Blitz à l'automatisation Vendetta (voir
+        // AutomationSettings.MilitaryBlitzEnabled). Cochée, la Vendetta n'attend plus de déclencheur
+        // et fait attaquer à chaque emplacement militaire la ville ennemie la plus proche à portée,
+        // toutes civilisations confondues (voir RaidEngine.ResolvePlayerBlitz).
         new(TechnologyId.Blitz,
             "tech_blitz_name", "tech_blitz_desc",
             cost: 104687500,
             prerequisites: new[] { TechnologyId.Vendetta },
-            modifiers: Array.Empty<Modifier>(),
+            modifiers: new Modifier[] { new(ECategory.UNLOCK_BLITZ, EType.ADDITIVE, 1) },
             tier: 10, line: 9,
             requiresOmniscienceUnlock: true),
 

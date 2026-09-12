@@ -437,6 +437,9 @@ public sealed record SettingsMenuSnapshot(bool IsOpen, IReadOnlyList<SettingsMen
 /// colorer sa case a cocher comme celle du panneau civilisation.</param>
 /// <param name="CanDemobilize">Ligne de restriction de production de soldats : affiche un bouton
 /// "Demobiliser" qui ramene les soldats du layer au quota nourri gratuitement.</param>
+/// <param name="CanBlitz">Ligne Vendetta, une fois la recherche Blitz acquise : affiche la case a
+/// cocher "Blitz", au meme endroit que le bouton "Demobiliser" des lignes de restriction.</param>
+/// <param name="BlitzOn">Etat de cette case (AutomationSettings.MilitaryBlitzEnabled).</param>
 public sealed record AutomationRowSnapshot(
     string Key,
     string Name,
@@ -448,7 +451,9 @@ public sealed record AutomationRowSnapshot(
     bool IsPinned,
     IReadOnlyList<string> SummaryLines,
     AutomationCategory Category,
-    bool CanDemobilize = false);
+    bool CanDemobilize = false,
+    bool CanBlitz = false,
+    bool BlitzOn = false);
 
 public sealed record AutomationSectionSnapshot(string Header, IReadOnlyList<AutomationRowSnapshot> Rows);
 
@@ -461,6 +466,9 @@ public sealed record AutomationSectionSnapshot(string Header, IReadOnlyList<Auto
 /// les boutons 1/2/3/Changer a cote de la section Constructions.</param>
 /// <param name="ActivePreset">Preset d'automatisation actif (1 a 3).</param>
 /// <param name="PresetChangeButtonLabel">Libelle du bouton ouvrant le popup d'edition des presets.</param>
+/// <param name="BlitzToggleLabel">Libelle de la case "Blitz" de la ligne Vendetta (voir
+/// AutomationRowSnapshot.CanBlitz).</param>
+/// <param name="BlitzToggleTooltip">Infobulle de cette case.</param>
 public sealed record AutomationSnapshot(
     bool IsVisible,
     string Title,
@@ -473,7 +481,9 @@ public sealed record AutomationSnapshot(
     IReadOnlyList<AutomationSectionSnapshot> LeftColumn,
     IReadOnlyList<AutomationSectionSnapshot> RightColumn,
     string DemobilizeButtonLabel = "",
-    string DemobilizeButtonTooltip = "")
+    string DemobilizeButtonTooltip = "",
+    string BlitzToggleLabel = "",
+    string BlitzToggleTooltip = "")
 {
     public static readonly AutomationSnapshot Hidden = new(false, "", "", false, "", false, 1, "", [], []);
 }
@@ -857,7 +867,12 @@ public enum AutomationCategory { Construction, Behavior, Activation }
 /// (certains batiments du type actifs, d'autres non).</param>
 /// <param name="CanDemobilize">Restriction de production de soldats : affiche un bouton
 /// "Demobiliser" a droite de la bascule (voir AutomationRenderer.DemobilizeFromHost).</param>
-public sealed record CivToggleSnapshot(string Key, string Label, bool? IsOn, string Tooltip, AutomationCategory Category, bool CanDemobilize = false);
+/// <param name="CanBlitz">Bascule Vendetta, une fois la recherche Blitz acquise : affiche la case
+/// "Blitz" a droite de la bascule, comme sur la page Automatisation (voir
+/// AutomationRenderer.ToggleBlitzFromHost).</param>
+/// <param name="BlitzOn">Etat de cette case (AutomationSettings.MilitaryBlitzEnabled).</param>
+public sealed record CivToggleSnapshot(string Key, string Label, bool? IsOn, string Tooltip, AutomationCategory Category,
+    bool CanDemobilize = false, bool CanBlitz = false, bool BlitzOn = false);
 
 /// <summary>
 /// Panneau lateral de la civilisation du joueur : actions disponibles et bascules epinglees
@@ -874,7 +889,9 @@ public sealed record CivPanelSnapshot(
     IReadOnlyList<CivActionSnapshot> Actions,
     IReadOnlyList<CivToggleSnapshot> Toggles,
     string DemobilizeButtonLabel = "",
-    string DemobilizeButtonTooltip = "")
+    string DemobilizeButtonTooltip = "",
+    string BlitzToggleLabel = "",
+    string BlitzToggleTooltip = "")
 {
     public static readonly CivPanelSnapshot Hidden = new(false, false, "", "", [], [], []);
 

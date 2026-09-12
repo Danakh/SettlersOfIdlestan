@@ -33,6 +33,8 @@ internal class RaidEngine
 
     private long _lastPlayerAutoVendettaTick = 0;
 
+    private long _lastPlayerBlitzTick = 0;
+
     internal void Initialize(WorldState? state, CityAttackEngine cityAttackEngine, ReinforcementEngine reinforcementEngine, MonsterCombatEngine monsterCombatEngine, SoldierProductionEngine productionEngine)
     {
         _state = state;
@@ -308,6 +310,22 @@ internal class RaidEngine
         if (_state == null || _cityAttackEngine == null) return;
         if (!_state.AutomationSettings.IsMilitaryVendettaAutomationActive) return;
         if (IsRaidActive()) return;
+
+        // Blitz coché : la guerre éclair remplace entièrement l'enchaînement de raids ci-dessous
+        // (voir ResolvePlayerBlitz). Les deux ne peuvent pas tourner ensemble — ApplyRaidFlows
+        // réquisitionne tous les emplacements du plan du raid à chaque cycle d'entretien et
+        // renverrait en renfort ceux que le Blitz vient de lancer à l'assaut, une fois par seconde.
+        // Les cibles de Vendetta continuent d'être enregistrées pendant ce temps (voir StartRaid et
+        // CityAttackEngine.ResolveCityAttacks) : décocher Blitz reprend la guerre là où elle en est.
+        if (_state.AutomationSettings.IsMilitaryBlitzActive
+            && _state.PlayerCivilization.ModifierAggregator.HasModifier(ECategory.UNLOCK_BLITZ))
+        {
+            if (currentTick - _lastPlayerBlitzTick < MilitaryController.AutoVendettaIntervalTicks) return;
+            _lastPlayerBlitzTick = currentTick;
+            ResolvePlayerBlitz(_state.PlayerCivilization);
+            return;
+        }
+
         var targetsByLayer = _state.AutomationSettings.VendettaTargetCivIndexByLayer;
         if (targetsByLayer.Count == 0) return;
         if (currentTick - _lastPlayerAutoVendettaTick < MilitaryController.AutoVendettaIntervalTicks) return;
@@ -356,6 +374,39 @@ internal class RaidEngine
 
             StartRaid(playerCiv, nearestEnemy.Position);
             return;
+        }
+    }
+
+    /// <summary>
+    /// Blitz (recherche du même nom, case cochée à côté de Vendetta) : guerre totale et permanente,
+    /// sans déclencheur ni cible désignée. Chaque emplacement militaire du joueur qui n'est pas déjà
+    /// engagé — ni flux d'attaque, ni attaque de monstre en cours — prend pour cible la ville ennemie
+    /// la plus proche à sa portée d'attaque, quelle que soit la civilisation à qui elle appartient.
+    /// Tous les fronts avancent donc en même temps, là où la Vendetta seule concentre l'empire sur un
+    /// raid à la fois : en contrepartie le Blitz ne porte qu'à portée d'attaque (aucun relais de
+    /// renfort, aucune cible hors de vue) et ne coûte aucun entretien.
+    ///
+    /// <para>Un emplacement déjà lancé à l'assaut n'est pas réexaminé : c'est CityAttackEngine qui
+    /// annule un flux d'attaque devenu impossible (cible détruite, hors de vue, chemin coupé), et le
+    /// passage suivant lui trouve alors une nouvelle cible.</para>
+    /// </summary>
+    private void ResolvePlayerBlitz(Civilization playerCiv)
+    {
+        if (_cityAttackEngine == null || _reinforcementEngine == null) return;
+
+        // Boucle indexée et sortie anticipée sur les emplacements déjà engagés : en fin de partie
+        // cette passe voit plusieurs centaines d'emplacements, chacun comparé à tous les emplacements
+        // ennemis de son plan (voir FindNearbyEnemyCity), une fois par seconde.
+        var vertices = playerCiv.MilitaryVertices;
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            var vertex = vertices[i];
+            if (vertex.MonsterAttackTarget != null) continue;
+            if (vertex.FlowTarget != null && _reinforcementEngine.IsEnemyCityAt(vertex.FlowTarget, playerCiv)) continue;
+
+            var enemy = _cityAttackEngine.FindNearbyEnemyCity(vertex);
+            if (enemy == null) continue;
+            _reinforcementEngine.SetCityFlow(vertex, enemy.Position);
         }
     }
 

@@ -374,6 +374,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             UNLOCK_OMNISCIENCE,
             /// <summary>Pourcentage du stock courant de points de recherche en dessous duquel une recherche disponible est complétée gratuitement, sans dépenser un seul point, à raison d'une par seconde (voir ResearchController.GrantFreeOmniscienceResearch). Base = 0 (aucun achat automatique) ; 10 = toute recherche coûtant moins de 10% du stock. SubCategory unused. Accordé par le pouvoir divin Omniscience de Dieu.</summary>
             AUTO_FREE_RESEARCH_STOCK_PERCENT,
+            /// <summary>Flags que l'option Blitz de la Vendetta est déverrouillée : une fois cochée (AutomationSettings.MilitaryBlitzEnabled), la Vendetta n'attend plus d'avoir été attaquée ni d'avoir raidé qui que ce soit et fait attaquer à chaque emplacement militaire la ville ennemie la plus proche à portée, toutes civilisations confondues (voir RaidEngine.ResolvePlayerBlitz). SubCategory unused. Accordé par la recherche Blitz.</summary>
+            UNLOCK_BLITZ,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

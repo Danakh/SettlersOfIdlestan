@@ -374,8 +374,13 @@ namespace SOITests.ControllerTests
         /// civ 2 dans l'Inframonde). Vendetta est débloquée et activée, avec une cible déjà posée sur
         /// chaque plan.
         /// </summary>
+        /// <param name="blitz">Recherche Blitz acquise ET case cochée : la Vendetta n'attend plus de
+        /// déclencheur et fait attaquer à chaque emplacement la ville ennemie la plus proche à portée
+        /// (voir RaidEngine.ResolvePlayerBlitz).</param>
+        /// <param name="withTargets">Faux pour repartir sans aucune cible de Vendetta enregistrée —
+        /// l'état d'un joueur qui n'a encore ni été attaqué ni raidé personne.</param>
         private static (WorldState state, GameClock clock, Vertex surfaceEnemy, Vertex underworldEnemy)
-            CreateVendettaSetup()
+            CreateVendettaSetup(bool blitz = false, bool withTargets = true)
         {
             var surfaceTiles = new List<HexTile>
             {
@@ -389,10 +394,12 @@ namespace SOITests.ControllerTests
             playerCiv.Resources[Resource.Gold] = 9999;
             playerCiv.AddCity(new City(Vertex.Create(NE, East, NE11)) { CivilizationIndex = 0 });
             playerCiv.AddCity(new City(Vertex.Create(UnderworldNE, UnderworldEast, UnderworldNE11)) { CivilizationIndex = 0 });
-            playerCiv.AddCustomAggregator(new StaticModifierProvider(new[]
+            var unlocks = new List<Modifier>
             {
-                new Modifier(Modifier.ECategory.UNLOCK_VENDETTA, Modifier.EType.ADDITIVE, 1),
-            }));
+                new(Modifier.ECategory.UNLOCK_VENDETTA, Modifier.EType.ADDITIVE, 1),
+            };
+            if (blitz) unlocks.Add(new Modifier(Modifier.ECategory.UNLOCK_BLITZ, Modifier.EType.ADDITIVE, 1));
+            playerCiv.AddCustomAggregator(new StaticModifierProvider(unlocks.ToArray()));
 
             var surfaceEnemy = Vertex.Create(Center, NE, East);
             var surfaceEnemyCiv = new Civilization { Index = 1 };
@@ -415,10 +422,14 @@ namespace SOITests.ControllerTests
             state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(underworldTiles, LayerState.UnderworldZ)));
 
             state.AutomationSettings.MilitaryVendettaAutomationEnabled = true;
-            // Inframonde inséré en premier à dessein : la priorité doit venir de la profondeur du plan,
-            // pas de l'ordre d'insertion dans le dictionnaire.
-            state.AutomationSettings.VendettaTargetCivIndexByLayer[LayerState.UnderworldZ] = 2;
-            state.AutomationSettings.VendettaTargetCivIndexByLayer[IslandMap.SurfaceLayer] = 1;
+            state.AutomationSettings.MilitaryBlitzEnabled = blitz;
+            if (withTargets)
+            {
+                // Inframonde inséré en premier à dessein : la priorité doit venir de la profondeur du plan,
+                // pas de l'ordre d'insertion dans le dictionnaire.
+                state.AutomationSettings.VendettaTargetCivIndexByLayer[LayerState.UnderworldZ] = 2;
+                state.AutomationSettings.VendettaTargetCivIndexByLayer[IslandMap.SurfaceLayer] = 1;
+            }
 
             var clock = new GameClock();
             clock.Start();
@@ -467,6 +478,73 @@ namespace SOITests.ControllerTests
             Assert.Equal(underworldEnemy, state.AutomationSettings.RaidTargetVertex);
             Assert.Equal(new Dictionary<int, int> { [LayerState.UnderworldZ] = 2 },
                 state.AutomationSettings.VendettaTargetCivIndexByLayer);
+        }
+
+        // ── Blitz — guerre totale sans déclencheur ────────────────────────────
+
+        /// <summary>
+        /// Sans Blitz, la Vendetta ne fait rien tant qu'aucune cible n'a été posée par une attaque
+        /// subie ou un raid manuel : c'est ce point de départ que le Blitz change.
+        /// </summary>
+        [Fact]
+        public void Vendetta_WithoutTarget_LaunchesNothing()
+        {
+            var (state, clock, _, _) = CreateVendettaSetup(withTargets: false);
+
+            clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
+
+            Assert.Null(state.AutomationSettings.RaidTargetVertex);
+            Assert.All(state.PlayerCivilization.MilitaryVertices, v => Assert.Null(v.FlowTarget));
+        }
+
+        /// <summary>
+        /// Blitz coché : sans la moindre cible enregistrée, chaque emplacement militaire part à
+        /// l'assaut de la ville ennemie la plus proche à sa portée — toutes civilisations et tous
+        /// plans confondus, et sans passer par un raid (donc sans entretien).
+        /// </summary>
+        [Fact]
+        public void Blitz_WithoutTrigger_AttacksEveryNearbyEnemyOnEveryLayer()
+        {
+            var (state, clock, surfaceEnemy, underworldEnemy) = CreateVendettaSetup(blitz: true, withTargets: false);
+
+            clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
+
+            Assert.Null(state.AutomationSettings.RaidTargetVertex);
+            var flows = state.PlayerCivilization.MilitaryVertices.Select(v => v.FlowTarget).ToList();
+            Assert.Contains(surfaceEnemy, flows);
+            Assert.Contains(underworldEnemy, flows);
+        }
+
+        /// <summary>
+        /// La case ne fait rien tant que la recherche Blitz n'est pas acquise : le réglage survit à
+        /// l'Ascension (GodState.AutomationSettings) alors que les recherches, non.
+        /// </summary>
+        [Fact]
+        public void Blitz_WithoutTheResearch_LaunchesNothing()
+        {
+            var (state, clock, _, _) = CreateVendettaSetup(blitz: false, withTargets: false);
+            state.AutomationSettings.MilitaryBlitzEnabled = true;
+
+            clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
+
+            Assert.All(state.PlayerCivilization.MilitaryVertices, v => Assert.Null(v.FlowTarget));
+        }
+
+        /// <summary>
+        /// Blitz remplace l'enchaînement de raids : même avec des cibles déjà enregistrées, aucun raid
+        /// n'est lancé — les deux mécanismes se disputeraient les flux à chaque cycle d'entretien.
+        /// </summary>
+        [Fact]
+        public void Blitz_WithVendettaTargets_ReplacesTheRaidChain()
+        {
+            var (state, clock, surfaceEnemy, _) = CreateVendettaSetup(blitz: true);
+
+            clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
+
+            Assert.Null(state.AutomationSettings.RaidTargetVertex);
+            Assert.Contains(surfaceEnemy, state.PlayerCivilization.MilitaryVertices.Select(v => v.FlowTarget));
+            // Les cibles restent en mémoire : décocher Blitz reprend la guerre là où elle en était.
+            Assert.Equal(2, state.AutomationSettings.VendettaTargetCivIndexByLayer.Count);
         }
     }
 }

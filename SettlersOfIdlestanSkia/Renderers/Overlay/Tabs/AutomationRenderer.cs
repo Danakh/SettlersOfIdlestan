@@ -147,6 +147,8 @@ public sealed class AutomationRenderer : IDisposable
     /// <param name="IsLocked">Ligne verrouillee : pas de bascule, Desc porte la raison du verrouillage.</param>
     /// <param name="CanDemobilize">Ligne de restriction de production de soldats : affiche un
     /// bouton "Demobiliser" qui ramene les soldats du layer au quota nourri gratuitement.</param>
+    /// <param name="CanBlitz">Ligne Vendetta, une fois la recherche Blitz acquise : affiche la case
+    /// "Blitz", au meme endroit que le bouton "Demobiliser".</param>
     private sealed record RowModel(
         string Key,
         string Name,
@@ -157,7 +159,9 @@ public sealed class AutomationRenderer : IDisposable
         bool CanPin,
         BuildingType[]? SummaryTypes,
         AutomationCategory Category,
-        bool CanDemobilize = false);
+        bool CanDemobilize = false,
+        bool CanBlitz = false,
+        bool BlitzOn = false);
 
     private sealed record SectionModel(string Header, List<RowModel> Rows);
 
@@ -297,12 +301,24 @@ public sealed class AutomationRenderer : IDisposable
                 descKey: defenseSpireUnlocked ? "automation_arcanetower_desc_spire" : null),
         };
 
+        // Vendetta : la recherche Blitz lui ajoute une case a cocher (meme emplacement que le bouton
+        // "Demobiliser" des lignes de restriction) et une ligne de plus a son infobulle. Le Blitz
+        // n'est qu'un sous-reglage de la Vendetta : pas de ligne, donc pas de cle d'epinglage a lui.
+        var vendetta = Row(PinKeyMilVendetta, "automation_military_vendetta",
+            unlocks[PinKeyMilVendetta], settings.MilitaryVendettaAutomationEnabled);
+        if (!vendetta.IsLocked && civ.TechnologyTree.IsCompleted(TechId.Blitz))
+            vendetta = vendetta with
+            {
+                Note = $"{vendetta.Note}\n{_localization.Get("automation_military_vendetta_note_blitz")}",
+                CanBlitz = true,
+                BlitzOn = settings.MilitaryBlitzEnabled,
+            };
+
         var behaviors = new List<RowModel>
         {
             Row(PinKeyMilReinforce, "automation_military_reinforcement",
                 unlocks[PinKeyMilReinforce], settings.MilitaryReinforcementAutomationEnabled),
-            Row(PinKeyMilVendetta, "automation_military_vendetta",
-                unlocks[PinKeyMilVendetta], settings.MilitaryVendettaAutomationEnabled),
+            vendetta,
             Row(PinKeyMonumentInvestment, "automation_monument_investment", unlocks[PinKeyMonumentInvestment], settings.MonumentInvestmentAutomationEnabled),
         };
 
@@ -455,7 +471,9 @@ public sealed class AutomationRenderer : IDisposable
                         : row.SummaryTypes.Where(t => IsUnlocked(civ, t)).Select(t => FormatSummaryEntry(civ.Cities, t,
                             presetsUnlocked ? civ : null, presetsUnlocked ? worldState.AutomationSettings : null).Text).ToList(),
                     Category: row.Category,
-                    CanDemobilize: row.CanDemobilize))
+                    CanDemobilize: row.CanDemobilize,
+                    CanBlitz: row.CanBlitz,
+                    BlitzOn: row.BlitzOn))
                     .ToList()))
                 .ToList();
 
@@ -467,6 +485,8 @@ public sealed class AutomationRenderer : IDisposable
             PinTooltip: _localization.Get("tooltip_pin_to_civ_panel"),
             DemobilizeButtonLabel: _localization.Get("automation_demobilize_button"),
             DemobilizeButtonTooltip: _localization.Get("tooltip_demobilize"),
+            BlitzToggleLabel: _localization.Get("automation_blitz_toggle"),
+            BlitzToggleTooltip: _localization.Get("tooltip_blitz"),
             PresetBarVisible: presetsUnlocked,
             ActivePreset: gameState.GodState.AutomationPresets.ActivePreset,
             PresetChangeButtonLabel: _localization.Get("automation_preset_change_button"),
@@ -585,10 +605,14 @@ public sealed class AutomationRenderer : IDisposable
                     _gameControllerService.MainGameController.MilitaryController.ClearReinforcementFlows(civ);
                 return;
 
-            // La vendetta relance des pillages : basculer le reglage arrete celui en cours.
+            // La vendetta relance des pillages : basculer le reglage arrete celui en cours. Avec le
+            // Blitz, la guerre ne passe pas par un raid mais par les flux d'attaque de chaque
+            // emplacement : les couper aussi, sans quoi la guerre continuerait reglage eteint.
             case PinKeyMilVendetta:
                 settings.MilitaryVendettaAutomationEnabled = !settings.MilitaryVendettaAutomationEnabled;
                 _gameControllerService.MainGameController.MilitaryController.StopRaid(civ);
+                if (!settings.MilitaryVendettaAutomationEnabled && settings.MilitaryBlitzEnabled)
+                    _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civ);
                 return;
 
             case PinKeyBarracks:     ToggleAll<Barracks>(civ); return;
@@ -630,6 +654,24 @@ public sealed class AutomationRenderer : IDisposable
             _gameControllerService.MainGameController.MilitaryController.DemobilizeSoldiersAboveFreeLimit(civ, layerZ);
             return;
         }
+    }
+
+    /// <summary>
+    /// Case "Blitz" de la ligne Vendetta (recherche Blitz) : bascule la guerre totale et permanente
+    /// contre toutes les civilisations (voir RaidEngine.ResolvePlayerBlitz). En la decochant, les flux
+    /// d'attaque deja lances sont coupes — sinon les assauts en cours continueraient indefiniment,
+    /// case eteinte, puisque rien d'autre ne les revoque tant que la cible tient.
+    /// </summary>
+    public void ToggleBlitzFromHost()
+    {
+        var state = _gameControllerService.CurrentWorldState;
+        var civ = _gameControllerService.PlayerCivilization;
+        if (state == null || civ == null) return;
+
+        var settings = state.AutomationSettings;
+        settings.MilitaryBlitzEnabled = !settings.MilitaryBlitzEnabled;
+        if (!settings.MilitaryBlitzEnabled)
+            _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civ);
     }
 
     private static bool BuildingExists<T>(Civilization civ) where T : Building
