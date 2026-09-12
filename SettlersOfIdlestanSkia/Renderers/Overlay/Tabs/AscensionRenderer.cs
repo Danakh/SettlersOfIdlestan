@@ -402,11 +402,14 @@ public sealed class AscensionRenderer : IDisposable
         float nextLineY = y + 22;
 
         // Réserve du Reliquaire (essences garanties au prestige, hors plafond de corruption — voir
-        // AscensionController.GetDivineEssenceReliquaryAmount) : affichée seulement si débloquée.
+        // AscensionController.GetDivineEssenceReliquaryAmount) : affichée seulement si débloquée, sous
+        // la forme courant/capacité (GetDivineEssenceReliquaryCapacity, ce que protègerait un prestige
+        // immédiat).
         if (ascension.HasDivineEssenceReliquary)
         {
             string reliquaryText = _localization.GetFormated("ascension_divine_essence_reliquary_label",
-                ascension.GetDivineEssenceReliquaryAmount(godState));
+                ascension.GetDivineEssenceReliquaryAmount(godState),
+                ascension.GetDivineEssenceReliquaryCapacity(godState));
             SkiaTextUtils.DrawText(canvas, reliquaryText, x + contentWidth, nextLineY, SKTextAlign.Right, _nameFont, _accentPaint);
             essenceZoneWidth = Math.Max(essenceZoneWidth, _nameFont.MeasureText(reliquaryText));
             nextLineY += 20f;

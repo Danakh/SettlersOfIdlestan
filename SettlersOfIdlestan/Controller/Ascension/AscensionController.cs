@@ -571,6 +571,16 @@ public class AscensionController : IModifierProvider
     public int GetDivineEssenceReliquaryAmount(GodState godState) => godState.DivineEssenceReliquaryFloor;
 
     /// <summary>
+    /// Capacité du Reliquaire : nombre maximum d'essences divines qu'un prestige immédiat
+    /// protègerait (Civilization.DivineEssenceKeptOnPrestige, doublé par Purification Supérieure —
+    /// voir AscensionState.ApplyReliquaryCapacityBonus). C'est le plafond vers lequel tend
+    /// <see cref="GetDivineEssenceReliquaryAmount"/> après un prestige ; même valeur que celle dont
+    /// PrestigeController.GetDivineEssenceLoss déduit les essences perdues.
+    /// </summary>
+    public int GetDivineEssenceReliquaryCapacity(GodState godState)
+        => godState.AscensionState.ApplyReliquaryCapacityBonus(_state?.PlayerCivilization.DivineEssenceKeptOnPrestige ?? 0);
+
+    /// <summary>
     /// Niveau de la Nécropole bâtie sur l'île courante (0 s'il n'y en a pas) — chaque niveau majore
     /// de 10% les points divins de l'Ascension (voir <see cref="GetGodPointsGain"/>).
     /// </summary>
