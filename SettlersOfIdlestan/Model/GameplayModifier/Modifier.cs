@@ -56,6 +56,11 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             NEW_CITY_DIVINE_CONQUEST,
             /// <summary>Flat bonus added to the city defense score. SubCategory unused.</summary>
             CITY_DEFENSE,
+            /// <summary>Modificateur en pourcentage du score de défense, appliqué en dernier — après le bonus plat
+            /// <see cref="CITY_DEFENSE"/> et le bonus de Temple de Bastion Consacré (voir
+            /// MilitaryController.GetDefenseScore). Base = 1.0 ; ADDITIVE -0.2 = -20 %, +0.2 = +20 %.
+            /// SubCategory unused.</summary>
+            CITY_DEFENSE_PERCENT,
             /// <summary>SubCategory = TechnologyId name. Signals that this vertex unlocks the given technology.</summary>
             UNLOCK_RESEARCH,
             /// <summary>Flags that maritime routes (water-water edges) are unlocked for the civilization.</summary>

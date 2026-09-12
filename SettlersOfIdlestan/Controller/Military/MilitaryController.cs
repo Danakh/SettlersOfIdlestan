@@ -314,20 +314,30 @@ public class MilitaryController
 
         return GetDefenseScore(vertex,
             civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0),
-            civ.ModifierAggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS));
+            civ.ModifierAggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS),
+            civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_DEFENSE_PERCENT, "", 1.0));
     }
 
     /// <summary>
-    /// Variante prenant les deux valeurs propres à la civilisation déjà calculées — voir
+    /// Variante prenant les trois valeurs propres à la civilisation déjà calculées — voir
     /// <see cref="ResolveDefenseRegen"/>, qui les remonte hors de sa boucle par emplacement.
+    ///
+    /// <para><paramref name="defenseMultiplier"/> (CITY_DEFENSE_PERCENT, ex. -20 % des Garudas,
+    /// +20 % des Nains) s'applique en dernier, sur le total : il pèse donc aussi sur les bâtiments
+    /// de défense de l'emplacement, pas seulement sur le bonus plat de civilisation. Le résultat est
+    /// arrondi au plus proche et jamais ramené sous 1 tant que le total avant pourcentage était
+    /// positif — un malus ne doit pas rendre un emplacement défendu totalement sans défense.</para>
     /// </summary>
-    private static int GetDefenseScore(IMilitaryVertex vertex, int civDefenseBonus, bool hasTempleDefenseBonus)
+    private static int GetDefenseScore(IMilitaryVertex vertex, int civDefenseBonus, bool hasTempleDefenseBonus, double defenseMultiplier)
     {
         int score = vertex.MaxDefense + civDefenseBonus;
 
         // Bastion Consacré : chaque Temple ajoute un bonus fixe selon son niveau (+1/3/6/10).
         if (hasTempleDefenseBonus && vertex is City city)
             score += city.FindBuilding(BuildingType.Temple) is { } tpl ? Temple.GetDefenseBonusForLevel(tpl.Level) : 0;
+
+        if (defenseMultiplier != 1.0 && score > 0)
+            score = Math.Max(1, (int)Math.Round(score * defenseMultiplier, MidpointRounding.AwayFromZero));
 
         return score;
     }
@@ -446,6 +456,7 @@ public class MilitaryController
 
             int civDefenseBonus = aggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
             bool hasTempleDefenseBonus = aggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS);
+            double defenseMultiplier = aggregator.ApplyModifiers(ECategory.CITY_DEFENSE_PERCENT, "", 1.0);
             double perDominionLevel = aggregator.ApplyModifiers(ECategory.DOMINION_DEFENSE_REGEN_PER_LEVEL, "", 0.0);
             double civRegenSpeed = civ.CityDefenseRegenSpeed;
             double underworldRegenBonus = aggregator.ApplyModifiers(ECategory.UNDERWORLD_CITY_DEFENSE_REGEN_SPEED, "", 0.0);
@@ -454,7 +465,7 @@ public class MilitaryController
             for (int v = 0; v < vertices.Count; v++)
             {
                 var vertex = vertices[v];
-                int maxDefense = GetDefenseScore(vertex, civDefenseBonus, hasTempleDefenseBonus);
+                int maxDefense = GetDefenseScore(vertex, civDefenseBonus, hasTempleDefenseBonus, defenseMultiplier);
                 if (maxDefense <= 0) continue;
                 // En mode plafonnage différé, on continue à créditer les cycles même si la défense est
                 // déjà à son maximum : c'est précisément ce surplus, retiré seulement par
@@ -509,13 +520,14 @@ public class MilitaryController
             var aggregator = civ.ModifierAggregator;
             int civDefenseBonus = aggregator.ApplyModifiers(ECategory.CITY_DEFENSE, "", 0);
             bool hasTempleDefenseBonus = aggregator.HasModifier(ECategory.TEMPLE_DEFENSE_BONUS);
+            double defenseMultiplier = aggregator.ApplyModifiers(ECategory.CITY_DEFENSE_PERCENT, "", 1.0);
 
             var vertices = civ.MilitaryVertices;
             for (int v = 0; v < vertices.Count; v++)
             {
                 var vertex = vertices[v];
                 if (vertex.CurrentDefense <= 0) continue;
-                int maxDefense = GetDefenseScore(vertex, civDefenseBonus, hasTempleDefenseBonus);
+                int maxDefense = GetDefenseScore(vertex, civDefenseBonus, hasTempleDefenseBonus, defenseMultiplier);
                 if (vertex.CurrentDefense > maxDefense)
                     vertex.CurrentDefense = maxDefense;
             }

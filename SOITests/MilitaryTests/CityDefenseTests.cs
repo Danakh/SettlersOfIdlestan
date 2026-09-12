@@ -214,4 +214,43 @@ public class CityDefenseTests
 
         Assert.Equal(10 + expectedBonus, ctrl.GetDefenseScore(city)); // Palissade = 10
     }
+
+    /// <summary>
+    /// CITY_DEFENSE_PERCENT (Nains +20 %, Garudas -20 %) s'applique sur le total, bâtiments compris —
+    /// pas seulement sur le bonus plat CITY_DEFENSE.
+    /// </summary>
+    [Theory]
+    [InlineData(0.2, 12)]   // Nains : 10 × 1,2
+    [InlineData(-0.2, 8)]   // Garudas : 10 × 0,8
+    public void DefenseScore_CityDefensePercent_ScalesTheWholeScore(double percent, int expected)
+    {
+        var (ctrl, civ, city) = SetupWithCiv(new Palisade { Level = 1 }); // Palissade = 10
+        civ.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(ECategory.CITY_DEFENSE_PERCENT, EType.ADDITIVE, percent),
+        }));
+
+        Assert.Equal(expected, ctrl.GetDefenseScore(city));
+    }
+
+    /// <summary>Le pourcentage s'applique après le bonus plat, et ne peut jamais annuler une défense existante.</summary>
+    [Fact]
+    public void DefenseScore_CityDefensePercent_AppliesAfterFlatBonusAndNeverReachesZero()
+    {
+        var (ctrl, civ, city) = SetupWithCiv(new Palisade { Level = 1 }); // Palissade = 10
+        civ.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, 5),
+            new Modifier(ECategory.CITY_DEFENSE_PERCENT, EType.ADDITIVE, -0.2),
+        }));
+        Assert.Equal(12, ctrl.GetDefenseScore(city)); // (10 + 5) × 0,8
+
+        var (ctrl2, civ2, city2) = SetupWithCiv(new Palisade { Level = 1 });
+        civ2.AddCustomAggregator(new StaticModifierProvider(new[]
+        {
+            new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -9),
+            new Modifier(ECategory.CITY_DEFENSE_PERCENT, EType.ADDITIVE, -0.2),
+        }));
+        Assert.Equal(1, ctrl2.GetDefenseScore(city2)); // (10 - 9) × 0,8 = 0,8 → plancher à 1
+    }
 }

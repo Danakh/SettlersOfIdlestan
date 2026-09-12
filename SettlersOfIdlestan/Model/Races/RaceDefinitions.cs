@@ -35,9 +35,9 @@ namespace SettlersOfIdlestan.Model.Races;
 public static class RaceDefinitions
 {
     /// <summary>
-    /// Bâtiments allégés par le malus garuda : production (récolte et transformation), recherche et
-    /// magie. Tout le reste est épargné — Comptoir, Entrepôt, Marché, Temple, Hôtel de Ville, les
-    /// militaires et les uniques.
+    /// Bâtiments allégés par le malus garuda : production (récolte et transformation) et recherche.
+    /// Tout le reste est épargné — la magie (Tour de Mages, Hutte d'Alchimie), le Comptoir, l'Entrepôt,
+    /// le Marché, le Temple, l'Hôtel de Ville, les militaires et les uniques.
     ///
     /// <para>Déclaré <b>avant</b> <see cref="All"/> : l'initialisation des champs statiques suit
     /// l'ordre du texte, et <see cref="All"/> énumère cette liste immédiatement (le <c>ToArray()</c>
@@ -65,8 +65,6 @@ public static class RaceDefinitions
         BuildingType.Forge, BuildingType.Smelter, BuildingType.WeaponSmith, BuildingType.ArmorSmith,
         // Recherche
         BuildingType.Library, BuildingType.Laboratory,
-        // Magie
-        BuildingType.MageTower, BuildingType.AlchimistHut,
     };
 
     public static IReadOnlyList<RaceDefinition> All { get; } = new[]
@@ -111,7 +109,7 @@ public static class RaceDefinitions
                 new Modifier(ECategory.CITY_PLACEMENT_REQUIRES_TERRAIN, nameof(TerrainType.Mountain), EType.ADDITIVE, 1),
                 new Modifier(ECategory.FORGE_DOUBLE_HARVEST_BONUS, EType.ADDITIVE, 10),
                 new Modifier(ECategory.MINE_GOLD_CHANCE_PERCENT, EType.ADDITIVE, 10),
-                new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, 3),
+                new Modifier(ECategory.CITY_DEFENSE_PERCENT, EType.ADDITIVE, 0.2),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.RunicForge), EType.ADDITIVE, 1),
             },
             requiredPowers: new[] { AscensionPowerId.WalkOfGod, AscensionPowerId.ArmOfGod, AscensionPowerId.DivineConstruction }),
@@ -148,7 +146,6 @@ public static class RaceDefinitions
                 new Modifier(ECategory.ATTACK_SPEED, EType.ADDITIVE, 0.5),
                 new Modifier(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1),
                 new Modifier(ECategory.RESEARCH_PRODUCTION_SPEED, EType.ADDITIVE, -0.25),
-                new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Library), EType.ADDITIVE, -1),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.Laboratory), EType.ADDITIVE, -1),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.SkullPit), EType.ADDITIVE, 1),
@@ -175,8 +172,8 @@ public static class RaceDefinitions
         // Garudas : seigneurs du vent — le Vol fonde des villes sans route (jusqu'à 3 arêtes d'une
         // ville, voir CityBuilderController.AddFlightCandidateVertices) ; distance minimale entre
         // villes standard (3), portée d'attaque +1, portée encore étendue par le Trône des Vents.
-        // En échange : -1 de niveau max sur la production, la recherche et la magie
-        // (GarudaLightBuildings) et défense -3. Déblocage : Œil de Dieu (partagé avec les Géants),
+        // En échange : -1 de niveau max sur la production et la recherche (GarudaLightBuildings — la
+        // magie en est exclue) et défense -20 %. Déblocage : Œil de Dieu (partagé avec les Géants),
         // Conquête Divine (partagé avec les Sirènes — les deux essaiment loin de leurs villes, par le
         // vol ou par la mer, et tiennent leurs avant-postes), Rituels Divins (partagé avec les Elfes
         // noirs — les rites des cieux et ceux des profondeurs).
@@ -186,7 +183,7 @@ public static class RaceDefinitions
             modifiers: BuildMaxLevelModifiers(GarudaLightBuildings, -1)
                 .Append(new Modifier(ECategory.CITY_PLACEMENT_FLYING, EType.ADDITIVE, 3))
                 .Append(new Modifier(ECategory.CITY_ATTACK_RANGE, EType.ADDITIVE, 1))
-                .Append(new Modifier(ECategory.CITY_DEFENSE, EType.ADDITIVE, -3))
+                .Append(new Modifier(ECategory.CITY_DEFENSE_PERCENT, EType.ADDITIVE, -0.2))
                 .Append(new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.ThroneOfWinds), EType.ADDITIVE, 1))
                 .ToArray(),
             requiredPowers: new[] { AscensionPowerId.EyeOfGod, AscensionPowerId.DivineConquest, AscensionPowerId.DivineRituals }),

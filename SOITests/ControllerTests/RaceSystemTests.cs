@@ -254,21 +254,23 @@ public class RaceSystemTests
 
         Assert.Contains(modifiers, m => m.Category == ECategory.CITY_PLACEMENT_FLYING && m.Type == EType.ADDITIVE && (int)m.Value == 3);
         Assert.Contains(modifiers, m => m.Category == ECategory.CITY_ATTACK_RANGE && (int)m.Value == 1);
-        Assert.Contains(modifiers, m => m.Category == ECategory.CITY_DEFENSE && (int)m.Value == -3);
+        Assert.Contains(modifiers, m => m.Category == ECategory.CITY_DEFENSE_PERCENT && m.Value == -0.2);
+        Assert.DoesNotContain(modifiers, m => m.Category == ECategory.CITY_DEFENSE);
         // Le Vol ne dispense plus du rapprochement standard : distance minimale de droit commun (3).
         Assert.DoesNotContain(modifiers, m => m.Category == ECategory.CITY_MIN_DISTANCE);
         Assert.Contains(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL && m.SubCategory == nameof(BuildingType.ThroneOfWinds) && (int)m.Value == 1);
     }
 
     /// <summary>
-    /// Le malus de niveau max garuda ne touche que la production, la recherche et la magie. Le
-    /// Comptoir en est exclu par construction : le Port Impérial exige un Comptoir niveau 4, qui est
-    /// aussi son plafond par défaut, donc un -1 dessus rendrait le prestige inatteignable. La Verrerie
-    /// (plafond par défaut 0) est en revanche incluse : BuildingController.GetMaxLevel applique le
-    /// malus en dernier et le plafonne à 1 minimum, jamais 0 par sa seule faute.
+    /// Le malus de niveau max garuda ne touche que la production et la recherche. La magie (Tour de
+    /// Mages, Hutte d'Alchimie) en est épargnée, comme le Comptoir : celui-ci est exclu par
+    /// construction, le Port Impérial exigeant un Comptoir niveau 4, qui est aussi son plafond par
+    /// défaut, donc un -1 dessus rendrait le prestige inatteignable. La Verrerie (plafond par défaut
+    /// 0) est en revanche incluse : BuildingController.GetMaxLevel applique le malus en dernier et le
+    /// plafonne à 1 minimum, jamais 0 par sa seule faute.
     /// </summary>
     [Fact]
-    public void GetModifiers_Garuda_LowersProductionResearchAndMagicButNotSeaportOrWarehouse()
+    public void GetModifiers_Garuda_LowersProductionAndResearchButNotMagicSeaportOrWarehouse()
     {
         var ascension = CreateAscension(out var godState);
         godState.AscensionState.SelectedRace = RaceId.Garuda;
@@ -279,8 +281,7 @@ public class RaceSystemTests
                  {
                      BuildingType.Sawmill, BuildingType.Brickworks, BuildingType.Mill, BuildingType.Quarry,
                      BuildingType.Mine, BuildingType.Forge, BuildingType.Smelter,
-                     BuildingType.Library, BuildingType.Laboratory,
-                     BuildingType.MageTower, BuildingType.AlchimistHut, BuildingType.GlassWorks,
+                     BuildingType.Library, BuildingType.Laboratory, BuildingType.GlassWorks,
                  })
             Assert.Contains(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL
                                             && m.SubCategory == lowered.ToString() && (int)m.Value == -1);
@@ -289,6 +290,7 @@ public class RaceSystemTests
                  {
                      BuildingType.Seaport, BuildingType.Warehouse, BuildingType.Market, BuildingType.Temple,
                      BuildingType.TownHall, BuildingType.Palisade, BuildingType.Barracks,
+                     BuildingType.MageTower, BuildingType.AlchimistHut,
                  })
             Assert.DoesNotContain(modifiers, m => m.Category == ECategory.BUILDING_MAX_LEVEL
                                                   && m.SubCategory == spared.ToString() && (int)m.Value < 0);
