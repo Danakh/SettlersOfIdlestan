@@ -92,6 +92,27 @@ namespace SettlersOfIdlestan.Model.Prestige
         public int HighestDemonGodLevelDefeated { get; set; }
 
         /// <summary>
+        /// Tick de jeu (GameClock.CurrentTick, jamais remis à zéro — c'est le temps de jeu total de
+        /// la partie) auquel <see cref="HighestDemonGodLevelDefeated"/> a été atteint. Mis à jour en
+        /// même temps que lui, et donc seulement quand le record est battu. 0 tant qu'aucun Dieu
+        /// démon n'est tombé. Purement informatif : affiché dans l'onglet Partie des statistiques.
+        /// </summary>
+        public long HighestDemonGodDefeatTick { get; set; }
+
+        /// <summary>
+        /// Niveau du tout premier Dieu démon vaincu de la partie, figé à cette première victoire —
+        /// 0 tant qu'aucun ne l'a été. Contrairement à <see cref="HighestDemonGodLevelDefeated"/>,
+        /// ne bouge plus ensuite, même quand le record est battu.
+        /// </summary>
+        public int FirstDemonGodLevelDefeated { get; set; }
+
+        /// <summary>
+        /// Tick de jeu de cette première victoire (voir <see cref="HighestDemonGodDefeatTick"/> pour
+        /// la nature du tick). 0 tant qu'aucun Dieu démon n'est tombé.
+        /// </summary>
+        public long FirstDemonGodDefeatTick { get; set; }
+
+        /// <summary>
         /// Bonus au plafond d'essence divine (<see cref="AscensionController.GetDivineEssenceCap"/>,
         /// DivineBones.GetEssenceCap) apporté par le Dieu démon vaincu <b>pendant le cycle de prestige
         /// courant</b> : sa victoire ajoute le niveau du boss abattu. Un cycle n'en offre jamais plus

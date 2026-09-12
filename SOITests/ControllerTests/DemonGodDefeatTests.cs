@@ -26,6 +26,13 @@ namespace SOITests.ControllerTests
         private static (WorldState state, GodState godState, PandemoniumGateController controller) CreateSetup(
             int corruptionLevel = 5)
         {
+            var (state, godState, controller, _) = CreateSetupWithClock(corruptionLevel);
+            return (state, godState, controller);
+        }
+
+        private static (WorldState state, GodState godState, PandemoniumGateController controller, GameClock clock)
+            CreateSetupWithClock(int corruptionLevel = 5)
+        {
             var surfaceMap = new IslandMap(new[] { new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain) });
             var civ = new Civilization { Index = 0 };
             var state = new WorldState(surfaceMap, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
@@ -41,7 +48,7 @@ namespace SOITests.ControllerTests
             var controller = new PandemoniumGateController();
             controller.Initialize(state, clock, prng: new GamePRNG(1), prestigeState: prestigeState, godState: godState);
 
-            return (state, godState, controller);
+            return (state, godState, controller, clock);
         }
 
         /// <summary>Tue le boss comme le fait le combat : PV à zéro, retrait de la feature, puis journalisation par l'appelant.</summary>
@@ -148,6 +155,40 @@ namespace SOITests.ControllerTests
             Kill(state, level: 8);
 
             Assert.Equal(8, godState.HighestDemonGodLevelDefeated);
+        }
+
+        /// <summary>
+        /// Les deux horodatages affichés par l'onglet Partie : la première victoire est figée, celle
+        /// du record suit le record. Une victoire sans record ne touche ni l'un ni l'autre.
+        /// </summary>
+        [Fact]
+        public void DefeatTicks_FreezeTheFirstKill_AndFollowTheRecord()
+        {
+            var (state, godState, _, clock) = CreateSetupWithClock();
+
+            clock.CurrentTick = 1000;
+            Kill(state, level: 3);
+
+            Assert.Equal(3, godState.FirstDemonGodLevelDefeated);
+            Assert.Equal(1000, godState.FirstDemonGodDefeatTick);
+            Assert.Equal(1000, godState.HighestDemonGodDefeatTick);
+
+            SimulatePrestige(state, godState);
+            clock.CurrentTick = 2500;
+            Kill(state, level: 2);
+
+            // Sous le record : rien ne bouge.
+            Assert.Equal(1000, godState.FirstDemonGodDefeatTick);
+            Assert.Equal(1000, godState.HighestDemonGodDefeatTick);
+
+            SimulatePrestige(state, godState);
+            clock.CurrentTick = 9000;
+            Kill(state, level: 8);
+
+            Assert.Equal(3, godState.FirstDemonGodLevelDefeated);
+            Assert.Equal(1000, godState.FirstDemonGodDefeatTick);
+            Assert.Equal(8, godState.HighestDemonGodLevelDefeated);
+            Assert.Equal(9000, godState.HighestDemonGodDefeatTick);
         }
 
         [Theory]

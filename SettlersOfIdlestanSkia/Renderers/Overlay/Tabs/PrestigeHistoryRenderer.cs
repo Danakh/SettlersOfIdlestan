@@ -198,12 +198,32 @@ public sealed class PrestigeHistoryRenderer : IDisposable
     private List<StatSectionSnapshot> BuildRunSections(MainGameState state)
     {
         var gameRecord = state.GameRecord;
-        var ascensionState = state.GodState.AscensionState;
+        var godState = state.GodState;
+        var ascensionState = godState.AscensionState;
+
+        var overview = new List<StatCellSnapshot>
+        {
+            new(_localization.Get("stats_playtime"), FormatTicks(state.Clock.CurrentTick)),
+        };
+
+        // Dieux démons : rien tant qu'aucun n'est tombé. La ligne du record ne s'ajoute que lorsque
+        // le record a effectivement été battu — tant que la première victoire est la meilleure, les
+        // deux lignes seraient identiques. Les sauvegardes antérieures à ces horodatages n'ont que le
+        // niveau record : niveau du premier boss et ticks y valent 0, d'où les gardes — elles
+        // n'affichent donc que la ligne du record, sans durée, plutôt qu'une durée fausse.
+        if (godState.FirstDemonGodLevelDefeated > 0)
+            overview.Add(new(_localization.Get("stats_first_demon_god"),
+                DemonGodValue(godState.FirstDemonGodLevelDefeated, godState.FirstDemonGodDefeatTick)));
+        if (godState.HighestDemonGodLevelDefeated > godState.FirstDemonGodLevelDefeated)
+            overview.Add(new(_localization.Get("stats_best_demon_god"),
+                DemonGodValue(godState.HighestDemonGodLevelDefeated, godState.HighestDemonGodDefeatTick)));
 
         var sections = new List<StatSectionSnapshot>
         {
             new(_localization.Get("stats_partie_total_playtime"), IsAccent: true, EmptyMessage: null,
-                Cards: [Card([new(_localization.Get("stats_playtime"), FormatTicks(state.Clock.CurrentTick))], 4, isCurrent: true)]),
+                // 3 colonnes et non 4 : les deux lignes de Dieu démon portent un niveau suivi d'une
+                // durée, trop long pour un quart de la largeur.
+                Cards: [Card(overview, 3, isCurrent: true)]),
         };
 
         var records = new List<StatCellSnapshot>
@@ -250,6 +270,15 @@ public sealed class PrestigeHistoryRenderer : IDisposable
 
         return sections;
     }
+
+    /// <summary>
+    /// Un Dieu démon vaincu : son niveau, suivi du temps de jeu total au moment de la victoire
+    /// quand il est connu (0 sur une sauvegarde antérieure à l'horodatage).
+    /// </summary>
+    private string DemonGodValue(int level, long tick) =>
+        tick > 0
+            ? _localization.GetFormated("stats_demon_god_level_at", level, FormatTicks(tick))
+            : _localization.GetFormated("stats_demon_god_level", level);
 
     private const string Check = "✓";
 

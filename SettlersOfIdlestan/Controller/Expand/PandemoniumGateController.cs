@@ -136,7 +136,23 @@ namespace SettlersOfIdlestan.Controller.Expand
             _godState.DivineEssence += gained;
             _godState.TotalDivineEssenceEarned += gained;
 
-            if (beatsRecord) _godState.HighestDemonGodLevelDefeated = level;
+            // Horodatage des deux victoires que l'onglet Partie des statistiques affiche : la
+            // première de la partie (figée à jamais) et celle qui détient le record (réécrite à
+            // chaque fois qu'il tombe). Le tick est celui de l'horloge de la partie, jamais remise
+            // à zéro, donc directement lisible comme un temps de jeu total.
+            long now = _clock?.CurrentTick ?? 0;
+
+            if (isFirstEver)
+            {
+                _godState.FirstDemonGodLevelDefeated = level;
+                _godState.FirstDemonGodDefeatTick = now;
+            }
+
+            if (beatsRecord)
+            {
+                _godState.HighestDemonGodLevelDefeated = level;
+                _godState.HighestDemonGodDefeatTick = now;
+            }
 
             // Fin de la branche pour ce cycle : le Portail du Pandémonium s'efface avec son maître,
             // et le drapeau interdit à toute Tentacule de l'Abysse d'en faire surgir un autre
