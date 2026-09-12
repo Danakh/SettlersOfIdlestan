@@ -14,71 +14,73 @@ using SettlersOfIdlestan.Model.Prestige;
 namespace SettlersOfIdlestan.Controller.Island;
 
 /// <summary>
-/// Gère la lutte Corruption/Dominion. Deux mécaniques indépendantes, toutes deux au rythme de
-/// <see cref="ProductionIntervalTicks"/> (10 s) :
+/// Gère la lutte Corruption/Dominion. La Corruption et le Dominion sont <b>passifs</b> : un hex déjà
+/// posé ne déborde jamais de lui-même. Seules les <b>sources</b> sont simulées, toutes au rythme de
+/// <see cref="ProductionIntervalTicks"/> (10 s), et chacune produit un point par intervalle.
 /// 1. <see cref="ProcessTempleProduction"/> — chaque Temple de niveau 2-4 (atteignable uniquement une
 ///    fois le pouvoir divin Foi débloqué, voir AscensionController.GetModifiers — BUILDING_MAX_LEVEL
-///    "Temple" +3) cible un hex aléatoire parmi les 3 hexes touchant sa ville : réduit la Corruption
-///    d'un point si elle y est présente (de deux ou trois sur un tirage réussi d'Évangélisation, voir
-///    <see cref="ReduceCorruption"/>), sinon pose ou augmente le Dominion d'un point (plafonné à
-///    <see cref="TempleDominionCapPerLevel"/> × niveau effectif du Temple). Le niveau effectif est le
+///    "Temple" +3) produit du Dominion depuis les 3 hexes touchant sa ville, plafonné à
+///    <see cref="TempleDominionCapPerLevel"/> × niveau effectif du Temple. Le niveau effectif est le
 ///    niveau réel augmenté de TEMPLE_DOMINION_LEVEL_BONUS (Ziggourat +1), ce qui abaisse aussi d'autant
 ///    le niveau à partir duquel un Temple produit — voir <see cref="ProducesDominion"/>.
-/// 2. <see cref="ProcessSpread"/> — chaque hex de Corruption ou de Dominion (toutes couches confondues)
-///    a niveau×10% de chance de déborder sur un voisin aléatoire : annulation mutuelle (-1/-1, la
-///    Corruption perdant 2 ou 3 points sur un tirage réussi d'Évangélisation) si ce
-///    voisin porte le statut opposé, propagation (+1 voisin, source inchangée) si le voisin partage le
-///    même statut (un voisin vide compte comme statut identique de niveau 0) avec un écart de niveau
-///    &gt; 2. Un voisin vide peut donc se voir semer une nouvelle poche à niveau 1 si la source est assez
-///    forte (niveau &gt; 2), ce qui permet à terme au Dominion d'un Temple de gagner du terrain à distance,
-///    au-delà des hexes directement produits, et à plusieurs Temples de voir leurs poches se rejoindre.
-/// 3. <see cref="ProcessMonumentCorruptionDecay"/> — ni la Faille des Abysses ni la Spire de Corruption
-///    ne protègent leur hex des deux mécaniques ci-dessus (Temple et débordement peuvent y agir
-///    normalement) ; ce process leur ajoute simplement une réduction garantie (contrairement au ciblage
-///    aléatoire du Temple) d'un point de Corruption par intervalle sur leur propre hex (Faille), ou sur
-///    tous les hexes dans un rayon fixe de <see cref="IslandFeatures.CorruptionSpire.DecayRadius"/>
-///    autour d'elle (Spire — son niveau n'est pas améliorable, voir CorruptionSpireController). La
-///    Spire n'agit qu'une fois <see cref="IslandFeatures.CorruptionSpire.Built"/> : pendant sa
-///    construction, aucune décroissance n'est appliquée sur son hex.
-/// 4. <see cref="ProcessDivineBonesCorruptionGrowth"/> — miroir du process précédent : chaque Os Divin
-///    non purifié ajoute un point de Corruption sur son propre hex (en la semant à niveau 1 si l'hex est
-///    sain), tant que le niveau y reste sous <see cref="IslandFeatures.DivineBones.GetCorruptionCap"/>
-///    (2× le niveau de corruption de l'île). Purifier les Os les retire de la carte (voir
-///    DivineBonesController) et tarit donc la source ; la Corruption déjà semée, elle, reste à nettoyer.
-/// 5. <see cref="ProcessMonsterCorruptionGrowth"/> — même chose pour les monstres enracinés dans la
-///    Corruption (Tentacules et Dieu démon, voir <see cref="MonsterFeature.GeneratesCorruption"/>) :
-///    chacun ajoute un point de Corruption sur son propre hex tant que le niveau y reste sous
-///    <see cref="GetMonsterCorruptionCap"/> (2× le niveau de corruption courant de l'île). Le
-///    Pandémonium se re-corrompt donc depuis son centre et sa couronne de Tentacules : seules leurs
-///    morts tarissent les sources. À leur apparition, <see cref="SeedCorruptionAroundNewMonster"/>
-///    (appelé par les générateurs) corrompt d'office leur hex et ses six voisins au niveau de l'île,
-///    soit la moitié de ce plafond.
-/// 6. <see cref="ProcessCorruptionSourceGrowth"/> — même mécanique que les Os Divins pour les
-///    Sources de Corruption (voir <see cref="IslandFeatures.CorruptionSource"/>, semées par
-///    AutoExtendController.TrySpawnUnderworldDenizen) : chacune ajoute un point de Corruption sur son
-///    propre hex tant que le niveau y reste sous <see cref="IslandFeatures.CorruptionSource.GetCorruptionCap"/>
-///    — le niveau de corruption de l'île figé à sa génération, jamais doublé (contrairement aux Os
-///    Divins). C'est le seul hex sur lequel une Spire de Corruption peut être bâtie ; la construire
-///    détruit la Source (voir CorruptionSpireController.ProcessInvestment).
-/// Invariant : Corruption et Dominion ne coexistent jamais sur un même hex. Le Temple (1) l'assure déjà
-/// dans un sens (il ne pose du Dominion que sur un hex sans Corruption). Les trois générateurs directs
-/// (4, 5, 6) l'assurent dans l'autre sens via <see cref="GrowOrSeedCorruptionOnHex"/> : si un Dominion
-/// occupe déjà leur hex, ils le combattent (-1) au lieu d'y semer de la Corruption. Nécessaire car (2)
-/// peut semer un nouveau Dominion sur un hex dont la Corruption vient d'être réduite à zéro plus tôt
-/// dans le même tick (par 1) — sans ce garde-fou, (4)/(5)/(6), qui passent en dernier, la ressèmeraient
-/// par-dessus sans regarder ce qui s'y trouve déjà.
+///    DOMINION_SPREAD_CHANCE (Humains) accorde en plus, par niveau effectif de Temple, une chance de
+///    produire un second point dans le même intervalle (voir <see cref="RollDoubleProduction"/>).
+/// 2. <see cref="ProcessDivineBonesCorruptionGrowth"/>, <see cref="ProcessMonsterCorruptionGrowth"/> et
+///    <see cref="ProcessCorruptionSourceGrowth"/> — chaque Os Divin non purifié, chaque monstre
+///    enraciné dans la Corruption (<see cref="MonsterFeature.GeneratesCorruption"/>) et chaque Source
+///    de Corruption produit un point de Corruption depuis son propre hex, sous son propre plafond.
+///    Seule leur disparition tarit la source : purification des Os (DivineBonesController), mort du
+///    monstre, Spire bâtie sur la Source (CorruptionSpireController). À l'apparition d'un monstre,
+///    <see cref="SeedCorruptionAroundNewMonster"/> (appelé par les générateurs) corrompt d'office son
+///    hex et ses six voisins au niveau de l'île, soit la moitié de son plafond.
+/// 3. <see cref="FindProductionTarget"/> — <b>la cascade</b>, commune à toutes ces sources et seul
+///    moyen désormais pour la Corruption comme pour le Dominion de gagner du terrain. La production
+///    vise l'hex le moins fourni parmi les hexes de départ de la source (les 3 hexes de ville d'un
+///    Temple, son propre hex pour les autres). S'ils sont tous saturés, elle retente anneau par anneau
+///    — rayon 1, 2, … jusqu'à <see cref="MaxCascadeRadius"/> — et s'arrête au premier anneau offrant un
+///    hex non saturé, le moins fourni de cet anneau. Au-delà, la production est perdue.
+/// 4. <see cref="GetFill"/> — le « remplissage » qui classe les candidats compte le statut opposé en
+///    <b>négatif</b> : un hex tenu par l'adversaire est donc toujours le candidat le plus attirant, et
+///    le plus fort d'abord. La production s'y dépense alors en combat (−1 à l'adversaire, rien de posé)
+///    au lieu de s'y ajouter — c'est à la frontière, et seulement là, que se joue la lutte, le
+///    débordement passif ne l'assurant plus. Une Corruption repoussée par un Temple peut perdre 2 ou 3
+///    points d'un coup (Évangélisation, voir <see cref="ReduceCorruption"/>) ; un Dominion attaqué peut
+///    résister (Terre Consacrée, voir <see cref="IsDominionSpared"/>).
+/// 5. <see cref="ProcessMonumentCorruptionDecay"/> — hors cascade, et inchangé : ni la Faille des
+///    Abysses ni la Spire de Corruption ne protègent leur hex des mécaniques ci-dessus (une production
+///    peut y agir normalement) ; ce process leur ajoute simplement une réduction garantie
+///    (contrairement au ciblage de la cascade) d'un point de Corruption par intervalle sur leur propre
+///    hex (Faille), ou sur tous les hexes dans un rayon fixe de
+///    <see cref="IslandFeatures.CorruptionSpire.DecayRadius"/> autour d'elle (Spire — son niveau n'est
+///    pas améliorable, voir CorruptionSpireController). La Spire n'agit qu'une fois
+///    <see cref="IslandFeatures.CorruptionSpire.Built"/> : pendant sa construction, aucune décroissance
+///    n'est appliquée sur son hex.
+/// Plafonds, par source : <see cref="GetTempleDominionCap"/> (Temple),
+/// <see cref="IslandFeatures.DivineBones.GetCorruptionCap"/> (2× le niveau de corruption de l'île figé
+/// à la génération des Os), <see cref="GetMonsterCorruptionCap"/> (2× le niveau de corruption courant
+/// de l'île) et <see cref="IslandFeatures.CorruptionSource.GetCorruptionCap"/> (le niveau de corruption
+/// de l'île à sa génération, jamais doublé). Le plafond d'une source s'applique tel quel à tout hex
+/// qu'elle atteint en cascade, et ne borne que sa propre production : un hex déjà au-dessus n'est
+/// jamais rabaissé, il cesse simplement d'être un candidat.
+/// Invariant : Corruption et Dominion ne coexistent jamais sur un même hex —
+/// <see cref="ApplyProduction"/> combat toujours le statut opposé au lieu de poser le sien par-dessus.
 /// </summary>
 public class CorruptionController
 {
-    /// <summary>10 secondes (1 tick = 0.01 s) — rythme commun à la production des Temples, au débordement et à la décroissance sous les monuments.</summary>
+    /// <summary>10 secondes (1 tick = 0.01 s) — rythme commun à toutes les sources et à la décroissance sous les monuments.</summary>
     public const long ProductionIntervalTicks = 1000L;
 
     private const int TempleMinDominionLevel = 2;
     private const int TempleMaxDominionLevel = 4;
     private const int TempleDominionCapPerLevel = 2;
 
-    private const int SpreadChancePercentPerLevel = 10;
-    private const int SpreadSameStatusLevelGap = 2;
+    /// <summary>
+    /// Rayon maximal exploré par la cascade autour des hexes de départ d'une source (voir
+    /// <see cref="FindProductionTarget"/>) : une source entièrement cernée d'hexes saturés jusqu'à
+    /// cette distance perd sa production. Borne aussi l'emprise maximale d'une source isolée — un
+    /// disque de 91 hexes autour de son point de départ.
+    /// </summary>
+    public const int MaxCascadeRadius = 5;
 
     /// <summary>Niveaux de Corruption que l'Évangélisation peut retirer au-delà du premier (voir <see cref="RollExtraCleanseLevels"/>) : 2 au plus, soit 3 points d'un coup.</summary>
     private const int MaxExtraCleanseLevels = 2;
@@ -98,7 +100,6 @@ public class CorruptionController
     private GamePRNG? _prng;
     private PrestigeState? _prestigeState;
 
-    private long _lastSpreadTick;
     private long _lastMonumentDecayTick;
     private long _lastDivineBonesGrowthTick;
     private long _lastMonsterGrowthTick;
@@ -121,7 +122,6 @@ public class CorruptionController
         // proportionnel à tout le tick courant (potentiellement des millions), au lieu du léger
         // différé d'un cooldown attendu au tout début d'une partie neuve.
         long now = clock?.CurrentTick ?? 0;
-        _lastSpreadTick = now;
         _lastMonumentDecayTick = now;
         _lastDivineBonesGrowthTick = now;
         _lastMonsterGrowthTick = now;
@@ -135,9 +135,6 @@ public class CorruptionController
     {
         try { ProcessTempleProduction(e.CurrentTick); }
         catch (Exception ex) { GameLog.Error(nameof(CorruptionController), nameof(ProcessTempleProduction), ex); }
-
-        try { ProcessSpread(e.CurrentTick); }
-        catch (Exception ex) { GameLog.Error(nameof(CorruptionController), nameof(ProcessSpread), ex); }
 
         try { ProcessMonumentCorruptionDecay(e.CurrentTick); }
         catch (Exception ex) { GameLog.Error(nameof(CorruptionController), nameof(ProcessMonumentCorruptionDecay), ex); }
@@ -174,57 +171,58 @@ public class CorruptionController
                 temple.LastDominionProductionTick = lastTick;
                 if (cycles <= 0) continue;
 
-                // Même pénalité de profondeur que la propagation du Dominion (÷2/÷4/÷8, allégée par
-                // le Dogme de l'Emprise) : le cooldown reste identique, mais chaque tir n'a qu'une
-                // chance sur GetDominionLayerDivisorMilli d'aboutir. Rejoué cycle par cycle (pas de
-                // multiplication) : chaque cycle est un tirage indépendant, sur un hex tiré au
-                // hasard indépendamment lui aussi.
+                // Pénalité de profondeur du Dominion (÷2/÷4/÷8, allégée par le Dogme de l'Emprise) :
+                // le cooldown reste identique, mais chaque tir n'a qu'une chance sur
+                // GetDominionLayerDivisorMilli d'aboutir. Rejoué cycle par cycle (pas de
+                // multiplication) : chaque cycle est un tirage indépendant, et la cascade repart
+                // chaque fois de l'état laissé par le cycle précédent.
                 int divisorMilli = GetDominionLayerDivisorMilli(_state.PlayerCivilization, city.Position.Z);
+                int cap = GetTempleDominionCap(civ, temple.Level);
+
+                // Hexes de départ de la cascade : les 3 hexes de la ville, identiques d'un cycle à
+                // l'autre. Tampon réutilisé — le Where/ToList allouait une fermeture, un itérateur et
+                // une liste par cycle et par ville avec Temple. Les hexes hors carte sont laissés
+                // dans la liste : ils fixent la distance des anneaux sans jamais devenir candidats
+                // (voir PickLeastFilled).
+                var seeds = _cascadeSeedsScratch;
+                seeds.Clear();
+                var cityHexes = city.Position.GetHexes();
+                for (int h = 0; h < cityHexes.Length; h++)
+                    seeds.Add(cityHexes[h]);
+
                 for (long i = 0; i < cycles; i++)
                 {
                     if (divisorMilli > LayerDivisorMilliScale && !RollLayerChance(1, 1, divisorMilli)) continue;
 
-                    // Même tampon réutilisé que la propagation : le Where/ToList allouait une
-                    // fermeture, un itérateur et une liste par cycle et par ville avec Temple.
-                    var hexes = _spreadCandidatesScratch;
-                    hexes.Clear();
-                    var cityHexes = city.Position.GetHexes();
-                    for (int h = 0; h < cityHexes.Length; h++)
-                        if (IsValidHex(cityHexes[h]))
-                            hexes.Add(cityHexes[h]);
-                    if (hexes.Count == 0) continue;
+                    ProduceOnce(isDominion: true, seeds, cap);
 
-                    var hex = hexes[_prng.Next(hexes.Count)];
-                    ApplyTempleActionOnHex(civ, temple, hex);
+                    // Le second point des Humains n'est pas soumis à un second tirage de profondeur :
+                    // le cycle a déjà passé le sien, ce bonus double sa portée, pas sa probabilité.
+                    if (RollDoubleProduction(civ, temple.Level))
+                        ProduceOnce(isDominion: true, seeds, cap);
                 }
             }
         }
     }
 
     /// <summary>
-    /// Action de Temple sur un hex : dissipe un point de Corruption si elle est présente (deux avec
-    /// l'Évangélisation, voir <see cref="ReduceCorruption"/>), sinon pose ou augmente le Dominion
-    /// d'un point, plafonné par le niveau effectif du Temple (voir
-    /// TempleDominionCapPerLevel + TEMPLE_DOMINION_CAP + TEMPLE_DOMINION_LEVEL_BONUS).
+    /// Vrai si ce Temple produit un second point de Dominion dans le même intervalle :
+    /// DOMINION_SPREAD_CHANCE points de % par niveau effectif de Temple (Humains, 2 → 6% à niveau
+    /// effectif 3, 10% à 5). Le tirage n'est fait que si le modificateur est acquis : sans lui, la
+    /// séquence du PRNG doit rester exactement la même (voir CLAUDE.md, sauvegardes de
+    /// SOITests/saves/current). Comme les autres modificateurs de cette mécanique, il est lu sur la
+    /// civilisation qui produit.
     /// </summary>
-    private void ApplyTempleActionOnHex(Civilization civ, Temple temple, HexCoord hex)
+    private bool RollDoubleProduction(Civilization civ, int templeLevel)
     {
-        var corruption = _state!.GetFirstFeatureAt<Corruption>(hex);
-        if (corruption != null)
-        {
-            ReduceCorruption(corruption);
-            return;
-        }
+        int chancePerLevel = civ.ModifierAggregator
+            .ApplyModifiers(Modifier.ECategory.DOMINION_SPREAD_CHANCE, "", 0);
+        if (chancePerLevel <= 0) return false;
 
-        var dominion = _state.GetFirstFeatureAt<Dominion>(hex);
-        int cap = GetTempleDominionCap(civ, temple.Level);
-        if (dominion == null)
-            _state.AddFeature(new Dominion(hex, level: 1));
-        else if (dominion.Level < cap)
-            dominion.Level++;
+        return _prng!.Next(100) < chancePerLevel * GetTempleDominionLevel(civ, templeLevel);
     }
 
-    /// <summary>Plafond de Dominion par hex qu'un Temple de ce niveau peut atteindre pour cette civilisation (TEMPLE_DOMINION_CAP relève le plafond par niveau de Temple ; aucune source ne l'accorde actuellement). Utilisé par <see cref="ApplyTempleActionOnHex"/> et par le tooltip du panneau ville.</summary>
+    /// <summary>Plafond de Dominion par hex qu'un Temple de ce niveau peut atteindre pour cette civilisation (TEMPLE_DOMINION_CAP relève le plafond par niveau de Temple ; aucune source ne l'accorde actuellement). Utilisé par <see cref="ProcessTempleProduction"/> et par le tooltip du panneau ville.</summary>
     public static int GetTempleDominionCap(Civilization civ, int templeLevel)
     {
         int capPerLevel = TempleDominionCapPerLevel
@@ -253,128 +251,203 @@ public class CorruptionController
         && GetTempleDominionLevel(civ, templeLevel) >= TempleMinDominionLevel;
 
     /// <summary>
-    /// Tampons de <see cref="ProcessSpread"/>, réutilisés d'un cycle et d'un événement d'horloge à
-    /// l'autre. Le premier reçoit les milliers de Corruption/Dominion de l'île à chaque cycle, le
-    /// second les six voisins de chaque source : réalloués, ils faisaient à eux deux l'essentiel des
-    /// allocations de ce contrôleur.
+    /// Tampons de la cascade (<see cref="FindProductionTarget"/>), réutilisés d'une source, d'un cycle
+    /// et d'un événement d'horloge à l'autre : hexes de départ, parcours en largeur anneau par anneau,
+    /// et candidats non saturés de l'anneau courant. Réalloués, ils feraient l'essentiel des
+    /// allocations de ce contrôleur — la cascade est relancée à chaque production de chaque source.
     /// </summary>
-    private readonly List<IslandFeature> _spreadSourcesScratch = new();
-    private readonly List<HexCoord> _spreadCandidatesScratch = new(6);
+    private readonly List<HexCoord> _cascadeSeedsScratch = new(3);
+    private readonly HashSet<HexCoord> _cascadeVisitedScratch = new();
+    private readonly List<HexCoord> _cascadeFrontierScratch = new();
+    private readonly List<HexCoord> _cascadeNextScratch = new();
+    private readonly List<HexCoord> _cascadeCandidatesScratch = new();
 
-    private void ProcessSpread(long currentTick)
+    /// <summary>
+    /// Produit un point pour une source : trouve la cible par cascade (voir
+    /// <see cref="FindProductionTarget"/>) et l'applique (voir <see cref="ApplyProduction"/>). Ne fait
+    /// rien si aucune cible n'est trouvée dans <see cref="MaxCascadeRadius"/> — la production est alors
+    /// perdue. Point d'entrée unique de toutes les sources, Temples comme générateurs de Corruption.
+    /// </summary>
+    private void ProduceOnce(bool isDominion, List<HexCoord> seeds, int cap)
     {
-        if (_state == null || _prng == null) return;
+        var target = FindProductionTarget(isDominion, seeds, cap);
+        if (target != null)
+            ApplyProduction(isDominion, target.Value);
+    }
 
-        long lastTick = _lastSpreadTick;
-        long cycles = TickCooldown.ConsumeElapsedCycles(currentTick, ref lastTick, ProductionIntervalTicks);
-        _lastSpreadTick = lastTick;
-        if (cycles <= 0) return;
+    /// <summary>
+    /// Cible d'une production, en cascade. Examine d'abord les hexes de départ de la source
+    /// (<paramref name="seeds"/> — les 3 hexes de ville d'un Temple, le seul hex d'un générateur de
+    /// Corruption), puis, s'ils sont tous saturés, les anneaux de rayon 1, 2, … jusqu'à
+    /// <see cref="MaxCascadeRadius"/>. Retourne l'hex le <b>moins fourni</b> (voir
+    /// <see cref="GetFill"/>) du premier anneau qui en offre un non saturé, ou null si la production
+    /// n'a nulle part où aller.
+    ///
+    /// <para>Les anneaux sont des anneaux de <b>distance</b> : le parcours traverse aussi les hexes
+    /// hors carte (bord de carte) pour que le rayon reste une distance et non une connexité, mais
+    /// ceux-ci ne sont jamais candidats (voir <see cref="IsValidHex"/>). Les ex aequo de remplissage
+    /// sont départagés au tirage, comme l'était le ciblage du Temple.</para>
+    /// </summary>
+    private HexCoord? FindProductionTarget(bool isDominion, List<HexCoord> seeds, int cap)
+    {
+        int effectiveCap = GetEffectiveCap(isDominion, cap);
 
-        // Rejoué cycle par cycle (automate cellulaire) : l'état après le cycle N conditionne le
-        // cycle N+1 (une poche semée par un cycle peut déborder au cycle suivant) — une simple
-        // multiplication par `cycles` donnerait un résultat incohérent.
-        for (long c = 0; c < cycles; c++)
+        var visited = _cascadeVisitedScratch;
+        var frontier = _cascadeFrontierScratch;
+        var next = _cascadeNextScratch;
+        visited.Clear();
+        frontier.Clear();
+
+        for (int i = 0; i < seeds.Count; i++)
+            if (visited.Add(seeds[i]))
+                frontier.Add(seeds[i]);
+
+        for (int radius = 0; ; radius++)
         {
-            // Snapshot : ReduceLevel peut retirer des features de _state pendant l'itération. Le
-            // tampon est réutilisé d'un cycle à l'autre plutôt que réalloué — cette passe tourne dix
-            // fois par événement d'horloge et recopiait à chaque fois les milliers de Corruption et
-            // Dominion d'une partie avancée.
-            //
-            // L'ordre reste scrupuleusement celui de _state.Features : c'est lui qui fixe la
-            // séquence des tirages du PRNG, et le moindre changement de cet ordre rendrait le saut de
-            // temps non déterministe (voir CLAUDE.md, sauvegardes de SOITests/saves/current).
-            var sources = _spreadSourcesScratch;
-            sources.Clear();
-            var allFeatures = _state.Features;
-            for (int i = 0; i < allFeatures.Count; i++)
-                if (allFeatures[i] is Corruption or Dominion)
-                    sources.Add(allFeatures[i]);
+            var target = PickLeastFilled(isDominion, frontier, effectiveCap);
+            if (target != null) return target;
 
-            for (int s = 0; s < sources.Count; s++)
+            if (radius >= MaxCascadeRadius) return null;
+
+            next.Clear();
+            for (int i = 0; i < frontier.Count; i++)
             {
-                var source = sources[s];
-                if (!_state.ContainsFeature(source)) continue; // déjà supprimée plus tôt dans cette passe
-
-                bool sourceIsDominion = source is Dominion;
-
-                // DOMINION_SPREAD_CHANCE (Humains) : le Dominion déborde plus souvent que la
-                // Corruption (points de % supplémentaires par niveau).
-                int chancePerLevel = SpreadChancePercentPerLevel
-                    + (sourceIsDominion ? GetDominionSpreadChanceBonus() : 0);
-
-                int level = GetLevel(source);
-
-                // En profondeur, l'Évangélisation du Dominion est plus difficile : ÷2 Inframonde, ÷4
-                // Abysses, ÷8 Pandémonium (malus par couche allégé par le Dogme de l'Emprise). La
-                // résolution du tirage est multipliée d'autant pour ne pas perdre de précision par
-                // troncature entière sur de petits pourcentages.
-                int divisorMilli = sourceIsDominion
-                    ? GetDominionLayerDivisorMilli(_state.PlayerCivilization, source.Position.Z)
-                    : LayerDivisorMilliScale;
-                if (!RollLayerChance(level * chancePerLevel, 100, divisorMilli)) continue;
-
-                // Tampon réutilisé et boucle indexée : le Where/ToList allouait une fermeture, un
-                // itérateur et une liste par source et par cycle.
-                var candidates = _spreadCandidatesScratch;
-                candidates.Clear();
-                var neighbors = source.Position.Neighbors();
-                for (int n = 0; n < neighbors.Length; n++)
-                    if (IsValidHex(neighbors[n]))
-                        candidates.Add(neighbors[n]);
-                if (candidates.Count == 0) continue;
-
-                var neighborHex = candidates[_prng.Next(candidates.Count)];
-
-                var opposite = sourceIsDominion
-                    ? (IslandFeature?)_state.GetFirstFeatureAt<Corruption>(neighborHex)
-                    : _state.GetFirstFeatureAt<Dominion>(neighborHex);
-
-                if (opposite != null)
+                var hex = frontier[i];
+                for (int d = 0; d < HexDirections.Length; d++)
                 {
-                    // Terre Consacrée : le Dominion des hexs d'une ville avec Temple a une chance de ne
-                    // pas perdre de niveau dans l'annulation mutuelle — la Corruption perd toujours le sien.
-                    var dominionSide = sourceIsDominion ? source : opposite;
-                    var corruptionSide = sourceIsDominion ? opposite : source;
-                    if (!IsDominionSpared(dominionSide.Position))
-                        ReduceLevel(dominionSide);
-                    ReduceCorruption(corruptionSide);
-                    continue;
-                }
-
-                var same = sourceIsDominion
-                    ? (IslandFeature?)_state.GetFirstFeatureAt<Dominion>(neighborHex)
-                    : _state.GetFirstFeatureAt<Corruption>(neighborHex);
-
-                // Un voisin vide compte comme un "même statut" de niveau 0 : une source suffisamment
-                // forte (écart > SpreadSameStatusLevelGap) sème une nouvelle poche à niveau 1, ce qui
-                // permet au Dominion/à la Corruption de progresser au-delà des poches déjà existantes.
-                // Comparaison directionnelle (pas Math.Abs) : seule la source la PLUS FORTE des deux fait
-                // grandir l'autre. Un voisin plus faible ne doit jamais faire grandir un voisin déjà plus
-                // fort que lui à son propre tour de débordement, sous peine de croissance sans plafond.
-                int sameLevel = same != null ? GetLevel(same) : 0;
-                if (level - sameLevel > SpreadSameStatusLevelGap)
-                {
-                    if (same != null)
-                        IncreaseLevel(same);
-                    else
-                        SeedFeature(sourceIsDominion, neighborHex);
+                    var neighbor = hex.Neighbor(HexDirections[d]);
+                    if (visited.Add(neighbor))
+                        next.Add(neighbor);
                 }
             }
+            if (next.Count == 0) return null;
+
+            frontier.Clear();
+            frontier.AddRange(next);
         }
     }
 
-    /// <summary>Points de % de chance de débordement supplémentaires par niveau pour le Dominion (Humains).</summary>
-    private int GetDominionSpreadChanceBonus()
-        => _state!.PlayerCivilization.ModifierAggregator.ApplyModifiers(Modifier.ECategory.DOMINION_SPREAD_CHANCE, "", 0);
+    /// <summary>Les 6 directions, une fois pour toutes : <c>Enum.GetValues</c> alloue un tableau à chaque appel, et la cascade balaie jusqu'à 91 hexes par production.</summary>
+    private static readonly HexDirection[] HexDirections = Enum.GetValues<HexDirection>();
 
     /// <summary>
-    /// Diviseur commun aux chances d'action du Dominion selon la couche (débordement dans
-    /// <see cref="ProcessSpread"/>, production de Temple dans <see cref="ProcessTempleProduction"/>) :
-    /// l'Évangélisation peine à s'exporter en profondeur. Exprimé en millièmes
-    /// (<see cref="LayerDivisorMilliScale"/>) car le malus par couche est fractionnaire dès que le
-    /// Dogme de l'Emprise (DOMINION_LAYER_PENALTY_REDUCTION) l'allège : 2/4/8 devient 1,5/2,25/3,375.
-    /// Le malus du joueur s'applique à toutes les civilisations, comme le bonus de débordement
-    /// (voir <see cref="GetDominionSpreadChanceBonus"/>) — seul le joueur bâtit en profondeur.
+    /// Hex le moins fourni parmi <paramref name="candidates"/>, en ignorant les hexes hors carte et
+    /// ceux déjà saturés. Null si l'anneau n'offre rien. Les ex aequo sont départagés au tirage — un
+    /// seul appel au PRNG, et uniquement quand il y a vraiment plusieurs candidats à égalité.
+    /// </summary>
+    private HexCoord? PickLeastFilled(bool isDominion, List<HexCoord> candidates, int effectiveCap)
+    {
+        var best = _cascadeCandidatesScratch;
+        best.Clear();
+        int bestFill = int.MaxValue;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            var hex = candidates[i];
+            if (!IsValidHex(hex)) continue;
+
+            int fill = GetFill(isDominion, hex);
+            if (fill >= effectiveCap) continue;
+
+            if (fill < bestFill)
+            {
+                bestFill = fill;
+                best.Clear();
+                best.Add(hex);
+            }
+            else if (fill == bestFill)
+            {
+                best.Add(hex);
+            }
+        }
+
+        if (best.Count == 0) return null;
+        return best.Count == 1 ? best[0] : best[_prng!.Next(best.Count)];
+    }
+
+    /// <summary>
+    /// « Remplissage » d'un hex du point de vue d'une production : le niveau du <b>même</b> statut
+    /// (0 si l'hex est sain), ou l'<b>opposé</b> du niveau du statut adverse. Un hex tenu par
+    /// l'adversaire est donc toujours moins fourni qu'un hex sain, et le plus fort l'est le moins :
+    /// la cascade attaque le front avant de coloniser le vide, et frappe d'abord là où l'adversaire
+    /// est le plus solide. C'est ce qui remplace l'annulation mutuelle de l'ancien débordement.
+    /// </summary>
+    private int GetFill(bool isDominion, HexCoord hex)
+    {
+        var opposite = isDominion
+            ? (IslandFeature?)_state!.GetFirstFeatureAt<Corruption>(hex)
+            : _state!.GetFirstFeatureAt<Dominion>(hex);
+        if (opposite != null) return -GetLevel(opposite);
+
+        var same = isDominion
+            ? (IslandFeature?)_state.GetFirstFeatureAt<Dominion>(hex)
+            : _state.GetFirstFeatureAt<Corruption>(hex);
+        return same != null ? GetLevel(same) : 0;
+    }
+
+    /// <summary>
+    /// Plafond réellement atteignable par une source : son propre plafond, borné par le plafond dur de
+    /// la feature (<see cref="Corruption.MaxLevel"/> / <see cref="Dominion.MaxLevel"/>). Sans cette
+    /// borne, une source dont le plafond dépasse 10 verrait éternellement comme « non saturé » un hex
+    /// bloqué à 10 par le setter de niveau, et y perdrait toutes ses productions au lieu de cascader.
+    /// </summary>
+    private static int GetEffectiveCap(bool isDominion, int cap)
+        => Math.Min(cap, isDominion ? Dominion.MaxLevel : Corruption.MaxLevel);
+
+    /// <summary>
+    /// Applique un point de production sur un hex choisi par la cascade. Si l'hex porte le statut
+    /// <b>opposé</b>, la production s'y dépense en combat : elle lui retire un niveau et ne pose rien
+    /// (la Corruption peut en perdre 2 ou 3 d'un coup avec l'Évangélisation, voir
+    /// <see cref="ReduceCorruption"/> ; le Dominion peut résister avec Terre Consacrée, voir
+    /// <see cref="IsDominionSpared"/> — la production est alors simplement perdue). Sinon elle sème le
+    /// statut de la source à niveau 1 sur un hex sain, ou lui ajoute un niveau.
+    ///
+    /// <para>C'est ce combat systématique qui tient l'invariant « Corruption et Dominion ne coexistent
+    /// jamais sur un même hex » dans les deux sens.</para>
+    /// </summary>
+    private void ApplyProduction(bool isDominion, HexCoord hex)
+    {
+        if (isDominion)
+        {
+            var corruption = _state!.GetFirstFeatureAt<Corruption>(hex);
+            if (corruption != null)
+            {
+                ReduceCorruption(corruption);
+                return;
+            }
+
+            var dominion = _state.GetFirstFeatureAt<Dominion>(hex);
+            if (dominion == null)
+                _state.AddFeature(new Dominion(hex, level: 1));
+            else
+                IncreaseLevel(dominion);
+            return;
+        }
+
+        var opposingDominion = _state!.GetFirstFeatureAt<Dominion>(hex);
+        if (opposingDominion != null)
+        {
+            if (!IsDominionSpared(hex))
+                ReduceLevel(opposingDominion);
+            return;
+        }
+
+        var existing = _state.GetFirstFeatureAt<Corruption>(hex);
+        if (existing == null)
+            _state.AddFeature(new Corruption(hex, level: 1));
+        else
+            IncreaseLevel(existing);
+    }
+
+
+    /// <summary>
+    /// Diviseur appliqué aux chances de production d'un Temple selon la couche de sa ville (voir
+    /// <see cref="ProcessTempleProduction"/>) : l'Évangélisation peine à s'exporter en profondeur, un
+    /// Temple de l'Inframonde ne produit donc qu'un intervalle sur deux, un des Abysses un sur quatre.
+    /// Exprimé en millièmes (<see cref="LayerDivisorMilliScale"/>) car le malus par couche est
+    /// fractionnaire dès que le Dogme de l'Emprise (DOMINION_LAYER_PENALTY_REDUCTION) l'allège :
+    /// 2/4/8 devient 1,5/2,25/3,375. Le malus du joueur s'applique à toutes les civilisations — seul
+    /// le joueur bâtit en profondeur.
     /// </summary>
     public static int GetDominionLayerDivisorMilli(Civilization civ, int z)
     {
@@ -406,8 +479,9 @@ public class CorruptionController
             : _prng!.Next(outOf * divisorMilli) < successes * LayerDivisorMilliScale;
 
     /// <summary>
-    /// Vrai si le Dominion de cet hex échappe (tirage aléatoire) à la perte de niveau d'une annulation
-    /// mutuelle avec la Corruption : recherche Terre Consacrée (TEMPLE_DOMINION_PROTECTION_CHANCE) et
+    /// Vrai si le Dominion de cet hex échappe (tirage aléatoire) à la perte de niveau que lui inflige
+    /// la production d'une source de Corruption arrivée sur lui (voir <see cref="ApplyProduction"/>) :
+    /// recherche Terre Consacrée (TEMPLE_DOMINION_PROTECTION_CHANCE) et
     /// hex touchant une ville du joueur possédant un Temple. Le modificateur est une réduction
     /// <b>multiplicative</b> du risque de perdre le niveau, appliquée une fois par Os Divin purifié
     /// sur l'île courante (0,1 = −10%/Os) : le risque vaut (1 − 0,1)^Os, donc la chance de résister
@@ -425,8 +499,8 @@ public class CorruptionController
         if (chance <= 0) return false;
 
         // Index hexagone → villes (voir Civilization.GetCitiesAdjacentTo) plutôt qu'un balayage des
-        // centaines de villes du joueur : cette question est posée à chaque annulation mutuelle
-        // Dominion/Corruption, donc des milliers de fois par saut de temps.
+        // centaines de villes du joueur : cette question est posée à chaque production de Corruption
+        // qui tombe sur du Dominion, donc des milliers de fois par saut de temps.
         var cities = _state.PlayerCivilization.GetCitiesAdjacentTo(hex);
         bool nearTemple = false;
         for (int i = 0; i < cities.Count && !nearTemple; i++)
@@ -436,39 +510,17 @@ public class CorruptionController
         return _prng!.Next(100) < (int)Math.Round(chance * 100);
     }
 
-    private void SeedFeature(bool isDominion, HexCoord hex)
-    {
-        if (isDominion)
-            _state!.AddFeature(new Dominion(hex, level: 1));
-        else
-            _state!.AddFeature(new Corruption(hex, level: 1));
-    }
-
     /// <summary>
-    /// Fait grandir la Corruption sur le propre hex d'un générateur direct (Os Divin, Source de
-    /// Corruption, monstre enraciné) jusqu'à <paramref name="cap"/> — sauf si un Dominion occupe déjà
-    /// ce hex, auquel cas le combat l'emporte sur la croissance : le Dominion perd un point à la
-    /// place, exactement comme <see cref="ApplyTempleActionOnHex"/> réduit la Corruption plutôt que
-    /// d'ajouter du Dominion sur un hex déjà corrompu. Sans cette vérification, les deux pouvaient
-    /// coexister durablement sur le même hex : <see cref="ProcessSpread"/> peut semer un nouveau
-    /// Dominion sur un hex dont la Corruption vient d'être réduite à zéro plus tôt dans le même tick
-    /// (par <see cref="ProcessTempleProduction"/>), avant que ce générateur, qui passe en dernier, ne
-    /// la ressème par-dessus sans regarder ce qui s'y trouve déjà.
+    /// Produit un point de Corruption pour un générateur direct (Os Divin, Source de Corruption,
+    /// monstre enraciné), depuis son propre hex et en cascade au-delà s'il est saturé — voir
+    /// <see cref="ProduceOnce"/>. Les trois générateurs ne diffèrent que par leur plafond.
     /// </summary>
-    private void GrowOrSeedCorruptionOnHex(HexCoord hex, int cap)
+    private void ProduceCorruptionFrom(HexCoord hex, int cap)
     {
-        var dominion = _state!.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault();
-        if (dominion != null)
-        {
-            ReduceLevel(dominion);
-            return;
-        }
-
-        var corruption = _state.GetFeaturesAt(hex).OfType<Corruption>().FirstOrDefault();
-        if (corruption == null)
-            _state.AddFeature(new Corruption(hex, level: 1));
-        else if (corruption.Level < cap)
-            IncreaseLevel(corruption);
+        var seeds = _cascadeSeedsScratch;
+        seeds.Clear();
+        seeds.Add(hex);
+        ProduceOnce(isDominion: false, seeds, cap);
     }
 
     private static int GetLevel(IslandFeature feature) => feature switch
@@ -492,9 +544,9 @@ public class CorruptionController
 
     /// <summary>
     /// Réduit la Corruption d'un point, ou de deux (voire trois) d'un coup sur un tirage réussi de
-    /// CORRUPTION_DOUBLE_CLEANSE_CHANCE (Évangélisation). N'est utilisé que pour les deux
-    /// mécaniques que la recherche vise — la production de Temple (<see cref="ApplyTempleActionOnHex"/>)
-    /// et l'annulation mutuelle avec le Dominion (<see cref="ProcessSpread"/>) : la décroissance sous
+    /// CORRUPTION_DOUBLE_CLEANSE_CHANCE (Évangélisation). N'est utilisé que pour la mécanique que la
+    /// recherche vise — une production de Dominion qui tombe sur de la Corruption (voir
+    /// <see cref="ApplyProduction"/>) : la décroissance sous
     /// les monuments passe toujours par <see cref="ReduceLevel"/>, elle, et retire toujours un point.
     /// Le tirage n'est fait que si la recherche est acquise : sans elle, la séquence du PRNG doit
     /// rester exactement celle d'avant (voir CLAUDE.md, sauvegardes de SOITests/saves/current).
@@ -555,8 +607,8 @@ public class CorruptionController
 
         if (GetLevel(feature) <= 0)
         {
-            // Zone de Corruption entièrement nettoyée — par Temple, débordement (y compris annulation
-            // mutuelle avec le Dominion, voir ProcessSpread) ou décroissance de monument : enregistre
+            // Zone de Corruption entièrement nettoyée — par une production de Dominion (Temple, en
+            // cascade ou non) ou par la décroissance sous un monument : enregistre
             // son pic dans RunRecord.MaxCorruptionLevelCleared, record de l'île courante reparti de
             // zéro à chaque prestige, peu importe quel hex ni quel mécanisme l'a nettoyée. Il ne sert
             // qu'à conditionner l'ouverture de la Faille des Abysses (voir
@@ -590,13 +642,13 @@ public class CorruptionController
 
     /// <summary>
     /// Réduit la Corruption d'un point à chaque intervalle, de façon garantie (contrairement à la
-    /// production de Temple, qui cible un hex aléatoire parmi 3) : sur l'hex d'une Faille des Abysses,
+    /// cascade, qui ne vise qu'un hex par production) : sur l'hex d'une Faille des Abysses,
     /// et sur tous les hexes dans le rayon fixe <see cref="CorruptionSpire.DecayRadius"/> autour de
     /// chaque Spire de Corruption déjà construite (<see cref="CorruptionSpire.Built"/> ; rayon 1,
     /// incluant donc l'hex de la Spire elle-même et ses voisins immédiats). Une Spire en cours de
     /// construction ne réduit pas encore la corruption, y compris sur son propre hex. Aucun de ces
-    /// hexes n'est protégé du reste : Temple et débordement peuvent toujours y agir normalement (voir
-    /// <see cref="ApplyTempleActionOnHex"/>, <see cref="ProcessSpread"/>). Utilise
+    /// hexes n'est protégé du reste : n'importe quelle production peut toujours y agir normalement
+    /// (voir <see cref="ApplyProduction"/>). Utilise
     /// <see cref="ReduceLevel"/> comme les autres mécaniques : la suppression à 0 enregistre le pic
     /// atteint dans <see cref="Model.Tasks.RunRecord.MaxCorruptionLevelCleared"/>.
     /// </summary>
@@ -629,18 +681,20 @@ public class CorruptionController
 
     /// <summary>
     /// Miroir de <see cref="ProcessMonumentCorruptionDecay"/> : chaque Os Divin encore à purifier
-    /// ajoute, de façon garantie et à chaque intervalle, un point de Corruption sur son propre hex —
-    /// en la semant à niveau 1 si l'hex est sain (une Spire voisine peut l'avoir nettoyé). Le plafond
+    /// produit, de façon garantie et à chaque intervalle, un point de Corruption depuis son propre hex
+    /// — en la semant à niveau 1 si l'hex est sain (une Spire voisine peut l'avoir nettoyé), et en
+    /// cascadant autour dès qu'il est saturé (voir <see cref="ProduceCorruptionFrom"/>). Le plafond
     /// <see cref="DivineBones.GetCorruptionCap"/> (2× le niveau de corruption de l'île à la génération
-    /// des Os) borne uniquement cette génération : une Corruption déjà au-dessus n'est jamais réduite
-    /// ici, elle cesse simplement de monter de ce fait.
+    /// des Os) borne uniquement cette génération, sur l'hex des Os comme sur ceux que la cascade
+    /// atteint : une Corruption déjà au-dessus n'est jamais réduite ici, elle cesse simplement d'être
+    /// une cible.
     /// Passe volontairement après la décroissance des monuments : sous une Spire ou une Faille, les
     /// deux effets s'annulent exactement, la Corruption de l'hex reste figée tant que les Os ne sont pas
     /// purifiés. Une Purification retire les Os de la carte (voir DivineBonesController.ProcessInvestment) :
     /// la source se tarit alors d'elle-même, sans laisser de générateur résiduel.
     /// <see cref="IncreaseLevel"/> tient à jour <see cref="Corruption.PeakLevel"/>, donc la Corruption
     /// engendrée ici compte normalement dans le record de nettoyage une fois la zone dissipée.
-    /// Voir <see cref="GrowOrSeedCorruptionOnHex"/> : si un Dominion occupe déjà l'hex, il perd un
+    /// Voir <see cref="ApplyProduction"/> : si un Dominion occupe l'hex visé, il perd un
     /// point à la place de la croissance — Corruption et Dominion ne peuvent jamais coexister.
     /// </summary>
     private void ProcessDivineBonesCorruptionGrowth(long currentTick)
@@ -658,7 +712,7 @@ public class CorruptionController
         var bonesList = _state.Features.OfType<DivineBones>().Where(b => !b.Purified).ToList();
         for (long i = 0; i < cycles; i++)
             foreach (var bones in bonesList)
-                GrowOrSeedCorruptionOnHex(bones.Position, bones.GetCorruptionCap());
+                ProduceCorruptionFrom(bones.Position, bones.GetCorruptionCap());
     }
 
     /// <summary>Multiplicateur appliqué au niveau de corruption de l'île pour obtenir le plafond de génération des monstres (miroir de <see cref="DivineBones.CorruptionCapMultiplier"/>).</summary>
@@ -727,7 +781,7 @@ public class CorruptionController
     /// Le plafond ne borne que cette génération : une Corruption déjà plus élevée (tirage initial de
     /// AutoExtendController.PlaceAbyssCorruption, débordement d'un voisin) n'est jamais réduite ici.
     /// Passe après la décroissance des monuments, pour la même raison que la croissance des Os Divins :
-    /// sous une Spire, les deux effets s'annulent exactement. Voir <see cref="GrowOrSeedCorruptionOnHex"/> :
+    /// sous une Spire, les deux effets s'annulent exactement. Voir <see cref="ApplyProduction"/> :
     /// un Dominion déjà présent perd un point à la place de la croissance.
     /// </summary>
     private void ProcessMonsterCorruptionGrowth(long currentTick)
@@ -746,7 +800,7 @@ public class CorruptionController
         var monsters = _state.Features.OfType<MonsterFeature>().Where(m => m.GeneratesCorruption).ToList();
         for (long i = 0; i < cycles; i++)
             foreach (var monster in monsters)
-                GrowOrSeedCorruptionOnHex(monster.Position, cap);
+                ProduceCorruptionFrom(monster.Position, cap);
     }
 
     /// <summary>
@@ -757,7 +811,7 @@ public class CorruptionController
     /// Contrairement aux Os Divins, ce plafond n'est jamais doublé : il vaut exactement le niveau de
     /// corruption de l'île au moment de la génération de la Source. Une Source n'est jamais purifiée
     /// par le joueur ; elle disparaît uniquement quand une Spire de Corruption est bâtie sur son hex
-    /// (voir CorruptionSpireController.ProcessInvestment). Voir <see cref="GrowOrSeedCorruptionOnHex"/> :
+    /// (voir CorruptionSpireController.ProcessInvestment). Voir <see cref="ApplyProduction"/> :
     /// un Dominion déjà présent perd un point à la place de la croissance.
     /// </summary>
     private void ProcessCorruptionSourceGrowth(long currentTick)
@@ -774,7 +828,7 @@ public class CorruptionController
         var sources = _state.Features.OfType<CorruptionSource>().ToList();
         for (long i = 0; i < cycles; i++)
             foreach (var source in sources)
-                GrowOrSeedCorruptionOnHex(source.Position, source.GetCorruptionCap());
+                ProduceCorruptionFrom(source.Position, source.GetCorruptionCap());
     }
 
     /// <summary>Le centre puis, anneau par anneau, tous les hexes à distance ≤ radius de center (BFS via les 6 directions).</summary>

@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -17,10 +17,11 @@ namespace SOITests.ControllerTests;
 
 /// <summary>
 /// Tests de CorruptionController : production de Dominion / réduction de Corruption par les Temples
-/// de niveau 2-4 (ProcessTempleProduction), et débordement Corruption/Dominion entre hexes voisins
-/// (ProcessSpread). Les scénarios avec un seul hex existant autour de la ville évitent toute
-/// dépendance au tirage aléatoire du hex ciblé (GamePRNG.Next(1) ne consomme pas le générateur) ; les
-/// scénarios de débordement utilisent une mini-carte à 2 hexes (un seul voisin candidat) pour la même
+/// (ProcessTempleProduction), production de Corruption par les Os Divins, monstres et Sources, et
+/// cascade commune à toutes ces sources (FindProductionTarget). Les scénarios avec un seul hex
+/// existant autour de la ville évitent toute dépendance au tirage de départage des ex aequo (un
+/// candidat unique ne consomme pas le générateur) ; les scénarios de cascade utilisent une mini-carte
+/// à 2 hexes (un seul voisin candidat) ou saturent tout sauf une cible pour la même
 /// raison. Le PRNG (Lehmer/Park-Miller) donne un tout premier tirage quasi nul pour toute petite
 /// graine (1, 2, 3, …) — sans effet sur les scénarios "100% de déclenchement" (0 déclenche toujours),
 /// mais rend une graine minuscule impropre à démontrer un NON-déclenchement sur le premier tirage :
@@ -76,7 +77,7 @@ public class CorruptionControllerTests
         return (state, city, a);
     }
 
-    /// <summary>Deux hexes de terre adjacents, aucun autre hex sur la carte — un seul voisin candidat de chaque côté pour le débordement.</summary>
+    /// <summary>Deux hexes de terre adjacents, aucun autre hex sur la carte — un seul voisin candidat de chaque côté pour la cascade.</summary>
     private static (WorldState state, HexCoord a, HexCoord b) CreateTwoLandHexesSetup()
     {
         var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
@@ -88,32 +89,6 @@ public class CorruptionControllerTests
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
 
         return (state, a, b);
-    }
-
-    /// <summary>
-    /// Centre + anneau de 6 voisins immédiats + second anneau de 12 hexes (aucun autre hex sur la
-    /// carte) — permet de vérifier qu'un débordement ne dépasse jamais le premier anneau.
-    /// </summary>
-    private static (WorldState state, HexCoord center, List<HexCoord> ring1, List<HexCoord> ring2) CreateTwoRingHexGridSetup()
-    {
-        var center = new HexCoord(0, 0, IslandMap.SurfaceLayer);
-        var ring1 = center.Neighbors().ToList();
-        var ring2 = ring1
-            .SelectMany(h => h.Neighbors())
-            .Where(h => !h.Equals(center) && !ring1.Contains(h))
-            .Distinct()
-            .ToList();
-
-        var allHexes = new List<HexCoord> { center };
-        allHexes.AddRange(ring1);
-        allHexes.AddRange(ring2);
-
-        var tiles = allHexes.Select(h => new HexTile(h, TerrainType.Plain)).ToArray();
-        var map = new IslandMap(tiles);
-        var civ = new Civilization { Index = 0 };
-        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
-
-        return (state, center, ring1, ring2);
     }
 
     private static CorruptionController CreateController(WorldState state, GameClock clock, int seed = 1, PrestigeState? prestigeState = null)
@@ -301,165 +276,241 @@ public class CorruptionControllerTests
         Assert.False(state.HasFeaturesAt(landHex));
     }
 
-    // ── Débordement Corruption/Dominion ─────────────────────────────────────
+    // ── Cascade : seule façon pour la Corruption et le Dominion de gagner du terrain ─────
+
+    /// <summary>Tous les hexes à distance &lt;= radius du centre, anneau par anneau.</summary>
+    private static List<HexCoord> HexDisc(HexCoord center, int radius)
+    {
+        var all = new List<HexCoord> { center };
+        var seen = new HashSet<HexCoord> { center };
+        var frontier = new List<HexCoord> { center };
+
+        for (int r = 0; r < radius; r++)
+        {
+            var next = new List<HexCoord>();
+            foreach (var hex in frontier)
+                foreach (var neighbor in hex.Neighbors())
+                    if (seen.Add(neighbor))
+                        next.Add(neighbor);
+            all.AddRange(next);
+            frontier = next;
+        }
+
+        return all;
+    }
+
+    /// <summary>
+    /// Carte hexagonale pleine autour de l'origine, avec une ville du joueur sur le vertex
+    /// (0,0)/(1,0)/(0,1) — les 3 hexes de la ville existent tous, et la cascade a de la place pour
+    /// s'éloigner.
+    /// </summary>
+    private static (WorldState state, City city, HexCoord[] cityHexes, List<HexCoord> allHexes) CreateWideMapCitySetup(int radius)
+    {
+        var allHexes = HexDisc(new HexCoord(0, 0, IslandMap.SurfaceLayer), radius);
+        var map = new IslandMap(allHexes.Select(h => new HexTile(h, TerrainType.Plain)).ToArray());
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+        var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+        var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+        var city = new City(Vertex.Create(a, b, c)) { CivilizationIndex = civ.Index };
+        civ.AddCity(city);
+
+        return (state, city, new[] { a, b, c }, allHexes);
+    }
+
+    /// <summary>Distance du hex au plus proche des hexes de départ de la cascade.</summary>
+    private static int DistanceToSeeds(HexCoord hex, HexCoord[] seeds) => seeds.Min(s => s.DistanceTo(hex));
+
+    /// <summary>Avance d'un intervalle de production, après l'intervalle sentinelle qui initialise LastDominionProductionTick (coldStartOnZero).</summary>
+    private static void AdvanceOneTempleProduction(GameClock clock)
+    {
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks); // sentinelle
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+    }
 
     [Fact]
-    public void Spread_OppositeStatusNeighbor_BothReduceByOne()
+    public void PassiveFeatures_WithoutAnySource_NeverSpread()
     {
+        // Coeur du changement : une poche de Corruption ou de Dominion ne déborde plus d'elle-même,
+        // même au niveau maximal. Sans source pour la nourrir, elle est totalement inerte.
         var (state, a, b) = CreateTwoLandHexesSetup();
-        var corruption = new Corruption(a, level: 10); // 100% de déclenchement
-        var dominion = new Dominion(b, level: 4);
+        var corruption = new Corruption(a, level: Corruption.MaxLevel);
+        var dominion = new Dominion(b, level: Dominion.MaxLevel);
         state.AddFeature(corruption);
         state.AddFeature(dominion);
 
         var clock = new GameClock();
         clock.Start();
-        // Graine 3 : après l'annulation (dominion 4→3), le dominion (niveau 3, 30% de déclenchement)
-        // tire lui-même une deuxième annulation à son propre tour — la graine 3 est vérifiée pour NE
-        // PAS re-déclencher ce second tour (tirage 39 ≥ 30), ce qui isole une seule annulation.
-        CreateController(state, clock, seed: 3);
+        CreateController(state, clock);
 
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        for (int i = 0; i < 50; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Equal(9, corruption.Level);
-        Assert.Equal(3, dominion.Level);
+        Assert.Equal(Corruption.MaxLevel, corruption.Level);
+        Assert.Equal(Dominion.MaxLevel, dominion.Level);
+        Assert.Equal(2, state.Features.Count);
     }
 
     [Fact]
-    public void Spread_SameStatusLargeLevelGap_NeighborGainsSourceUnchanged()
+    public void Cascade_TempleFillsTheLeastFilledOfItsThreeCityHexes()
     {
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var strong = new Dominion(a, level: 10); // 100% de déclenchement
-        var weak = new Dominion(b, level: 1); // écart de 9 > 2
-        state.AddFeature(strong);
-        state.AddFeature(weak);
-
-        var clock = new GameClock();
-        clock.Start();
-        // Graine 2 : après le gain (weak 1→2), weak (niveau 2, 20% de déclenchement) tire lui-même un
-        // second débordement vers strong à son propre tour — la graine 2 est vérifiée pour NE PAS
-        // re-déclencher ce second tour (tirage 26 ≥ 20), ce qui isole un seul débordement.
-        CreateController(state, clock, seed: 2);
-
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
-
-        Assert.Equal(10, strong.Level);
-        Assert.Equal(2, weak.Level);
-    }
-
-    [Fact]
-    public void Spread_SameStatusSmallLevelGap_NoChange()
-    {
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var strong = new Dominion(a, level: 5); // 100% de déclenchement (5*10=50 > roll 29)
-        var close = new Dominion(b, level: 3); // écart de 2, pas > 2
-        state.AddFeature(strong);
-        state.AddFeature(close);
+        var (state, city, cityHexes, _) = CreateWideMapCitySetup(radius: 4);
+        city.AddBuilding(new Temple { Level = 2 }); // plafond 2 x 2 = 4
+        state.AddFeature(new Dominion(cityHexes[0], level: 3));
+        state.AddFeature(new Dominion(cityHexes[1], level: 1));
+        // cityHexes[2] est sain : remplissage 0, minimum strict des trois — aucun départage aléatoire.
 
         var clock = new GameClock();
         clock.Start();
         CreateController(state, clock);
 
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        AdvanceOneTempleProduction(clock);
 
-        Assert.Equal(5, strong.Level);
-        Assert.Equal(3, close.Level);
+        Assert.Equal(3, state.GetFirstFeatureAt<Dominion>(cityHexes[0])!.Level);
+        Assert.Equal(1, state.GetFirstFeatureAt<Dominion>(cityHexes[1])!.Level);
+        Assert.Equal(1, state.GetFirstFeatureAt<Dominion>(cityHexes[2])!.Level);
     }
 
     [Fact]
-    public void Spread_EmptyNeighborStrongSource_SeedsNewFeatureAtLevelOne()
+    public void Cascade_AllCityHexesAtCap_ProducesOnRadiusOne()
     {
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var strong = new Dominion(a, level: 10); // 100% de déclenchement, écart avec 0 = 10 > 2
-        state.AddFeature(strong);
+        var (state, city, cityHexes, _) = CreateWideMapCitySetup(radius: 4);
+        city.AddBuilding(new Temple { Level = 2 }); // plafond 4
+        foreach (var hex in cityHexes)
+            state.AddFeature(new Dominion(hex, level: 4));
 
         var clock = new GameClock();
         clock.Start();
         CreateController(state, clock);
 
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        AdvanceOneTempleProduction(clock);
 
-        Assert.Equal(10, strong.Level);
-        var seeded = state.GetFeaturesAt(b).OfType<Dominion>().SingleOrDefault();
-        Assert.NotNull(seeded);
-        Assert.Equal(1, seeded!.Level);
+        var seeded = state.Features.OfType<Dominion>().Where(d => d.Level == 1).ToList();
+        Assert.Single(seeded);
+        Assert.Equal(1, DistanceToSeeds(seeded[0].Position, cityHexes));
+        Assert.All(cityHexes, h => Assert.Equal(4, state.GetFirstFeatureAt<Dominion>(h)!.Level));
     }
 
     [Fact]
-    public void Spread_EmptyNeighborStrongCorruptionSource_SeedsNewCorruption()
+    public void Cascade_EverythingSaturatedWithinMaxRadius_ProductionIsLost()
     {
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var strong = new Corruption(a, level: 10); // 100% de déclenchement, écart avec 0 = 10 > 2
-        state.AddFeature(strong);
+        // Tout est au plafond jusqu'au rayon maximal ; les hexes libres existent, mais plus loin.
+        var (state, city, cityHexes, allHexes) = CreateWideMapCitySetup(radius: CorruptionController.MaxCascadeRadius + 3);
+        city.AddBuilding(new Temple { Level = 2 }); // plafond 4
+        foreach (var hex in allHexes)
+            if (DistanceToSeeds(hex, cityHexes) <= CorruptionController.MaxCascadeRadius)
+                state.AddFeature(new Dominion(hex, level: 4));
+
+        int featuresBefore = state.Features.Count;
 
         var clock = new GameClock();
         clock.Start();
         CreateController(state, clock);
-
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
-
-        Assert.Equal(10, strong.Level);
-        var seeded = state.GetFeaturesAt(b).OfType<Corruption>().SingleOrDefault();
-        Assert.NotNull(seeded);
-        Assert.Equal(1, seeded!.Level);
-    }
-
-    [Fact]
-    public void Spread_EmptyNeighborSmallGap_NoSeed()
-    {
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var close = new Dominion(a, level: 2); // écart avec 0 = 2, pas > 2 — même si le déclenchement a lieu, pas de semis
-        state.AddFeature(close);
-
-        var clock = new GameClock();
-        clock.Start();
-        var controller = new CorruptionController();
-        // GamePRNG.Next(100) consomme le générateur même si le seuil de déclenchement (20%) n'est
-        // pas atteint : on avance sur plusieurs ticks pour couvrir le cas où le tirage réussirait,
-        // et on vérifie que même alors aucune poche n'est semée (l'écart de niveau reste <= 2).
-        controller.Initialize(state, clock, new GamePRNG(1));
 
         for (int i = 0; i < 20; i++)
             clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Empty(state.GetFeaturesAt(b).OfType<Dominion>());
+        Assert.Equal(featuresBefore, state.Features.Count);
+        Assert.All(state.Features.OfType<Dominion>(), d => Assert.Equal(4, d.Level));
     }
 
     [Fact]
-    public void Spread_LevelFourSourceSurroundedByRing_StabilizesAtGapOfTwo_SourceNeverIncreases()
+    public void Cascade_NoValidHexAtAll_ProductionIsLost()
     {
-        // Régression du bug corrigé dans ProcessSpread : la comparaison utilisait Math.Abs(niveau
-        // source - niveau voisin), si bien qu'un voisin FAIBLE, à son propre tour de débordement,
-        // pouvait quand même faire grandir un voisin déjà PLUS FORT que lui (le centre) dès que
-        // l'écart dépassait SpreadSameStatusLevelGap — permettant au centre de grimper sans plafond.
-        // La comparaison doit être directionnelle : seule la source la plus forte fait grandir
-        // l'autre. Ici le centre (niveau 4) doit s'entourer d'un anneau au niveau 2 (4 - 2, le
-        // plafond) et s'arrêter là : le centre ne bouge jamais, et aucun hex du second anneau n'est
-        // atteint (écart de 2 avec l'anneau au niveau 2, jamais > 2).
-        var (state, center, ring1, ring2) = CreateTwoRingHexGridSetup();
-        var source = new Dominion(center, level: 4);
-        state.AddFeature(source);
+        // Un seul hex sur la carte, déjà au plafond : la cascade ne trouve aucun candidat et la
+        // production est simplement perdue, sans exception ni dépassement du plafond.
+        var (state, city, landHex) = CreateSingleLandHexCitySetup();
+        city.AddBuilding(new Temple { Level = 2 }); // plafond 4
+        var dominion = new Dominion(landHex, level: 4);
+        state.AddFeature(dominion);
 
         var clock = new GameClock();
         clock.Start();
-        CreateController(state, clock, seed: 1);
+        CreateController(state, clock);
 
-        for (int i = 0; i < 3000; i++)
+        for (int i = 0; i < 20; i++)
             clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Equal(4, source.Level);
+        Assert.Equal(4, dominion.Level);
+        Assert.Single(state.Features);
+    }
 
-        foreach (var hex in ring1)
+    [Fact]
+    public void Cascade_PrefersTheStrongestOpposingHex_OverAnEmptyOne_AndFightsIt()
+    {
+        // Le remplissage compte le statut opposé en négatif : la Corruption de niveau 5 (-5) passe
+        // avant celle de niveau 2 (-2), elle-même avant l'hex sain (0). La production s'y dépense en
+        // combat, elle ne pose aucun Dominion.
+        var (state, city, cityHexes, _) = CreateWideMapCitySetup(radius: 4);
+        city.AddBuilding(new Temple { Level = 2 });
+        var weak = new Corruption(cityHexes[0], level: 2);
+        var strong = new Corruption(cityHexes[1], level: 5);
+        state.AddFeature(weak);
+        state.AddFeature(strong);
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        AdvanceOneTempleProduction(clock);
+
+        Assert.Equal(4, strong.Level);
+        Assert.Equal(2, weak.Level);
+        Assert.Empty(state.Features.OfType<Dominion>());
+    }
+
+    [Fact]
+    public void Cascade_CorruptionSourceOwnHexAtCap_SpillsToItsNeighbour()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        var corruption = new Corruption(a, level: 2);
+        state.AddFeature(corruption);
+        state.AddFeature(new CorruptionSource(a, corruptionLevel: 2)); // plafond 2, déjà atteint sur a
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        Assert.Equal(2, corruption.Level);
+        Assert.Equal(1, state.GetFirstFeatureAt<Corruption>(b)!.Level);
+    }
+
+    [Fact]
+    public void Cascade_CorruptionSource_FillsItsNeighbourhoodUpToItsCapAndStops()
+    {
+        // Une Source isolée finit par saturer tout son disque de rayon MaxCascadeRadius à son propre
+        // plafond, et rien au-delà : la cascade borne l'emprise d'une source, elle ne l'étend pas sans fin.
+        var sourceHex = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+        var allHexes = HexDisc(sourceHex, CorruptionController.MaxCascadeRadius + 2);
+        var map = new IslandMap(allHexes.Select(h => new HexTile(h, TerrainType.Plain)).ToArray());
+        var civ = new Civilization { Index = 0 };
+        var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+        state.AddFeature(new CorruptionSource(sourceHex, corruptionLevel: 2)); // plafond 2
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 1000; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        foreach (var hex in allHexes)
         {
-            var dominion = state.GetFeaturesAt(hex).OfType<Dominion>().SingleOrDefault();
-            Assert.NotNull(dominion);
-            Assert.Equal(2, dominion!.Level);
+            var corruption = state.GetFirstFeatureAt<Corruption>(hex);
+            if (hex.DistanceTo(sourceHex) <= CorruptionController.MaxCascadeRadius)
+            {
+                Assert.NotNull(corruption);
+                Assert.Equal(2, corruption!.Level);
+            }
+            else
+            {
+                Assert.Null(corruption);
+            }
         }
-
-        foreach (var hex in ring2)
-            Assert.False(state.HasFeaturesAt(hex));
-
-        Assert.All(state.Features.OfType<Dominion>(), d => Assert.True(d.Level <= 4));
     }
 
     // ── Recherches de la Théocratie (Dogme de l'Emprise, Évangélisation, Terre Consacrée) ──
@@ -531,93 +582,52 @@ public class CorruptionControllerTests
     }
 
     [Fact]
-    public void Spread_DominionLevel2_WithoutSpreadChanceBonus_DoesNotTrigger()
+    public void Temple_WithoutDoubleProductionBonus_ProducesOnePointPerInterval()
     {
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var dominion = new Dominion(a, level: 2); // 20% de déclenchement, tirage 20 (graine 25555) → pas de débordement
-        var corruption = new Corruption(b, level: 1); // 10%, tirage 44 → pas de débordement
-        state.AddFeature(dominion);
-        state.AddFeature(corruption);
+        var (state, city, _, _) = CreateWideMapCitySetup(radius: 3);
+        city.AddBuilding(new Temple { Level = 2 });
 
         var clock = new GameClock();
         clock.Start();
-        // Une petite graine (1, 2, 3, …) donne toujours un premier tirage quasi nul avec ce PRNG
-        // (Lehmer/Park-Miller) — impropre à démontrer un non-déclenchement. 25555 est la plus petite
-        // graine vérifiée à donner tirage ≥ 20 puis ≥ 10 (les deux seuils de ce scénario).
-        CreateController(state, clock, seed: 25555);
+        CreateController(state, clock);
 
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        AdvanceOneTempleProduction(clock);
 
-        Assert.Equal(2, dominion.Level);
-        Assert.Equal(1, corruption.Level);
+        Assert.Equal(1, state.Features.OfType<Dominion>().Sum(d => d.Level));
     }
 
     [Fact]
-    public void Spread_DominionLevel3_WithSpreadChanceBonus_TriggersAtFifteenPercentPerLevel()
+    public void Temple_WithDoubleProductionBonus_ProducesASecondPointInTheSameInterval()
     {
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var dominion = new Dominion(a, level: 3); // 3 × (10+5) = 45% de déclenchement, tirage 31 (graine 1) → débordement
-        var corruption = new Corruption(b, level: 1);
-        state.AddFeature(dominion);
-        state.AddFeature(corruption);
+        // 100 points de % par niveau effectif de Temple (2) = 200% : le second point tombe à coup sûr.
+        var (state, city, _, _) = CreateWideMapCitySetup(radius: 3);
+        city.AddBuilding(new Temple { Level = 2 });
         state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
         {
-            new Modifier(Modifier.ECategory.DOMINION_SPREAD_CHANCE, Modifier.EType.ADDITIVE, 5),
+            new Modifier(Modifier.ECategory.DOMINION_SPREAD_CHANCE, Modifier.EType.ADDITIVE, 100),
         }));
 
         var clock = new GameClock();
         clock.Start();
         CreateController(state, clock);
 
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        AdvanceOneTempleProduction(clock);
 
-        Assert.Equal(2, dominion.Level);
-        Assert.Empty(state.GetFeaturesAt(b).OfType<Corruption>());
+        Assert.Equal(2, state.Features.OfType<Dominion>().Sum(d => d.Level));
     }
 
     [Fact]
-    public void Spread_MutualAnnulation_Evangelisation_CorruptionLosesTwoLevels()
+    public void CorruptionSourceAttackingDominion_TempleProtection_DominionSpared()
     {
         var (state, a, b) = CreateTwoLandHexesSetup();
-        var dominion = new Dominion(a, level: 10); // 100% de déclenchement
-        var corruption = new Corruption(b, level: 5);
+        var dominion = new Dominion(a, level: 4);
         state.AddFeature(dominion);
-        state.AddFeature(corruption);
-        // Chance forcée à 100% (1 Os Divin purifié × 100%/Os) pour rendre le second niveau de
-        // l'Évangélisation déterministe. Le Dominion, lui, perd toujours son point unique (Terre
-        // Consacrée non acquise).
-        state.RunRecord.DivineBonesPurified = 1;
-        state.PlayerCivilization.AddCustomAggregator(new StaticModifierProvider(new[]
-        {
-            new Modifier(Modifier.ECategory.CORRUPTION_DOUBLE_CLEANSE_CHANCE, Modifier.EType.ADDITIVE, 1.0),
-        }));
+        state.AddFeature(new CorruptionSource(a, corruptionLevel: 3));
 
-        var clock = new GameClock();
-        clock.Start();
-        // Graine choisie pour que la Corruption, retombée à 3 (30%), ne déborde pas à son tour dans
-        // le même cycle — le scénario n'isolerait plus l'annulation mutuelle du Dominion.
-        CreateController(state, clock, seed: 25555);
-
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
-
-        Assert.Equal(9, dominion.Level);
-        Assert.Equal(3, corruption.Level);
-    }
-
-    [Fact]
-    public void Spread_MutualAnnulation_TempleProtection_DominionSpared()
-    {
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var corruption = new Corruption(a, level: 10); // 100% de déclenchement
-        var dominion = new Dominion(b, level: 4);
-        state.AddFeature(corruption);
-        state.AddFeature(dominion);
-
-        // Ville du joueur touchant b (mais pas a) avec un Temple niveau 1 (aucune production, donc
-        // aucune consommation du PRNG par ProcessTempleProduction) ; chance de protection forcée à
-        // 100% pour rendre le tirage de Terre Consacrée déterministe.
-        var city = new City(Vertex.Create(b, new HexCoord(0, 1, IslandMap.SurfaceLayer), new HexCoord(1, 1, IslandMap.SurfaceLayer)))
-        { CivilizationIndex = 0 };
+        // Ville du joueur touchant a avec un Temple niveau 1 (aucune production, donc aucune
+        // consommation du PRNG par ProcessTempleProduction) ; chance de protection forcée à 100%
+        // pour rendre le tirage de Terre Consacrée déterministe.
+        var city = new City(Vertex.Create(a, b, new HexCoord(0, 1, IslandMap.SurfaceLayer))) { CivilizationIndex = 0 };
         city.AddBuilding(new Temple { Level = 1 });
         state.PlayerCivilization.AddCity(city);
         state.RunRecord.DivineBonesPurified = 1;
@@ -630,22 +640,22 @@ public class CorruptionControllerTests
         clock.Start();
         CreateController(state, clock);
 
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        for (int i = 0; i < 5; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        // Le Dominion protégé ne perd jamais de niveau ; la Corruption, elle, perd le sien à chaque
-        // annulation (1 ou 2 fois selon le tirage de débordement du Dominion lui-même).
+        // Le Dominion protégé ne perd jamais de niveau, et la production perdue ne se reporte pas
+        // ailleurs : a reste la cible (remplissage -4, le plus bas) à chaque intervalle.
         Assert.Equal(4, dominion.Level);
-        Assert.True(corruption.Level < 10);
+        Assert.Empty(state.Features.OfType<Corruption>());
     }
 
     [Fact]
-    public void Spread_MutualAnnulation_ProtectionWithoutTemple_DominionStillReduced()
+    public void CorruptionSourceAttackingDominion_ProtectionWithoutTemple_DominionStillReduced()
     {
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var corruption = new Corruption(a, level: 10); // 100% de déclenchement
-        var dominion = new Dominion(b, level: 4);
-        state.AddFeature(corruption);
+        var (state, a, _) = CreateTwoLandHexesSetup();
+        var dominion = new Dominion(a, level: 4);
         state.AddFeature(dominion);
+        state.AddFeature(new CorruptionSource(a, corruptionLevel: 3));
 
         // Chance de protection maximale mais aucune ville avec Temple : la protection ne s'applique pas.
         state.RunRecord.DivineBonesPurified = 1;
@@ -656,18 +666,15 @@ public class CorruptionControllerTests
 
         var clock = new GameClock();
         clock.Start();
-        // Graine 3 : même raisonnement que Spread_OppositeStatusNeighbor_BothReduceByOne — isole une
-        // seule annulation (le second tour du dominion, niveau 3, ne re-déclenche pas : tirage 39 ≥ 30).
-        CreateController(state, clock, seed: 3);
+        CreateController(state, clock);
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Equal(9, corruption.Level);
         Assert.Equal(3, dominion.Level);
     }
 
     [Fact]
-    public void Spread_NoOtherFeatureOnMap_NeverThrows()
+    public void NoSourceOnMap_NeverThrows()
     {
         var (state, _, _) = CreateTwoLandHexesSetup();
 
@@ -774,15 +781,14 @@ public class CorruptionControllerTests
     }
 
     [Fact]
-    public void SpireHex_Spread_SourceNotProtected_CanSpreadOut()
+    public void SpireHex_NotProtected_ACorruptionSourceOnItStillProduces()
     {
-        // La Spire de Corruption ne protège plus son hex : le débordement peut s'y produire normalement.
-        // Spire laissée en construction (Built = false) pour isoler ce mécanisme de la décroissance
-        // garantie, qui effacerait immédiatement la Corruption fraîchement débordée sur le voisin b.
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var corruption = new Corruption(a, level: 10); // 100% de déclenchement si non protégé
-        state.AddFeature(corruption);
+        // La Spire de Corruption ne protège pas son hex : une source posée dessus y produit
+        // normalement. Spire laissée en construction (Built = false) pour isoler ce mécanisme de la
+        // décroissance garantie, qui effacerait aussitôt la Corruption produite.
+        var (state, a, _) = CreateTwoLandHexesSetup();
         state.AddFeature(new CorruptionSpire(a));
+        state.AddFeature(new CorruptionSource(a, corruptionLevel: 3));
 
         var clock = new GameClock();
         clock.Start();
@@ -790,24 +796,27 @@ public class CorruptionControllerTests
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.True(state.HasFeaturesAt(b)); // débordement possible depuis l'hex de la Spire
+        Assert.Equal(1, state.GetFirstFeatureAt<Corruption>(a)!.Level);
     }
 
     [Fact]
-    public void SpireHex_Spread_TargetNotProtected_DominionCanBeSeeded()
+    public void SpireHex_NotProtected_ATempleCascadeCanSeedDominionOnIt()
     {
-        // La Spire de Corruption ne protège plus son hex : elle peut recevoir du Dominion débordé.
+        // Hex a saturé, b porte la Spire et rien d'autre : la cascade du Temple vise b.
         var (state, a, b) = CreateTwoLandHexesSetup();
-        state.AddFeature(new Dominion(a, level: 10)); // 100% de déclenchement si non protégé
+        var city = new City(Vertex.Create(a, b, new HexCoord(0, 1, IslandMap.SurfaceLayer))) { CivilizationIndex = 0 };
+        city.AddBuilding(new Temple { Level = 2 }); // plafond 4
+        state.PlayerCivilization.AddCity(city);
+        state.AddFeature(new Dominion(a, level: 4));
         state.AddFeature(new CorruptionSpire(b));
 
         var clock = new GameClock();
         clock.Start();
         CreateController(state, clock);
 
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+        AdvanceOneTempleProduction(clock);
 
-        Assert.Single(state.GetFeaturesAt(b).OfType<Dominion>());
+        Assert.Equal(1, state.GetFirstFeatureAt<Dominion>(b)!.Level);
     }
 
     [Fact]
@@ -829,26 +838,14 @@ public class CorruptionControllerTests
     }
 
     [Fact]
-    public void AbyssGateHex_Spread_SourceNotProtected_CanSpreadOut()
+    public void AbyssGateHex_NotProtected_ACorruptionCascadeCanReachIt()
     {
+        // La Faille des Abysses ne protège pas son hex : la cascade d'une Source voisine y sème de la
+        // Corruption. La décroissance garantie de la Faille passe avant la production dans le même
+        // intervalle, elle ne trouve donc rien à retirer ce tour-là.
         var (state, a, b) = CreateTwoLandHexesSetup();
-        state.AddFeature(new Corruption(a, level: 10)); // 100% de déclenchement
-        state.AddFeature(new AbyssGate(a));
-
-        var clock = new GameClock();
-        clock.Start();
-        CreateController(state, clock);
-
-        clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
-
-        Assert.True(state.HasFeaturesAt(b)); // débordement possible depuis l'hex de la Faille
-    }
-
-    [Fact]
-    public void AbyssGateHex_Spread_TargetNotProtected_DominionCanBeSeeded()
-    {
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        state.AddFeature(new Dominion(a, level: 10)); // 100% de déclenchement
+        state.AddFeature(new Corruption(a, level: 2)); // a déjà au plafond de la Source
+        state.AddFeature(new CorruptionSource(a, corruptionLevel: 2));
         state.AddFeature(new AbyssGate(b));
 
         var clock = new GameClock();
@@ -857,15 +854,34 @@ public class CorruptionControllerTests
 
         clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Single(state.GetFeaturesAt(b).OfType<Dominion>());
+        Assert.Equal(1, state.GetFirstFeatureAt<Corruption>(b)!.Level);
+    }
+
+    [Fact]
+    public void AbyssGateHex_NotProtected_ATempleCascadeCanSeedDominionOnIt()
+    {
+        var (state, a, b) = CreateTwoLandHexesSetup();
+        var city = new City(Vertex.Create(a, b, new HexCoord(0, 1, IslandMap.SurfaceLayer))) { CivilizationIndex = 0 };
+        city.AddBuilding(new Temple { Level = 2 }); // plafond 4
+        state.PlayerCivilization.AddCity(city);
+        state.AddFeature(new Dominion(a, level: 4));
+        state.AddFeature(new AbyssGate(b));
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        AdvanceOneTempleProduction(clock);
+
+        Assert.Equal(1, state.GetFirstFeatureAt<Dominion>(b)!.Level);
     }
 
     [Fact]
     public void MonumentDecay_ReducesCorruptionOnSpireNeighbor_WithinRadius()
     {
         var (state, a, b) = CreateTwoLandHexesSetup();
-        // Niveau 2 : 20% de déclenchement du débordement, tirage 31 (graine 1) → pas de débordement
-        // ce tick, ce qui isole la décroissance garantie de la Spire de tout autre effet.
+        // Aucune source sur la carte : la Corruption est passive, ce qui isole la décroissance
+        // garantie de la Spire de tout autre effet.
         state.AddFeature(new Corruption(b, level: 2)); // sur le voisin de la Spire, pas sur son propre hex
         state.AddFeature(new CorruptionSpire(a) { Built = true });
 
@@ -890,8 +906,8 @@ public class CorruptionControllerTests
         var civ = new Civilization { Index = 0 };
         var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
 
-        // Niveau 2 : 20% de déclenchement du débordement, tirage 31 (graine 1) → pas de débordement
-        // ce tick, ce qui isole la décroissance garantie de la Spire de tout autre effet.
+        // Aucune source sur la carte : la Corruption est passive, ce qui isole la décroissance
+        // garantie de la Spire de tout autre effet.
         state.AddFeature(new Corruption(farHex, level: 2));
         state.AddFeature(new CorruptionSpire(a) { Built = true }); // rayon 1 : n'atteint pas farHex (distance 2)
 
@@ -908,20 +924,17 @@ public class CorruptionControllerTests
     // ── Éligibilité de la Faille des Abysses : basée sur le nettoyage, n'importe où ────────
 
     [Fact]
-    public void ReduceLevel_ClearingCorruptionViaDominionAnnulation_MakesAbyssGateEligible_OnUnrelatedHex()
+    public void ReduceLevel_ClearingCorruptionViaTempleProduction_MakesAbyssGateEligible_OnUnrelatedHex()
     {
         // AbyssGateController.IsAbyssGateEligible se base sur RunRecord.MaxCorruptionLevelCleared, ici
-        // alimenté par annulation mutuelle avec le Dominion (pas par
-        // Temple ni par la décroissance de la Spire) et sur un hex qui n'a AUCUN rapport avec celui de
-        // la Spire — l'éligibilité doit être vraie quel que soit l'hex nettoyé et quel que soit le
+        // alimenté par la production d'un Temple sur un hex qui n'a AUCUN rapport avec celui de la
+        // Spire — l'éligibilité doit être vraie quel que soit l'hex nettoyé et quel que soit le
         // mécanisme de nettoyage.
-        var (state, a, b) = CreateTwoLandHexesSetup();
-        var corruption = new Corruption(a, level: AbyssGate.RequiredCorruptionLevel);
-        var dominion = new Dominion(b, level: 20); // 200% de déclenchement : annule toujours son tour
-        state.AddFeature(corruption);
-        state.AddFeature(dominion);
+        var (state, city, landHex) = CreateSingleLandHexCitySetup();
+        city.AddBuilding(new Temple { Level = 2 });
+        state.AddFeature(new Corruption(landHex, level: AbyssGate.RequiredCorruptionLevel));
 
-        // Spire déjà bâtie sur un tout autre hex, sans lien avec l'annulation ci-dessus.
+        // Spire déjà bâtie sur un tout autre hex, sans lien avec le nettoyage ci-dessus.
         var spireHex = new HexCoord(50, 50, IslandMap.SurfaceLayer);
         state.AddFeature(new CorruptionSpire(spireHex) { Built = true });
 
@@ -930,12 +943,12 @@ public class CorruptionControllerTests
         clock.Start();
         CreateController(state, clock, seed: 1, prestigeState: prestigeState);
 
-        // Le Dominion (niveau 20) annule à coup sûr chaque intervalle : largement assez pour ramener
-        // la Corruption (niveau initial = seuil requis) à 0.
-        for (int i = 0; i < 8; i++)
+        // Le Temple cible le seul hex valide de la carte à chaque intervalle : largement assez pour
+        // ramener la Corruption (niveau initial = seuil requis) à 0.
+        for (int i = 0; i < AbyssGate.RequiredCorruptionLevel + 3; i++)
             clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
 
-        Assert.Empty(state.GetFeaturesAt(a).OfType<Corruption>());
+        Assert.Empty(state.GetFeaturesAt(landHex).OfType<Corruption>());
         Assert.True(state.RunRecord.MaxCorruptionLevelCleared >= AbyssGate.RequiredCorruptionLevel);
         Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.AbyssGateEligible && e.Toast);
 
@@ -945,7 +958,7 @@ public class CorruptionControllerTests
     }
 
     // ── Os Divins : générateurs de Corruption tant qu'ils ne sont pas purifiés ─────────────
-    // La carte à un seul hex isole ce mécanisme du débordement (aucun voisin candidat).
+    // La carte à un seul hex isole ce mécanisme de la cascade (aucun autre hex candidat).
 
     [Fact]
     public void DivineBones_RaiseCorruptionOnTheirOwnHex_EachInterval()
@@ -1007,7 +1020,7 @@ public class CorruptionControllerTests
     public void DivineBones_DoNotReduceCorruptionAlreadyAboveTheirCap()
     {
         // Le plafond ne borne que la génération : une Corruption plus élevée (tirage initial de
-        // l'Abysse, débordement d'un voisin) est laissée telle quelle, jamais rabaissée.
+        // l'Abysse, cascade d'une source voisine) est laissée telle quelle, jamais rabaissée.
         var (state, _, landHex) = CreateSingleLandHexCitySetup();
         state.AddFeature(new Corruption(landHex, level: 9));
         state.AddFeature(new DivineBones(landHex, corruptionLevel: 2)); // plafond 4
@@ -1060,7 +1073,7 @@ public class CorruptionControllerTests
     }
 
     // ── Sources de Corruption : générateurs de Corruption, sans le doublement de plafond des Os Divins ──
-    // La carte à un seul hex isole ce mécanisme du débordement (aucun voisin candidat).
+    // La carte à un seul hex isole ce mécanisme de la cascade (aucun autre hex candidat).
 
     [Fact]
     public void CorruptionSource_RaisesCorruptionOnItsOwnHex_EachInterval()

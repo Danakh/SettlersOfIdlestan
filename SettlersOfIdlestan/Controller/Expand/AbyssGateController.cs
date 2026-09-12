@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Island;
+﻿using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -16,7 +16,7 @@ namespace SettlersOfIdlestan.Controller.Expand
     /// bâtie et une zone de Corruption de niveau <see cref="AbyssGate.RequiredCorruptionLevel"/> ou plus
     /// entièrement nettoyée <b>sur l'île courante</b> (<see cref="Model.Tasks.RunRecord.MaxCorruptionLevelCleared"/>,
     /// voir <see cref="IsAbyssGateEligible"/>). Ce record est propre au run — n'importe quel hex compte,
-    /// nettoyé par n'importe quel mécanisme (Temple, débordement, annulation par le Dominion,
+    /// nettoyé par n'importe quel mécanisme (production de Dominion, en cascade ou non,
     /// décroissance de monument), pas seulement l'hex de la Spire elle-même. N'est pas une action de
     /// civilisation — l'évolution remplace la Spire sur son hex et se construit par investissement
     /// progressif comme tout Monument.
@@ -62,7 +62,7 @@ namespace SettlersOfIdlestan.Controller.Expand
         /// <see cref="AbyssGate.RequiredCorruptionLevel"/> ou plus. Ce record est mis à jour par
         /// <see cref="Controller.Island.CorruptionController.ReduceLevel"/> à chaque zone de Corruption
         /// entièrement dissipée, n'importe où sur la carte et par n'importe quel mécanisme (Temple,
-        /// débordement — y compris annulation par le Dominion — ou décroissance de monument) : ce n'est
+        /// production de Dominion arrivant dessus, ou décroissance de monument) : ce n'est
         /// pas la corruption courante (ni même le pic) du seul hex de la Spire qui compte, mais le
         /// meilleur nettoyage réalisé sur l'île courante. Se base sur un nettoyage passé plutôt que sur
         /// une corruption "en cours" précisément parce que la Spire bâtie réduit systématiquement la

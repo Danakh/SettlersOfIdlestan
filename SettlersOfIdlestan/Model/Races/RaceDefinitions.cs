@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Model.Ascension;
@@ -69,8 +69,9 @@ public static class RaceDefinitions
 
     public static IReadOnlyList<RaceDefinition> All { get; } = new[]
     {
-        // Humains : race religieuse — le Dominion se propage plus vite (base : 10 %/niveau,
-        // voir CorruptionController.ProcessSpread) et la Ziggourat amplifie les Temples.
+        // Humains : race religieuse — leurs Temples ont une chance de produire deux points de
+        // Dominion par intervalle au lieu d'un (2 %/niveau effectif de Temple, voir
+        // CorruptionController.RollDoubleProduction) et la Ziggourat les amplifie.
         new RaceDefinition(RaceId.Human, RaceTier.Base,
             requiredAdjacentTerrain: null,
             racialBuilding: BuildingType.Ziggurat,

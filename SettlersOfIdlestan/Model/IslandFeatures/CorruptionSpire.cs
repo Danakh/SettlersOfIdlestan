@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.Localization;
@@ -15,7 +15,7 @@ namespace SettlersOfIdlestan.Model.IslandFeatures;
 /// comme tout Monument, mais d'un seul palier : une fois bâtie elle n'a plus rien à recevoir, son
 /// niveau n'étant plus améliorable. Elle réduit alors la corruption dans un rayon fixe (voir
 /// <see cref="DecayRadius"/>) autour de son hex, sans pour autant le protéger des mécaniques de
-/// Temple/débordement, qui peuvent toujours y agir normalement (voir CorruptionController).
+/// productions de Temple ou de sources, qui peuvent toujours y agir normalement (voir CorruptionController).
 /// </summary>
 public class CorruptionSpire : Monument
 {

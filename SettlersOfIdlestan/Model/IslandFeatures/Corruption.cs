@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Localization;
@@ -13,7 +13,7 @@ public class Corruption : IslandFeature
     /// (<see cref="GetHarvestTimeMultiplier"/>, ×2^niveau) : sans plafond, une poche entretenue par une
     /// Source de Corruption, des Os Divins ou un monstre de haut niveau finissait par rendre son hex
     /// définitivement inexploitable. Appliqué par le setter de <see cref="Level"/>, donc sur tous les
-    /// chemins de croissance (débordement, semis autour d'un monstre, génération d'île, Corruption des
+    /// chemins de croissance (production d'une source, semis autour d'un monstre, génération d'île, Corruption des
     /// Abysses) comme à la relecture d'une sauvegarde antérieure au plafond.
     /// </summary>
     public const int MaxLevel = 10;

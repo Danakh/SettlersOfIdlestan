@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.Localization;
@@ -12,10 +12,10 @@ public class Dominion : IslandFeature
     /// <summary>
     /// Plafond dur du niveau de Dominion d'un hex, miroir de <see cref="Corruption.MaxLevel"/>. Le
     /// niveau accélère la récolte (<see cref="IntrinsicHarvestBonusPerLevel"/> par niveau, amplifié par
-    /// le prestige et la Ziggourat) et augmente la chance de débordement : sans plafond, la Présence
-    /// divine et les débordements empilaient des niveaux sans fin sur un même hex. Appliqué par le
-    /// setter de <see cref="Level"/>, donc sur tous les chemins de croissance (Temple, débordement,
-    /// Présence de l'Ascension) comme à la relecture d'une sauvegarde antérieure au plafond.
+    /// le prestige et la Ziggourat) : sans plafond, la Présence
+    /// divine empilait des niveaux sans fin sur un même hex. Appliqué par le
+    /// setter de <see cref="Level"/>, donc sur tous les chemins de croissance (production de Temple,
+    /// en cascade ou non, Présence de l'Ascension) comme à la relecture d'une sauvegarde antérieure au plafond.
     /// </summary>
     public const int MaxLevel = 10;
 

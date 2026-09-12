@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text.Json.Serialization;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -118,7 +118,7 @@ public class DivineBones : Monument
     /// <summary>
     /// Niveau de Corruption au-delà duquel les Os Divins non purifiés cessent d'alimenter leur hex :
     /// deux fois le niveau de corruption de l'île à leur génération (voir <see cref="CorruptionLevel"/>).
-    /// Ce n'est qu'un plafond de génération : une Corruption déjà plus élevée (débordement d'un voisin,
+    /// Ce n'est qu'un plafond de génération : une Corruption déjà plus élevée (cascade d'une source voisine,
     /// tirage initial de AutoExtendController.PlaceAbyssCorruption) n'est jamais réduite par ce plafond.
     /// </summary>
     public int GetCorruptionCap() => Math.Max(1, CorruptionCapMultiplier * CorruptionLevel);

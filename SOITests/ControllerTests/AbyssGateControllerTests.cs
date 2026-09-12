@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Controller.Expand;
+﻿using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
@@ -18,7 +18,7 @@ namespace SOITests.ControllerTests
     /// Tests d'AbyssGateController : éligibilité et évolution de la Spire de Corruption en Faille des
     /// Abysses. L'éligibilité (IsAbyssGateEligible) se base sur RunRecord.MaxCorruptionLevelCleared
     /// — le meilleur nettoyage de Corruption réalisé sur l'île courante, n'importe où sur la carte et
-    /// par n'importe quel mécanisme (Temple, débordement, annulation par le Dominion, décroissance de
+    /// par n'importe quel mécanisme (production de Dominion, en cascade ou non, décroissance de
     /// monument) — et non sur la corruption courante ou passée du seul hex de la Spire : une Faille
     /// ouverte lors d'un run précédent ne dispense pas du nettoyage sur la nouvelle île. Voir CorruptionControllerTests pour un scénario de bout en bout mettant à jour ce
     /// record via annulation avec le Dominion sur un hex distinct de celui de la Spire.
