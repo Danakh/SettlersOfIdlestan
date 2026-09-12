@@ -134,7 +134,7 @@ public class RitualsViewTests
     {
         var (_, _, view) = BuildProbeWindow(visible: true, spells:
         [
-            new("Gold", "Filon", "Convertit des cristaux", "Cout : 10", "Pas assez de cristaux", "Lancer", false, 0, 0.0, "", 0, 0, ""),
+            new("Gold", "Filon", "Convertit des cristaux", "Cout : 10", "Pas assez de cristaux", "Lancer", false, 0, 0.0, "", 0, 0, "", false, false, "Auto", "tooltip"),
         ]);
 
         var texts = view.GetVisualDescendants().OfType<TextBlock>()
@@ -145,6 +145,33 @@ public class RitualsViewTests
         Assert.Contains("Filon", texts);
         Assert.Contains("Pas assez de cristaux", texts);
     }
+
+    /// <summary>
+    /// La coche « auto » d'un sort n'apparait que sur un sort automatisable — Abondance sous Magie
+    /// Divine. Sans cette garde, elle s'afficherait sur des sorts qu'aucune automatisation ne lance,
+    /// et la cocher n'aurait aucun effet visible.
+    /// </summary>
+    [AvaloniaFact]
+    public void La_coche_auto_d_un_sort_n_apparait_que_s_il_est_automatisable()
+    {
+        var (_, _, without) = BuildProbeWindow(visible: true, spells:
+        [
+            new("SummonTroops", "Invocation", "desc", "Cout : 10", null, "Lancer", true, 0, 0.0, "", 0, 0, "", false, false, "Auto", "tooltip"),
+        ]);
+        Assert.DoesNotContain(VisibleCheckBoxes(without), c => c.Content as string == "Auto");
+
+        var (_, _, with) = BuildProbeWindow(visible: true, spells:
+        [
+            new("Abundance", "Abondance", "desc", "Cout : 10", null, "Lancer", true, 0, 0.0, "", 5, 5, "", true, true, "Auto", "tooltip"),
+        ]);
+        var auto = VisibleCheckBoxes(with).Single(c => c.Content as string == "Auto");
+        Assert.True(auto.IsChecked);
+    }
+
+    private static List<CheckBox> VisibleCheckBoxes(RitualsView view) =>
+        view.GetVisualDescendants().OfType<CheckBox>()
+            .Where(c => c.IsVisible && c.IsEffectivelyVisible)
+            .ToList();
 
     private static List<string?> VisibleButtonLabels(RitualsView view) =>
         view.GetVisualDescendants().OfType<Button>()

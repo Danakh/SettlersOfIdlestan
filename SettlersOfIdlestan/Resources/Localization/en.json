@@ -1748,6 +1748,8 @@
   "spell_cooldown_tooltip": "Next exhaustion stack removed in {0} (cooldown: {1}).",
   "spell_cooldown_charge_tooltip": "Next launch charge in {0} (cooldown: {1}).",
   "spell_charges_tooltip": "Launch charges: {0}/{1}. Casting with a charge available consumes it without accumulating exhaustion.",
+  "spell_auto_label": "Auto",
+  "spell_auto_tooltip": "Automatically casts the spell as soon as its launch charges are full: it then only consumes a charge, without accumulating exhaustion. Same setting as the \"Auto Abundance\" row of the Automations tab.",
   "ritual_growth_name": "Ritual of Growth",
   "ritual_growth_desc": "+10% harvest speed per power.",
   "ritual_ardentforge_name": "Ardent Forge",

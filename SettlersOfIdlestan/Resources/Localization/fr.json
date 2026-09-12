@@ -1748,6 +1748,8 @@
   "spell_cooldown_tooltip": "Prochain retrait d'un cran d'épuisement dans {0} (cooldown : {1}).",
   "spell_cooldown_charge_tooltip": "Prochaine charge de lancement dans {0} (cooldown : {1}).",
   "spell_charges_tooltip": "Charges de lancement : {0}/{1}. Lancer le sort avec une charge disponible la consomme sans accumuler d'épuisement.",
+  "spell_auto_label": "Auto",
+  "spell_auto_tooltip": "Lance automatiquement le sort dès que ses charges de lancement sont pleines : il ne consomme alors qu'une charge, sans accumuler d'épuisement. Même réglage que la ligne « Abondance automatique » de l'onglet Automatisations.",
   "ritual_growth_name": "Rituel de Croissance",
   "ritual_growth_desc": "+10% de vitesse de récolte par puissance.",
   "ritual_ardentforge_name": "Forge Ardente",

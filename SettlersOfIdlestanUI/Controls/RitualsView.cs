@@ -402,10 +402,30 @@ public sealed class RitualsView : UserControl
                 });
             }
 
+            var auto = new CheckBox
+            {
+                FontSize = 10,
+                Foreground = Summary,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 4, 0, 0),
+                Padding = new Thickness(4, 0, 0, 0),
+                [!ContentProperty] = new Binding(nameof(SpellRowViewModel.AutoLabel)),
+                [!ToolTip.TipProperty] = new Binding(nameof(SpellRowViewModel.AutoTooltip)),
+                // Masquee sur les sorts sans automatisation, et sur Abondance tant que Magie Divine
+                // ne genere pas de charges : l'automatisation n'aurait alors rien a consommer.
+                [!IsVisibleProperty] = new Binding(nameof(SpellRowViewModel.CanAutoCast)),
+                [!ToggleButton.IsCheckedProperty] = new Binding(nameof(SpellRowViewModel.IsAutoCast)),
+            };
+            auto.Click += (_, _) =>
+            {
+                if (_row != null) _owner.SetSpellAutoCast(_row, auto.IsChecked == true);
+            };
+
             var right = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };
             right.Children.Add(cast);
             right.Children.Add(cooldownBar);
             right.Children.Add(charges);
+            right.Children.Add(auto);
 
             var layout = new DockPanel { LastChildFill = true };
             DockPanel.SetDock(right, Dock.Right);

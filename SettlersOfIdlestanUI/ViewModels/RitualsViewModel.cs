@@ -80,6 +80,10 @@ public sealed class SpellRowViewModel : ViewModelBase
     /// </summary>
     public bool ShowCooldown => _snapshot.ExhaustionStacks > 0 || _snapshot.Charges < _snapshot.MaxCharges;
     public string ChargesTooltip => _snapshot.ChargesTooltip;
+    public bool CanAutoCast => _snapshot.CanAutoCast;
+    public bool IsAutoCast => _snapshot.IsAutoCast;
+    public string AutoLabel => _snapshot.AutoLabel;
+    public string AutoTooltip => _snapshot.AutoTooltip;
 
     internal void Apply(SkiaLayer.SpellRowSnapshot snapshot)
     {
@@ -115,6 +119,8 @@ public sealed class SpellRowViewModel : ViewModelBase
             RaisePropertyChanged(nameof(ShowCooldown));
         }
         if (previous.ChargesTooltip != snapshot.ChargesTooltip) RaisePropertyChanged(nameof(ChargesTooltip));
+        if (previous.CanAutoCast != snapshot.CanAutoCast) RaisePropertyChanged(nameof(CanAutoCast));
+        if (previous.IsAutoCast != snapshot.IsAutoCast) RaisePropertyChanged(nameof(IsAutoCast));
     }
 }
 
@@ -246,6 +252,12 @@ public sealed class RitualsViewModel : ViewModelBase
     public void CastSpell(SpellRowViewModel spell)
     {
         _host.CastSpell(spell.Key);
+        Refresh();
+    }
+
+    public void SetSpellAutoCast(SpellRowViewModel spell, bool enabled)
+    {
+        _host.SetSpellAutoCast(spell.Key, enabled);
         Refresh();
     }
 }

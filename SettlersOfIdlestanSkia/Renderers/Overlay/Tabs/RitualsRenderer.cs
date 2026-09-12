@@ -191,6 +191,11 @@ public sealed class RitualsRenderer : IDisposable
 
             string chargesTooltip = _localization.GetFormated("spell_charges_tooltip", charges, maxCharges);
 
+            // Seule Abondance a une automatisation, et elle ne consomme que des charges : la case
+            // reste masquée tant que Magie Divine n'en génère pas. C'est le même interrupteur que la
+            // ligne « Abondance automatique » de l'onglet Automatisations, montré ici aussi.
+            bool canAutoCast = def.Id == SpellId.Abundance && magic.IsDivineMagicActive;
+
             spells.Add(new SpellRowSnapshot(
                 Key: def.Id.ToString(),
                 Name: _localization.Get(def.NameKey),
@@ -210,7 +215,11 @@ public sealed class RitualsRenderer : IDisposable
                 CooldownTooltip: cooldownTooltip,
                 Charges: charges,
                 MaxCharges: maxCharges,
-                ChargesTooltip: chargesTooltip));
+                ChargesTooltip: chargesTooltip,
+                CanAutoCast: canAutoCast,
+                IsAutoCast: canAutoCast && IsSpellAutoCastEnabled(def.Id),
+                AutoLabel: _localization.Get("spell_auto_label"),
+                AutoTooltip: _localization.Get("spell_auto_tooltip")));
         }
 
         return new RitualsSnapshot(
@@ -249,6 +258,34 @@ public sealed class RitualsRenderer : IDisposable
     {
         if (!Enum.TryParse<RitualId>(key, out var id)) return;
         _gameControllerService.MainGameController.MagicController.SetRitualAutomated(id, automated);
+    }
+
+    /// <summary>
+    /// Lit l'interrupteur d'automatisation d'un sort — le même réglage que l'onglet Automatisations,
+    /// donc l'état brut et non <c>IsAbundanceAutoCastActive</c> : l'interrupteur global des
+    /// automatisations suspend l'effet sans décocher la case, ici comme là-bas.
+    /// </summary>
+    private bool IsSpellAutoCastEnabled(SpellId id)
+    {
+        var settings = _gameControllerService.CurrentWorldState?.AutomationSettings;
+        if (settings == null) return false;
+        return id switch
+        {
+            SpellId.Abundance => settings.AbundanceAutoCastEnabled,
+            _ => false,
+        };
+    }
+
+    /// <summary>Arme ou désarme l'automatisation d'un sort depuis une vue portée par l'hôte.</summary>
+    public void SetSpellAutoCastFromHost(string key, bool enabled)
+    {
+        if (!Enum.TryParse<SpellId>(key, out var id)) return;
+        var settings = _gameControllerService.CurrentWorldState?.AutomationSettings;
+        if (settings == null) return;
+        switch (id)
+        {
+            case SpellId.Abundance: settings.AbundanceAutoCastEnabled = enabled; break;
+        }
     }
 
     /// <summary>Lance un sort, ou entre en sélection de cible, depuis une vue portée par l'hôte.</summary>

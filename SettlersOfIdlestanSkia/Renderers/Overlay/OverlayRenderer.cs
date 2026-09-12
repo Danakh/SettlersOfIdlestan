@@ -113,6 +113,7 @@ public sealed class OverlayRenderer : IGameRenderer
             closeOtherPopupsKeepingSelection: CloseOtherPopupsKeepingSelection,
             tradeRenderer,
             prestigeRenderer,
+            automationRenderer,
             targetSelectionService: null,
             centerCameraOnMapPosition: CenterCameraOnMapPosition);
         _playerCivPanel.OnExpanded = () => { if (_uiLayout.TabsAtBottom) DeselectCityAndMonument(); };
@@ -361,6 +362,7 @@ public sealed class OverlayRenderer : IGameRenderer
     public void ToggleRitualFromHost(string key) => _ritualsRenderer.ToggleRitualFromHost(key);
     public void ChangeRitualPowerFromHost(string key, bool increase) => _ritualsRenderer.ChangeRitualPowerFromHost(key, increase);
     public void SetRitualAutomatedFromHost(string key, bool automated) => _ritualsRenderer.SetRitualAutomatedFromHost(key, automated);
+    public void SetSpellAutoCastFromHost(string key, bool enabled) => _ritualsRenderer.SetSpellAutoCastFromHost(key, enabled);
     public void CastSpellFromHost(string key) => _ritualsRenderer.CastSpellFromHost(key);
 
     /// <summary>Instantané de l'onglet Automatisation pour une vue portée par l'hôte.</summary>

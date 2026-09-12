@@ -1,4 +1,5 @@
 using System.Reflection;
+using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Panels;
 using SettlersOfIdlestanSkia.Renderers.Overlay.Tabs;
 using SettlersOfIdlestanSkia.Services;
@@ -12,7 +13,8 @@ namespace SOIUITests;
 ///
 /// Ces deux moities avaient deja diverge : cinq automatismes (hotel de ville, grand temple, mine
 /// de mithril, tour des arcanes, investissement monument) etaient epinglables mais s'affichaient
-/// sous leur cle brute, et leur bascule ne faisait rien.
+/// sous leur cle brute, et leur bascule ne faisait rien. « Abondance automatique » a ensuite
+/// repete la moitie du probleme : nommee, mais toujours affichee eteinte faute d'etre lue.
 /// </summary>
 public class AutomationPinKeyTests
 {
@@ -40,10 +42,53 @@ public class AutomationPinKeyTests
         if (IsBuildingPinKey(pinKey)) return;
 
         Assert.True(
-            PlayerCivilizationPanelRenderer.AutomationPinLocalizationRoots.ContainsKey(pinKey),
+            PlayerCivilizationPanelRenderer.AutomationPins.ContainsKey(pinKey),
             $"L'automatisme « {pinKey} » peut etre epingle mais le panneau civilisation ne sait pas "
-            + "le nommer : il afficherait la cle brute. Ajouter sa racine de localisation dans "
-            + "PlayerCivilizationPanelRenderer.AutomationPinLocalizationRoots.");
+            + "le nommer : il afficherait la cle brute. Ajouter son entree dans "
+            + "PlayerCivilizationPanelRenderer.AutomationPins.");
+    }
+
+    /// <summary>
+    /// L'entree de la table doit aussi savoir lire l'interrupteur : un automatisme nomme mais dont
+    /// la lecture retombe sur "false" s'affiche eteint quoi qu'on fasse, et la bascule epinglee
+    /// parait morte alors qu'elle ecrit bien. C'est exactement ce qui est arrive a « Abondance
+    /// automatique ». La bascule elle-meme est deleguee a AutomationRenderer.ToggleByKey : elle
+    /// ne peut plus diverger, et n'a donc rien a verifier ici.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(AllPinKeys))]
+    public void Chaque_automatisme_epinglable_voit_son_interrupteur_lu(string pinKey)
+    {
+        if (IsBuildingPinKey(pinKey)) return;
+
+        var pin = PlayerCivilizationPanelRenderer.AutomationPins[pinKey];
+
+        // La lecture doit viser un reglage reel : tous interrupteurs eteints puis tous allumes,
+        // elle doit repondre deux choses differentes. Une lecture figee (le "_ => false" d'un
+        // switch incomplet) repond la meme chose aux deux.
+        Assert.False(pin.IsOn(AllSwitches(false)));
+        Assert.True(pin.IsOn(AllSwitches(true)));
+    }
+
+    /// Tous les interrupteurs booleens d'AutomationSettings a la meme valeur, restriction de
+    /// production de soldats de chaque palier comprise : de quoi distinguer une lecture reelle
+    /// d'un "false" en dur. Les defauts varient d'un reglage a l'autre, d'ou le passage explicite
+    /// par les deux extremes plutot que par des reglages tout neufs.
+    private static AutomationSettings AllSwitches(bool value)
+    {
+        var settings = new AutomationSettings();
+        foreach (var property in typeof(AutomationSettings).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (property.PropertyType != typeof(bool) || !property.CanWrite) continue;
+            property.SetValue(settings, value);
+        }
+        foreach (int layerZ in new[]
+                 {
+                     IslandMap.SurfaceLayer, LayerState.UnderworldZ,
+                     LayerState.AbyssZ, LayerState.PandemoniumZ,
+                 })
+            settings.RestrictSoldierProductionToFreeSoldiersByLayer[layerZ] = value;
+        return settings;
     }
 
     private static bool IsBuildingPinKey(string pinKey) => pinKey is

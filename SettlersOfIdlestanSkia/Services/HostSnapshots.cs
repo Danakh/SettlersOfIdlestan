@@ -539,6 +539,11 @@ public sealed record RitualRowSnapshot(
 /// <param name="MaxCharges">Charges maximales accumulables ; 0 tant que Magie Divine n'est pas active,
 /// auquel cas la rangee de cercles de charges reste masquee.</param>
 /// <param name="ChargesTooltip">Infobulle de la rangee de charges, deja formatee et localisee.</param>
+/// <param name="CanAutoCast">Le sort a-t-il une automatisation, et est-elle debloquee ? Faux pour tous
+/// les sorts sans reglage d'automatisation, et pour Abondance tant que Magie Divine n'est pas active
+/// (sans charge, l'automatisation n'aurait rien a consommer) : la case a cocher reste alors masquee.</param>
+/// <param name="IsAutoCast">Etat brut de l'interrupteur d'automatisation, comme dans l'onglet
+/// Automatisations : c'est le meme reglage, montre a deux endroits.</param>
 public sealed record SpellRowSnapshot(
     string Key,
     string Name,
@@ -552,7 +557,11 @@ public sealed record SpellRowSnapshot(
     string CooldownTooltip,
     int Charges,
     int MaxCharges,
-    string ChargesTooltip);
+    string ChargesTooltip,
+    bool CanAutoCast,
+    bool IsAutoCast,
+    string AutoLabel,
+    string AutoTooltip);
 
 /// <summary>
 /// Onglet plein ecran des rituels : puissance disponible, cristaux, rituels connus et sorts
