@@ -629,10 +629,10 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsPrestigeAvailable), ex); return false; }
     }
 
-    private bool HasPrestigeImperialPort()
+    private bool HasPrestigeUnlockBuilding()
     {
-        try { return _gameControllerService.MainGameController.PrestigeController.HasImperialPort(); }
-        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(HasPrestigeImperialPort), ex); return true; }
+        try { return _gameControllerService.MainGameController.PrestigeController.HasPrestigeUnlockBuilding(); }
+        catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(HasPrestigeUnlockBuilding), ex); return true; }
     }
 
     private int GetPrestigePoints()
@@ -886,7 +886,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             var tooltip = new List<string>();
             if (!available)
             {
-                if (!HasPrestigeImperialPort())
+                if (!HasPrestigeUnlockBuilding())
                     tooltip.Add(_localization.Get("tooltip_prestige_no_imperial_port"));
                 if (points < PrestigeController.PrestigeRequiredPoints)
                     tooltip.Add(_localization.GetFormated("tooltip_prestige_not_enough_points",

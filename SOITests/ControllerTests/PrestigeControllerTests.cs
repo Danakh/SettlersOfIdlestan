@@ -195,6 +195,53 @@ namespace SOITests.ControllerTests
             Assert.Equal(360000, runTicks);
         }
 
+        /// <summary>
+        /// Le Trône des Vents (bâtiment racial garuda) débloque le prestige au même titre que le Port
+        /// Impérial — les villes volantes n'ayant aucune garantie d'accès à la côte. Effet absent des
+        /// infobulles, d'où ce test comme seule trace de la règle côté joueur.
+        /// </summary>
+        [Theory]
+        [InlineData(BuildingType.ImperialPort)]
+        [InlineData(BuildingType.ThroneOfWinds)]
+        public void Prestige_UnlockedByImperialPortOrThroneOfWinds(BuildingType unlockBuilding)
+        {
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+
+            var controller = new PrestigeController();
+            controller.Initialize(civ, state);
+
+            for (int i = 0; i < PrestigeController.PrestigeRequiredPoints; i++)
+                civ.Cities[0].AddBuilding(new Temple());
+
+            Assert.False(controller.HasPrestigeUnlockBuilding());
+            Assert.False(controller.PrestigeIsAvailable());
+
+            civ.AddUniqueBuilding(unlockBuilding);
+
+            Assert.True(controller.HasPrestigeUnlockBuilding());
+            Assert.True(controller.PrestigeIsAvailable());
+        }
+
+        /// <summary>Un autre bâtiment racial ne débloque rien : seuls les deux ci-dessus comptent.</summary>
+        [Fact]
+        public void Prestige_NotUnlockedByAnotherRacialBuilding()
+        {
+            WorldState state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.Civilizations[0];
+
+            var controller = new PrestigeController();
+            controller.Initialize(civ, state);
+
+            for (int i = 0; i < PrestigeController.PrestigeRequiredPoints; i++)
+                civ.Cities[0].AddBuilding(new Temple());
+
+            civ.AddUniqueBuilding(BuildingType.HeartTree);
+
+            Assert.False(controller.HasPrestigeUnlockBuilding());
+            Assert.False(controller.PrestigeIsAvailable());
+        }
+
         private static WorldState CreateDesertIslandState()
         {
             var tiles = new List<HexTile>

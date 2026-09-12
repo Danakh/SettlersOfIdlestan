@@ -728,7 +728,7 @@ namespace SettlersOfIdlestan.Controller.Island
                     return false;
 
                 // civ.UniqueBuildings is a permanent "ever built" flag (never cleared on city loss,
-                // used e.g. by PrestigeController.HasImperialPort) — checking it here would block
+                // used e.g. by PrestigeController.HasPrestigeUnlockBuilding) — checking it here would block
                 // rebuilding forever once the city holding it is destroyed. The cache is the live source
                 // of truth and is correctly refreshed by Civilization.RemoveCity.
                 if (prototype.IsUnique && civ.GetUniqueBuilding(type) != null)

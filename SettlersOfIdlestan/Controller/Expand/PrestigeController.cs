@@ -44,16 +44,40 @@ namespace SettlersOfIdlestan.Controller.Expand
         public const int PrestigeVisiblePoints = 10;
         public const int PrestigeRequiredPoints = 20;
 
-        public bool PrestigeIsVisible() => (CalculatePrestigePoints() >= PrestigeVisiblePoints) || HasImperialPort();
+        public bool PrestigeIsVisible() => (CalculatePrestigePoints() >= PrestigeVisiblePoints) || HasPrestigeUnlockBuilding();
 
-        public bool HasImperialPort() =>
-            _playerCivilization?.UniqueBuildings.Contains(BuildingType.ImperialPort) == true;
+        /// <summary>
+        /// Bâtiments uniques qui débloquent le prestige, au même titre l'un que l'autre : le Port
+        /// Impérial, et le Trône des Vents (bâtiment racial des Garudas), dont les villes volantes
+        /// n'ont pas besoin de la côte que le Port Impérial exige.
+        /// </summary>
+        private static readonly BuildingType[] PrestigeUnlockBuildings =
+        {
+            BuildingType.ImperialPort,
+            BuildingType.ThroneOfWinds,
+        };
+
+        /// <summary>
+        /// Vrai si la civilisation du joueur possède l'un des <see cref="PrestigeUnlockBuildings"/>.
+        /// Les infobulles de prestige ne parlent que du Port Impérial : le Trône des Vents reste une
+        /// voie non annoncée, les Garudas le construisant de toute façon pour ses autres bonus.
+        /// </summary>
+        public bool HasPrestigeUnlockBuilding()
+        {
+            var civ = _playerCivilization;
+            if (civ == null) return false;
+
+            for (int i = 0; i < PrestigeUnlockBuildings.Length; i++)
+                if (civ.UniqueBuildings.Contains(PrestigeUnlockBuildings[i]))
+                    return true;
+            return false;
+        }
 
         public bool HasEnoughPrestigePoints() =>
             CalculatePrestigePoints() >= PrestigeRequiredPoints;
 
         public bool PrestigeIsAvailable() =>
-             HasEnoughPrestigePoints() && HasImperialPort();
+             HasEnoughPrestigePoints() && HasPrestigeUnlockBuilding();
 
         public int GetBuildingSubtotal() => GetPrestigePointSources().Sum(source => source.Points);
 

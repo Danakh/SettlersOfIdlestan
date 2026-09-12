@@ -10,6 +10,11 @@ namespace SettlersOfIdlestan.Model.Buildings;
 /// l'Aventurier et améliore les ratios de commerce du Marché dans les deux sens (achat moins cher,
 /// vente plus rémunératrice). Niveau max par défaut 0 : constructible uniquement quand la race
 /// Garuda fournit son BUILDING_MAX_LEVEL +1.
+///
+/// <para>Débloque aussi le prestige, exactement comme le Port Impérial (voir
+/// PrestigeController.HasPrestigeUnlockBuilding) : les Garudas fondent leurs villes en volant et
+/// n'ont donc aucune garantie d'accès à la côte qu'exige le Port Impérial. Effet volontairement
+/// absent des infobulles — la description du bâtiment n'en parle pas.</para>
 /// </summary>
 public class ThroneOfWinds : Building, IUniqueBuilding
 {

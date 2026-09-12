@@ -270,7 +270,7 @@ public sealed class PrestigeRenderer : PopupRendererBase
 
         string? warning =
             demoCapReached ? _localization.Get("prestige_demo_cap_reached")
-            : hasEnoughPoints && !controller.HasImperialPort() ? _localization.Get("prestige_requires_imperial_port")
+            : hasEnoughPoints && !controller.HasPrestigeUnlockBuilding() ? _localization.Get("prestige_requires_imperial_port")
             : null;
 
         return new PrestigePopupSnapshot(
