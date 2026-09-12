@@ -28,6 +28,13 @@ public class Dragon : MonsterFeature
     public override int AttackDamage => 5 + DragonAttackDamagePerLevel * (Level - 1);
     public override int AttackResources => 1;
 
+    /// <summary>
+    /// Le Dragon crache le feu : son attaque s'affiche en boules de feu lancées vers la cible au
+    /// lieu de la ruée de son icône, et il ne rend pas les coups au monstre qui le prend pour cible
+    /// (voir <see cref="MonsterFeature.HasRangedAttack"/>).
+    /// </summary>
+    public override bool HasRangedAttack => true;
+
     public override GameEventType DiscoveredEventType => GameEventType.DragonDiscovered;
     public override GameEventType RemovedEventType => GameEventType.DragonDefeated;
 
