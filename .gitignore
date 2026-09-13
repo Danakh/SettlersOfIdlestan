@@ -503,3 +503,8 @@ export
 /SOIStrategyTester/pandemonium/
 /SOIStrategyTester/pandemonium-ascended/
 /SettlersOfIdlestanAvalonia.Desktop/Properties/launchSettings.json
+
+# Skills Claude Code : versionnés, malgré les règles de build ci-dessus — le dossier du skill
+# « release » tombait sous [Rr]elease/, et un futur skill nommé bin/debug/logs subirait le même
+# sort. Négation placée en dernier pour l'emporter sur toutes les règles du fichier.
+!/.claude/skills/**
