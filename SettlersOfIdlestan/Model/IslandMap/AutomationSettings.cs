@@ -218,14 +218,28 @@ public class AutomationSettings
     /// </summary>
     public HashSet<string> PinnedToCivPanel { get; set; } = [];
 
-    /// <summary>Position de la ville ciblée par un raid actif. Null si aucun raid en cours ou si la cible est une MonsterFeature.</summary>
-    public Vertex? RaidTargetVertex { get; set; } = null;
+    /// <summary>
+    /// Raid en cours, <b>un par layer</b> (clé = Z du layer : 0 = surface, LayerState.UnderworldZ,
+    /// LayerState.AbyssZ...) — un layer absent du dictionnaire n'a aucun raid en cours. Les raids de
+    /// layers différents sont indépendants et se déroulent en parallèle : chacun a sa cible, son
+    /// entretien qui escalade pour son propre compte et ne réquisitionne que les emplacements
+    /// militaires de son layer (voir RaidEngine). Le joueur ne peut lancer ou annuler que le raid du
+    /// layer qu'il regarde (voir WorldState.CurrentViewedLayer et PlayerCivilizationPanelRenderer).
+    /// Même découpage par layer que <see cref="VendettaTargetCivIndexByLayer"/>, dont chaque entrée
+    /// alimente le raid automatique du layer correspondant.
+    /// <para>[Legacy v0.22] Remplace les anciens champs scalaires RaidTargetVertex / RaidTargetHex /
+    /// RaidCurrentUpkeep (un seul raid à la fois, tous layers confondus). Les anciennes clés sont
+    /// simplement ignorées à la relecture : un raid est un état volatil qui s'arrête de lui-même dès
+    /// que sa cible disparaît, le perdre au chargement d'une sauvegarde antérieure est sans
+    /// conséquence.</para>
+    /// </summary>
+    public Dictionary<int, RaidState> RaidsByLayer { get; set; } = new();
 
-    /// <summary>Position de la MonsterFeature ciblée par un raid actif. Null si aucun raid en cours ou si la cible est une ville.</summary>
-    public HexCoord? RaidTargetHex { get; set; } = null;
+    /// <summary>Raid en cours sur ce layer, ou null s'il n'y en a aucun.</summary>
+    public RaidState? GetRaid(int layerZ) => RaidsByLayer.GetValueOrDefault(layerZ);
 
-    /// <summary>Coût en or par seconde du raid actif. 0 si aucun raid. Commence à 10, monte de 2 par seconde.</summary>
-    public int RaidCurrentUpkeep { get; set; } = 0;
+    /// <summary>Vrai si un raid est en cours sur ce layer précis — les autres layers ne comptent pas.</summary>
+    public bool IsRaidActiveOnLayer(int layerZ) => RaidsByLayer.ContainsKey(layerZ);
 
     /// <summary>
     /// Dernière cible du War Herald (voir RaidEngine.StartWarHeraldRaid). Permet de détecter une
@@ -263,9 +277,7 @@ public class AutomationSettings
     /// </summary>
     public void ResetIslandEphemeralState()
     {
-        RaidTargetVertex = null;
-        RaidTargetHex = null;
-        RaidCurrentUpkeep = 0;
+        RaidsByLayer.Clear();
         WarHeraldTargetVertex = null;
         VendettaTargetCivIndexByLayer.Clear();
     }
@@ -307,9 +319,7 @@ public class AutomationSettings
         RestrictSoldierProductionToFreeSoldiersByLayer = new Dictionary<int, bool>(legacy.RestrictSoldierProductionToFreeSoldiersByLayer);
         AutoSellThresholdPercentByResource = new Dictionary<Resource, int>(legacy.AutoSellThresholdPercentByResource);
         AutoBuyGoldKeepPercent = legacy.AutoBuyGoldKeepPercent;
-        RaidTargetVertex = legacy.RaidTargetVertex;
-        RaidTargetHex = legacy.RaidTargetHex;
-        RaidCurrentUpkeep = legacy.RaidCurrentUpkeep;
+        RaidsByLayer = new Dictionary<int, RaidState>(legacy.RaidsByLayer);
         WarHeraldTargetVertex = legacy.WarHeraldTargetVertex;
         VendettaTargetCivIndexByLayer = new Dictionary<int, int>(legacy.VendettaTargetCivIndexByLayer);
     }

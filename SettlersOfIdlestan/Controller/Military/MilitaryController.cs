@@ -370,7 +370,7 @@ public class MilitaryController
         _mithrilGreatForgeEngine.Initialize(state);
         _cityAttackEngine.Initialize(state, cityBuilderController, warFleetController, mobileCampController, prng);
         _reinforcementEngine.Initialize(state, _productionEngine);
-        _raidEngine.Initialize(state, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine, _productionEngine);
+        _raidEngine.Initialize(state, clock, _cityAttackEngine, _reinforcementEngine, _monsterCombatEngine, _productionEngine);
 
         if (_clock != null)
             _clock.Advanced += OnClockAdvanced;
@@ -596,19 +596,26 @@ public class MilitaryController
 
     // ── Raid ─────────────────────────────────────────────────────────────────
 
+    // Un raid par layer, menés en parallèle : chaque question posée ici porte donc sur un layer
+    // précis (voir RaidEngine et AutomationSettings.RaidsByLayer). L'UI passe le layer regardé.
+
     public bool IsRaidUnlocked(Civilization civ) => _raidEngine.IsRaidUnlocked(civ);
-    public bool IsRaidActive() => _raidEngine.IsRaidActive();
-    /// <summary>Entretien en or réellement débité chaque seconde par le raid en cours, réductions comprises (voir RaidEngine.EffectiveUpkeep).</summary>
-    public int GetRaidUpkeep(Civilization civ) => _raidEngine.EffectiveUpkeep(civ);
+    /// <summary>Vrai si un raid est en cours sur ce layer — ceux des autres layers ne comptent pas.</summary>
+    public bool IsRaidActive(int layerZ) => _raidEngine.IsRaidActive(layerZ);
+    /// <summary>Entretien en or réellement débité chaque seconde par le raid de ce layer, réductions comprises (voir RaidEngine.EffectiveUpkeep).</summary>
+    public int GetRaidUpkeep(Civilization civ, int layerZ) => _raidEngine.EffectiveUpkeep(civ, layerZ);
     /// <summary>Entretien en or de la première seconde d'un raid lancé maintenant, réductions comprises (voir RaidEngine.InitialEffectiveUpkeep).</summary>
     public int GetRaidInitialUpkeep(Civilization civ) => _raidEngine.InitialEffectiveUpkeep(civ);
-    public Vertex? GetRaidTarget() => _raidEngine.GetRaidTarget();
-    public HexCoord? GetRaidTargetHex() => _raidEngine.GetRaidTargetHex();
+    public Vertex? GetRaidTarget(int layerZ) => _raidEngine.GetRaidTarget(layerZ);
+    public HexCoord? GetRaidTargetHex(int layerZ) => _raidEngine.GetRaidTargetHex(layerZ);
     public List<Vertex> GetSelectableTargets(Civilization civ) => _raidEngine.GetSelectableTargets(civ);
     public List<HexCoord> GetSelectableMonsterTargets() => _raidEngine.GetSelectableMonsterTargets();
     public void StartRaid(Civilization civ, Vertex target) => _raidEngine.StartRaid(civ, target);
     public void StartMonsterRaid(Civilization civ, HexCoord target) => _raidEngine.StartMonsterRaid(civ, target);
-    public void StopRaid(Civilization civ) => _raidEngine.CancelRaid(civ);
+    /// <summary>Arrêt volontaire du raid d'un layer (bouton Raid recliqué) : oublie aussi la cible Vendetta de ce layer, sans toucher aux guerres des autres.</summary>
+    public void StopRaid(Civilization civ, int layerZ) => _raidEngine.CancelRaid(civ, layerZ);
+    /// <summary>Arrête tous les raids et oublie toutes les cibles Vendetta — bascule de l'automatisation Vendetta, qui ne vise aucun layer en particulier.</summary>
+    public void StopAllRaids(Civilization civ) => _raidEngine.CancelAllRaids(civ);
 
     // ── War Herald ───────────────────────────────────────────────────────────
 

@@ -59,7 +59,10 @@ internal class CityAttackEngine
         var destroyedPositions = _destroyedPositionsScratch;
         destroyedPositions.Clear();
 
-        var raidTarget = _state!.AutomationSettings.RaidTargetVertex;
+        // Un raid par layer (voir AutomationSettings.RaidsByLayer) : la cadence doublée ci-dessous se
+        // décide donc en comparant le flux d'attaque à la cible du raid de *son* layer.
+        var raidsByLayer = _state!.AutomationSettings.RaidsByLayer;
+        bool anyRaid = raidsByLayer.Count > 0;
         var playerCiv = _state.PlayerCivilization;
 
         // Délégué construit une fois par appel, hors des boucles : capturer l'emplacement de la
@@ -90,7 +93,10 @@ internal class CityAttackEngine
 
             foreach (var attackerVertex in attackerVertices)
             {
-                bool isRaidAttack = raidTarget != null && attackerVertex.FlowTarget?.Equals(raidTarget) == true;
+                bool isRaidAttack = anyRaid
+                    && attackerVertex.FlowTarget != null
+                    && raidsByLayer.TryGetValue(attackerVertex.FlowTarget.Z, out var raidOnLayer)
+                    && attackerVertex.FlowTarget.Equals(raidOnLayer.TargetVertex);
                 long baseInterval = isRaidAttack
                     ? MilitaryController.CityAttackIntervalTicks / 2
                     : MilitaryController.CityAttackIntervalTicks;

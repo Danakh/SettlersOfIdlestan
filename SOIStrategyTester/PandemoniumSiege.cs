@@ -240,7 +240,7 @@ internal sealed class PandemoniumSiege
         if (target == null) return false;
         if (!_controller.MilitaryController.IsRaidUnlocked(_civ)) return false;
 
-        var current = _controller.MilitaryController.GetRaidTargetHex();
+        var current = _controller.MilitaryController.GetRaidTargetHex(Z);
         if (current != null && current.Value.Equals(target.Position)) return false;
 
         _controller.MilitaryController.StartMonsterRaid(_civ, target.Position);

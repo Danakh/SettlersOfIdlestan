@@ -225,7 +225,12 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
             hex => titanController.PlaceSteelTitanSite(hex), TargetSelectionTheme.Friendly);
     }
 
-    /// <summary>Lance un pillage, ou arrête celui en cours si le bouton est déjà actif.</summary>
+    /// <summary>
+    /// Lance un pillage sur le layer regardé, ou arrête celui qui y est en cours si le bouton est déjà
+    /// actif. Le bouton ne voit que ce layer : un raid lancé ici pendant qu'un autre se déroule
+    /// ailleurs s'ajoute au lieu de le remplacer, et le bouton n'arrête jamais qu'un seul des deux
+    /// (voir RaidEngine, un raid par layer).
+    /// </summary>
     private void DoRaid()
     {
         if (!IsRaidVisible()) return;
@@ -234,7 +239,7 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
 
         if (IsRaidActive())
         {
-            _gameControllerService.MainGameController.MilitaryController.StopRaid(playerCiv);
+            _gameControllerService.MainGameController.MilitaryController.StopRaid(playerCiv, ViewedLayer());
             return;
         }
 
@@ -646,15 +651,23 @@ public sealed class PlayerCivilizationPanelRenderer : PanelRendererBase
         catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsRaidVisible), ex); return false; }
     }
 
+    /// <summary>
+    /// Layer que le joueur regarde : le bouton Raid ne parle que de celui-là. Les raids des autres
+    /// layers se poursuivent en parallèle sans que ce bouton les signale ni ne puisse les arrêter —
+    /// il faut aller sur leur layer pour ça (voir RaidEngine, un raid par layer).
+    /// </summary>
+    private int ViewedLayer()
+        => _gameControllerService.CurrentWorldState?.CurrentViewedLayer ?? IslandMap.SurfaceLayer;
+
     private bool IsRaidActive()
     {
-        try { return _gameControllerService.MainGameController.MilitaryController.IsRaidActive(); }
+        try { return _gameControllerService.MainGameController.MilitaryController.IsRaidActive(ViewedLayer()); }
         catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(IsRaidActive), ex); return false; }
     }
 
     private int GetRaidUpkeep(Civilization civ)
     {
-        try { return _gameControllerService.MainGameController.MilitaryController.GetRaidUpkeep(civ); }
+        try { return _gameControllerService.MainGameController.MilitaryController.GetRaidUpkeep(civ, ViewedLayer()); }
         catch (Exception ex) { GameLog.Error(nameof(PlayerCivilizationPanelRenderer), nameof(GetRaidUpkeep), ex); return 0; }
     }
 

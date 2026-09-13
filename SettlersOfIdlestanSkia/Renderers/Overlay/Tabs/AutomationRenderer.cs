@@ -605,12 +605,14 @@ public sealed class AutomationRenderer : IDisposable
                     _gameControllerService.MainGameController.MilitaryController.ClearReinforcementFlows(civ);
                 return;
 
-            // La vendetta relance des pillages : basculer le reglage arrete celui en cours. Avec le
-            // Blitz, la guerre ne passe pas par un raid mais par les flux d'attaque de chaque
-            // emplacement : les couper aussi, sans quoi la guerre continuerait reglage eteint.
+            // La vendetta relance des pillages : basculer le reglage arrete ceux en cours, sur tous
+            // les layers a la fois (il y en a un par layer, voir RaidEngine) — le reglage ne vise
+            // aucun layer en particulier. Avec le Blitz, la guerre ne passe pas par un raid mais par
+            // les flux d'attaque de chaque emplacement : les couper aussi, sans quoi la guerre
+            // continuerait reglage eteint.
             case PinKeyMilVendetta:
                 settings.MilitaryVendettaAutomationEnabled = !settings.MilitaryVendettaAutomationEnabled;
-                _gameControllerService.MainGameController.MilitaryController.StopRaid(civ);
+                _gameControllerService.MainGameController.MilitaryController.StopAllRaids(civ);
                 if (!settings.MilitaryVendettaAutomationEnabled && settings.MilitaryBlitzEnabled)
                     _gameControllerService.MainGameController.MilitaryController.ClearAttackFlows(civ);
                 return;

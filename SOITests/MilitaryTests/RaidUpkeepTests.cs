@@ -73,7 +73,7 @@ public class RaidUpkeepTests
         ctrl.StartRaid(playerCiv, EnemyCity);
         clock.SimulateAdvance(100);
 
-        Assert.True(ctrl.IsRaidActive());
+        Assert.True(ctrl.IsRaidActive(IslandMap.SurfaceLayer));
         Assert.Equal(90, playerCiv.GetResourceQuantity(Resource.Gold));
     }
 
@@ -87,10 +87,10 @@ public class RaidUpkeepTests
 
         // Rien débité (la quantité nulle n'atteint jamais RemoveResource, qui la refuse), raid toujours actif.
         Assert.Equal(100, playerCiv.GetResourceQuantity(Resource.Gold));
-        Assert.True(ctrl.IsRaidActive());
+        Assert.True(ctrl.IsRaidActive(IslandMap.SurfaceLayer));
         // L'escalade a couru quand même : la seconde suivante coûte 12 - 10 = 2.
-        Assert.Equal(12, state.AutomationSettings.RaidCurrentUpkeep);
-        Assert.Equal(2, ctrl.GetRaidUpkeep(playerCiv));
+        Assert.Equal(12, state.AutomationSettings.GetRaid(IslandMap.SurfaceLayer)!.CurrentUpkeep);
+        Assert.Equal(2, ctrl.GetRaidUpkeep(playerCiv, IslandMap.SurfaceLayer));
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class RaidUpkeepTests
 
         ctrl.StartRaid(playerCiv, EnemyCity);
 
-        Assert.Equal(0, ctrl.GetRaidUpkeep(playerCiv));
+        Assert.Equal(0, ctrl.GetRaidUpkeep(playerCiv, IslandMap.SurfaceLayer));
     }
 
     [Fact]

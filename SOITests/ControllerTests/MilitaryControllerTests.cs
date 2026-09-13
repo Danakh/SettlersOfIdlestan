@@ -361,7 +361,7 @@ namespace SOITests.ControllerTests
             Assert.Equal(1, city.Soldiers);
         }
 
-        // ── Vendetta — une cible par plan ─────────────────────────────────────
+        // ── Vendetta — une cible et un raid par plan, menés en parallèle ──────
 
         private static HexCoord UnderworldCenter => new(0, 0, LayerState.UnderworldZ);
         private static HexCoord UnderworldNE     => new(0, 1, LayerState.UnderworldZ);
@@ -379,7 +379,7 @@ namespace SOITests.ControllerTests
         /// (voir RaidEngine.ResolvePlayerBlitz).</param>
         /// <param name="withTargets">Faux pour repartir sans aucune cible de Vendetta enregistrée —
         /// l'état d'un joueur qui n'a encore ni été attaqué ni raidé personne.</param>
-        private static (WorldState state, GameClock clock, Vertex surfaceEnemy, Vertex underworldEnemy)
+        private static (WorldState state, GameClock clock, MilitaryController ctrl, Vertex surfaceEnemy, Vertex underworldEnemy)
             CreateVendettaSetup(bool blitz = false, bool withTargets = true)
         {
             var surfaceTiles = new List<HexTile>
@@ -437,45 +437,84 @@ namespace SOITests.ControllerTests
             controller.Initialize(state, clock, prng: new GamePRNG());
             clock.SimulateAdvance(1);
 
-            return (state, clock, surfaceEnemy, underworldEnemy);
+            return (state, clock, controller, surfaceEnemy, underworldEnemy);
         }
 
         /// <summary>
-        /// Deux guerres en cours, une par plan : Vendetta traite le plan le moins profond d'abord et
-        /// laisse la cible de l'autre plan intacte.
+        /// Deux guerres en cours, une par plan : chacune lance son propre raid, sur son propre plan,
+        /// dans le même cycle. Les deux avancent de front — un raid ne réquisitionne que les
+        /// emplacements de son plan, rien ne justifie de faire attendre l'autre.
         /// </summary>
         [Fact]
-        public void Vendetta_WithTargetOnTwoLayers_RaidsShallowestLayerFirst()
+        public void Vendetta_WithTargetOnTwoLayers_RaidsBothLayersInParallel()
         {
-            var (state, clock, surfaceEnemy, _) = CreateVendettaSetup();
+            var (state, clock, _, surfaceEnemy, underworldEnemy) = CreateVendettaSetup();
 
             clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
 
-            Assert.Equal(surfaceEnemy, state.AutomationSettings.RaidTargetVertex);
+            Assert.Equal(surfaceEnemy, state.AutomationSettings.GetRaid(IslandMap.SurfaceLayer)?.TargetVertex);
+            Assert.Equal(underworldEnemy, state.AutomationSettings.GetRaid(LayerState.UnderworldZ)?.TargetVertex);
             Assert.Equal(2, state.AutomationSettings.VendettaTargetCivIndexByLayer.Count);
         }
 
         /// <summary>
-        /// Cible du plan le moins profond éliminée : son entrée est oubliée et la guerre se poursuit
-        /// sur le plan suivant, sans nouvelle intervention du joueur.
+        /// Chaque raid a son propre entretien, qui escalade pour son seul compte : deux guerres
+        /// simultanées coûtent deux fois l'entretien initial à leur première seconde, et non un
+        /// compteur commun qui monterait deux fois plus vite.
         /// </summary>
         [Fact]
-        public void Vendetta_WhenShallowestTargetIsDead_ContinuesWarOnNextLayer()
+        public void Vendetta_WithTargetOnTwoLayers_EachRaidEscalatesItsOwnUpkeep()
         {
-            var (state, clock, _, underworldEnemy) = CreateVendettaSetup();
+            var (state, clock, _, _, _) = CreateVendettaSetup();
 
             clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
-            Assert.NotNull(state.AutomationSettings.RaidTargetVertex);
+            var surfaceRaid = state.AutomationSettings.GetRaid(IslandMap.SurfaceLayer)!;
+            var underworldRaid = state.AutomationSettings.GetRaid(LayerState.UnderworldZ)!;
 
-            // La civilisation de surface disparaît : le raid en cours s'arrête faute de cible...
+            Assert.Equal(RaidEngine.InitialUpkeep, surfaceRaid.CurrentUpkeep);
+            Assert.Equal(RaidEngine.InitialUpkeep, underworldRaid.CurrentUpkeep);
+        }
+
+        /// <summary>
+        /// Cible d'un plan éliminée : son entrée est oubliée et son raid s'arrête, mais la guerre de
+        /// l'autre plan continue sans interruption — elle ne dépendait pas de celle-ci.
+        /// </summary>
+        [Fact]
+        public void Vendetta_WhenOneLayersTargetIsDead_KeepsWarRunningOnTheOtherLayer()
+        {
+            var (state, clock, _, _, underworldEnemy) = CreateVendettaSetup();
+
+            clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
+            Assert.NotNull(state.AutomationSettings.GetRaid(IslandMap.SurfaceLayer));
+
+            // La civilisation de surface disparaît : son raid s'arrête faute de cible...
             state.RemoveCivilization(state.GetCivilization(1)!);
             clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
-            Assert.Null(state.AutomationSettings.RaidTargetVertex);
 
-            // ...et le raid suivant repart tout seul sur la cible de l'Inframonde.
+            Assert.Null(state.AutomationSettings.GetRaid(IslandMap.SurfaceLayer));
+            // ...sans que celui de l'Inframonde ne soit inquiété.
+            Assert.Equal(underworldEnemy, state.AutomationSettings.GetRaid(LayerState.UnderworldZ)?.TargetVertex);
+            Assert.Equal(new Dictionary<int, int> { [LayerState.UnderworldZ] = 2 },
+                state.AutomationSettings.VendettaTargetCivIndexByLayer);
+        }
+
+        /// <summary>
+        /// Arrêt volontaire du raid d'un plan (bouton Raid recliqué) : seule la guerre de ce plan est
+        /// abandonnée — sa cible Vendetta est oubliée pour qu'elle ne reparte pas d'elle-même — et
+        /// celle de l'autre plan continue.
+        /// </summary>
+        [Fact]
+        public void StopRaid_OnOneLayer_LeavesTheOtherLayersWarRunning()
+        {
+            var (state, clock, ctrl, _, underworldEnemy) = CreateVendettaSetup();
+
             clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
+            Assert.NotNull(state.AutomationSettings.GetRaid(IslandMap.SurfaceLayer));
 
-            Assert.Equal(underworldEnemy, state.AutomationSettings.RaidTargetVertex);
+            ctrl.StopRaid(state.PlayerCivilization, IslandMap.SurfaceLayer);
+
+            Assert.Null(state.AutomationSettings.GetRaid(IslandMap.SurfaceLayer));
+            Assert.Equal(underworldEnemy, state.AutomationSettings.GetRaid(LayerState.UnderworldZ)?.TargetVertex);
             Assert.Equal(new Dictionary<int, int> { [LayerState.UnderworldZ] = 2 },
                 state.AutomationSettings.VendettaTargetCivIndexByLayer);
         }
@@ -489,11 +528,11 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Vendetta_WithoutTarget_LaunchesNothing()
         {
-            var (state, clock, _, _) = CreateVendettaSetup(withTargets: false);
+            var (state, clock, _, _, _) = CreateVendettaSetup(withTargets: false);
 
             clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
 
-            Assert.Null(state.AutomationSettings.RaidTargetVertex);
+            Assert.Empty(state.AutomationSettings.RaidsByLayer);
             Assert.All(state.PlayerCivilization.MilitaryVertices, v => Assert.Null(v.FlowTarget));
         }
 
@@ -505,11 +544,11 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Blitz_WithoutTrigger_AttacksEveryNearbyEnemyOnEveryLayer()
         {
-            var (state, clock, surfaceEnemy, underworldEnemy) = CreateVendettaSetup(blitz: true, withTargets: false);
+            var (state, clock, _, surfaceEnemy, underworldEnemy) = CreateVendettaSetup(blitz: true, withTargets: false);
 
             clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
 
-            Assert.Null(state.AutomationSettings.RaidTargetVertex);
+            Assert.Empty(state.AutomationSettings.RaidsByLayer);
             var flows = state.PlayerCivilization.MilitaryVertices.Select(v => v.FlowTarget).ToList();
             Assert.Contains(surfaceEnemy, flows);
             Assert.Contains(underworldEnemy, flows);
@@ -522,7 +561,7 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Blitz_WithoutTheResearch_LaunchesNothing()
         {
-            var (state, clock, _, _) = CreateVendettaSetup(blitz: false, withTargets: false);
+            var (state, clock, _, _, _) = CreateVendettaSetup(blitz: false, withTargets: false);
             state.AutomationSettings.MilitaryBlitzEnabled = true;
 
             clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
@@ -537,11 +576,11 @@ namespace SOITests.ControllerTests
         [Fact]
         public void Blitz_WithVendettaTargets_ReplacesTheRaidChain()
         {
-            var (state, clock, surfaceEnemy, _) = CreateVendettaSetup(blitz: true);
+            var (state, clock, _, surfaceEnemy, _) = CreateVendettaSetup(blitz: true);
 
             clock.SimulateAdvance(MilitaryController.AutoVendettaIntervalTicks);
 
-            Assert.Null(state.AutomationSettings.RaidTargetVertex);
+            Assert.Empty(state.AutomationSettings.RaidsByLayer);
             Assert.Contains(surfaceEnemy, state.PlayerCivilization.MilitaryVertices.Select(v => v.FlowTarget));
             // Les cibles restent en mémoire : décocher Blitz reprend la guerre là où elle en était.
             Assert.Equal(2, state.AutomationSettings.VendettaTargetCivIndexByLayer.Count);
