@@ -13,13 +13,16 @@ using Xunit;
 namespace SOITests.ControllerTests
 {
     /// <summary>
-    /// Apparition des Tentacules sur les îles de l'Abysse générées dynamiquement : (niveau de
-    /// corruption global - 5)% de chance par île, donc rien tant que la corruption n'a pas atteint 6.
+    /// Apparition des Tentacules sur les îles de l'Abysse générées dynamiquement : rien tant que la
+    /// corruption n'a pas atteint 6, puis une cadence — n = TentacleSpawnInterval îles muettes après
+    /// la dernière Tentacule, puis une Tentacule garantie dans les n suivantes.
     /// L'île d'arrivée du joueur ne passe jamais par ce chemin (elle est posée par
     /// AbyssGateController), ce qui l'exclut de fait du tirage.
     ///
     /// Dispositif repris d'AbyssVisibilityExtensionTests : une Tour de Guet étend le rayon de vision,
-    /// révèle l'hex de Void voisin et déclenche la génération de l'île au-delà.
+    /// révèle l'hex de Void voisin et déclenche la génération de l'île au-delà. Une seule île par
+    /// état généré : le compteur d'îles est donc posé à la main avant la révélation, ce qui permet de
+    /// tester chaque position de la cadence isolément.
     /// </summary>
     public class AbyssTentacleSpawnTests
     {
@@ -29,8 +32,12 @@ namespace SOITests.ControllerTests
 
         private static readonly HashSet<HexCoord> ArrivalSet = new() { Arrival1, Arrival2, Arrival3 };
 
-        /// <summary>Génère une île de l'Abysse avec le niveau de corruption donné et retourne l'état résultant.</summary>
-        private static WorldState GenerateIsland(int corruptionLevel, int seed)
+        /// <summary>
+        /// Génère une île de l'Abysse avec le niveau de corruption donné et retourne l'état résultant.
+        /// <paramref name="islandsSinceTentacle"/> place l'île générée à cette position de la cadence
+        /// (nombre d'îles déjà venues depuis la dernière Tentacule).
+        /// </summary>
+        private static WorldState GenerateIsland(int corruptionLevel, int seed, int islandsSinceTentacle = 0)
         {
             var surfaceMap = new IslandMap(new[] { new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain) });
             var civ = new Civilization { Index = 0 };
@@ -45,7 +52,12 @@ namespace SOITests.ControllerTests
                 new(voidHex, TerrainType.Void),
             };
             var arrivalVertex = Vertex.Create(Arrival1, Arrival2, Arrival3);
-            state.AddLayer(LayerState.AbyssZ, new LayerState(new IslandMap(tiles)) { AutoExtend = true, ArrivalVertex = arrivalVertex });
+            state.AddLayer(LayerState.AbyssZ, new LayerState(new IslandMap(tiles))
+            {
+                AutoExtend = true,
+                ArrivalVertex = arrivalVertex,
+                AbyssIslandsSinceTentacle = islandsSinceTentacle,
+            });
 
             var city = new City(arrivalVertex) { CivilizationIndex = civ.Index };
             civ.AddCity(city);
@@ -60,30 +72,105 @@ namespace SOITests.ControllerTests
             return state;
         }
 
+        /// <summary>Position de la cadence à laquelle la Tentacule est certaine : dernière île de la fenêtre garantie.</summary>
+        private static int GuaranteedPosition(int corruptionLevel) =>
+            2 * AutoExtendController.TentacleSpawnInterval(corruptionLevel) - 1;
+
         [Theory]
         [InlineData(1)]
         [InlineData(5)]
         public void NoTentacle_BelowCorruptionThreshold(int corruptionLevel)
         {
-            // Chance = niveau - 5, donc nulle ou négative sous le seuil : aucune graine ne doit produire
-            // de Tentacule.
+            // Sous le seuil, la cadence n'existe pas : même à la position qui serait celle de la
+            // Tentacule certaine, aucune graine ne doit en produire.
             for (int seed = 0; seed < 40; seed++)
             {
-                var state = GenerateIsland(corruptionLevel, seed);
+                var state = GenerateIsland(corruptionLevel, seed, islandsSinceTentacle: 99);
                 Assert.Empty(state.Features.OfType<Tentacle>());
             }
+        }
+
+        [Theory]
+        [InlineData(AutoExtendController.TentacleMinCorruptionLevel, 10)]
+        [InlineData(AutoExtendController.TentacleMinCorruptionLevel + 1, 9)]
+        [InlineData(11, 5)]
+        [InlineData(30, 5)]
+        public void SpawnInterval_ShrinksWithCorruption_DownToFloor(int corruptionLevel, int expected)
+        {
+            Assert.Equal(expected, AutoExtendController.TentacleSpawnInterval(corruptionLevel));
+        }
+
+        [Fact]
+        public void NoTentacle_DuringSilentStretchFollowingLastOne()
+        {
+            // Les n premières îles depuis la dernière Tentacule n'en portent jamais, quelle que soit
+            // la graine : c'est le répit garanti, pas une simple faible probabilité.
+            const int corruptionLevel = AutoExtendController.TentacleMinCorruptionLevel;
+            int interval = AutoExtendController.TentacleSpawnInterval(corruptionLevel);
+
+            for (int islandsSince = 0; islandsSince < interval; islandsSince++)
+                for (int seed = 0; seed < 20; seed++)
+                {
+                    var state = GenerateIsland(corruptionLevel, seed, islandsSince);
+                    Assert.Empty(state.Features.OfType<Tentacle>());
+                }
+        }
+
+        [Fact]
+        public void TentacleIsCertain_OnLastIslandOfTheWindow()
+        {
+            // Dernière île de la fenêtre : une chance sur une, donc une Tentacule quelle que soit la graine.
+            const int corruptionLevel = AutoExtendController.TentacleMinCorruptionLevel;
+
+            for (int seed = 0; seed < 20; seed++)
+            {
+                var state = GenerateIsland(corruptionLevel, seed, GuaranteedPosition(corruptionLevel));
+                Assert.Single(state.Features.OfType<Tentacle>());
+            }
+        }
+
+        [Fact]
+        public void TentacleAppearsSomewhereInsideTheWindow_ThenCounterRestarts()
+        {
+            // Au milieu de la fenêtre l'apparition est un tirage (1 chance sur les îles restantes) :
+            // on vérifie que les deux issues existent, et que le compteur repart de zéro dès qu'une
+            // Tentacule est apparue — c'est lui qui rouvre le palier muet.
+            const int corruptionLevel = AutoExtendController.TentacleMinCorruptionLevel;
+            int interval = AutoExtendController.TentacleSpawnInterval(corruptionLevel);
+
+            int spawned = 0, skipped = 0;
+            for (int seed = 0; seed < 40; seed++)
+            {
+                var state = GenerateIsland(corruptionLevel, seed, interval);
+                var layer = state.Layers[LayerState.AbyssZ];
+
+                if (state.Features.OfType<Tentacle>().Any())
+                {
+                    spawned++;
+                    Assert.Equal(0, layer.AbyssIslandsSinceTentacle);
+                }
+                else
+                {
+                    skipped++;
+                    // Sinon l'île générée compte, et rapproche la suivante de la certitude.
+                    Assert.Equal(interval + 1, layer.AbyssIslandsSinceTentacle);
+                }
+            }
+
+            Assert.True(spawned > 0, "aucune Tentacule sur 40 graines à l'ouverture de la fenêtre");
+            Assert.True(skipped > 0, "Tentacule à toutes les graines à l'ouverture de la fenêtre");
         }
 
         [Fact]
         public void SpawnsAtMostOneTentaclePerIsland_AtGuaranteedChance()
         {
-            // Chance = niveau - 5 = 100% : chaque île générée porte exactement une Tentacule,
+            // Dernière île de la fenêtre garantie : chaque île générée porte exactement une Tentacule,
             // sur un de ses hexes de terre.
             const int corruptionLevel = AutoExtendController.TentacleMinCorruptionLevel + 99;
 
             for (int seed = 0; seed < 5; seed++)
             {
-                var state = GenerateIsland(corruptionLevel, seed);
+                var state = GenerateIsland(corruptionLevel, seed, GuaranteedPosition(corruptionLevel));
                 var tentacle = Assert.Single(state.Features.OfType<Tentacle>());
 
                 var map = state.Layers[LayerState.AbyssZ].Map;
@@ -103,7 +190,7 @@ namespace SOITests.ControllerTests
 
             for (int seed = 0; seed < 5; seed++)
             {
-                var state = GenerateIsland(corruptionLevel, seed);
+                var state = GenerateIsland(corruptionLevel, seed, GuaranteedPosition(corruptionLevel));
                 var tentacle = state.Features.OfType<Tentacle>().Single();
                 var map = state.Layers[LayerState.AbyssZ].Map;
 

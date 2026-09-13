@@ -18,8 +18,10 @@ namespace SettlersOfIdlestan.Model.Monsters;
 /// que celle-ci compte de niveaux : l'assainir (Temple, Spire de Corruption) l'affaiblit avant même
 /// de l'attaquer. Apparaît sur les
 /// îles de l'Abysse à partir du niveau de corruption
-/// <see cref="Controller.Island.AutoExtendController.TentacleMinCorruptionLevel"/> (voir
-/// AutoExtendController.PlaceTentacle) et garde le Pandémonium : en tuer une dans l'Abysse ouvre un
+/// <see cref="Controller.Island.AutoExtendController.TentacleMinCorruptionLevel"/>, à cadence réglée :
+/// un palier de <see cref="Controller.Island.AutoExtendController.TentacleSpawnInterval"/> îles sans
+/// aucune, puis une garantie dans les autant d'îles suivantes (voir AutoExtendController.PlaceTentacle).
+/// Garde le Pandémonium : en tuer une dans l'Abysse ouvre un
 /// Portail du Pandémonium à construire (voir PandemoniumGateController).
 /// </summary>
 [Serializable]

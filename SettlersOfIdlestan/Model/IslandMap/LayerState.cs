@@ -63,6 +63,16 @@ public class LayerState
     /// <summary>Dernier tick où la chance d'apparition d'un monstre en bordure de carte a été testée.</summary>
     public long LastBorderMonsterSpawnTick { get; set; }
 
+    /// <summary>
+    /// Abysse uniquement : nombre d'îles générées depuis la dernière Tentacule (ou depuis le début de
+    /// la manche si aucune n'est encore apparue). C'est la cadence des Tentacules qui se lit dessus —
+    /// un palier muet puis une fenêtre à Tentacule garantie — voir
+    /// <see cref="SettlersOfIdlestan.Controller.Island.AutoExtendController.PlaceTentacle"/>.
+    /// Persisté : la couche vit le temps d'une manche, le compteur repart donc à zéro à chaque
+    /// nouvelle Abysse.
+    /// </summary>
+    public int AbyssIslandsSinceTentacle { get; set; }
+
     [System.Text.Json.Serialization.JsonConstructor]
     public LayerState()
     {

@@ -110,6 +110,25 @@ public class AutoExtendController
     /// </summary>
     internal const int TentacleMinCorruptionLevel = 6;
 
+    /// <summary>
+    /// Base de l'intervalle d'apparition des Tentacules : l'intervalle vaut
+    /// <c>max(<see cref="TentacleMinSpawnInterval"/>, TentacleSpawnIntervalBase - corruption)</c>, soit
+    /// 10 îles au niveau <see cref="TentacleMinCorruptionLevel"/> puis une de moins par niveau, jusqu'au
+    /// plancher. Voir <see cref="TentacleSpawnInterval"/>.
+    /// </summary>
+    private const int TentacleSpawnIntervalBase = 16;
+
+    /// <summary>Plancher de l'intervalle d'apparition des Tentacules — voir <see cref="TentacleSpawnInterval"/>.</summary>
+    private const int TentacleMinSpawnInterval = 5;
+
+    /// <summary>
+    /// Intervalle d'apparition des Tentacules pour un niveau de corruption donné : le nombre d'îles du
+    /// palier muet qui suit chaque Tentacule, et aussi celui de la fenêtre garantie qui vient après
+    /// (voir <see cref="PlaceTentacle"/>). Une Tentacule tous les <c>n+1</c> à <c>2n</c> îles, donc.
+    /// </summary>
+    internal static int TentacleSpawnInterval(int corruptionLevel) =>
+        Math.Max(TentacleMinSpawnInterval, TentacleSpawnIntervalBase - corruptionLevel);
+
     internal AutoExtendController() { }
 
     internal void Initialize(WorldState state, GamePRNG prng, GameClock? clock = null, PrestigeState? prestigeState = null)
@@ -268,7 +287,7 @@ public class AutoExtendController
                 map.AddTile(newTile);
 
             PlaceDivineBones(newTiles);
-            var tentacle = PlaceTentacle(newTiles);
+            var tentacle = PlaceTentacle(newTiles, layerState);
             PlaceMinorDemon(newTiles);
             PlaceAbyssCorruption(newTiles);
             // Après PlaceAbyssCorruption, qui pose une Corruption sur chaque hex de l'île sans
@@ -298,10 +317,21 @@ public class AutoExtendController
     }
 
     /// <summary>
-    /// Fait pousser au plus une Tentacule sur une île de l'Abysse nouvellement générée, avec
-    /// (niveau de corruption global - <see cref="TentacleMinCorruptionLevel"/> + 1)% de chance —
-    /// donc rien en dessous du niveau <see cref="TentacleMinCorruptionLevel"/>, puis 1% de plus par
-    /// niveau supplémentaire. Ne concerne jamais l'île d'arrivée du joueur : elle est posée par
+    /// Fait pousser au plus une Tentacule sur une île de l'Abysse nouvellement générée, à une cadence
+    /// réglée par le niveau de corruption global plutôt qu'au tirage indépendant île par île.
+    ///
+    /// <para>Rien du tout en dessous du niveau <see cref="TentacleMinCorruptionLevel"/>. Au-delà, soit
+    /// <c>n</c> = <see cref="TentacleSpawnInterval"/> : les <c>n</c> îles qui suivent la dernière
+    /// Tentacule (ou le début de la manche) n'en portent aucune, puis les <c>n</c> suivantes en
+    /// portent exactement une, tirée au hasard parmi elles — une chance sur le nombre d'îles restantes
+    /// à chaque fois, donc certitude sur la dernière. Une Tentacule apparue remet le compteur à zéro
+    /// (<see cref="LayerState.AbyssIslandsSinceTentacle"/>) et rouvre un palier muet.</para>
+    ///
+    /// <para>Un rythme plutôt qu'une probabilité : le joueur a toujours le temps de prendre pied sur
+    /// quelques îles avant la Tentacule suivante, et il n'attend jamais indéfiniment celle qui lui
+    /// ouvre le Portail du Pandémonium. La corruption resserre les deux bornes en même temps.</para>
+    ///
+    /// Ne concerne jamais l'île d'arrivée du joueur : elle est posée par
     /// AbyssGateController.TryInitializeAbyss, qui ne passe pas par ce chemin.
     /// Appelé avant <see cref="PlaceAbyssCorruption"/> (comme <see cref="PlaceDivineBones"/>) car il
     /// exige un hex encore libre, alors que la Corruption occupe ensuite chaque hex de terre.
@@ -310,14 +340,25 @@ public class AutoExtendController
     /// Exclut l'Eau (voir AbyssIslandGenerator.TerrainPool) comme le Void : une Tentacule ne la
     /// traverse pas (MonsterFeature.CanCrossWater vaut false par défaut, contrairement au Démon mineur).
     /// </summary>
-    private Model.Monsters.Tentacle? PlaceTentacle(List<HexTile> newTiles)
+    private Model.Monsters.Tentacle? PlaceTentacle(List<HexTile> newTiles, LayerState layerState)
     {
         if (_state == null || _prng == null) return null;
 
+        // Compté avant toute autre condition : le compteur est un nombre d'îles générées, pas un
+        // nombre de tirages. islandsSince vaut donc le nombre d'îles venues avant celle-ci.
+        int islandsSince = layerState.AbyssIslandsSinceTentacle++;
+
         int corruptionLevel = _prestigeState?.CurrentCorruptionLevel ?? 1;
-        int chancePercent = corruptionLevel - TentacleMinCorruptionLevel + 1;
-        if (chancePercent <= 0) return null;
-        if (_prng.Next(100) >= chancePercent) return null;
+        if (corruptionLevel < TentacleMinCorruptionLevel) return null;
+
+        int interval = TentacleSpawnInterval(corruptionLevel);
+        if (islandsSince < interval) return null;
+
+        // Fenêtre garantie : une chance sur le nombre d'îles qu'il lui reste, donc certitude sur la
+        // dernière. Au-delà de la fenêtre (aucun hex libre n'avait été trouvé à l'île certaine, ou la
+        // corruption a resserré l'intervalle entre-temps), chaque île tente à coup sûr.
+        int remaining = 2 * interval - islandsSince;
+        if (remaining > 1 && _prng.Next(remaining) != 0) return null;
 
         var landTiles = newTiles.Where(t => t.TerrainType != TerrainType.Void && !t.TerrainType.IsWater()
             && !_state.HasFeaturesAt(t.Coord)).ToList();
@@ -327,6 +368,7 @@ public class AutoExtendController
         int level = Model.Monsters.MonsterLeveling.UndergroundLevel(_prestigeState?.Tier ?? 1, corruptionLevel);
         var tentacle = new Model.Monsters.Tentacle(hex, level);
         _state.AddFeature(tentacle);
+        layerState.AbyssIslandsSinceTentacle = 0;
         return tentacle;
     }
 
