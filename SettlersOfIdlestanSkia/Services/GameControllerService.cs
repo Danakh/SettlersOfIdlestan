@@ -66,10 +66,12 @@ public class GameControllerService
     /// <summary>
     /// Initialise un nouveau jeu avec une île générée.
     /// Délègue à MainGameController pour respecter l'architecture.
+    /// <paramref name="settings"/> : réglages choisis sur l'écran-titre, repris tels quels par la
+    /// nouvelle partie (null → réglages par défaut).
     /// </summary>
-    public void InitializeNewGame()
+    public void InitializeNewGame(GameSettings? settings = null)
     {
-        _controller.CreateNewGame();
+        _controller.CreateNewGame(settings);
         _cityBuildingService.ClearSelectedCity();
     }
 

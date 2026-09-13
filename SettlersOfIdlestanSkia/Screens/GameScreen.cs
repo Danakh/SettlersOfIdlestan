@@ -128,7 +128,8 @@ public sealed class GameScreen : IDisposable
         bool demoMode = false,
         StoreController? storeController = null,
         string? statsJson = null,
-        Action<Action>? runSynchronized = null)
+        Action<Action>? runSynchronized = null,
+        GameSettings? titleSettings = null)
     {
         _runSynchronized      = runSynchronized;
         _fileSystemService    = fileSystemService;
@@ -156,7 +157,10 @@ public sealed class GameScreen : IDisposable
             }
             else
             {
-                _gameControllerService.InitializeNewGame();
+                // Une nouvelle partie reprend les réglages déjà choisis sur l'écran-titre (tutoriel
+                // masqué, échelle d'interface, format des nombres…) : ils sont posés avant la
+                // génération de l'île, car son initialisation capture l'instance de GameSettings.
+                _gameControllerService.InitializeNewGame(titleSettings);
                 isNewGame = true;
             }
 
@@ -197,7 +201,7 @@ public sealed class GameScreen : IDisposable
             _renderService = new RenderService();
             _inputService  = new InputHandlingService();
 
-            _gameControllerService.InitializeNewGame();
+            _gameControllerService.InitializeNewGame(titleSettings);
             SetupRenderers(false, allowDebugMode);
         }
 
@@ -226,8 +230,10 @@ public sealed class GameScreen : IDisposable
         {
             if (isNewGame)
             {
+                // Repli quand aucun réglage d'écran-titre n'a été transmis (tests, outils) : la
+                // langue et le format des nombres sont alors les seuls choix déjà appliqués à la
+                // couche d'affichage, on les recopie sur les réglages par défaut de la partie.
                 gameSettings.Language = _localizationService.CurrentLanguage;
-                // Hérite du choix fait sur l'écran-titre (le state d'une nouvelle partie a des settings par défaut).
                 gameSettings.NumberFormat = SkiaTextUtils.NumberFormat;
             }
             else

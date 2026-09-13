@@ -33,6 +33,12 @@ public sealed class FakeFileSystemService : SettlersOfIdlestanSkia.Services.IFil
     public List<string> SavedFiles { get; } = [];
     public bool AutoDeleted { get; private set; }
 
+    /// <summary>Contenu de chaque ecriture de settings.json, dans l'ordre.</summary>
+    public List<string> SavedSettings { get; } = [];
+
+    /// <summary>Contenu rendu par LoadSettings, comme si le fichier existait deja.</summary>
+    public string? SettingsToLoad { get; set; }
+
     public Task SaveText(string fileName, string content)
     {
         SavedFiles.Add(fileName);
@@ -48,8 +54,13 @@ public sealed class FakeFileSystemService : SettlersOfIdlestanSkia.Services.IFil
     public Task<string?> LoadText(string fileName) => Task.FromResult<string?>(null);
     public Task SaveAuto(string content) => Task.CompletedTask;
     public Task<string?> LoadAuto() => Task.FromResult<string?>(null);
-    public Task SaveSettings(string content) => Task.CompletedTask;
-    public Task<string?> LoadSettings() => Task.FromResult<string?>(null);
+    public Task SaveSettings(string content)
+    {
+        SavedSettings.Add(content);
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> LoadSettings() => Task.FromResult(SettingsToLoad);
     public Task SaveStats(string content) => Task.CompletedTask;
     public Task<string?> LoadStats() => Task.FromResult<string?>(null);
 }

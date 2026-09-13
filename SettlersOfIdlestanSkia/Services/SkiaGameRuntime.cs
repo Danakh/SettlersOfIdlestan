@@ -29,6 +29,24 @@ public sealed class SkiaGameRuntime : IDisposable
     private GameSettings  _titleSettings = new();
     private string?       _statsJson;
 
+    /// <summary>
+    /// Période de relecture des réglages courants pour tenir settings.json à jour (voir
+    /// <see cref="PersistSettingsIfChanged"/>). Sérialiser à chaque frame coûterait une chaîne
+    /// jetée 60 fois par seconde pour un fichier qui ne change qu'au geste du joueur.
+    /// </summary>
+    private const double SettingsPersistIntervalSeconds = 1.0;
+
+    private readonly System.Diagnostics.Stopwatch _settingsPersistTimer = System.Diagnostics.Stopwatch.StartNew();
+
+    /// <summary>
+    /// Dernier contenu écrit dans settings.json, ou null tant que rien n'a été écrit ni lu de
+    /// valide au démarrage. C'est lui qui rend l'écriture rare : on ne touche au fichier que
+    /// lorsque la sérialisation des réglages courants en diffère.
+    /// </summary>
+    private string? _persistedSettingsJson;
+
+    private Task? _settingsSaveTask;
+
     private SKSize _lastCanvasSize;
     private bool   _isDisposed;
     private bool   _isInitialized;
@@ -56,22 +74,84 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public bool IsFullscreenEnabled => _titleSettings.Fullscreen;
 
-    public async Task SyncFullscreenSetting(bool fullscreen)
+    /// <summary>
+    /// Recopie l'état plein écran réel de la fenêtre dans les réglages. Les deux instances sont
+    /// tenues à jour — celle de l'écran-titre et celle de la partie en cours — parce que le retour
+    /// au menu reprend celle de la partie et qu'un nouveau départ reprend celle de l'écran-titre.
+    /// L'écriture disque, elle, est celle de <see cref="PersistSettings"/>, commune à tous les
+    /// réglages.
+    /// </summary>
+    public Task SyncFullscreenSetting(bool fullscreen)
     {
         _titleSettings.Fullscreen = fullscreen;
 
-        if (!_onTitleScreen && _gameScreen != null)
+        var gameSettings = _gameScreen?.GetCurrentSettings();
+        if (gameSettings != null) gameSettings.Fullscreen = fullscreen;
+
+        PersistSettings();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Réglages qui font foi à cet instant : ceux de la partie en cours dès qu'il y en a une,
+    /// ceux de l'écran-titre sinon. C'est la même instance des deux côtés depuis qu'une nouvelle
+    /// partie reprend les réglages de l'écran-titre, sauf pour une partie chargée, qui apporte
+    /// les siens.
+    /// </summary>
+    private GameSettings CurrentSettings =>
+        (_onTitleScreen ? null : _gameScreen?.GetCurrentSettings()) ?? _titleSettings;
+
+    /// <summary>
+    /// Tient settings.json aligné sur les réglages courants. Appelé à chaque frame par
+    /// <see cref="Tick"/> : plutôt que d'exiger que chaque point de mutation pense à sauvegarder —
+    /// il y en a beaucoup (écran-titre, popup de réglages, onglets épinglés, filtres du Journal) et
+    /// tout nouveau réglage en ajouterait un —, on compare la sérialisation des réglages à ce qui a
+    /// été écrit en dernier. Le fichier n'est touché que quand elle diffère.
+    /// </summary>
+    private void PersistSettingsIfChanged()
+    {
+        if (_settingsPersistTimer.Elapsed.TotalSeconds < SettingsPersistIntervalSeconds) return;
+        _settingsPersistTimer.Restart();
+        PersistSettings();
+    }
+
+    private void PersistSettings()
+    {
+        if (_fileSystemService == null) return;
+
+        // Une écriture encore en vol : on réessaiera à la prochaine occasion plutôt que d'empiler
+        // deux écritures concurrentes sur le même fichier.
+        if (_settingsSaveTask is { IsCompleted: false }) return;
+
+        string json;
+        try
         {
-            var gameSettings = _gameScreen.GetCurrentSettings();
-            if (gameSettings != null)
-            {
-                gameSettings.Fullscreen = fullscreen;
-                await _fileSystemService!.SaveSettings(System.Text.Json.JsonSerializer.Serialize(gameSettings));
-                return;
-            }
+            json = System.Text.Json.JsonSerializer.Serialize(CurrentSettings);
+        }
+        catch (Exception ex)
+        {
+            GameLog.Error(nameof(SkiaGameRuntime), nameof(PersistSettings), ex);
+            return;
         }
 
-        await _fileSystemService!.SaveSettings(System.Text.Json.JsonSerializer.Serialize(_titleSettings));
+        if (json == _persistedSettingsJson) return;
+        _persistedSettingsJson = json;
+        _settingsSaveTask = WriteSettings(json);
+    }
+
+    private async Task WriteSettings(string json)
+    {
+        try
+        {
+            await _fileSystemService!.SaveSettings(json);
+        }
+        catch (Exception ex)
+        {
+            // Le joueur perdrait ses réglages au prochain lancement sans rien avoir vu. On oublie
+            // aussi le contenu écrit, pour que la prochaine tentative reparte d'un fichier inconnu.
+            _persistedSettingsJson = null;
+            GameLog.Error(nameof(SkiaGameRuntime), nameof(WriteSettings), ex);
+        }
     }
 
     // ── Initialisation ────────────────────────────────────────────────────────
@@ -106,7 +186,17 @@ public sealed class SkiaGameRuntime : IDisposable
         _localizationService = new LocalizationService();
         _uiLayoutService     = new UILayoutService();
 
-        _titleSettings = ParseSettings(settingsJson) ?? ExtractSettings(autoJson);
+        var parsedSettings = ParseSettings(settingsJson);
+
+        // Point de départ de la comparaison de PersistSettings : la relecture de ce qui est sur le
+        // disque, prise avant les retouches qui suivent. Reste null si le fichier est absent ou
+        // illisible — la première frame l'écrira alors, au lieu de laisser le joueur sans fichier
+        // de réglages jusqu'à son prochain changement.
+        _persistedSettingsJson = parsedSettings == null
+            ? null
+            : System.Text.Json.JsonSerializer.Serialize(parsedSettings);
+
+        _titleSettings = parsedSettings ?? ExtractSettings(autoJson);
 
         // Pas de settings sauvegardés → demander la langue préférée au store
         if (settingsJson == null && _storeController != null)
@@ -116,7 +206,12 @@ public sealed class SkiaGameRuntime : IDisposable
                 _titleSettings.Language = storeLang.Value;
         }
 
-        if (_demoMode) _titleSettings.DemoMode = true;
+        // DemoMode décrit le binaire lancé (drapeau --demo), pas une préférence du joueur. Il est
+        // donc réaligné sur le drapeau à chaque démarrage : settings.json étant désormais réécrit
+        // dès qu'un réglage bouge, un DemoMode figé à true y survivrait au passage au jeu complet
+        // et l'écran-titre y afficherait encore ses textes de démo. GameScreen fait de même sur
+        // les réglages de la partie.
+        _titleSettings.DemoMode = _demoMode;
         _localizationService.SetLanguage(_titleSettings.Language);
         SkiaTextUtils.NumberFormat = _titleSettings.NumberFormat;
 
@@ -157,7 +252,12 @@ public sealed class SkiaGameRuntime : IDisposable
             _demoMode,
             _storeController,
             statsJson: _statsJson,
-            runSynchronized: _stateSynchronizer);
+            runSynchronized: _stateSynchronizer,
+            // Réglages modifiés sur l'écran-titre : sans cela la nouvelle partie repartait des
+            // valeurs par défaut et le joueur retrouvait, par exemple, le tutoriel qu'il venait
+            // de masquer. L'instance est partagée avec le runtime, dont l'écran-titre est détruit
+            // juste au-dessus — elle est reconstruite au retour au menu (OnReturnToTitle).
+            titleSettings: _titleSettings);
         _gameScreen.ReturnToTitleRequested     += OnReturnToTitle;
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
@@ -199,13 +299,19 @@ public sealed class SkiaGameRuntime : IDisposable
 
     private async void OnReturnToTitle()
     {
+        // Réglages de la partie qu'on vient de quitter : ce sont les plus récents, alors que
+        // settings.json n'est réécrit qu'au basculement plein écran et peut donc dater. Les
+        // reprendre garde l'invariant « ce que montre l'écran-titre est ce avec quoi démarre une
+        // nouvelle partie » — sans quoi un réglage changé en jeu réapparaîtrait à l'ancienne valeur.
+        var gameSettings = _gameScreen?.GetCurrentSettings();
+
         _gameScreen?.Dispose();
         _gameScreen = null;
 
         var autoJson     = await _fileSystemService!.LoadAuto();
         var settingsJson = await _fileSystemService.LoadSettings();
         _statsJson       = await _fileSystemService.LoadStats();
-        _titleSettings   = ParseSettings(settingsJson) ?? ExtractSettings(autoJson);
+        _titleSettings   = gameSettings ?? ParseSettings(settingsJson) ?? ExtractSettings(autoJson);
         _localizationService!.SetLanguage(_titleSettings.Language);
         SkiaTextUtils.NumberFormat = _titleSettings.NumberFormat;
         ShowTitleScreen(autoJson != null);
@@ -368,10 +474,14 @@ public sealed class SkiaGameRuntime : IDisposable
         _onTitleScreen ? SettingsPopupSnapshot.Closed
                        : _gameScreen?.GetSettingsPopupSnapshot() ?? SettingsPopupSnapshot.Closed;
 
-    public void ToggleSetting(string k) => _gameScreen?.ToggleSettingFromHost(k);
-    public void SetSettingChoice(string k, string c) => _gameScreen?.SetSettingChoiceFromHost(k, c);
-    public void SetSettingSlider(string k, double v) => _gameScreen?.SetSettingSliderFromHost(k, v);
-    public void SetSettingText(string k, string v) => _gameScreen?.SetSettingTextFromHost(k, v);
+    // Ces quatre commandes sont les gestes explicites du joueur sur ses réglages : on écrit tout de
+    // suite plutôt que d'attendre la passe périodique de Tick, pour qu'un jeu fermé dans la seconde
+    // ne les perde pas. Le doublon est sans coût : PersistSettings ne touche au fichier que si la
+    // sérialisation a bougé.
+    public void ToggleSetting(string k) { _gameScreen?.ToggleSettingFromHost(k); PersistSettings(); }
+    public void SetSettingChoice(string k, string c) { _gameScreen?.SetSettingChoiceFromHost(k, c); PersistSettings(); }
+    public void SetSettingSlider(string k, double v) { _gameScreen?.SetSettingSliderFromHost(k, v); PersistSettings(); }
+    public void SetSettingText(string k, string v) { _gameScreen?.SetSettingTextFromHost(k, v); PersistSettings(); }
     public void CloseSettingsPopup() => _gameScreen?.CloseSettingsPopupFromHost();
 
     // ── Ecran-titre ───────────────────────────────────────────────────────────
@@ -384,10 +494,12 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void SetTitleTab(string key) { if (_onTitleScreen) _titleScreen?.SetTabFromHost(key); }
     public void InvokeTitleAction(string key) { if (_onTitleScreen) _titleScreen?.InvokeActionFromHost(key); }
-    public void SetTitleSettingToggle(string k) { if (_onTitleScreen) _titleScreen?.ToggleSettingFromHost(k); }
-    public void SetTitleSettingChoice(string k, string c) { if (_onTitleScreen) _titleScreen?.SetSettingChoiceFromHost(k, c); }
-    public void SetTitleSettingSlider(string k, double v) { if (_onTitleScreen) _titleScreen?.SetSettingSliderFromHost(k, v); }
-    public void SetTitleSettingText(string k, string v) { if (_onTitleScreen) _titleScreen?.SetSettingTextFromHost(k, v); }
+    // Comme leurs équivalents en partie, ces gestes sont écrits immédiatement — et c'est ici que
+    // ça compte le plus : sur l'écran-titre, rien d'autre n'écrit jamais les réglages.
+    public void SetTitleSettingToggle(string k) { if (_onTitleScreen) { _titleScreen?.ToggleSettingFromHost(k); PersistSettings(); } }
+    public void SetTitleSettingChoice(string k, string c) { if (_onTitleScreen) { _titleScreen?.SetSettingChoiceFromHost(k, c); PersistSettings(); } }
+    public void SetTitleSettingSlider(string k, double v) { if (_onTitleScreen) { _titleScreen?.SetSettingSliderFromHost(k, v); PersistSettings(); } }
+    public void SetTitleSettingText(string k, string v) { if (_onTitleScreen) { _titleScreen?.SetSettingTextFromHost(k, v); PersistSettings(); } }
 
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
     public ToastListSnapshot GetToastSnapshot() =>
@@ -506,6 +618,8 @@ public sealed class SkiaGameRuntime : IDisposable
         // L ecran-titre n a pas de boucle de jeu : ses toasts vieillissent ici une fois qu il ne
         // se dessine plus lui-meme.
         if (_onTitleScreen) _titleScreen?.AdvanceToasts();
+
+        PersistSettingsIfChanged();
     }
 
     /// <summary>
@@ -585,6 +699,12 @@ public sealed class SkiaGameRuntime : IDisposable
     public void Dispose()
     {
         if (_isDisposed) return;
+
+        // Dernière chance d'écrire les réglages qui ne passent pas par un geste explicite du
+        // joueur (onglets épinglés, filtres du Journal) : sans cela, ceux des dernières secondes
+        // partiraient avec la fenêtre. Avant de détruire l'écran de jeu, qui les détient.
+        PersistSettings();
+
         _titleScreen?.Dispose();
         _gameScreen?.Dispose();
         _resourceManager?.Dispose();

@@ -159,12 +159,18 @@ namespace SettlersOfIdlestan.Controller
         /// Creates a new MainGameState by generating a new island using the island generator.
         /// Returns null if island generation fails.
         /// Pass <paramref name="prngSeed"/> to get a deterministic game (e.g. in tests).
+        /// <paramref name="settings"/> : réglages déjà choisis par le joueur (écran-titre) ; null →
+        /// réglages par défaut. Ils sont posés <b>avant</b> <see cref="SetGame"/> parce que
+        /// l'initialisation de l'île capture l'instance (EventLog.Bind, AutomationSettings.Bind,
+        /// ResearchController.Initialize) : les remplacer après coup laisserait ces liens sur les
+        /// réglages par défaut, sans erreur visible.
         /// </summary>
-        public MainGameState? CreateNewGame(IslandParameters parameters, int? prngSeed = null)
+        public MainGameState? CreateNewGame(IslandParameters parameters, int? prngSeed = null, GameSettings? settings = null)
         {
             if (parameters == null) throw new ArgumentNullException(nameof(parameters));
 
             var mainState = new MainGameState(prngSeed);
+            if (settings != null) mainState.Settings = settings;
 
             var generator = new Generator.IslandMapGenerator(mainState.WorldPRNG);
             var WorldState = generator.GenerateWorldState(parameters, mainState.Clock.CurrentTick);
@@ -355,11 +361,11 @@ namespace SettlersOfIdlestan.Controller
             CurrentMainState.Clock.Resume();
         }
 
-        public MainGameState? CreateNewGame()
+        public MainGameState? CreateNewGame(GameSettings? settings = null)
         {
             int WorldId = AtlasController.GetFirstWorldId();
             var parameters = AtlasController.GetIslandParameters(WorldId);
-            return CreateNewGame(parameters);
+            return CreateNewGame(parameters, settings: settings);
         }
 
         /// <summary>
