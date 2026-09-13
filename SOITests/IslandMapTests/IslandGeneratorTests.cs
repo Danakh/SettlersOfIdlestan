@@ -4,6 +4,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Races;
 using SettlersOfIdlestan.Controller;
 using System.Collections.Generic;
 using System.Linq;
@@ -194,6 +195,49 @@ public class IslandGeneratorTests
         Assert.Contains(TerrainType.Water, terrainsAtCity);
     }
 
+    /// <summary>
+    /// Départ nain : triangle entièrement terrestre Montagne/Forêt/Colline, sans un seul hex d'Eau
+    /// (voir RaceDefinition.StartVertexThirdTerrain). Balayé sur toutes les formes d'île et
+    /// plusieurs seeds : c'est la garantie qui permet à la capitale de respecter la restriction de
+    /// placement naine, et son absence se paierait par une partie sans ville de départ du tout.
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(7)]
+    [InlineData(42)]
+    [InlineData(999)]
+    [InlineData(12345)]
+    public void GenerateWorldState_Dwarf_StartsOnInlandMountainForestHillTriangle(int seed)
+    {
+        foreach (var shape in System.Enum.GetValues<IslandShapeType>())
+        {
+            var generator = new IslandMapGenerator(new GamePRNG(seed));
+            var parameters = new IslandParameters(
+                worldId: 1,
+                tileData: new List<(TerrainType terrainType, int tileCount)>
+                {
+                    (TerrainType.Forest, 13),
+                    (TerrainType.Hill, 13),
+                    (TerrainType.Plain, 13),
+                    (TerrainType.Mountain, 13),
+                    (TerrainType.Desert, 4),
+                },
+                shapeType: shape);
+
+            var state = generator.GenerateWorldState(parameters, currentTick: 0,
+                race: RaceDefinitions.Get(RaceId.Dwarf));
+
+            Assert.NotNull(state);
+            var city = Assert.Single(state.PlayerCivilization.Cities);
+            var map = state.GetMapFor(city.Position)!;
+            var terrains = city.Position.GetHexes().Select(h => map.Tiles[h].TerrainType).ToHashSet();
+
+            Assert.Equal(
+                new HashSet<TerrainType> { TerrainType.Mountain, TerrainType.Forest, TerrainType.Hill },
+                terrains);
+        }
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
@@ -245,7 +289,7 @@ public class IslandGeneratorTests
     }
 
     [Fact]
-    public void FindVertexAdjacentToHillForestWater_ReturnsVertex_WhenHillForestWaterAreAdjacent()
+    public void FindStartVertex_ReturnsVertex_WhenHillForestWaterAreAdjacent()
     {
         // Arrange
         var tiles = new List<HexTile>
@@ -257,7 +301,7 @@ public class IslandGeneratorTests
         var map = new IslandMap(tiles);
 
         // Act
-        var vertex = IslandMapGenerator.FindVertexAdjacentToHillForestWater(map);
+        var vertex = IslandMapGenerator.FindStartVertex(map);
 
         // Assert
         Assert.NotNull(vertex);
@@ -267,7 +311,7 @@ public class IslandGeneratorTests
     }
 
     [Fact]
-    public void FindVertexAdjacentToHillForestWater_ReturnsNull_WhenNoSuchVertexExists()
+    public void FindStartVertex_ReturnsNull_WhenNoSuchVertexExists()
     {
         // Arrange
         var tiles = new List<HexTile>
@@ -279,14 +323,14 @@ public class IslandGeneratorTests
         var map = new IslandMap(tiles);
 
         // Act
-        var vertex = IslandMapGenerator.FindVertexAdjacentToHillForestWater(map);
+        var vertex = IslandMapGenerator.FindStartVertex(map);
 
         // Assert
         Assert.Null(vertex);
     }
 
     [Fact]
-    public void FindVertexAdjacentToHillForestWater_ReturnsNull_WhenMissingHill()
+    public void FindStartVertex_ReturnsNull_WhenMissingHill()
     {
         // Arrange
         var tiles = new List<HexTile>
@@ -298,7 +342,7 @@ public class IslandGeneratorTests
         var map = new IslandMap(tiles);
 
         // Act
-        var vertex = IslandMapGenerator.FindVertexAdjacentToHillForestWater(map);
+        var vertex = IslandMapGenerator.FindStartVertex(map);
 
         // Assert
         Assert.Null(vertex);

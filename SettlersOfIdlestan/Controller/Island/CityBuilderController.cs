@@ -260,6 +260,7 @@ namespace SettlersOfIdlestan.Controller.Island
         private readonly HashSet<Vertex> _roadTouchingUniqueScratch = new();
         private readonly HashSet<Vertex> _occupiedVerticesScratch = new();
         private readonly HashSet<Vertex> _blockedVerticesScratch = new();
+        private readonly List<Vertex> _placementCandidatesScratch = new();
 
         /// <summary>
         /// Coeur de <see cref="GetRoadTouchingVertices"/>, qui expose en plus le HashSet de
@@ -300,16 +301,6 @@ namespace SettlersOfIdlestan.Controller.Island
             var civ = _state.GetCivilization(civilizationIndex)
                       ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
 
-            // Restrictions raciales (voir RaceDefinitions) : distance minimale entre villes propres
-            // éventuellement remplacée (Gobelins 2, Géants 4), adjacence de terrain exigée sur
-            // toute couche portant le terrain (Elfes → Forêt, Nains → Montagne ; voir
-            // SatisfiesCityTerrainRestriction pour la traduction en Inframonde), portée de terrain
-            // (Sirènes → jusqu'à 2 arêtes de l'Eau) et portée de Vol (Garudas).
-            var requiredTerrains = GetRequiredCityPlacementTerrains(civ);
-            var requiredTerrainRanges = GetRequiredCityPlacementTerrainRanges(civ);
-            int minOwnCityDistance = GetMinDistanceBetweenCivilizationCities(civ);
-            int flightRange = civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_PLACEMENT_FLYING, "", 0);
-
             // Result only depends on this civ's roads and on every civ's cities/beacons (positions, via
             // count as a cheap proxy — RelocateCity clears the cache explicitly since it changes a
             // position without changing any count), plus les terrains via WorldState.TerrainVersion
@@ -327,12 +318,78 @@ namespace SettlersOfIdlestan.Controller.Island
                 cached.TerrainVersion == _state.TerrainVersion)
                 return cached.Vertices;
 
+            var candidates = CollectPlacementCandidates(civ, excludingCity, out var satisfiesTerrain);
+
+            var vertices = new List<Vertex>(candidates.Count);
+            for (int i = 0; i < candidates.Count; i++)
+                if (satisfiesTerrain(candidates[i]))
+                    vertices.Add(candidates[i]);
+
+            if (excludingCity == null)
+                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, totalLandingSiteCount, _state.TerrainVersion, vertices);
+
+            return vertices;
+        }
+
+        /// <summary>
+        /// Les vertex qui passent <b>toutes</b> les règles de placement de <see cref="GetBuildableVertices"/>
+        /// — route qui y mène, aucune occupation, distances respectées — <b>sauf</b> la restriction
+        /// raciale de terrain. Autrement dit : les emplacements de ville qu'il suffirait de faire
+        /// pousser au bon terrain pour ouvrir.
+        ///
+        /// <para>C'est la liste de cibles de Marche de Dieu pour une race à terrain de prédilection
+        /// (voir <see cref="CivilizationAutoplayer.TryWalkOfGodOnce"/>) : y transformer un hex donne un
+        /// vertex constructible à coup sûr, là où marcher au hasard ne donne rien. Vide pour une race
+        /// sans restriction de terrain — aucun vertex n'est alors bloqué par ce motif.</para>
+        ///
+        /// <para>Jamais mis en cache, contrairement à <see cref="GetBuildableVertices"/> : cette liste
+        /// n'est demandée que dans l'état rare où l'expansion est à l'arrêt, pas à chaque pose de
+        /// route.</para>
+        /// </summary>
+        public List<Vertex> GetVerticesBlockedOnlyByTerrain(int civilizationIndex)
+        {
+            if (_state == null) throw new InvalidOperationException("WorldState has not been initialized.");
+
+            var civ = _state.GetCivilization(civilizationIndex)
+                      ?? throw new ArgumentException("Civilization not found", nameof(civilizationIndex));
+
+            var candidates = CollectPlacementCandidates(civ, excludingCity: null, out var satisfiesTerrain);
+            if (ReferenceEquals(satisfiesTerrain, NoCityPlacementTerrainRestriction))
+                return new List<Vertex>();
+
+            var blocked = new List<Vertex>();
+            for (int i = 0; i < candidates.Count; i++)
+                if (!satisfiesTerrain(candidates[i]))
+                    blocked.Add(candidates[i]);
+            return blocked;
+        }
+
+        /// <summary>
+        /// Candidats de placement de ville après toutes les règles <b>sauf</b> celle de terrain, que
+        /// l'appelant applique lui-même via <paramref name="satisfiesTerrain"/> — pour la garder
+        /// (<see cref="GetBuildableVertices"/>) ou pour la retourner
+        /// (<see cref="GetVerticesBlockedOnlyByTerrain"/>).
+        ///
+        /// <para>Restrictions raciales en jeu ici (voir RaceDefinitions) : distance minimale entre
+        /// villes propres éventuellement remplacée (Gobelins 2, Géants 4) et portée de Vol (Garudas) ;
+        /// le terrain exigé (Elfes → Forêt, Nains → Montagne) et les portées de terrain (Sirènes →
+        /// jusqu'à 2 arêtes de l'Eau) sont dans le prédicat rendu.</para>
+        ///
+        /// <para>La liste rendue est un <b>tampon partagé</b>, valable jusqu'au prochain appel.</para>
+        /// </summary>
+        private List<Vertex> CollectPlacementCandidates(Civilization civ, City? excludingCity,
+            out Func<Vertex, bool> satisfiesTerrain)
+        {
+            satisfiesTerrain = BuildCityPlacementTerrainFilter(civ);
+            int minOwnCityDistance = GetMinDistanceBetweenCivilizationCities(civ);
+            int flightRange = civ.ModifierAggregator.ApplyModifiers(ECategory.CITY_PLACEMENT_FLYING, "", 0);
+
             var vertices = CollectRoadTouchingVertices(civ, out var knownVertices);
 
             if (flightRange > 0)
                 AddFlightCandidateVertices(vertices, knownVertices, civ, flightRange, excludingCity);
 
-            var occupiedVertices = CollectOccupiedVertices(civilizationIndex);
+            var occupiedVertices = CollectOccupiedVertices(civ.Index);
 
             // Contraintes de distance : plutôt que de mesurer chaque candidat contre chaque ville
             // (produit cartésien candidats × villes, les deux se comptant en centaines/milliers en
@@ -346,7 +403,7 @@ namespace SettlersOfIdlestan.Controller.Island
             var blockedVertices = _blockedVerticesScratch;
             blockedVertices.Clear();
             AddVerticesWithinRadius(blockedVertices,
-                _state.Civilizations.Where(c => c.Index != civilizationIndex)
+                _state!.Civilizations.Where(c => c.Index != civ.Index)
                     .SelectMany(c => c.Cities.Select(city => city.Position).Concat(c.LandingSites.Select(s => s.Position))),
                 MinDistanceBetweenCities - 1);
             AddVerticesWithinRadius(blockedVertices,
@@ -354,20 +411,15 @@ namespace SettlersOfIdlestan.Controller.Island
                     .Concat(civ.LandingSites.Select(s => s.Position)),
                 minOwnCityDistance - 1);
 
-            // Restrictions raciales de terrain : les ensembles de portée ne dépendent que du terrain,
-            // on les résout une fois ici au lieu d'un lookup de cache par candidat.
-            var terrainRangeSets = BuildTerrainRangeSets(requiredTerrainRanges);
-
-            vertices = vertices.Where(v =>
-                !occupiedVertices.Contains(v) &&
-                !blockedVertices.Contains(v) &&
-                SatisfiesCityTerrainRestriction(v, requiredTerrains, terrainRangeSets))
-                .ToList();
-
-            if (excludingCity == null)
-                _buildableVerticesCache[civilizationIndex] = (civ.Roads.Count, totalCityCount, totalBeaconCount, totalLandingSiteCount, _state.TerrainVersion, vertices);
-
-            return vertices;
+            var candidates = _placementCandidatesScratch;
+            candidates.Clear();
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                var v = vertices[i];
+                if (!occupiedVertices.Contains(v) && !blockedVertices.Contains(v))
+                    candidates.Add(v);
+            }
+            return candidates;
         }
 
         /// <summary>

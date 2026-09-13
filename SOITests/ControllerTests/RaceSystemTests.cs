@@ -611,7 +611,7 @@ public class RaceSystemTests
     }
 
     [Fact]
-    public void PerformAscension_Dwarf_StartVertexTouchesMountainForestAndWater()
+    public void PerformAscension_Dwarf_StartVertexTouchesMountainForestAndHillButNoWater()
     {
         var controller = new MainGameController();
         controller.CreateNewGame();
@@ -622,14 +622,16 @@ public class RaceSystemTests
 
         controller.PerformAscension(RaceId.Dwarf);
 
-        // Le générateur remplace la Colline par la Montagne dans la paire de départ : la capitale
-        // naine respecte sa propre restriction de placement.
+        // Triangle de départ entièrement terrestre Montagne/Forêt/Colline : la capitale naine
+        // respecte sa propre restriction de placement et dispose des trois récoltes de base, mais
+        // n'a aucun accès à la mer (ni Port ni Port Impérial ici).
         var worldState = controller.CurrentMainState.CurrentWorldState!;
         var startingCity = worldState.PlayerCivilization.Cities[0];
         var map = worldState.GetMapFor(startingCity.Position)!;
         Assert.True(map.VertexHasTerrainType(startingCity.Position, TerrainType.Mountain));
         Assert.True(map.VertexHasTerrainType(startingCity.Position, TerrainType.Forest));
-        Assert.True(map.VertexHasTerrainType(startingCity.Position, TerrainType.Water));
+        Assert.True(map.VertexHasTerrainType(startingCity.Position, TerrainType.Hill));
+        Assert.False(map.VertexHasTerrainType(startingCity.Position, TerrainType.Water));
     }
 
     // ── Restrictions de placement (CityBuilderController) ────────────────────

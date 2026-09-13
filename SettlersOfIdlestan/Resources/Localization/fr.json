@@ -1670,7 +1670,7 @@
   "race_elf_info": "► Nouvelles villes adjacentes à une Forêt\n► Scieries +50%\n► Recherche +25%\n► Bâtiment racial : l'Arbre-Cœur",
   "race_dwarf_name": "Nains",
   "race_dwarf_desc": "Peuple des montagnes, forgerons et mineurs sans égal.",
-  "race_dwarf_info": "► Nouvelles villes adjacentes à une Montagne\n► Forges et Mines améliorées\n► Défense +20%\n► Bâtiment racial : la Forge Runique",
+  "race_dwarf_info": "► Nouvelles villes adjacentes à une Montagne\n► Démarre dans les terres sur Montagne/Forêt/Colline, sans accès à la mer\n► Forges et Mines améliorées\n► Défense +20%\n► Bâtiment racial : la Forge Runique",
   "race_goblin_name": "Gobelins",
   "race_goblin_desc": "Peuple prolifique et rusé, expansionniste avant tout.",
   "race_goblin_info": "► Villes à distance 2 (au lieu de 3)\n► Niveau max bâtiments standards -1\n► Défense -3\n► Points de prestige -25%\n► Bâtiment racial : le Grand Terrier",

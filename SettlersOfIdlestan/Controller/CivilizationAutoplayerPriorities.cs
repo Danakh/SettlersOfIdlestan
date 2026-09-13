@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
@@ -94,7 +95,11 @@ namespace SettlersOfIdlestan.Controller
         /// celle dont les villes visibles sont les plus faibles. Step 2 (Entrepôt → TH2 →
         /// Forge/Bibliothèque → TH3 → Mine) à
         /// partir de <paramref name="step2AtCities"/> villes, Temple (Step 3) à partir de
-        /// <paramref name="step3AtCities"/> villes. Expansion jusqu'à <paramref name="expansionTarget"/>
+        /// <paramref name="step3AtCities"/> villes — poussé au niveau 2, celui qui produit du Dominion,
+        /// dès que le pouvoir divin Foi le rend atteignable. Quand la carte n'offre plus un seul
+        /// emplacement de ville, Marche de Dieu fait pousser le terrain de prédilection de la race là
+        /// où il manque pour rouvrir l'expansion (<see cref="WalkOfGodExpansionObjective"/>).
+        /// Expansion jusqu'à <paramref name="expansionTarget"/>
         /// villes pour accumuler les points de prestige, puis Port Impérial pour débloquer le prestige,
         /// puis expansion illimitée — sauf en mode <paramref name="aggressive"/> une fois tous les NPC
         /// éliminés (<see cref="WonderInvestmentObjective"/>), où l'expansion illimitée est remplacée par
@@ -156,6 +161,18 @@ namespace SettlersOfIdlestan.Controller
 
             var hasStep2Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step2AtCities);
             var hasStep3Cities  = new Func<bool>(() => auto.Civilization.Cities.Count >= step3AtCities);
+
+            // « Plus un seul emplacement constructible, et pas même une route à tirer » : l'impasse
+            // d'expansion, seul état que Marche de Dieu a de quoi rouvrir (voir
+            // CivilizationAutoplayer.IsExpansionStalled). Volontairement plus étroit que « la carte
+            // n'offre plus de cible » : tant qu'une route reste posable, l'expansion ordinaire fait le
+            // travail et il n'y a pas lieu de dépenser des points de prestige.
+            var expansionStalled = new Func<bool>(() => auto.IsExpansionStalled());
+
+            // Foi ouvre le Temple au-delà du niveau 1 (+3, voir AscensionBuildingMaxLevelGrants), et le
+            // niveau 2 est le premier qui produise du Dominion (CorruptionController.ProcessTempleProduction).
+            // Toujours faux pour un PNJ, dont l'autoplayer n'a pas d'AscensionController.
+            var faithUnlocked = new Func<bool>(() => auto.IsAscensionPowerUnlocked(AscensionPowerId.Faith));
 
             // En mode agressif, l'expansion bloquée (plus aucun vertex/route constructible) tant qu'un
             // ennemi reste visible vaut comme déclencheur d'attaque à elle seule, en plus (jamais à la
@@ -251,6 +268,29 @@ namespace SettlersOfIdlestan.Controller
                 new ConditionalBuildingLevelObjective(() => hasStep3Cities() && hasOreProduction(), BObj(auto, bc, MilitaryBuildings, 1)),
                 new ConditionalBuildingLevelObjective(hasStep3Cities, BObj(auto, bc, new[] { BuildingType.Temple }, 1)),
 
+                // Temple 2 une fois Foi acquis : c'est le premier niveau qui produise du Dominion
+                // (CorruptionController.ProcessTempleProduction), et le Dominion est ce qui ouvre les
+                // cibles de Marche de Dieu juste en dessous — sans Temple 2 quelque part, le pouvoir
+                // n'a pas un seul hex sur lequel s'exercer. Sans Foi, le Temple plafonne à 1 et
+                // l'objectif se déclare terminé de lui-même (BuildingLevelObjective tient un bâtiment
+                // au niveau max pour satisfait), mais la garde explicite évite de faire miroiter un
+                // niveau inatteignable et dit pourquoi ce niveau-là.
+                //
+                // Réservé aux races à terrain requis, comme la marche qu'il alimente : un Temple 2 par
+                // ville coûte 60 briques et 60 pierres, sur la ressource même dont vit l'expansion, et
+                // une race que Marche de Dieu ne peut pas débloquer n'a rien à en tirer. Mesuré au
+                // race gauntlet en l'appliquant à tout le monde : Géants et Garudas payaient l'étage
+                // sans jamais s'en servir et s'effondraient sur l'île 6 (Géants 1173 → 101 points,
+                // Merveille niveau 3 → 0, l'île finie au plafond de temps au lieu d'1h40).
+                //
+                // La garde de villes n'est pas seulement step3AtCities : une race murée n'atteindra
+                // jamais ces 10 villes, et c'est précisément elle qui a besoin du Dominion pour
+                // repartir. L'impasse d'expansion vaut donc feu vert, quel que soit le nombre de
+                // villes.
+                new ConditionalBuildingLevelObjective(
+                    () => faithUnlocked() && auto.HasFavouredTerrain && (hasStep3Cities() || expansionStalled()),
+                    BObj(auto, bc, new[] { BuildingType.Temple }, 2)),
+
                 // Expansion finie pour accumuler des points de prestige, puis bâtiment racial et
                 // Port Impérial. Le bâtiment racial passe avant le Port, et pas après : le Grand Terrier
                 // gobelin abaisse d'un niveau les prérequis de tous les uniques, seule façon pour une
@@ -275,6 +315,20 @@ namespace SettlersOfIdlestan.Controller
                 // unique n'est débloqué (2 à 5 selon l'île) et leurs prérequis niveau 4 ne sont pas
                 // atteints. Élargir au-delà du racial ne vaudra le coup que le jour où l'autoplay saura
                 // piloter ces automatismes, pas seulement poser les bâtiments.
+                // Marche de Dieu quand l'expansion est dans l'impasse — plus un emplacement
+                // constructible, plus une route à tirer : fait pousser le terrain de prédilection de
+                // la race là où il manque, ce qui rouvre l'expansion juste en dessous. Réservé aux
+                // races à terrain requis (Elfes, Nains, Sirènes) — pour les autres, aucun vertex n'est
+                // jamais bloqué par le terrain et l'objectif est toujours terminé. Placé avant
+                // l'expansion et non après : dès que la marche a ouvert un emplacement, c'est
+                // CityCountObjective qui doit le prendre au pas suivant.
+                //
+                // C'est aussi la seule sortie de l'impasse : CityCountObjective reste incomplet tant
+                // qu'un vertex prospectif existe, même hors d'atteinte, et gèle alors tout ce qui le
+                // suit. Mesuré sur les Nains, île 6 du gauntlet : 7 villes et 23 h simulées sans un
+                // bâtiment ni un point de prestige de plus.
+                new WalkOfGodExpansionObjective(auto, expansionStalled),
+
                 new CityCountObjective(auto, expansionTarget),
                 new UniqueBuildingsObjective(auto, RaceDefinitions.IsRacialBuilding),
                 new ImperialPortObjective(auto),

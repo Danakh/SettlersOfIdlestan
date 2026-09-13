@@ -41,14 +41,29 @@ public class RaceDefinition
     /// <summary>
     /// Terrain accompagnant la Forêt sur le vertex de départ garanti par le générateur (voir
     /// IslandMapGenerator.EnsureStartPairNearEdge) : la Colline par défaut, remplacée par le
-    /// terrain requis de la race quand il y en a un (Montagne pour les Nains — le vertex de départ
-    /// devient Montagne/Forêt/Eau ; la brique manquante s'achète au Marché offert par le vertex
-    /// central de la carte de prestige). La Forêt et l'Eau restent inchangées (Elfes, Sirènes).
+    /// terrain requis de la race quand il y en a un (Montagne pour les Nains). La Forêt et l'Eau
+    /// restent inchangées (Elfes, Sirènes). Le troisième hex du triangle est
+    /// <see cref="StartVertexThirdTerrain"/>.
     /// </summary>
     public TerrainType StartVertexTerrain =>
         RequiredAdjacentTerrain is { } terrain && terrain != TerrainType.Forest && terrain != TerrainType.Water
             ? terrain
             : TerrainType.Hill;
+
+    /// <summary>
+    /// Troisième terrain du triangle de départ en surface, aux côtés de <see cref="StartVertexTerrain"/>
+    /// et de la Forêt : l'Eau par défaut, et le vertex de départ est alors posé sur un bord d'île
+    /// (voir IslandMapGenerator.EnsureStartPairNearEdge) — la ville de départ peut y bâtir un Port
+    /// et un Port Impérial, tous deux conditionnés à un hex d'Eau sur le vertex.
+    ///
+    /// <para>Une terre ici donne au contraire un triangle entièrement terrestre, posé à l'intérieur
+    /// de l'île (IslandMapGenerator.EnsureStartTriangleInland) : c'est le cas des Nains, qui partent
+    /// sur Montagne/Forêt/Colline. Ils commencent ainsi avec les trois récoltes de base — minerai,
+    /// bois et brique — au prix de l'accès à la mer, qu'il leur faut aller chercher avec une
+    /// seconde ville. Repli automatique sur l'Eau si le pool de terrains de l'île ne contient pas
+    /// le terrain demandé.</para>
+    /// </summary>
+    public TerrainType StartVertexThirdTerrain { get; }
 
     /// <summary>
     /// Terrain accompagnant la Forêt (ou son équivalent souterrain, la Caverne aux champignons — voir
@@ -119,11 +134,13 @@ public class RaceDefinition
         AscensionPowerId[]? requiredPowers = null,
         bool startsInUnderworld = false,
         TerrainType[]? underworldStartTerrains = null,
-        Vertex[]? freePrestigeVertices = null)
+        Vertex[]? freePrestigeVertices = null,
+        TerrainType startVertexThirdTerrain = TerrainType.Water)
     {
         Id = id;
         Tier = tier;
         RequiredAdjacentTerrain = requiredAdjacentTerrain;
+        StartVertexThirdTerrain = startVertexThirdTerrain;
         RacialBuilding = racialBuilding;
         Modifiers = modifiers;
         RequiredPowers = requiredPowers ?? Array.Empty<AscensionPowerId>();

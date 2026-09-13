@@ -1114,6 +1114,26 @@ public class AscensionController : IModifierProvider
         return result;
     }
 
+    /// <summary>
+    /// Les mêmes critères que <see cref="GetWalkOfGodTargetHexes"/>, testés sur un hex qu'on a déjà en
+    /// main : couche ciblable, terrain réel (ni Eau Profonde ni Void), Dominion de niveau
+    /// <see cref="WalkOfGodMinDominionLevel"/> ou plus, brouillard de guerre levé. Un hex qui passe ce
+    /// test est accepté par <see cref="ApplyWalkOfGod"/> dès lors que <see cref="CanUseWalkOfGod"/>
+    /// l'est aussi — ce qui permet à un appelant qui sait déjà où il veut marcher (l'autoplay, qui
+    /// part des emplacements de ville bloqués par le terrain) de ne pas balayer les quatre couches
+    /// pour retrouver son hex dans la liste.
+    /// </summary>
+    public bool IsWalkOfGodTarget(HexCoord hex)
+    {
+        if (_state == null || !WalkOfGodLayers.Contains(hex.Z)) return false;
+
+        var tile = _state.GetMapFor(hex)?.GetTile(hex);
+        if (tile == null || tile.TerrainType == TerrainType.DeepWater || tile.TerrainType == TerrainType.Void)
+            return false;
+
+        return GetWalkOfGodDominion(hex) != null && IsVisibleToPlayer(hex);
+    }
+
     /// <summary>Dominion de niveau suffisant (voir <see cref="WalkOfGodMinDominionLevel"/>) sur l'hex, ou null.</summary>
     private Dominion? GetWalkOfGodDominion(HexCoord hex) =>
         _state?.GetFeaturesAt(hex).OfType<Dominion>().FirstOrDefault(d => d.Level >= WalkOfGodMinDominionLevel);

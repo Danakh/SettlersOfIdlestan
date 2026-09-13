@@ -100,9 +100,13 @@ public static class RaceDefinitions
             requiredPowers: new[] { AscensionPowerId.MemoryOfGod, AscensionPowerId.WalkOfGod, AscensionPowerId.DivineMagic }),
 
         // Nains : nouvelles villes uniquement adjacentes à une Montagne ; maîtres de la forge et
-        // de la mine, et solides défenseurs.
+        // de la mine, et solides défenseurs. Seule race à démarrer dans les terres — leur triangle
+        // de départ est Montagne/Forêt/Colline (voir RaceDefinition.StartVertexThirdTerrain) : les
+        // trois récoltes de base sous la main dès le premier tick, mais pas un hex d'eau au vertex,
+        // donc ni Port ni Port Impérial dans la ville de départ.
         new RaceDefinition(RaceId.Dwarf, RaceTier.Base,
             requiredAdjacentTerrain: TerrainType.Mountain,
+            startVertexThirdTerrain: TerrainType.Hill,
             racialBuilding: BuildingType.RunicForge,
             modifiers: new[]
             {

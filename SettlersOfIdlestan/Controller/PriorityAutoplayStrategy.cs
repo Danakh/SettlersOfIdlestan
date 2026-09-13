@@ -601,6 +601,42 @@ namespace SettlersOfIdlestan.Controller
     }
 
     /// <summary>
+    /// Débloque l'expansion d'une race à terrain requis en faisant pousser ce terrain, une marche à la
+    /// fois, sur un emplacement de ville que seul le terrain interdit (voir
+    /// <see cref="CivilizationAutoplayer.TryWalkOfGodOnce"/>). Le déclencheur est
+    /// <paramref name="expansionBlocked"/> : tant que la carte offre encore quelque chose, on
+    /// s'étend normalement plutôt que de dépenser des points de prestige.
+    ///
+    /// <para>Incomplet uniquement quand une cible existe vraiment — sans cela, un objectif qui ne peut
+    /// ni finir ni avancer gèlerait tout ce qui le suit dans la liste (voir
+    /// <see cref="PriorityAutoplayStrategy.TryStepOnce"/>). La cible est choisie par les mêmes critères
+    /// que ceux qu'<c>ApplyWalkOfGod</c> vérifie, donc « une cible existe » vaut « la marche
+    /// aboutira ».</para>
+    ///
+    /// <para>Le pouvoir se paie sur la cagnotte de prestige (premier usage gratuit, puis 1, 2, 4, 8…),
+    /// c'est-à-dire sur la monnaie même qui déclenche le prestige. Ce n'est pas un puits sans fond
+    /// pour autant : une marche réussie rouvre l'expansion, le déclencheur retombe, et l'objectif
+    /// redevient complet jusqu'au prochain blocage.</para>
+    /// </summary>
+    public class WalkOfGodExpansionObjective : IAutoplayObjective
+    {
+        private readonly CivilizationAutoplayer _autoplayer;
+        private readonly Func<bool> _expansionBlocked;
+
+        public WalkOfGodExpansionObjective(CivilizationAutoplayer autoplayer, Func<bool> expansionBlocked)
+        {
+            _autoplayer = autoplayer ?? throw new ArgumentNullException(nameof(autoplayer));
+            _expansionBlocked = expansionBlocked ?? throw new ArgumentNullException(nameof(expansionBlocked));
+        }
+
+        public bool IsComplete() => !_expansionBlocked() || !_autoplayer.HasWalkOfGodCitySpot();
+
+        public bool TryAdvanceOnce() => _autoplayer.TryWalkOfGodOnce();
+
+        public string Describe() => "WalkOfGod(débloque un emplacement de ville)";
+    }
+
+    /// <summary>
     /// Drives a <see cref="CivilizationAutoplayer"/> through an ordered list of <see cref="IAutoplayObjective"/>s,
     /// never acting on objective N+1 while objective N still has actionable progress to make. Each call to
     /// <see cref="TryStepOnce"/> re-scans the list from the top, so an event that re-opens an earlier

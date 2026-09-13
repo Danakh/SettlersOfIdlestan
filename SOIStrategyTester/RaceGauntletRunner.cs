@@ -105,7 +105,20 @@ public static class RaceGauntletRunner
         "Race,Tier,Verdict,IslandsCleared,IslandsRequested,FirstIsland,LastIsland,SimulatedHours,Iterations,FailureReason," +
         "Island,WorldId,IslandHours,Cities,Buildings,TotalBuildingLevels,PrestigePoints,Research,UniqueBuildings,WonderLevel";
 
+    /// <summary>Verdict global de la manche : vrai si toutes les races demandées passent. C'est ce
+    /// que la ligne de commande consomme ; un appelant qui a besoin du détail par race (raison de
+    /// l'échec, chemin de la sauvegarde finale) passe par <see cref="RunAll"/>.</summary>
     public static bool Run(StrategyDefinition strategy, StrategyRunOptions runOptions, RaceGauntletOptions options)
+        => RunAll(strategy, runOptions, options).All(r => r.Passed);
+
+    /// <summary>
+    /// Même manche que <see cref="Run"/>, mais rend le résultat de chaque race au lieu du seul
+    /// verdict global. Les fichiers de sortie (CSV par race, summary, sauvegarde finale) sont écrits
+    /// dans les deux cas : ce qui change ici, c'est que l'appelant peut lire la raison d'un échec et
+    /// le chemin de la sauvegarde sans avoir à relire <c>summary.json</c>.
+    /// </summary>
+    public static List<RaceGauntletResult> RunAll(StrategyDefinition strategy, StrategyRunOptions runOptions,
+        RaceGauntletOptions options)
     {
         var races = options.Races.Count > 0
             ? options.Races
@@ -132,7 +145,7 @@ public static class RaceGauntletRunner
         WriteSummary(results, options, outputDirectory);
         PrintSummary(results, options);
 
-        return results.All(r => r.Passed);
+        return results;
     }
 
     private static RaceGauntletResult RunRace(RaceId race, StrategyDefinition strategy, StrategyRunOptions runOptions,

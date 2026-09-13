@@ -10,6 +10,8 @@ using SettlersOfIdlestan.Model.Prestige;
 using SettlersOfIdlestan.Controller.Expand;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Controller.Military;
+using SettlersOfIdlestan.Controller.Ascension;
+using SettlersOfIdlestan.Model.Ascension;
 using System.Diagnostics;
 
 namespace SettlersOfIdlestan.Controller
@@ -41,6 +43,7 @@ namespace SettlersOfIdlestan.Controller
         private readonly SurfaceBreachController? _surfaceBreachController;
         private readonly CorruptionSpireController? _corruptionSpireController;
         private readonly AbyssGateController? _abyssGateController;
+        private readonly AscensionController? _ascensionController;
 
         private VisibleIslandMap? _prospectiveVerticesCacheMap;
         private int _prospectiveVerticesCacheTotalCityCount = -1;
@@ -103,6 +106,7 @@ namespace SettlersOfIdlestan.Controller
             SurfaceBreachController? surfaceBreachController = null,
             CorruptionSpireController? corruptionSpireController = null,
             AbyssGateController? abyssGateController = null,
+            AscensionController? ascensionController = null,
             long clickCooldownTicks = 20L,
             long expandCooldownTicks = 0L)
         {
@@ -127,6 +131,7 @@ namespace SettlersOfIdlestan.Controller
             _surfaceBreachController = surfaceBreachController;
             _corruptionSpireController = corruptionSpireController;
             _abyssGateController = abyssGateController;
+            _ascensionController = ascensionController;
         }
 
         // ── Cible prioritaire ────────────────────────────────────────────────────
@@ -355,6 +360,24 @@ namespace SettlersOfIdlestan.Controller
             if (GetBuildableOutpostVertex() != null) return true;
             return FindBestExpansionTarget(GetProspectiveVertices()) != null;
         }
+
+        /// <summary>
+        /// Vrai quand <see cref="TryExpandOnce"/> ne peut faire <b>aucun</b> pas : ni avant-poste à
+        /// poser, ni la moindre route à tirer. L'expansion est alors à l'arrêt complet, qu'il reste
+        /// ou non des vertex prospectifs à viser — une cible hors d'atteinte ne vaut pas mieux que pas
+        /// de cible.
+        ///
+        /// <para>À distinguer des deux voisins : <see cref="HasExpansionTarget"/> répond « reste-t-il
+        /// quelque chose à conquérir ? » (une cible inatteignable compte encore) et
+        /// <see cref="HasBuildableExpansion"/> « y a-t-il un coup jouable ? » (le repli routier compte).
+        /// Celui-ci est le seul qui reconnaisse l'impasse : mesuré sur les Nains, île 6 du gauntlet —
+        /// 7 villes, 3 vertex prospectifs, 0 route constructible, 112 routes déjà posées, et 23 h
+        /// simulées sans qu'un bâtiment ne sorte de terre ni qu'un point de prestige ne bouge, sur un
+        /// objectif d'expansion ni satisfait ni capable d'avancer. C'est ce blocage-là, et lui seul,
+        /// que Marche de Dieu vient rouvrir (voir <see cref="WalkOfGodExpansionObjective"/>).</para>
+        /// </summary>
+        public bool IsExpansionStalled()
+            => GetBuildableOutpostVertex() == null && _roadController.GetBuildableRoads(_civ.Index).Count == 0;
 
         /// <summary>
         /// Ce que <see cref="TryExpandOnce"/> voit du terrain, décrit. Diagnostic pur : « il reste des
@@ -783,6 +806,93 @@ namespace SettlersOfIdlestan.Controller
                 didSomething = true;
             }
             return didSomething;
+        }
+
+        // ── Marche de Dieu ───────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Vrai si le pouvoir divin est acquis. Toujours faux sans AscensionController — c'est le cas
+        /// des civilisations PNJ, dont l'autoplayer est monté sans lui : les pouvoirs divins sont ceux
+        /// du joueur, il n'y a qu'un GodState dans la partie.
+        /// </summary>
+        public bool IsAscensionPowerUnlocked(AscensionPowerId power)
+            => _ascensionController?.IsPowerUnlocked(power) == true;
+
+        /// <summary>
+        /// Vrai si la race jouée exige un terrain particulier autour de ses villes (Forêt des Elfes,
+        /// Montagne des Nains, Eau des Sirènes) : c'est elle, et elle seule, que Marche de Dieu peut
+        /// débloquer, et donc la seule que le Dominion intéresse pour ce qu'en fait l'autoplay.
+        /// Toujours faux sans AscensionController (PNJ).
+        /// </summary>
+        public bool HasFavouredTerrain => _ascensionController?.FavouredTerrain != null;
+
+        /// <summary>
+        /// Vrai s'il existe un hex sur lequel Marche de Dieu ouvrirait un emplacement de ville —
+        /// voir <see cref="TryWalkOfGodOnce"/>.
+        /// </summary>
+        public bool HasWalkOfGodCitySpot() => FindWalkOfGodCitySpot() != null;
+
+        /// <summary>
+        /// Fait pousser le terrain de prédilection de la race sur un hex qui débloque un emplacement de
+        /// ville, et rien d'autre : c'est la seule façon pour une race à terrain requis (Elfes, Nains,
+        /// Sirènes) de reprendre son expansion sur une carte qui ne lui offre plus un seul vertex
+        /// constructible. No-op sans AscensionController (PNJ), pour une race sans terrain de
+        /// prédilection, tant que le pouvoir n'est pas utilisable, ou faute de cible.
+        /// </summary>
+        public bool TryWalkOfGodOnce()
+        {
+            var hex = FindWalkOfGodCitySpot();
+            return hex != null && _ascensionController!.ApplyWalkOfGod(hex.Value);
+        }
+
+        /// <summary>
+        /// L'hex sur lequel marcher : un des trois hexes d'un emplacement de ville que <b>seul</b> le
+        /// terrain bloque (voir <see cref="CityBuilderController.GetVerticesBlockedOnlyByTerrain"/>),
+        /// et que Marche de Dieu accepte comme cible (Dominion niveau 2, brouillard levé — voir
+        /// <see cref="AscensionController.IsWalkOfGodTarget"/>). Y faire pousser le terrain de
+        /// prédilection rend le vertex constructible à coup sûr : c'est exactement la règle qui le
+        /// bloquait qui tombe. Marcher n'importe où ailleurs ne rapporterait rien.
+        ///
+        /// <para>Les hexes d'Eau sont écartés comme <b>source</b> : les assécher détruirait balises,
+        /// flottes et camps mobiles, et couperait de la mer une ville côtière — dont celle qui porte le
+        /// Port Impérial. L'autoplay n'a pas de quoi juger ce qu'il engloutirait ; une race bloquée
+        /// dans les terres a de toute façon des hexes terrestres sous la main. Rien n'empêche en
+        /// revanche de faire pousser de l'Eau (terrain de prédilection des Sirènes) sur un hex de
+        /// terre.</para>
+        ///
+        /// <para>Un hex déjà au terrain de prédilection est écarté aussi : y marcher retire le
+        /// déterminisme et retombe sur un terrain tiré au sort (voir
+        /// <see cref="AscensionController.ApplyWalkOfGod"/>). Le cas ne se présente pas sur un vertex
+        /// bloqué par le terrain, le garde-fou est là pour l'invariant.</para>
+        /// </summary>
+        private HexCoord? FindWalkOfGodCitySpot()
+        {
+            if (_ascensionController == null || _worldState == null) return null;
+            if (_ascensionController.FavouredTerrain is not { } favoured) return null;
+            if (!_ascensionController.CanUseWalkOfGod()) return null;
+
+            var blockedVertices = _cityBuilderController.GetVerticesBlockedOnlyByTerrain(_civ.Index);
+            for (int i = 0; i < blockedVertices.Count; i++)
+            {
+                var hexes = blockedVertices[i].GetHexes();
+                for (int h = 0; h < hexes.Length; h++)
+                {
+                    var hex = hexes[h];
+
+                    // Même traduction que ApplyWalkOfGod : sous terre, c'est l'équivalent souterrain
+                    // du terrain de prédilection qui pousse (null = tirage au sort, donc sans garantie
+                    // d'ouvrir quoi que ce soit).
+                    var favouredHere = hex.Z == LayerState.UnderworldZ ? favoured.UnderworldEquivalent() : favoured;
+                    if (favouredHere is not { } target) continue;
+
+                    var tile = _worldState.GetMapFor(hex)?.GetTile(hex);
+                    if (tile == null || tile.TerrainType == target || tile.TerrainType.IsWater()) continue;
+
+                    if (_ascensionController.IsWalkOfGodTarget(hex))
+                        return hex;
+                }
+            }
+            return null;
         }
 
         /// <summary>

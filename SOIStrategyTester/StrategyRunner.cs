@@ -237,7 +237,8 @@ public static class StrategyRunner
             deepestMineController: controller.DeepestMineController,
             surfaceBreachController: controller.SurfaceBreachController,
             corruptionSpireController: controller.CorruptionSpireController,
-            abyssGateController: controller.AbyssGateController);
+            abyssGateController: controller.AbyssGateController,
+            ascensionController: controller.AscensionController);
     }
 
     internal static PriorityAutoplayStrategy BuildPriorityStrategy(CivilizationAutoplayer auto, BuildingController buildingController, List<PriorityObjectiveSpec> specs)

@@ -1670,7 +1670,7 @@
   "race_elf_info": "► New cities must be adjacent to a Forest\n► Sawmills +50%\n► Research +25%\n► Racial building: the Heart Tree",
   "race_dwarf_name": "Dwarves",
   "race_dwarf_desc": "Mountain folk, unrivaled smiths and miners.",
-  "race_dwarf_info": "► New cities must be adjacent to a Mountain\n► Improved Forges and Mines\n► Defense +20%\n► Racial building: the Runic Forge",
+  "race_dwarf_info": "► New cities must be adjacent to a Mountain\n► Starts inland on Mountain/Forest/Hill, with no sea access\n► Improved Forges and Mines\n► Defense +20%\n► Racial building: the Runic Forge",
   "race_goblin_name": "Goblins",
   "race_goblin_desc": "A prolific, cunning people, expansionist above all.",
   "race_goblin_info": "► Cities at distance 2 instead of 3\n► Standard buildings max level -1\n► Defense -3\n► Prestige points -25%\n► Racial building: the Great Burrow",

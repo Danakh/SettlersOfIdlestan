@@ -122,6 +122,26 @@ public static class SaveUtils
     }
 
     /// <summary>
+    /// Recopie un export déjà écrit ailleurs dans saves/{folder}/{name}.json et renvoie le chemin
+    /// obtenu. Pensé pour les échecs de test dont l'état fautif est produit par un outil externe
+    /// (la sauvegarde finale d'une manche de SOIStrategyTester, écrite dans un dossier temporaire) :
+    /// la ramener sous saves/ la met là où on va la chercher pour la charger dans le head Desktop,
+    /// au lieu de la laisser sous %TEMP% où le prochain nettoyage l'emporte.
+    /// </summary>
+    public static string CopyIntoSaves(string sourcePath, string folder, string name)
+    {
+        if (string.IsNullOrWhiteSpace(sourcePath)) throw new ArgumentException("sourcePath cannot be empty", nameof(sourcePath));
+        if (string.IsNullOrWhiteSpace(folder)) throw new ArgumentException("folder cannot be empty", nameof(folder));
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("name cannot be empty", nameof(name));
+        if (folder.StartsWith("release-", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"Cannot write to release folder '{folder}' — release saves are immutable.");
+
+        var filePath = ResolvePath(folder, name);
+        File.Copy(sourcePath, filePath, overwrite: true);
+        return filePath;
+    }
+
+    /// <summary>
     /// Supprime, dans saves/{folder}, les fichiers .json dont le nom (sans extension) n'est pas
     /// dans keepNames. A appeler après la régénération (pas avant) : les saves régénérées sont
     /// remplacées de façon atomique par WriteAndAssertEqual, donc seuls les fichiers vraiment

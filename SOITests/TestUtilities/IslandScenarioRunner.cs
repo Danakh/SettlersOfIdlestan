@@ -74,7 +74,8 @@ public static class IslandScenarioRunner
             controller.CurrentMainState!.PrestigeState,
             controller.PerformPrestige,
             controller.WonderController,
-            militaryController: controller.MilitaryController);
+            militaryController: controller.MilitaryController,
+            ascensionController: controller.AscensionController);
         var runner = new CivilizationAutoplayerRunner(autoplayer, civ, controller);
 
         step.RunAction(runner, () => step.Condition(controller));

@@ -97,7 +97,8 @@ public class AutoplayerDebugRenderer : IGameRenderer
                 mainController.PrestigeMapController,
                 worldState,
                 mainController.CurrentMainState?.PrestigeState,
-                mainController.PerformPrestige);
+                mainController.PerformPrestige,
+                ascensionController: mainController.AscensionController);
             _lastCivRef = playerCiv;
             _lastBuiltMode = AutoplayerMode.Inactive;
         }

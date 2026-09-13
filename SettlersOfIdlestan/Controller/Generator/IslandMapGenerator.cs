@@ -14,7 +14,9 @@ namespace SettlersOfIdlestan.Controller.Generator;
 /// <summary>
 /// Generates a random island map. The shape of the land is provided by an IslandShapeGenerator;
 /// terrain is shuffled onto the shape coordinates, then swapped as needed to guarantee a
-/// Hill/Forest/Water vertex for the player's starting city.
+/// Hill/Forest/Water vertex for the player's starting city — ou le triangle demandé par la race,
+/// entièrement terrestre s'il ne contient pas d'Eau (Montagne/Forêt/Colline pour les Nains, voir
+/// RaceDefinition.StartVertexThirdTerrain).
 /// </summary>
 public class IslandMapGenerator
 {
@@ -31,6 +33,9 @@ public class IslandMapGenerator
     /// An optional preferred start hex biases the start vertex placement.
     /// <paramref name="startVertexTerrain"/> is the land terrain paired with Forest on the
     /// starting vertex (Hill by default; Mountain for Dwarves — see RaceDefinition.StartVertexTerrain).
+    /// <paramref name="startVertexThirdTerrain"/> is the third hex of that triangle: Water by
+    /// default (vertex de bord d'île), une terre pour une race qui démarre à l'intérieur (Colline
+    /// pour les Nains — voir RaceDefinition.StartVertexThirdTerrain).
     /// <paramref name="populatePlayerCity"/> à false : la carte est générée à l'identique et le
     /// vertex de départ résolu (voir <see cref="LastSurfaceStartVertex"/>), mais aucune ville n'y est
     /// posée — le cas des races démarrant dans l'Inframonde (RaceDefinition.StartsInUnderworld).
@@ -41,7 +46,8 @@ public class IslandMapGenerator
         IslandShapeGenerator? shapeGenerator = null,
         HexCoord? preferredStartHex = null,
         TerrainType startVertexTerrain = TerrainType.Hill,
-        bool populatePlayerCity = true)
+        bool populatePlayerCity = true,
+        TerrainType startVertexThirdTerrain = TerrainType.Water)
     {
         LastSurfaceStartVertex = null;
 
@@ -59,6 +65,16 @@ public class IslandMapGenerator
         // Repli sur la Colline si le pool de terrains de l'île ne contient pas le terrain demandé.
         if (!tileList.Contains(startVertexTerrain))
             startVertexTerrain = TerrainType.Hill;
+
+        // Même repli pour un triangle de départ intérieur : sans tuile du terrain demandé dans le
+        // pool, la race repasse par le vertex de bord d'île standard plutôt que de se retrouver sans
+        // ville de départ du tout.
+        bool inlandStart = startVertexThirdTerrain != TerrainType.Water;
+        if (inlandStart && !tileList.Contains(startVertexThirdTerrain))
+        {
+            startVertexThirdTerrain = TerrainType.Water;
+            inlandStart = false;
+        }
 
         bool hasPrimary = tileList.Contains(startVertexTerrain);
         bool hasForest = tileList.Contains(TerrainType.Forest);
@@ -81,7 +97,12 @@ public class IslandMapGenerator
             : null);
 
         if (hasPrimary && hasForest)
-            EnsureStartPairNearEdge(terrainDict, coordSet, startHex, startVertexTerrain);
+        {
+            if (inlandStart)
+                EnsureStartTriangleInland(terrainDict, coordSet, startHex, startVertexTerrain, startVertexThirdTerrain);
+            else
+                EnsureStartPairNearEdge(terrainDict, coordSet, startHex, startVertexTerrain);
+        }
 
         // Build land tiles
         var tiles = new List<HexTile>(terrainDict.Count);
@@ -101,7 +122,7 @@ public class IslandMapGenerator
             tiles.Add(new HexTile(wc, TerrainType.Water));
 
         var map = new IslandMap(tiles);
-        var vertex = hasPrimary && hasForest ? FindVertexAdjacentToHillForestWater(map, startVertexTerrain) : null;
+        var vertex = hasPrimary && hasForest ? FindStartVertex(map, startVertexTerrain, startVertexThirdTerrain) : null;
         LastSurfaceStartVertex = vertex;
 
         if (vertex != null && populatePlayerCity)
@@ -114,8 +135,9 @@ public class IslandMapGenerator
     /// Vertex de départ du joueur en surface résolu par le dernier appel à <see cref="GenerateIsland"/>
     /// (null si la carte n'en garantit aucun). Mémorisé même quand la ville n'est pas posée : c'est
     /// ce qui permet aux races démarrant dans l'Inframonde de retrouver plus tard leur point
-    /// d'arrivée en surface, avec toutes les garanties d'EnsureStartPairNearEdge (bord d'île,
-    /// terrain racial + Forêt + Eau) — voir LayerState.ArrivalVertex et la Percée de Surface.
+    /// d'arrivée en surface, avec toutes les garanties du triangle de départ de leur race (bord
+    /// d'île + terrain racial + Forêt + Eau par défaut, voir EnsureStartPairNearEdge) — voir
+    /// LayerState.ArrivalVertex et la Percée de Surface.
     /// </summary>
     public Vertex? LastSurfaceStartVertex { get; private set; }
 
@@ -124,15 +146,16 @@ public class IslandMapGenerator
     /// The shape generator is chosen from parameters.ShapeType. <paramref name="surfaceCorruptionLevel"/>
     /// gives each land hex (outside the player's starting city) a 10%-per-level chance of being
     /// corrupted, with the corruption level itself rolled the same way as in auto-expand layers.
-    /// <paramref name="race"/> : race jouée, dont sont tirés le terrain accompagnant la Forêt sur le
-    /// vertex de départ (Colline par défaut ; Montagne pour les Nains — voir
-    /// RaceDefinition.StartVertexTerrain) et le départ souterrain éventuel
-    /// (RaceDefinition.StartsInUnderworld — Elfes noirs). Null = Humains par défaut.
+    /// <paramref name="race"/> : race jouée, dont sont tirés les deux terrains accompagnant la Forêt
+    /// sur le vertex de départ (Colline et Eau par défaut ; Montagne et Colline pour les Nains —
+    /// voir RaceDefinition.StartVertexTerrain et StartVertexThirdTerrain) et le départ souterrain
+    /// éventuel (RaceDefinition.StartsInUnderworld — Elfes noirs). Null = Humains par défaut.
     /// </summary>
     public WorldState? GenerateWorldState(IslandParameters parameters, long currentTick, long startTick = 0, int surfaceCorruptionLevel = 0, int tier = 1, RaceDefinition? race = null)
     {
         var shapeGenerator = CreateShapeGenerator(parameters.ShapeType);
         var startVertexTerrain = race?.StartVertexTerrain ?? TerrainType.Hill;
+        var startVertexThirdTerrain = race?.StartVertexThirdTerrain ?? TerrainType.Water;
         bool startsInUnderworld = race?.StartsInUnderworld == true;
 
         var civs = new List<Civilization> { new Civilization { Index = 0 } };
@@ -146,7 +169,8 @@ public class IslandMapGenerator
 
         var map = GenerateIsland(parameters.TileData, civs, shapeGenerator,
             startVertexTerrain: startVertexTerrain,
-            populatePlayerCity: !startsInUnderworld);
+            populatePlayerCity: !startsInUnderworld,
+            startVertexThirdTerrain: startVertexThirdTerrain);
         if (map is null) return null;
 
         var surfaceStartVertex = LastSurfaceStartVertex;
@@ -715,33 +739,136 @@ public class IslandMapGenerator
         }
 
         if (tA == primary && tB == TerrainType.Forest)
-            EnsureMountainPlainNearStart(terrainDict, coordSet, hexA, hexB);
+            EnsureMountainPlainNearStart(terrainDict, coordSet, new[] { hexA, hexB });
     }
 
     /// <summary>
-    /// Swaps terrain so the land hexes adjacent to the starting Hill/Forest hexes contain both a
-    /// Mountain and a Plain tile (one each), pulling tiles in from elsewhere in the terrain pool
-    /// if needed. No-ops if Mountain/Plain tiles aren't available anywhere, or there's no adjacent
-    /// land slot to put them on.
+    /// Garantit un triangle de départ entièrement terrestre portant <paramref name="primary"/>,
+    /// Forêt et <paramref name="third"/> — la variante intérieure d'<see cref="EnsureStartPairNearEdge"/>,
+    /// pour une race dont le vertex de départ ne comporte pas d'Eau (Montagne/Forêt/Colline pour les
+    /// Nains, voir RaceDefinition.StartVertexThirdTerrain). Le triangle retenu est le plus proche de
+    /// <paramref name="preferredHex"/>, pour que la ville de départ tombe dans la même région de
+    /// l'île que pour les autres races (le point préféré est une extrémité, souvent sur le bord :
+    /// aucun triangle terrestre ne le touche nécessairement).
+    ///
+    /// <para>Les tuiles manquantes sont échangées depuis ailleurs sur la carte. L'échange conserve
+    /// le pool de terrains, donc aucun terrain encore attendu ne peut disparaître en cours de route.
+    /// No-op s'il n'existe aucun triangle de 3 hexes de terre.</para>
+    /// </summary>
+    private static void EnsureStartTriangleInland(
+        Dictionary<HexCoord, TerrainType> terrainDict,
+        HashSet<HexCoord> coordSet,
+        HexCoord? preferredHex,
+        TerrainType primary,
+        TerrainType third)
+    {
+        var hexes = FindInlandTriangle(coordSet, preferredHex);
+        if (hexes is null) return;
+
+        var needed = new List<TerrainType> { primary, TerrainType.Forest, third };
+
+        // Les hexes portant déjà l'un des terrains demandés sont gardés tels quels ; les autres
+        // seront les cibles des échanges.
+        var freeHexes = new List<HexCoord>(3);
+        foreach (var hex in hexes)
+            if (!needed.Remove(terrainDict[hex]))
+                freeHexes.Add(hex);
+
+        for (int i = 0; i < needed.Count; i++)
+        {
+            var terrain = needed[i];
+            var sourceCoord = terrainDict.Keys
+                .Where(c => !hexes.Contains(c) && terrainDict[c] == terrain)
+                .Select(c => (HexCoord?)c)
+                .FirstOrDefault();
+            if (sourceCoord is null) return; // pool épuisé : pas de vertex de départ garanti
+
+            var target = freeHexes[i];
+            terrainDict[sourceCoord.Value] = terrainDict[target];
+            terrainDict[target] = terrain;
+        }
+
+        EnsureMountainPlainNearStart(terrainDict, coordSet, hexes);
+    }
+
+    /// <summary>
+    /// Triangle de 3 hexes de terre mutuellement adjacents le plus proche de
+    /// <paramref name="preferredHex"/> (n'importe lequel si null), null si l'île n'en contient
+    /// aucun. Le tri final sur les coordonnées rend le choix indépendant de l'ordre d'énumération
+    /// du HashSet.
+    /// </summary>
+    private static List<HexCoord>? FindInlandTriangle(HashSet<HexCoord> coordSet, HexCoord? preferredHex)
+    {
+        List<HexCoord>? best = null;
+        int bestDistance = int.MaxValue;
+
+        foreach (var a in coordSet)
+        {
+            foreach (var d in HexDirectionUtils.AllHexDirections)
+            {
+                var b = a.Neighbor(d);
+                if (!coordSet.Contains(b)) continue;
+
+                var c = a.Neighbor(d.Next());
+                if (!coordSet.Contains(c)) continue;
+
+                int distance = preferredHex is { } p
+                    ? Math.Min(a.DistanceTo(p), Math.Min(b.DistanceTo(p), c.DistanceTo(p)))
+                    : 0;
+                if (distance > bestDistance) continue;
+
+                var candidate = new List<HexCoord> { a, b, c };
+                if (distance < bestDistance || CompareCoords(candidate, best!) < 0)
+                {
+                    best = candidate;
+                    bestDistance = distance;
+                }
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>Ordre total sur deux triangles, pour départager deux candidats à égale distance.</summary>
+    private static int CompareCoords(List<HexCoord> left, List<HexCoord> right)
+    {
+        for (int i = 0; i < left.Count; i++)
+        {
+            int byQ = left[i].Q.CompareTo(right[i].Q);
+            if (byQ != 0) return byQ;
+            int byR = left[i].R.CompareTo(right[i].R);
+            if (byR != 0) return byR;
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Swaps terrain so the land hexes adjacent to the starting hexes contain both a Mountain and a
+    /// Plain tile (one each), pulling tiles in from elsewhere in the terrain pool if needed. No-ops
+    /// if Mountain/Plain tiles aren't available anywhere, or there's no adjacent land slot to put
+    /// them on. Un terrain déjà porté par un hex de départ (la Montagne du triangle nain) n'est pas
+    /// redemandé en voisinage : il est déjà sous la main.
     /// </summary>
     private static void EnsureMountainPlainNearStart(
         Dictionary<HexCoord, TerrainType> terrainDict,
         HashSet<HexCoord> coordSet,
-        HexCoord hillHex,
-        HexCoord forestHex)
+        IReadOnlyList<HexCoord> startHexes)
     {
         var candidates = HexDirectionUtils.AllHexDirections
-            .SelectMany(d => new[] { hillHex.Neighbor(d), forestHex.Neighbor(d) })
-            .Where(c => coordSet.Contains(c) && !c.Equals(hillHex) && !c.Equals(forestHex))
+            .SelectMany(d => startHexes.Select(h => h.Neighbor(d)))
+            .Where(c => coordSet.Contains(c) && !startHexes.Contains(c))
             .Distinct()
             .ToList();
 
         if (candidates.Count == 0) return;
 
-        var excludedFromSource = new HashSet<HexCoord>(candidates) { hillHex, forestHex };
+        var excludedFromSource = new HashSet<HexCoord>(candidates);
+        foreach (var hex in startHexes)
+            excludedFromSource.Add(hex);
 
-        EnsureTerrainAtOneOf(terrainDict, candidates, excludedFromSource, TerrainType.Mountain);
-        EnsureTerrainAtOneOf(terrainDict, candidates, excludedFromSource, TerrainType.Plain);
+        foreach (var terrain in new[] { TerrainType.Mountain, TerrainType.Plain })
+            if (!startHexes.Any(h => terrainDict[h] == terrain))
+                EnsureTerrainAtOneOf(terrainDict, candidates, excludedFromSource, terrain);
     }
 
     /// <summary>
@@ -920,9 +1047,12 @@ public class IslandMapGenerator
     }
 
     /// <summary>
-    /// Finds a vertex adjacent to <paramref name="primary"/> (Hill by default), Forest, and Water tiles.
+    /// Finds a vertex adjacent to <paramref name="primary"/> (Hill by default), Forest, and
+    /// <paramref name="third"/> (Water by default — une terre pour un départ intérieur, la Colline
+    /// des Nains) tiles.
     /// </summary>
-    static public Vertex? FindVertexAdjacentToHillForestWater(IslandMap map, TerrainType primary = TerrainType.Hill)
+    static public Vertex? FindStartVertex(IslandMap map, TerrainType primary = TerrainType.Hill,
+        TerrainType third = TerrainType.Water)
     {
         var coordToTerrain = map.Tiles.ToDictionary(t => t.Key, t => t.Value.TerrainType);
         foreach (var kvp in map.Tiles)
@@ -938,12 +1068,12 @@ public class IslandMapGenerator
 
                 var c = a.Neighbor(d.Next());
                 var terrainC = coordToTerrain.TryGetValue(c, out var tc) ? tc : TerrainType.Desert;
-                if (terrainC == TerrainType.Water)
+                if (terrainC == third)
                     return Vertex.Create(a, b, c);
 
                 c = a.Neighbor(d.Previous());
                 terrainC = coordToTerrain.TryGetValue(c, out tc) ? tc : TerrainType.Desert;
-                if (terrainC == TerrainType.Water)
+                if (terrainC == third)
                     return Vertex.Create(a, b, c);
             }
         }
