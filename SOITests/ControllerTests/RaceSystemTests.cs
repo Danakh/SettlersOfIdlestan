@@ -1139,6 +1139,12 @@ public class RaceSystemTests
         var playerCiv = controller.CurrentMainState.CurrentWorldState!.PlayerCivilization;
         Assert.True(playerCiv.ModifierAggregator.HasModifier(ECategory.CITY_PLACEMENT_TERRAIN_RANGE, nameof(TerrainType.Water)));
         Assert.True(playerCiv.ModifierAggregator.HasModifier(ECategory.INLAND_CITY_LEVEL_CAP, nameof(TerrainType.Water)));
+        // Balises Maritimes gratuites, et routes maritimes non par un modifier de race mais par le
+        // vertex de prestige Routes Maritimes offert — comme l'Entraînement de Siège des Orcs.
+        Assert.True(playerCiv.ModifierAggregator.HasModifier(ECategory.MARITIME_BEACON_FREE));
+        Assert.Empty(MaritimeBeaconController.GetBuildCost(playerCiv));
+        Assert.Contains(PrestigeMap.MaritimeRoutesVertex, controller.CurrentMainState.PrestigeState!.PurchasedVertices);
+        Assert.True(playerCiv.ModifierAggregator.HasModifier(ECategory.UNLOCK_MARITIME_ROUTES));
     }
 
     // ── Plafond de l'Hôtel de Ville par ville (INLAND_CITY_LEVEL_CAP, Sirènes) ──

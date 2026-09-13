@@ -36,8 +36,8 @@ public class AbyssGate : Monument
     public static ResourceSet GetGateCost() => new ResourceSet
     {
         { Resource.Gold,     50000 },
-        { Resource.Crystal,   3000 },
-        { Resource.Mithril,    500 },
+        { Resource.Crystal,  10000 },
+        { Resource.Mithril,   5000 },
     };
 
     public override ResourceSet GetBaseInvestmentCost(SettlersOfIdlestan.Model.Civilization.Civilization playerCiv) => GetGateCost();

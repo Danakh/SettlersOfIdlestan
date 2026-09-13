@@ -150,7 +150,7 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
                 return;
 
             _tooltipTexts = new string[] { _localizationService.Get("maritime_beacon_construction") };
-            _tooltipCost = MaritimeBeaconController.GetBuildCost();
+            _tooltipCost = MaritimeBeaconController.GetBuildCost(_gameControllerService.PlayerCivilization);
             _tooltipResearchCost = null;
 
             var islandPosition = _islandRendererContext.VertexToIslandPoint(beaconPosition);

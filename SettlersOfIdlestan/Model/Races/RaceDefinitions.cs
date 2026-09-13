@@ -197,7 +197,12 @@ public static class RaceDefinitions
         // bâtiment de palier 3-4 (Académie, Laboratoire, Arsenal, Fonderie, Forge Volcanique,
         // guildes, bâtiments raciaux…) pour elles. Voir
         // BuildingController.GetMaxLevel(Building, Civilization, City) et
-        // CityBuilderController.GetVerticesWithinRangeOfTerrain. Déblocage : Inventaire Divin
+        // CityBuilderController.GetVerticesWithinRangeOfTerrain. Leurs Balises Maritimes ne coûtent
+        // rien (MARITIME_BEACON_FREE) et les routes maritimes leur sont offertes par le vertex de
+        // prestige Routes Maritimes, versé gratuitement à chaque Ascension comme l'Entraînement de
+        // Siège des Orcs (voir freePrestigeVertices ci-dessous) plutôt que par un modifier
+        // UNLOCK_MARITIME_ROUTES de la race : c'est ce qui le fait apparaître acquis sur la carte de
+        // prestige, où il sert de point d'appui pour la contiguïté. Déblocage : Inventaire Divin
         // (partagé avec les Géants), Conquête Divine (partagé avec les Garudas), Purification
         // Supérieure (partagé avec les Elfes noirs — les deux peuples vivent en marge du monde de
         // surface, proches des reliques enfouies).
@@ -209,10 +214,11 @@ public static class RaceDefinitions
                 new Modifier(ECategory.CITY_PLACEMENT_TERRAIN_RANGE, nameof(TerrainType.Water), EType.ADDITIVE, 2),
                 new Modifier(ECategory.CITY_MIN_DISTANCE, EType.REPLACER, 2),
                 new Modifier(ECategory.NEW_CITY_COST_REDUCTION, EType.ADDITIVE, 0.25),
-                new Modifier(ECategory.UNLOCK_MARITIME_ROUTES, EType.ADDITIVE, 1),
+                new Modifier(ECategory.MARITIME_BEACON_FREE, EType.ADDITIVE, 1),
                 new Modifier(ECategory.INLAND_CITY_LEVEL_CAP, nameof(TerrainType.Water), EType.ADDITIVE, 2),
                 new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.PearlGrotto), EType.ADDITIVE, 1),
             },
+            freePrestigeVertices: new[] { PrestigeMap.MaritimeRoutesVertex },
             requiredPowers: new[] { AscensionPowerId.DivineInventory, AscensionPowerId.DivineConquest, AscensionPowerId.GreaterPurification }),
 
         // Elfes noirs : peuple des profondeurs — commencent dans l'Inframonde sur un triangle

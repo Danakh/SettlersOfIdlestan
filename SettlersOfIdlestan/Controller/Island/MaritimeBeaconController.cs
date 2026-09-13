@@ -38,11 +38,26 @@ namespace SettlersOfIdlestan.Controller.Island
         internal void PurgeCivilizationCaches(int civilizationIndex)
             => _buildableVerticesCache.Remove(civilizationIndex);
 
-        public static ResourceSet GetBuildCost() => new()
+        /// <summary>
+        /// Coût de construction d'une Balise Maritime, gratuit pour une civilisation portant
+        /// <see cref="ECategory.MARITIME_BEACON_FREE"/> (Sirènes) — même forme que
+        /// <see cref="CityBuilderController.RelocationCost"/>. La civilisation est un paramètre
+        /// obligatoire et non une surcharge « allégée » : un appelant qui prendrait une variante sans
+        /// civilisation afficherait ou facturerait silencieusement le plein tarif à une race qui en
+        /// est exemptée. Passer <c>null</c> explicitement quand aucune civilisation n'est en contexte
+        /// (tarif de référence) — voir TooltipRenderer.SetMaritimeBeaconConstructionTooltip.
+        /// </summary>
+        public static ResourceSet GetBuildCost(Civilization? civ)
         {
-            { Resource.Glass, 10 },
-            { Resource.Wood, 10 },
-        };
+            if (civ != null && civ.ModifierAggregator.HasModifier(ECategory.MARITIME_BEACON_FREE))
+                return new ResourceSet();
+
+            return new ResourceSet
+            {
+                { Resource.Glass, 10 },
+                { Resource.Wood, 10 },
+            };
+        }
 
         /// <summary>Débloqué par le Grand Phare niveau 2 (voir GreatLighthouseController.GetGreatLighthouseLevel).</summary>
         public bool AreMaritimeBeaconsUnlocked()
@@ -129,7 +144,7 @@ namespace SettlersOfIdlestan.Controller.Island
             if (!GetBuildableVertices(civilizationIndex).Any(v => v.Equals(vertex)))
                 throw new InvalidOperationException("Vertex not buildable by this civilization");
 
-            var cost = GetBuildCost();
+            var cost = GetBuildCost(civ);
             if (!civ.CanPayResourceCost(cost))
                 return null;
 

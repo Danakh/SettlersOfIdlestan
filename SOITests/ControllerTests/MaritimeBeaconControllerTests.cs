@@ -2,6 +2,7 @@ using SettlersOfIdlestan.Controller.Generator;
 using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
+using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -38,6 +39,16 @@ public class MaritimeBeaconControllerTests
         civ.AddRoad(new Road(Edge.Create(h1, h2)) { CivilizationIndex = 0 });
 
         return (state, civ, vertex);
+    }
+
+    private sealed class FlatModifierProvider : IModifierProvider
+    {
+        private readonly List<Modifier> _mods;
+        public FlatModifierProvider(params Modifier[] mods) => _mods = new(mods);
+        public IEnumerable<Modifier> GetModifiers() => _mods;
+#pragma warning disable CS0067
+        public event System.Action? OnModifiersChanged;
+#pragma warning restore CS0067
     }
 
     private static MaritimeBeaconController Controller(WorldState state)
@@ -253,8 +264,26 @@ public class MaritimeBeaconControllerTests
     [Fact]
     public void GetBuildCost_ReturnsFixedValues()
     {
-        var cost = MaritimeBeaconController.GetBuildCost();
+        var cost = MaritimeBeaconController.GetBuildCost(null);
         Assert.Equal(10, cost[Resource.Glass]);
         Assert.Equal(10, cost[Resource.Wood]);
+    }
+
+    /// <summary>MARITIME_BEACON_FREE (Sirènes) rend la balise gratuite : coût vide, et la
+    /// construction aboutit sans une ressource en caisse.</summary>
+    [Fact]
+    public void GetBuildCost_WithMaritimeBeaconFree_IsEmpty()
+    {
+        var (state, civ, vertex) = WaterTriangleIsland(greatLighthouseLevel: 2);
+        civ.ModifierAggregator.Register(new FlatModifierProvider(
+            new Modifier(Modifier.ECategory.MARITIME_BEACON_FREE, Modifier.EType.ADDITIVE, 1)));
+
+        // Aucune ressource versée : sans le modifier, la balise coûterait 10 Verre et 10 Bois.
+        Assert.Empty(MaritimeBeaconController.GetBuildCost(civ));
+
+        var beacon = Controller(state).BuildMaritimeBeacon(0, vertex);
+
+        Assert.NotNull(beacon);
+        Assert.Single(civ.MaritimeBeacons);
     }
 }

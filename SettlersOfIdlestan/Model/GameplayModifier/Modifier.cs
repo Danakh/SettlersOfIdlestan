@@ -344,6 +344,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             ADVENTURER_ATTACK_DAMAGE_BONUS,
             /// <summary>Flags que les Balises Maritimes peuvent être posées sur un vertex dont les 3 hexs sont de l'Eau et/ou de l'Eau profonde (au lieu d'exiger les 3 en Eau non profonde stricte, voir MaritimeBeaconController.GetBuildableVertices), et que les arêtes de route touchant l'Eau profonde restent constructibles si elles rejoignent une Balise Maritime de la civilisation (voir RoadController.EdgeTouchesDeepWater). SubCategory unused. Accordé par la Grotte aux Perles (Sirènes).</summary>
             MARITIME_BEACON_DEEP_WATER_PLACEMENT,
+            /// <summary>Flags que la construction d'une Balise Maritime ne coûte plus aucune ressource (voir MaritimeBeaconController.GetBuildCost). SubCategory unused. Accordé par la race des Sirènes.</summary>
+            MARITIME_BEACON_FREE,
             /// <summary>Réduction du malus de profondeur appliqué à la production des Temples (voir CorruptionController.GetDominionLayerDivisorMilli), par couche franchie. Base = 0.0, soit un malus de 2 par couche (÷2 Inframonde, ÷4 Abysses, ÷8 Pandémonium) ; 0.5 ramène le malus à 1,5 par couche (÷1,5 / ÷2,25 / ÷3,375). Jamais sous 1 (aucun malus). SubCategory unused. Accordé par le Dogme de l'Emprise.</summary>
             DOMINION_LAYER_PENALTY_REDUCTION,
             /// <summary>Bonus de vitesse de la Fonderie par niveau de Dominion sur les 3 hexs de sa ville. Base = 0.0 ; s'ajoute au multiplicateur SMELTER_SPEED après multiplication par la somme des niveaux de Dominion autour de la ville — même calcul que DOMINION_DEFENSE_REGEN_PER_LEVEL (voir HarvestController.GetEffectiveSmelterCooldown). SubCategory unused. Accordé par le Creuset du Dominion.</summary>
