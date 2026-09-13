@@ -105,6 +105,16 @@ namespace SettlersOfIdlestan.Controller.Island
 
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _buildableVerticesCache.Clear();
+            // Les deux caches sont indexés sur WorldState.TerrainVersion, qui repart de 0 avec chaque
+            // nouveau WorldState (champ non persisté, voir WorldState.TerrainVersion) : sans purge
+            // explicite, une entrée calculée sur l'île précédente a exactement la même clé
+            // ((Z, terrain, portée) pour l'une, l'index de civilisation pour l'autre) et la même
+            // version, donc elle survit au prestige, à l'Ascension et au chargement d'une sauvegarde.
+            // Le contrôleur, lui, vit aussi longtemps que MainGameController. Pour
+            // _terrainRangeVerticesCache c'est la carte entière de l'île précédente qui reste en
+            // vigueur : les Sirènes (seule source de CITY_PLACEMENT_TERRAIN_RANGE) se voyaient refuser
+            // des vertex côtiers de la nouvelle île, et en accepter d'autres loin de toute eau.
+            _terrainRangeVerticesCache.Clear();
             _clock = clock;
             if (prng != null) _prng = prng;
 

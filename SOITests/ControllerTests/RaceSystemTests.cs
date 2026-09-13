@@ -1122,6 +1122,35 @@ public class RaceSystemTests
         Assert.Contains(controller.GetBuildableVertices(0), v => v.Equals(v1));
     }
 
+    /// <summary>
+    /// Le cache de portée de terrain est indexé sur (couche, terrain, portée) + TerrainVersion, et
+    /// TerrainVersion repart de 0 avec chaque nouveau WorldState (champ non persisté) : réinitialisé
+    /// sur une autre île, un CityBuilderController — qui vit aussi longtemps que MainGameController,
+    /// donc traverse prestige, Ascension et chargement de sauvegarde — retrouvait une entrée de clé
+    /// et de version identiques, calculée sur la carte précédente. Les Sirènes se voyaient alors
+    /// refuser des vertex bel et bien côtiers de la nouvelle île.
+    /// </summary>
+    [Fact]
+    public void GetBuildableVertices_TerrainRange_CacheClearedWhenControllerMovesToAnotherIsland()
+    {
+        var mermaidRange = new Modifier(ECategory.CITY_PLACEMENT_TERRAIN_RANGE, nameof(TerrainType.Water), EType.ADDITIVE, 2);
+
+        // Île 1 : aucune Eau, donc aucun vertex dans la portée.
+        var (firstState, firstCiv, _, _, _) = RibbonIsland();
+        AddRaceModifiers(firstCiv, mermaidRange);
+        var controller = Controller(firstState);
+        Assert.Empty(controller.GetBuildableVertices(0));
+
+        // Île 2 (même contrôleur, TerrainVersion de nouveau à 0) : h1 est de l'Eau, v1 la touche.
+        var (secondState, secondCiv, v1, _, _) = RibbonIsland();
+        var h1 = H(0, 0);
+        secondState.GetMapFor(h1)!.GetTile(h1)!.TerrainType = TerrainType.Water;
+        AddRaceModifiers(secondCiv, mermaidRange);
+        controller.Initialize(secondState);
+
+        Assert.Contains(controller.GetBuildableVertices(0), v => v.Equals(v1));
+    }
+
     [Fact]
     public void PerformAscension_Mermaid_AfterSecondRow_AppliesModifiersToPlayerCivilization()
     {

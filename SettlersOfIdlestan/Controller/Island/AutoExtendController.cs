@@ -249,6 +249,11 @@ public class AutoExtendController
 
         if (newHexes == null) return;
 
+        // De nouvelles tuiles = du terrain qui n'existait pas : les caches dérivés du terrain
+        // (CityBuilderController.GetVerticesWithinRangeOfTerrain, portées de placement des Sirènes)
+        // ne se réveillent que sur cette version — voir WorldState.NotifyTerrainChanged.
+        _state!.NotifyTerrainChanged();
+
         _state!.Visibility.RecalculateForLayer(playerCiv.Index, z);
 
         foreach (var newHex in newHexes)
@@ -285,6 +290,11 @@ public class AutoExtendController
 
             foreach (var newTile in newTiles)
                 map.AddTile(newTile);
+
+            // Voir TryExtendMapsToPlayerVision : une île de l'Abysse qui apparaît est du terrain neuf,
+            // et l'Abysse est soumis aux portées de placement raciales comme la surface (voir
+            // CityBuilderController.BuildTerrainRangeSets, qui n'exempte que l'Inframonde).
+            _state.NotifyTerrainChanged();
 
             PlaceDivineBones(newTiles);
             var tentacle = PlaceTentacle(newTiles, layerState);
@@ -595,7 +605,12 @@ public class AutoExtendController
         }
 
         if (newHexes.Count > 0)
+        {
+            // Voir TryExtendMapsToPlayerVision : du terrain neuf, donc les caches indexés sur
+            // WorldState.TerrainVersion doivent repartir.
+            _state.NotifyTerrainChanged();
             _state.Visibility.RecalculateFor(civIndex);
+        }
 
         if (layerState.ArrivalVertex == null) return;
         if (civIndex != _state.PlayerCivilization.Index) return;
@@ -802,6 +817,10 @@ public class AutoExtendController
         }
 
         if (extraHexes.Count == 0) return;
+
+        // Voir TryExtendMapsToPlayerVision : du terrain neuf, donc les caches indexés sur
+        // WorldState.TerrainVersion doivent repartir.
+        _state.NotifyTerrainChanged();
 
         // Cherche les vertex valides pour les villes (≥2 hexes sur la carte, non visibles)
         var candidateVertices = FindCandidateCityVertices(extraHexes, map, playerVisibleHexesBefore, z);
