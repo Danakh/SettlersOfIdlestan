@@ -22,7 +22,7 @@ public sealed class ResearchRenderer : IGameRenderer
     private const float RowSpacing = 76f;
     private const float PanelPadding = 16f;
     private float _topOffset = PlayerResourcesOverlayRenderer.BarHeight + 8f;
-    private const float HeaderHeight = 32f;
+    private const float HeaderHeight = 34f;
 
     private const float MinZoom = 0.4f;
     private const float MaxZoom = 2.5f;
@@ -30,8 +30,10 @@ public sealed class ResearchRenderer : IGameRenderer
     private const float PanThresholdSq = 16f;
     private const float PanClampMargin = 100f;
 
-    private const float CancelBtnWidth = 90f;
-    private const float CancelBtnHeight = 22f;
+    private const float CancelBtnWidth = 130f;
+    private const float CancelBtnHeight = 30f;
+    /// <summary>Écart vertical entre les deux lignes du libellé du bouton d'arrêt.</summary>
+    private const float CancelBtnLineSpacing = 11f;
     private const double DoubleClickMaxMs = 400.0;
     private const float DoubleClickMaxDist = 20f;
 
@@ -219,8 +221,11 @@ public sealed class ResearchRenderer : IGameRenderer
             _cancelButtonRect = new SKRect(btnX, btnY, btnX + CancelBtnWidth, btnY + CancelBtnHeight);
             canvas.DrawRoundRect(_cancelButtonRect, 4, 4, _cancelBtnBgPaint);
             canvas.DrawRoundRect(_cancelButtonRect, 4, 4, _cancelBtnBorderPaint);
-            string cancelLabel = _localization.Get("research_cancel_button");
-            SkiaTextUtils.DrawText(canvas, cancelLabel, _cancelButtonRect.MidX, _cancelButtonRect.MidY + 4f, SKTextAlign.Center, _smallFont, _textPaint);
+            // Libellé sur deux lignes : la clé de localisation porte le saut de ligne.
+            string[] cancelLines = _localization.Get("research_cancel_button").Split('\n');
+            float firstBaseline = _cancelButtonRect.MidY + 4f - (cancelLines.Length - 1) * CancelBtnLineSpacing / 2f;
+            for (int i = 0; i < cancelLines.Length; i++)
+                SkiaTextUtils.DrawText(canvas, cancelLines[i], _cancelButtonRect.MidX, firstBaseline + i * CancelBtnLineSpacing, SKTextAlign.Center, _smallFont, _textPaint);
         }
         else
         {

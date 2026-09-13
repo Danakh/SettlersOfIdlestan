@@ -164,6 +164,38 @@ public class ResearchControllerTests
         Assert.Equal(30, ctrl.ResearchPoints); // 10 restants + moitié des 40 investis (20)
     }
 
+    /// <summary>
+    /// « Arrêter l'investissement » coupe tout : la file d'attente est vidée et aucune recherche
+    /// suivante ne démarre à la place de celle annulée.
+    /// </summary>
+    [Fact]
+    public void CancelResearch_ClearsQueue_AndStartsNothing()
+    {
+        var civ = new Civilization { Index = 0 };
+        var city = new City(CityVertex) { CivilizationIndex = 0 };
+        civ.AddCity(city);
+        civ.AddCustomAggregator(new StaticModifierProvider(
+            new[] { new Modifier(Modifier.ECategory.UNLOCK_RESEARCH_CANCEL, Modifier.EType.ADDITIVE, 1) }));
+
+        var state = new WorldState(MinimalMap(), [civ], AtlasController.InvalidIslandId);
+        var prestigeState = new PrestigeState(state);
+
+        var clock = new GameClock();
+        clock.Start();
+        var ctrl = new ResearchController();
+        ctrl.Initialize(state, clock, prestigeState);
+
+        var tree = prestigeState.TechnologyTree;
+        tree.ActiveResearch = TechnologyId.MasterResearch;
+        tree.ActiveResearchConsumed = 40;
+        tree.ResearchQueue.Add(TechnologyId.MasterHarvest);
+
+        Assert.True(ctrl.CancelResearch());
+
+        Assert.Null(ctrl.ActiveResearch);
+        Assert.Empty(ctrl.GetResearchQueue());
+    }
+
     [Fact]
     public void CancelResearch_ReturnsFalse_WhenNoActiveResearch()
     {

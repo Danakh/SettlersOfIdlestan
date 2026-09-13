@@ -67,6 +67,15 @@ internal class ReinforcementEngine
     }
 
     /// <summary>
+    /// Vrai si la civilisation expédie ses renforts sans route (UNLOCK_ROADLESS_REINFORCEMENT,
+    /// Trône des Vents) : à défaut de chemin routier, les soldats volent en ligne droite jusqu'à la
+    /// cible. La portée de renfort (REINFORCEMENT_RANGE) continue de s'appliquer, seul le réseau
+    /// routier cesse d'être exigé.
+    /// </summary>
+    internal static bool HasRoadlessReinforcement(Civilization civ)
+        => civ.ModifierAggregator.HasModifier(ECategory.UNLOCK_ROADLESS_REINFORCEMENT);
+
+    /// <summary>
     /// Vrai si l'Arbre-Cœur relie ces deux villes par la Forêt (UNLOCK_FOREST_REINFORCEMENT_LINK) :
     /// deux villes de la civilisation, sur le même plan, toutes deux adjacentes à une case Forêt.
     /// La Forêt <b>est</b> le chemin : ni la portée (REINFORCEMENT_RANGE) ni le réseau routier
@@ -116,6 +125,7 @@ internal class ReinforcementEngine
         {
             long interval = EffectiveReinforcementInterval(civ);
             int range = ReinforcementRange(civ);
+            bool roadless = HasRoadlessReinforcement(civ);
 
             // Lookup O(1) par position — évite FirstOrDefault O(n) pour chaque source. L'index est
             // construit paresseusement, à la première source réellement prête à expédier : à 2 ticks
@@ -158,9 +168,27 @@ internal class ReinforcementEngine
 
                 var adj = GetAdjacency(civ, sourceVertex.Position.Z);
                 var roadPath = RoadPathfinder.FindPathInGraph(adj, sourceVertex.Position, targetVertex.Position, range);
-                if (roadPath == null) continue;
 
-                int roadSegments = roadPath.Count - 1;
+                int roadSegments;
+                if (roadPath != null)
+                {
+                    roadSegments = roadPath.Count - 1;
+                }
+                else
+                {
+                    // Renfort aérien du Trône des Vents : aucune route ne relie les deux emplacements,
+                    // les soldats volent donc en ligne droite. La portée reste celle du renfort normal
+                    // et le vol dure autant de segments qu'il y a d'arêtes à franchir — soit au plus
+                    // ce qu'aurait coûté une route, jamais davantage.
+                    if (!roadless) continue;
+                    if (sourceVertex.Position.Z != targetVertex.Position.Z) continue;
+
+                    int edgeDistance = sourceVertex.Position.EdgeDistanceTo(targetVertex.Position);
+                    if (edgeDistance > range) continue;
+
+                    roadPath = new List<Vertex> { sourceVertex.Position, targetVertex.Position };
+                    roadSegments = edgeDistance;
+                }
 
                 // Le slot est réservé immédiatement : garnison + en-transit ne doit pas dépasser la capacité max
                 int effectiveTarget = targetVertex.Soldiers + targetVertex.IncomingSoldiers.Count;
@@ -232,6 +260,7 @@ internal class ReinforcementEngine
         foreach (var v in civ.MilitaryVertices) ownByPosition.TryAdd(v.Position, v);
 
         int range = ReinforcementRange(civ);
+        bool roadless = HasRoadlessReinforcement(civ);
 
         foreach (var vertex in civ.MilitaryVertices)
         {
@@ -255,7 +284,7 @@ internal class ReinforcementEngine
                 IMilitaryVertex? currentTarget = vertex.FlowTarget != null
                     && ownByPosition.TryGetValue(vertex.FlowTarget, out var existing) ? existing : null;
 
-                IMilitaryVertex? target = currentTarget != null && IsEligibleTarget(currentTarget, vertex, civ, z, range, reachable)
+                IMilitaryVertex? target = currentTarget != null && IsEligibleTarget(currentTarget, vertex, civ, z, range, reachable, roadless)
                     ? currentTarget : null;
                 int fewestSoldiers = target?.Soldiers ?? vertex.Soldiers;
 
@@ -265,7 +294,7 @@ internal class ReinforcementEngine
                     var friendly = candidates[i];
                     if (friendly == target) continue;
                     if (friendly.Soldiers > fewestSoldiers) continue;
-                    if (!IsEligibleTarget(friendly, vertex, civ, z, range, reachable)) continue;
+                    if (!IsEligibleTarget(friendly, vertex, civ, z, range, reachable, roadless)) continue;
 
                     target = friendly;
                     fewestSoldiers = friendly.Soldiers;
@@ -290,7 +319,8 @@ internal class ReinforcementEngine
     /// chemin parcouru à chaque tour d'IA de chaque civilisation PNJ.
     /// </summary>
     private bool IsEligibleTarget(
-        IMilitaryVertex friendly, IMilitaryVertex source, Civilization civ, int z, int range, HashSet<Vertex> reachable)
+        IMilitaryVertex friendly, IMilitaryVertex source, Civilization civ, int z, int range, HashSet<Vertex> reachable,
+        bool roadless)
     {
         if (friendly == source) return false;
         if (friendly.Position.Z != z) return false;
@@ -300,7 +330,10 @@ internal class ReinforcementEngine
         if (tCap == 0 || effectiveFriendly * 2 > tCap) return false;
         if (friendly.Soldiers + 2 >= source.Soldiers) return false;
 
-        if (friendly.Position.EdgeDistanceTo(source.Position) <= range && reachable.Contains(friendly.Position))
+        // Avec le renfort aérien (roadless), la seule portée suffit : inutile d'exiger que la cible
+        // soit atteignable par le réseau routier, les soldats la rejoignent en vol.
+        if (friendly.Position.EdgeDistanceTo(source.Position) <= range
+            && (roadless || reachable.Contains(friendly.Position)))
             return true;
 
         // Hors de portée normale, ou sans route jusqu'ici : encore éligible si l'Arbre-Cœur relie

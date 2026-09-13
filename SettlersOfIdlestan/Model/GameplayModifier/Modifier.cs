@@ -391,6 +391,8 @@ namespace SettlersOfIdlestan.Model.GameplayModifier
             AUTO_FREE_RESEARCH_STOCK_PERCENT,
             /// <summary>Flags que l'option Blitz de la Vendetta est déverrouillée : une fois cochée (AutomationSettings.MilitaryBlitzEnabled), la Vendetta n'attend plus d'avoir été attaquée ni d'avoir raidé qui que ce soit et fait attaquer à chaque emplacement militaire la ville ennemie la plus proche à portée, toutes civilisations confondues (voir RaidEngine.ResolvePlayerBlitz). SubCategory unused. Accordé par la recherche Blitz.</summary>
             UNLOCK_BLITZ,
+            /// <summary>Flags que les renforts de la civilisation n'ont plus besoin de route : faute de chemin routier, les soldats volent en ligne droite jusqu'à la cible, dans la limite de la portée de renfort (REINFORCEMENT_RANGE), le trajet durant autant de segments qu'il y a d'arêtes entre les deux emplacements (voir ReinforcementEngine.ResolveReinforcements). SubCategory unused. Accordé par le Trône des Vents (Garudas).</summary>
+            UNLOCK_ROADLESS_REINFORCEMENT,
         }
 
         [JsonConverter(typeof(JsonStringEnumConverter<EType>))]

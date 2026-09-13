@@ -494,10 +494,10 @@ namespace SettlersOfIdlestan.Controller.Expand
             tree.ActiveResearchConsumed = 0;
             tree.ActiveResearchLastConsumptionTick = 0;
 
-            // Si une recherche était en file d'attente, elle démarre immédiatement au lieu de
-            // laisser le slot actif vide (même logique qu'à la complétion normale, voir
-            // AdvanceActiveResearch).
-            StartNextQueuedResearch(tree);
+            // « Arrêter l'investissement » coupe tout : la file d'attente est vidée au lieu de
+            // laisser la recherche suivante démarrer immédiatement (contrairement à la complétion
+            // normale, voir AdvanceActiveResearch).
+            tree.ResearchQueue.Clear();
             return true;
         }
 
