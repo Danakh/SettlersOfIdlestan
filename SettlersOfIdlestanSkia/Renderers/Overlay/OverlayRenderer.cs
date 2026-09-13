@@ -652,6 +652,10 @@ public sealed class OverlayRenderer : IGameRenderer
         _selectedMonumentPanelRenderer.Close();
     }
 
+    /// <summary>Retire la sélection courante (ville, monument) sans rien fermer d'autre — Échap
+    /// quand il n'y a aucun écran à fermer, voir <c>GameScreen.HandleKeyPressed</c>.</summary>
+    public void ClearSelection() => DeselectCityAndMonument();
+
     public void CloseAll()
     {
         _settingsMenu.Close();

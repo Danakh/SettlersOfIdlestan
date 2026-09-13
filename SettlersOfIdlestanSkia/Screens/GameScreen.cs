@@ -1029,7 +1029,15 @@ public sealed class GameScreen : IDisposable
 
     public void HandleKeyPressed(string key, bool allowDebugMode)
     {
+        // Échap ne retire la sélection que s'il n'a rien d'autre à fermer. Le test précède
+        // volontairement la diffusion de la touche : c'est TargetSelectionRenderer, abonné à
+        // InputHandlingService, qui annule le mode de ciblage — une fois la touche diffusée,
+        // IsActive est déjà retombé et le même appui désélectionnerait dans la foulée.
+        bool escapeClearsSelection = key == "Escape" && !IsAnyScreenOpen;
+
         _inputService.HandleKeyPressed(key);
+
+        if (escapeClearsSelection) _overlayRenderer?.ClearSelection();
         if (key == "Space") TogglePause();
         if (key == "C"   && allowDebugMode) DebugAddResources();
         if (key == "F9"  && allowDebugMode) DebugExportIconCaptures();
@@ -1037,6 +1045,19 @@ public sealed class GameScreen : IDisposable
         if (key == "F11" && allowDebugMode) DebugExportScreenshotWithTitle();
         if (key == "F12" && allowDebugMode) DebugExportScreenshotRaw();
     }
+
+    /// <summary>
+    /// Vrai dès qu'un écran se superpose à la carte : mode de ciblage, popup ou menu de l'overlay
+    /// (commerce, prestige, réglages), modale bloquante, onglet plein écran, ou saut de temps en
+    /// cours. C'est la condition « Échap a quelque chose à fermer » : tant qu'elle tient, la
+    /// touche revient à l'écran du dessus et ne touche pas à la sélection.
+    /// </summary>
+    private bool IsAnyScreenOpen =>
+           (_targetSelectionService?.IsActive ?? false)
+        || (_overlayRenderer?.IsAnyOverlayOpen ?? false)
+        || !(_overlayRenderer?.IsIslandTabActive ?? true)
+        || _gameControllerService.TimeJump.IsActive
+        || GetModalPopupSnapshot().IsOpen;
 
     /// <summary>Raccourci clavier (espace) — même verrou que le bouton de la barre du haut.</summary>
     private void TogglePause()

@@ -244,6 +244,26 @@ public sealed class GameView : Panel, IDisposable
             return;
         }
 
+        // Un controle de l'overlay qui a deja consomme Echap (menu deroulant, champ de saisie qui
+        // annule son edition) a eu le dernier mot : la touche ne doit pas retirer en plus la
+        // selection sur la carte. Les deux popups ci-dessus font exception — ils sont fermes ici
+        // parce qu'aucun de leurs controles ne s'en charge.
+        if (e.Key == Key.Escape && !e.Handled)
+        {
+            // Echap part d'ici et non de GameRuntimeControl : la carte n'a le focus clavier que
+            // tant qu'aucun controle de l'overlay ne l'a pris, et la touche n'atteindrait donc
+            // plus le runtime des le premier clic sur un bouton. Le runtime decide de la suite —
+            // annuler un mode de ciblage, ou retirer la selection s'il n'y a rien a fermer (voir
+            // GameScreen.HandleKeyPressed).
+            _host.KeyPressed("Escape");
+
+            // La selection retiree doit disparaitre tout de suite : le panneau de ville attendrait
+            // sinon le tick de synchronisation, jusqu'a 100 ms apres l'appui.
+            SyncFromGameState();
+            e.Handled = true;
+            return;
+        }
+
         if (MapModifier(e.Key) is not { } key) return;
         _host.KeyPressed(key);
 
