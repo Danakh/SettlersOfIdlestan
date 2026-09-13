@@ -11,6 +11,13 @@ public class GameSettings
     public bool ShowCityMilitaryStats { get; set; } = true;
     public bool ShowHarvestCooldown { get; set; } = true;
     public bool ShowCorruptionDominion { get; set; } = true;
+
+    /// <summary>
+    /// Affichage du panneau de tutoriel. Masquer le panneau n'arrête pas le tutoriel :
+    /// TutorialService continue d'avancer les étapes, si bien que réactiver l'option
+    /// réaffiche l'étape en cours plutôt que de repartir du début.
+    /// </summary>
+    public bool ShowTutorial { get; set; } = true;
     public bool Fullscreen { get; set; } = false;
     public bool DemoMode { get; set; } = false;
     public bool CloudSaveEnabled { get; set; } = true;

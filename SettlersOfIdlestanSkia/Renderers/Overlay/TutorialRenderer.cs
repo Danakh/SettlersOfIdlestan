@@ -70,6 +70,16 @@ public class TutorialRenderer : IGameRenderer
         _taskRects.Clear();
 
         var mainState = context.GameState as MainGameState;
+
+        // Réglage « Afficher le tutoriel » : seul le panneau disparaît. TutorialService continue
+        // d'avancer les étapes, donc réactiver l'option réaffiche l'étape courante, pas la première.
+        // Les rectangles de survol viennent d'être vidés : plus d'infobulle non plus.
+        if (mainState != null && !mainState.Settings.ShowTutorial)
+        {
+            _hoveredTask = null;
+            return;
+        }
+
         var gameRecord = mainState?.GameRecord ?? new GameRecord();
         var WorldState = mainState?.CurrentWorldState;
         var runRecord = WorldState?.RunRecord;

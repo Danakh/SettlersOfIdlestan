@@ -77,6 +77,7 @@ public sealed class SettingsContentPanel
             Toggle(SettingsPanelSnapshot.KeyMilitaryStats, localization.Get("settings_show_military_stats"), settings.ShowCityMilitaryStats),
             Toggle(SettingsPanelSnapshot.KeyHarvestCooldown, localization.Get("settings_harvest_cooldown"), settings.ShowHarvestCooldown),
             Toggle(SettingsPanelSnapshot.KeyCorruptionDominion, localization.Get("settings_corruption_dominion"), settings.ShowCorruptionDominion),
+            Toggle(SettingsPanelSnapshot.KeyShowTutorial, localization.Get("settings_show_tutorial"), settings.ShowTutorial),
             new(SettingsPanelSnapshot.KeyUiScale, localization.Get("settings_ui_scale"), SettingRowKind.Slider,
                 IsEnabled: true, ToggleValue: false, Choices: [],
                 SliderValue: uiScale, SliderMin: UiScaleMin, SliderMax: UiScaleMax,
@@ -137,6 +138,9 @@ public sealed class SettingsContentPanel
                 break;
             case SettingsPanelSnapshot.KeyCorruptionDominion:
                 settings.ShowCorruptionDominion = !settings.ShowCorruptionDominion;
+                break;
+            case SettingsPanelSnapshot.KeyShowTutorial:
+                settings.ShowTutorial = !settings.ShowTutorial;
                 break;
             // Sans store connecte, la sauvegarde cloud n'a pas d'objet : la ligne est grisee et
             // le clic reste sans effet, comme dans le rendu Skia.
