@@ -348,7 +348,10 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay
 
             var tile = WorldState.GetMapForZ(coord.Z)?.GetTile(coord);
             bool tileIsHidden = tile == null || tile.TerrainType == TerrainType.Void;
-            var allFeaturesAtCoord = WorldState.Features.Where(f => f.Position.Equals(coord)).ToList();
+            // IsVisible == false : feature pré-placée à la génération mais pas encore révélée (Cercle de
+            // Fées avant l'achat du vertex de prestige) — elle n'existe pas encore pour le joueur, ni à
+            // l'écran ni dans l'infobulle.
+            var allFeaturesAtCoord = WorldState.Features.Where(f => f.IsVisible && f.Position.Equals(coord)).ToList();
             // Hex non affiché (Void) : seuls les monstres (ex. Démon mineur, ActiveWhileHidden) ont une
             // présence indépendante de la case ; Dominion/Corruption ne sont que des halos superposés au
             // rendu de la case et n'ont donc rien à afficher tant que celle-ci n'est pas rendue.
