@@ -8,11 +8,16 @@ namespace SettlersOfIdlestanSkia.Renderers.Overlay.Popup;
 public sealed class ResearchCancelPopupRenderer : PopupRendererBase
 {
     protected override float PopupWidth  => 440;
-    protected override float PopupHeight => 220;
+    protected override float PopupHeight => _popupHeight;
 
     private const float BtnWidth  = 180;
     private const float BtnHeight = 42;
     private const float BtnGap    = 16;
+
+    private const float BaseHeight       = 220;  // hauteur pour une description d'une seule ligne
+    private const float HorizPadding     = 28;   // marge gauche/droite réservée au texte
+    private const float DescTop          = 90;   // ligne de base de la première ligne de description
+    private const float BtnBottomMargin  = 28;   // espace sous les boutons
 
     private readonly LocalizationService _localization;
     private readonly Action              _onConfirm;
@@ -21,9 +26,11 @@ public sealed class ResearchCancelPopupRenderer : PopupRendererBase
     private readonly SKPaint _cancelPaint  = new() { Color = new SKColor(55,  55, 65),  Style = SKPaintStyle.Fill, IsAntialias = true };
     private readonly SKPaint _confirmPaint = new() { Color = new SKColor(140, 90, 20),  Style = SKPaintStyle.Fill, IsAntialias = true };
 
-    private SKRect _cancelRect  = SKRect.Empty;
-    private SKRect _confirmRect = SKRect.Empty;
-    private long   _refundAmount;
+    private SKRect   _cancelRect  = SKRect.Empty;
+    private SKRect   _confirmRect = SKRect.Empty;
+    private long     _refundAmount;
+    private string[] _descLines   = [];
+    private float    _popupHeight = BaseHeight;
 
     public ResearchCancelPopupRenderer(LocalizationService localization, Action onConfirm)
     {
@@ -34,7 +41,25 @@ public sealed class ResearchCancelPopupRenderer : PopupRendererBase
     public void Open(long refundAmount)
     {
         _refundAmount = refundAmount;
+        LayoutDescription();
         Open();
+    }
+
+    /// <summary>
+    /// Découpe la description en lignes et adapte la hauteur du popup.
+    /// La mesure se fait à l'échelle 1 : largeur disponible et taille de police suivent
+    /// toutes deux le facteur d'échelle, le découpage est donc identique à toute échelle.
+    /// </summary>
+    private void LayoutDescription()
+    {
+        string desc = _localization.GetFormated("research_cancel_desc", _refundAmount);
+        using var font = new SKFont { Size = BodyFontSize, Typeface = SkiaFonts.Regular };
+
+        var layout = SkiaTextUtils.MeasureWrappedText(desc, PopupWidth - 2 * HorizPadding, font);
+        _descLines = [.. layout.Lines];
+
+        int extraLines = Math.Max(0, _descLines.Length - 1);
+        _popupHeight = BaseHeight + extraLines * font.Spacing;
     }
 
     public void Render(SKCanvas canvas, SKSize canvasSize, float scale = 1f)
@@ -58,11 +83,13 @@ public sealed class ResearchCancelPopupRenderer : PopupRendererBase
         string title = _localization.Get("research_cancel_title");
         SkiaTextUtils.DrawText(canvas, title, popup.Left + popupW / 2f, popup.Top + 44 * s, SKTextAlign.Center, TitleFont, _titlePaint);
 
-        string desc = _localization.GetFormated("research_cancel_desc", _refundAmount);
-        float  descW = BodyFont!.MeasureText(desc);
-        SkiaTextUtils.DrawText(canvas, desc, popup.Left + (popupW - descW) / 2f, popup.Top + 90 * s, BodyFont, SubtlePaint);
+        float lineHeight = BodyFont!.Spacing;
+        float descY      = popup.Top + DescTop * s;
+        for (int i = 0; i < _descLines.Length; i++)
+            SkiaTextUtils.DrawText(canvas, _descLines[i], popup.Left + popupW / 2f, descY + i * lineHeight,
+                                   SKTextAlign.Center, BodyFont, SubtlePaint);
 
-        float btnY = popup.Top + 150 * s;
+        float btnY = popup.Bottom - (BtnBottomMargin + BtnHeight) * s;
         _cancelRect  = new SKRect(btnStartX,              btnY, btnStartX + btnW,          btnY + btnH);
         _confirmRect = new SKRect(btnStartX + btnW + btnGap, btnY, btnStartX + totalBtns, btnY + btnH);
 
