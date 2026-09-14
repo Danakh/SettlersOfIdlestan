@@ -42,6 +42,18 @@ public class HarvestRenderer : IGameRenderer
         harvestService.OnHarvestCompleted += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+
+            // Saut de temps : la carte n'est pas dessinée (GameScreen.Render sort avant le
+            // RenderService), donc rien ne fait vieillir les particules pendant que l'heure simulée
+            // en émet une par unité de ressource récoltée — 43 621 pour une heure de Merveille sur
+            // une sauvegarde de milieu de partie (15 villes joueur), bien plus en fin de partie.
+            // Le saut lui-même ne dure que quelques dixièmes de seconde : le deltaTime de la
+            // première image qui suit est plus court que les 0,8 s de vie d'une particule, donc
+            // aucune n'expire et cette image les dessine toutes d'un coup — plusieurs secondes,
+            // verrou du runtime tenu, pendant lesquelles la fenêtre reste figée sur la popup de
+            // progression avant de réafficher l'île.
+            if (gameControllerService.TimeJump.IsActive) return;
+
             if (!isIslandTabActive()) return;
             if (_showParticles?.Invoke() == false) return;
             if (gameControllerService.PlayerCivilizationIndex != args.CivilizationIndex) return;
@@ -55,6 +67,7 @@ public class HarvestRenderer : IGameRenderer
         harvestService.OnRandomResourceGenerated += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+            if (gameControllerService.TimeJump.IsActive) return;
             if (!isIslandTabActive()) return;
             if (_showParticles?.Invoke() == false) return;
             if (gameControllerService.PlayerCivilizationIndex != args.CivilizationIndex) return;

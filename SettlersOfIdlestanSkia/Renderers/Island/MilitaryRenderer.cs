@@ -148,6 +148,12 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         militaryController.SoldierAttackedCity += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+
+            // Saut de temps : rien n'est dessiné, donc rien ne fait vieillir ces particules — elles
+            // s'accumuleraient pour toute l'heure simulée et seraient dessinées d'un seul bloc à la
+            // reprise. Voir le détail dans HarvestRenderer.Connect.
+            if (gameControllerService.TimeJump.IsActive) return;
+
             if (!isIslandTabActive()) return;
             if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
             EmitParticles(args.Path, args.SoldierCount);
@@ -155,6 +161,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         militaryController.ReinforcementSent += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+            if (gameControllerService.TimeJump.IsActive) return;
             if (!isIslandTabActive()) return;
             if (args.TargetCity.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
             EmitReinforceParticle(args.Path);
@@ -162,6 +169,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         militaryController.ConsumableConsumed += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+            if (gameControllerService.TimeJump.IsActive) return;
             if (!isIslandTabActive()) return;
             if (args.Position.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
             EmitConsumableParticle(args.Position, args.Resource);
@@ -169,6 +177,7 @@ public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
         monsterFeatureController.ConsumableConsumed += (_, args) =>
         {
             if (isPrestigeTransitionPending()) return;
+            if (gameControllerService.TimeJump.IsActive) return;
             if (!isIslandTabActive()) return;
             if (args.Position.Z != gameControllerService.CurrentWorldState?.CurrentViewedLayer) return;
             EmitConsumableParticle(args.Position, args.Resource);
