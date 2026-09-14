@@ -384,7 +384,18 @@ namespace SettlersOfIdlestan.Controller.Island
                             || _monsterController?.HasDepartureCooldown(hex, now) == true;
                         hexBlocked[hex] = blockedEntry = (generation, computed);
                     }
-                    if (blockedEntry.Blocked) continue;
+                    if (blockedEntry.Blocked)
+                    {
+                        // Le temps passé sous blocage est perdu, pas capitalisé : on recale le tracker
+                        // du bâtiment sur maintenant. Sans ce recalage, le tracker restait figé sur la
+                        // dernière récolte réelle et, à la levée du blocage (départ d'un bandit et fin
+                        // de son cooldown de pillage, Monument démonté, Territoire contesté résolu…),
+                        // ConsumeElapsedCycles rendait d'un coup tous les cycles de la période bloquée
+                        // — production rétroactive d'un hex qui n'a rien produit, et salve de plusieurs
+                        // dizaines de particules de récolte en un seul événement.
+                        building.SetAutoHarvestTick(hex, now);
+                        continue;
+                    }
 
                     if (!hexMultiplier.TryGetValue(hex, out var multiplierEntry) || multiplierEntry.Generation != generation)
                         hexMultiplier[hex] = multiplierEntry = (generation, GetHexHarvestTimeMultiplier(civ, hex));

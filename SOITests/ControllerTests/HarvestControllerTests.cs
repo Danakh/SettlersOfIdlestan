@@ -8,6 +8,7 @@ using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandFeatures;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Monsters;
 using System;
 using System.Collections.Generic;
 using Xunit;
@@ -587,6 +588,59 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(2, HarvestController.GetMarketGoldPerCycle(civ));
             Assert.Equal(baseRate * 2, harvestController.GetAverageProductionRatesPerSecond(civ.Index)[Resource.Gold], precision: 10);
+        }
+
+        /// <summary>
+        /// Un hexagone bloqué (bandit posé dessus, Monument, Territoire contesté…) perd ses ticks de
+        /// récolte au lieu de les capitaliser : à la levée du blocage, la production reprend au
+        /// premier cycle suivant, sans rendre d'un coup tous les cycles de la période bloquée.
+        /// Symptôme visible du bug : une salve de plusieurs dizaines de particules de récolte dès la
+        /// fin du cooldown de pillage d'un bandit qui vient de se déplacer.
+        /// </summary>
+        [Fact]
+        public void AutomaticHarvest_WhileHexBlocked_DoesNotAccumulateCycles()
+        {
+            var a = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var b = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var c = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+
+            var map = new IslandMap(new[]
+            {
+                new HexTile(a, TerrainType.Forest),
+                new HexTile(b, TerrainType.Plain),
+                new HexTile(c, TerrainType.Plain),
+            });
+
+            var civ = new Civilization { Index = 0 };
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+            var vertex = Vertex.Create(a, b, c);
+            new IslandMapGenerator(new GamePRNG(42)).PopulatePlayerCivilization(map, civ, vertex);
+            civ.Cities[0].AddBuilding(new Sawmill());
+
+            var clock = new GameClock();
+            clock.Start();
+            var harvestController = new HarvestController(state, clock);
+
+            // Première récolte, puis le hex est bloqué par un bandit.
+            clock.SimulateAdvance(10);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
+
+            var bandit = new Bandit(a);
+            state.AddFeature(bandit);
+
+            // 100 s de blocage, soit 20 cycles de Scierie (500 ticks) qui ne doivent rien produire.
+            clock.SimulateAdvance(10_000);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
+
+            // Levée du blocage : un seul cycle est dû au bout du cooldown, pas les 20 de la période
+            // bloquée.
+            state.RemoveFeature(bandit);
+            clock.SimulateAdvance(10);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Wood));
+
+            clock.SimulateAdvance(500);
+            Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
         }
     }
 }
