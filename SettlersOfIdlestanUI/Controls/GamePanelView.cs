@@ -68,6 +68,10 @@ public sealed class GamePanelView : ContentControl
                     FontSize = 12,
                     Foreground = Brushes.White,
                     HorizontalAlignment = HorizontalAlignment.Center,
+                    // Meme raison que le X des popups : sans alignement vertical explicite,
+                    // le TextBlock s'etire sur toute la hauteur du bouton et sa ligne de texte
+                    // reste calee en haut.
+                    VerticalAlignment = VerticalAlignment.Center,
                 },
                 Background = new SolidColorBrush(Color.FromArgb(220, 200, 80, 80)),
                 BorderThickness = new Thickness(0),

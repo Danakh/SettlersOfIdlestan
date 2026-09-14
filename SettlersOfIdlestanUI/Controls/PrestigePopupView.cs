@@ -109,6 +109,10 @@ public sealed class PrestigePopupView : UserControl
                 FontWeight = FontWeight.Bold,
                 Foreground = Brushes.White,
                 HorizontalAlignment = HorizontalAlignment.Center,
+                // Sans cela le X se dessine en haut du bouton : Fluent laisse
+                // VerticalContentAlignment a Stretch, le TextBlock prend donc toute la
+                // hauteur et sa ligne de texte reste calee en haut de la boite.
+                VerticalAlignment = VerticalAlignment.Center,
             },
         };
         close.Classes.Add(GameControlStyles.ToneButton);
