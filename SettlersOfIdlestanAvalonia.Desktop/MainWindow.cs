@@ -42,8 +42,14 @@ public sealed class MainWindow : Window
         _storeController = new StoreController([new StoreServiceSteam()]);
         // La fenetre se passe elle-meme : c'est d'elle que le service tire le selecteur de
         // fichier natif de l'export/import. Elle n'est pas encore ouverte ici, mais le
-        // StorageProvider n'est resolu qu'au clic.
-        _runtime.Initialize(new DesktopFileSystemService(this), allowDebug, demoMode, _storeController);
+        // StorageProvider n'est resolu qu'au clic. Les deux delegues donnent au selecteur le
+        // dernier dossier utilise, garde dans les reglages : eux aussi ne sont lus qu'au clic,
+        // donc bien apres l'initialisation du runtime qui recoit ce service.
+        var fileSystem = new DesktopFileSystemService(
+            this,
+            () => _runtime.LastSaveDirectory,
+            _runtime.SetLastSaveDirectory);
+        _runtime.Initialize(fileSystem, allowDebug, demoMode, _storeController);
 
         _host = new GameRuntimeHost(_runtime);
         Content = new GameView(_host);

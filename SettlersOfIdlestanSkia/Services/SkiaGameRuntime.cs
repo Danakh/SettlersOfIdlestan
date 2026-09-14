@@ -93,6 +93,30 @@ public sealed class SkiaGameRuntime : IDisposable
     }
 
     /// <summary>
+    /// Dernier dossier d'export/import manuel (voir <see cref="GameSettings.LastSaveDirectory"/>),
+    /// lu et écrit par le service de fichiers du head de bureau pour positionner le sélecteur natif.
+    /// </summary>
+    public string? LastSaveDirectory => CurrentSettings.LastSaveDirectory;
+
+    /// <summary>
+    /// Mémorise le dossier que le joueur vient de choisir dans le sélecteur de fichier. Tenue des
+    /// deux instances et écriture disque : même raisonnement que <see cref="SyncFullscreenSetting"/>.
+    /// </summary>
+    public void SetLastSaveDirectory(string? directory)
+    {
+        // Un dossier indéterminable (chemin non local, fournisseur sans système de fichiers) ne
+        // doit pas effacer celui qui était mémorisé : on garde le dernier connu.
+        if (string.IsNullOrEmpty(directory)) return;
+
+        _titleSettings.LastSaveDirectory = directory;
+
+        var gameSettings = _gameScreen?.GetCurrentSettings();
+        if (gameSettings != null) gameSettings.LastSaveDirectory = directory;
+
+        PersistSettings();
+    }
+
+    /// <summary>
     /// Réglages qui font foi à cet instant : ceux de la partie en cours dès qu'il y en a une,
     /// ceux de l'écran-titre sinon. C'est la même instance des deux côtés depuis qu'une nouvelle
     /// partie reprend les réglages de l'écran-titre, sauf pour une partie chargée, qui apporte

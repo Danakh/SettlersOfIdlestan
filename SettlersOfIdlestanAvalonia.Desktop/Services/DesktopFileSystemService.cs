@@ -22,13 +22,30 @@ public class DesktopFileSystemService : IFileSystemService
         new("Settlers of Idlestan") { Patterns = ["*.json"], MimeTypes = ["application/json"] };
 
     private readonly TopLevel? _topLevel;
+    private readonly Func<string?>? _getLastDirectory;
+    private readonly Action<string?>? _setLastDirectory;
 
     /// <param name="topLevel">
     /// Fenetre hote dont on tire le <see cref="IStorageProvider"/>. Elle n'est pas encore ouverte
     /// quand ce service est construit : le provider n'est resolu qu'au moment du clic. Null
     /// (tests, outillage) fait retomber l'export/import sur le dossier <c>saves</c>.
     /// </param>
-    public DesktopFileSystemService(TopLevel? topLevel = null) => _topLevel = topLevel;
+    /// <param name="getLastDirectory">
+    /// Lecture du dernier dossier d'export/import memorise dans les reglages
+    /// (<c>GameSettings.LastSaveDirectory</c>). Des delegues plutot que le runtime lui-meme :
+    /// le service n'a besoin que de cette valeur, et elle est lue au clic — donc bien apres
+    /// l'initialisation du runtime, qui recoit justement ce service en parametre.
+    /// </param>
+    /// <param name="setLastDirectory">Ecriture du dossier retenu apres un choix du joueur.</param>
+    public DesktopFileSystemService(
+        TopLevel? topLevel = null,
+        Func<string?>? getLastDirectory = null,
+        Action<string?>? setLastDirectory = null)
+    {
+        _topLevel         = topLevel;
+        _getLastDirectory = getLastDirectory;
+        _setLastDirectory = setLastDirectory;
+    }
 
     private static string GetSavesDirectory()
     {
@@ -65,6 +82,7 @@ public class DesktopFileSystemService : IFileSystemService
                 ShowOverwritePrompt    = true,
             });
             if (file is null) return;
+            RememberDirectory(file);
 
             await using var stream = await file.OpenWriteAsync();
             await using var writer = new StreamWriter(stream);
@@ -102,6 +120,7 @@ public class DesktopFileSystemService : IFileSystemService
                 SuggestedStartLocation = await StartLocation(storage),
             });
             if (files.Count == 0) return null;
+            RememberDirectory(files[0]);
 
             await using var stream = await files[0].OpenReadAsync();
             using var reader = new StreamReader(stream);
@@ -117,15 +136,44 @@ public class DesktopFileSystemService : IFileSystemService
     }
 
     /// <summary>
-    /// Ouvre la boite sur le dossier <c>saves</c> : c'est la que se trouvent les sauvegardes des
-    /// versions precedentes, et c'est l'endroit ou le joueur s'attend a ecrire par defaut.
+    /// Ouvre la boite sur le dernier dossier ou le joueur a exporte ou relu une sauvegarde, export
+    /// et import partageant la meme memoire. A defaut — premiere partie, ou dossier disparu depuis
+    /// (support amovible retire, dossier supprime, reglages recopies d'une autre machine) —, on
+    /// retombe sur le dossier <c>saves</c> : c'est la que vit la sauvegarde automatique et celles
+    /// des versions precedentes.
     /// </summary>
-    private static async Task<IStorageFolder?> StartLocation(IStorageProvider storage)
+    private async Task<IStorageFolder?> StartLocation(IStorageProvider storage)
     {
+        var last = _getLastDirectory?.Invoke();
+        var path = !string.IsNullOrEmpty(last) && Directory.Exists(last) ? last : GetSavesDirectory();
+
         // Pas de journalisation ici : renvoyer null laisse simplement la boite de dialogue s'ouvrir
         // sur son dossier par defaut. C'est un confort, pas une operation qui a echoue.
-        try { return await storage.TryGetFolderFromPathAsync(GetSavesDirectory()); }
+        try { return await storage.TryGetFolderFromPathAsync(path); }
         catch { return null; }
+    }
+
+    /// <summary>
+    /// Retient le dossier du fichier que le joueur vient de designer, pour rouvrir la boite au
+    /// meme endroit la fois suivante. Silencieux si le chemin n'est pas un chemin local : le
+    /// selecteur n'a alors rien qu'on puisse redonner a <c>TryGetFolderFromPathAsync</c>.
+    /// </summary>
+    private void RememberDirectory(IStorageFile file)
+    {
+        if (_setLastDirectory is null) return;
+
+        try
+        {
+            if (!file.Path.IsAbsoluteUri || !file.Path.IsFile) return;
+            var directory = Path.GetDirectoryName(file.Path.LocalPath);
+            if (!string.IsNullOrEmpty(directory)) _setLastDirectory(directory);
+        }
+        catch (Exception ex)
+        {
+            // Memoriser le dossier est un confort : son echec ne doit pas faire echouer l'export ou
+            // l'import lui-meme, qui n'a pas encore eu lieu a ce point.
+            GameLog.Error(nameof(DesktopFileSystemService), nameof(RememberDirectory), ex);
+        }
     }
 
     public Task SaveAuto(string content)

@@ -46,4 +46,15 @@ public class GameSettings
     /// chaque initialisation — voir MainGameController.InitializeControllersForCurrentIsland.
     /// </summary>
     public EventLogFilter EventLogFilter { get; set; } = new();
+
+    /// <summary>
+    /// Dernier dossier utilisé par l'export ou l'import manuel d'une sauvegarde (« Sauvegarder » /
+    /// « Charger » du menu). Les deux commandes partagent la même valeur : le joueur range ses
+    /// sauvegardes à un seul endroit, et retrouver ce dossier vaut mieux que rouvrir la boîte sur
+    /// le dossier <c>saves</c> à chaque fois. Un dossier disparu (clé USB retirée, dossier
+    /// supprimé, réglages venus d'une autre machine) fait simplement retomber la boîte sur le
+    /// dossier de la sauvegarde automatique — voir DesktopFileSystemService.StartLocation.
+    /// N'a de sens que pour les heads dotés d'un sélecteur de fichier natif (bureau).
+    /// </summary>
+    public string? LastSaveDirectory { get; set; }
 }
