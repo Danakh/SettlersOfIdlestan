@@ -9,6 +9,13 @@ public class Market : Building
 {
     public long LastGoldGenerationTick { get; set; } = 0;
 
+    /// <inheritdoc/>
+    public override void ResetProductionTicks(IReadOnlyList<HexGrid.HexCoord> adjacentHexes, long now)
+    {
+        base.ResetProductionTicks(adjacentHexes, now);
+        LastGoldGenerationTick = now;
+    }
+
     public Market() : base(BuildingType.Market)
     {
         AvailableAtLevel = 1;

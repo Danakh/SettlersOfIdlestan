@@ -642,5 +642,87 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(500);
             Assert.Equal(2, civ.GetResourceQuantity(Resource.Wood));
         }
+
+        /// <summary>
+        /// Relocalisation : une ville qui s'éloigne de sa plaine puis y revient ne doit pas rendre d'un
+        /// coup toute la production du Moulin de l'intervalle. Le suivi de récolte est indexé par
+        /// hexagone et restait figé sur la dernière récolte réelle tant que l'hexagone n'était plus
+        /// adjacent — au retour, ConsumeElapsedCycles rendait tous les cycles écoulés depuis (ici plus
+        /// de 200 unités de nourriture d'un seul bloc). RelocateCity recale désormais les compteurs de
+        /// production de tous les bâtiments de la ville — voir Building.ResetProductionTicks.
+        /// </summary>
+        [Fact]
+        public void RelocateCity_AwayFromPlainAndBack_DoesNotPayOutTheProductionOfTheAbsence()
+        {
+            // Ruban : seul p porte une Plaine, donc seul vNearPlain permet au Moulin de produire.
+            var p = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var f1 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var f2 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+            var f3 = new HexCoord(1, 1, IslandMap.SurfaceLayer);
+
+            var map = new IslandMap(new[]
+            {
+                new HexTile(p, TerrainType.Plain),
+                new HexTile(f1, TerrainType.Forest),
+                new HexTile(f2, TerrainType.Forest),
+                new HexTile(f3, TerrainType.Forest),
+            });
+
+            var civ = new Civilization { Index = 0 };
+            var state = new WorldState(map, new List<Civilization> { civ }, AtlasController.InvalidIslandId);
+
+            var vNearPlain = Vertex.Create(p, f1, f2);
+            var vFarFromPlain = Vertex.Create(f1, f2, f3);
+            // Les deux vertex touchent cette arête : ils sont donc tous deux candidats à la relocalisation.
+            civ.AddRoad(new Road(Edge.Create(f1, f2)) { CivilizationIndex = 0 });
+
+            var city = new City(vNearPlain) { CivilizationIndex = 0 };
+            civ.AddCity(city);
+            city.AddBuilding(new Mill());
+            // Après AddCity/AddBuilding : chacun recalcule la capacité de stockage et écraserait
+            // l'injection (voir Civilization.SetStorageCapacityCache).
+            civ.SetStorageCapacityCache(100_000, 100_000);
+
+            var clock = new GameClock();
+            clock.Start();
+            var harvestController = new HarvestController(state, clock);
+
+            var cityController = new CityBuilderController();
+            cityController.Initialize(state, clock);
+            // Câblage de MainGameController.OnCityRelocatedHandler : la ville change d'hexagones
+            // adjacents, ce que le cache de production ne remarque pas tout seul.
+            cityController.OnCityRelocated += (_, e) => harvestController.InvalidateProductionCache(e.CivilizationIndex);
+
+            // La ville produit bien tant qu'elle touche la plaine (première récolte immédiate, puis une
+            // par cooldown de 5 s).
+            clock.SimulateAdvance(10);
+            Assert.Equal(1, civ.GetResourceQuantity(Resource.Food));
+            clock.SimulateAdvance(500);
+            Assert.Equal(2, civ.GetResourceQuantity(Resource.Food));
+
+            // Départ : plus aucune plaine adjacente, le Moulin ne produit plus rien pendant 1000 s.
+            PayRelocation(civ);
+            Assert.True(cityController.RelocateCity(city, vFarFromPlain));
+            int foodAfterLeaving = civ.GetResourceQuantity(Resource.Food);
+            clock.SimulateAdvance(100_000);
+            Assert.Equal(foodAfterLeaving, civ.GetResourceQuantity(Resource.Food));
+
+            // Retour : la production reprend à zéro, elle ne rattrape pas les 200 cycles de l'absence.
+            PayRelocation(civ);
+            Assert.True(cityController.RelocateCity(city, vNearPlain));
+            int foodOnReturn = civ.GetResourceQuantity(Resource.Food);
+            clock.SimulateAdvance(10);
+            Assert.Equal(foodOnReturn, civ.GetResourceQuantity(Resource.Food));
+
+            // ... et reprend bien, à la cadence normale d'un cycle par cooldown.
+            clock.SimulateAdvance(500);
+            Assert.Equal(foodOnReturn + 1, civ.GetResourceQuantity(Resource.Food));
+        }
+
+        private static void PayRelocation(Civilization civ)
+        {
+            foreach (var (resource, amount) in CityBuilderController.RelocationCost(civ))
+                civ.AddResource(resource, amount);
+        }
     }
 }

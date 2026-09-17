@@ -11,6 +11,13 @@ public class Smelter : Building
 
     public long LastProductionTick { get; set; } = 0;
 
+    /// <inheritdoc/>
+    public override void ResetProductionTicks(IReadOnlyList<HexGrid.HexCoord> adjacentHexes, long now)
+    {
+        base.ResetProductionTicks(adjacentHexes, now);
+        LastProductionTick = now;
+    }
+
     public Smelter() : base(BuildingType.Smelter)
     {
         AvailableAtLevel = 3;

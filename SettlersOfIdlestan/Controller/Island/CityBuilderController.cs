@@ -772,6 +772,7 @@ namespace SettlersOfIdlestan.Controller.Island
 
             civ.PayResourceCost(cost);
             city.Position = destination;
+            ResetProductionTicks(city);
             // Position changed without any road/city count change — the count-keyed cache wouldn't
             // otherwise notice, so clear it explicitly.
             _buildableVerticesCache.Clear();
@@ -782,6 +783,23 @@ namespace SettlersOfIdlestan.Controller.Island
             ClaimTreasureTrovesAt(city, civ);
             OnCityRelocated?.Invoke(this, new OutpostAutoBuiltEventArgs(city.CivilizationIndex, destination));
             return true;
+        }
+
+        /// <summary>
+        /// Recale les compteurs de production de tous les bâtiments d'une ville qui vient de changer de
+        /// place sur le tick courant — voir <see cref="Building.ResetProductionTicks"/>. Sans ce
+        /// recalage, un bâtiment qui s'arrête faute d'hexagone adjacent adéquat (un Moulin que la
+        /// relocalisation éloigne de toute plaine) garde son suivi figé sur sa dernière récolte réelle,
+        /// et une relocalisation ultérieure qui le ramène à côté de cet hexagone lui fait rendre d'un
+        /// coup toute la production de l'intervalle.
+        /// </summary>
+        private void ResetProductionTicks(City city)
+        {
+            long now = _clock?.CurrentTick ?? 0;
+            var hexes = city.Position.GetHexes();
+            var buildings = city.Buildings;
+            for (int i = 0; i < buildings.Count; i++)
+                buildings[i].ResetProductionTicks(hexes, now);
         }
 
         public bool IsRelocationUnlocked(Civilization civ)

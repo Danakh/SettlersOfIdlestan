@@ -13,6 +13,13 @@ public class ArmorSmith : Building
 
     public long LastProductionTick { get; set; } = 0;
 
+    /// <inheritdoc/>
+    public override void ResetProductionTicks(IReadOnlyList<HexGrid.HexCoord> adjacentHexes, long now)
+    {
+        base.ResetProductionTicks(adjacentHexes, now);
+        LastProductionTick = now;
+    }
+
     public ArmorSmith() : base(BuildingType.ArmorSmith)
     {
         AvailableAtLevel = 3;

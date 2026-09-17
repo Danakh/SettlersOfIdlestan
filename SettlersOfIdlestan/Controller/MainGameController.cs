@@ -648,7 +648,7 @@ namespace SettlersOfIdlestan.Controller
                 BuildingController.OnBuildingBuilt -= OnBuildingChangedInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltInvalidateHarvestCache;
                 CityBuilderController.OnCityDestroyed -= OnCityDestroyedHandler;
-                CityBuilderController.OnCityRelocated -= OnCityRelocatedDestroyNearbyCamps;
+                CityBuilderController.OnCityRelocated -= OnCityRelocatedHandler;
                 RoadController.OnRoadBuilt -= OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt -= OnRoadBuiltExtendMap;
                 CityBuilderController.OnCityBuilt -= OnCityBuiltExtendMapToVision;
@@ -656,7 +656,7 @@ namespace SettlersOfIdlestan.Controller
                 CityBuilderController.OnCityBuilt += OnCityBuiltInvalidateHarvestCache;
                 CityBuilderController.OnCityBuilt += OnCityBuiltExtendMapToVision;
                 CityBuilderController.OnCityDestroyed += OnCityDestroyedHandler;
-                CityBuilderController.OnCityRelocated += OnCityRelocatedDestroyNearbyCamps;
+                CityBuilderController.OnCityRelocated += OnCityRelocatedHandler;
                 RoadController.OnRoadBuilt += OnRoadBuiltExtendMap;
                 RoadController.OnAutoRoadBuilt += OnRoadBuiltExtendMap;
                 FeatureController.OnFeatureDiscovered -= OnFeatureDiscovered;
@@ -775,10 +775,17 @@ namespace SettlersOfIdlestan.Controller
 
         /// <summary>Relocating a city onto (or near) a Camp Mobile of the same civilization must destroy
         /// it, exactly like founding a new city there — see CityBuilderController.RelocateCity and
-        /// MobileCampController.DestroyCampsNear.</summary>
-        private void OnCityRelocatedDestroyNearbyCamps(object? sender, OutpostAutoBuiltEventArgs e)
+        /// MobileCampController.DestroyCampsNear.
+        ///
+        /// <para>La ville change aussi d'hexagones adjacents, ce que le cache de production n'a aucun
+        /// moyen de remarquer : il est indexé par civilisation et n'est reconstruit qu'à la
+        /// construction d'un bâtiment ou d'une ville. Sans cette invalidation, la ville continuait à
+        /// récolter les hexagones qu'elle vient de quitter jusqu'à la prochaine construction de sa
+        /// civilisation.</para></summary>
+        private void OnCityRelocatedHandler(object? sender, OutpostAutoBuiltEventArgs e)
         {
             MobileCampController.DestroyCampsNear(e.Position, e.CivilizationIndex);
+            HarvestController.InvalidateProductionCache(e.CivilizationIndex);
         }
 
         /// <summary>

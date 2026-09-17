@@ -56,6 +56,13 @@ public class Seaport : Building
 
     public long LastGenerationTick { get; set; } = 0;
 
+    /// <inheritdoc/>
+    public override void ResetProductionTicks(IReadOnlyList<HexGrid.HexCoord> adjacentHexes, long now)
+    {
+        base.ResetProductionTicks(adjacentHexes, now);
+        LastGenerationTick = now;
+    }
+
     // Chaque niveau au-delà de 3 multiplie le temps de génération par 0.8.
     public double GetGenerationCooldownMultiplier() =>
         Level >= 3 ? Math.Pow(0.8, Level - 3) : 1.0;

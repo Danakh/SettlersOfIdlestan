@@ -434,6 +434,27 @@ public class Building
 
     public void SetAutoHarvestTick(HexCoord hex, long tick) => _autoHarvestLastTicks[hex] = tick;
 
+    /// <summary>
+    /// Remet à zéro tous les compteurs de production du bâtiment : le suivi de récolte automatique est
+    /// vidé puis réamorcé sur <paramref name="now"/> pour les seuls <paramref name="adjacentHexes"/>.
+    ///
+    /// <para>Appelé quand la ville change de place (<c>CityBuilderController.RelocateCity</c>). Sans ce
+    /// recalage, le suivi d'un hex que la ville quitte reste figé sur la dernière récolte réelle : si
+    /// une relocalisation ultérieure ramène la ville à côté de cet hex, <c>ConsumeElapsedCycles</c>
+    /// rend d'un coup tous les cycles écoulés depuis — production rétroactive d'une longue période
+    /// pendant laquelle le bâtiment ne récoltait rien (même symptôme, et même correction, que le
+    /// recalage sous blocage dans <c>HarvestController.PerformAutomaticProductionHarvests</c>).</para>
+    ///
+    /// <para>Les types qui portent leur propre compteur de production (Marché, Port, Fonderie, forges,
+    /// Hutte d'Alchimie) redéfinissent cette méthode pour le recaler aussi.</para>
+    /// </summary>
+    public virtual void ResetProductionTicks(IReadOnlyList<HexCoord> adjacentHexes, long now)
+    {
+        _autoHarvestLastTicks.Clear();
+        for (int i = 0; i < adjacentHexes.Count; i++)
+            _autoHarvestLastTicks[adjacentHexes[i]] = now;
+    }
+
     protected readonly List<string> _actions = new();
 
     /// <summary>

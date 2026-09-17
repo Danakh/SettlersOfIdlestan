@@ -26,6 +26,14 @@ public class AlchimistHut : Building
     /// <summary>Dernier tick où la hutte a produit une Potion de Force.</summary>
     public long LastPotionProductionTick { get; set; } = 0;
 
+    /// <inheritdoc/>
+    public override void ResetProductionTicks(IReadOnlyList<HexGrid.HexCoord> adjacentHexes, long now)
+    {
+        base.ResetProductionTicks(adjacentHexes, now);
+        LastCrystalProductionTick = now;
+        LastPotionProductionTick = now;
+    }
+
     /// <summary>Verre consommé par Potion de Force produite.</summary>
     public const int GlassInputPerPotion = 1;
 
