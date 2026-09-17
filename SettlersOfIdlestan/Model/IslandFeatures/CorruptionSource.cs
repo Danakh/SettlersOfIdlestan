@@ -8,9 +8,11 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 namespace SettlersOfIdlestan.Model.IslandFeatures;
 
 /// <summary>
-/// Source de Corruption — feature de l'Inframonde, semée avec 50% de chance quand la Corruption
-/// posée sur un nouvel hex par AutoExtendController.TrySpawnUnderworldDenizen atteint le niveau
-/// maximal de l'île au moment du tirage (voir <see cref="CorruptionLevel"/>). Tant qu'elle subsiste,
+/// Source de Corruption — feature de l'Inframonde, semée sur 10% des hexagones nouvellement révélés
+/// par AutoExtendController.TrySpawnUnderworldDenizen (tirage plat, indépendant de la distance au
+/// point d'arrivée passé un rayon minimal, du niveau de corruption de l'île et de la présence d'une
+/// Corruption sur l'hex ; <see cref="CorruptionLevel"/> n'en fixe que le plafond de production).
+/// Tant qu'elle subsiste,
 /// fait monter d'un point par intervalle la Corruption de son propre hex — miroir exact des Os Divins
 /// (voir CorruptionController.ProcessCorruptionSourceGrowth / DivineBones), mais sans le doublement de
 /// plafond de ces derniers : <see cref="GetCorruptionCap"/> vaut exactement le niveau de corruption de

@@ -62,10 +62,23 @@ public class AutoExtendController
     private const int OgreSpawnChancePercent = 3;
     private const int BaseTreasureChancePercent = 2;
 
-    // Quand la Corruption semée sur un nouvel hex de l'Inframonde atteint le niveau maximal de l'île
-    // (voir TrySpawnUnderworldDenizen), chance supplémentaire de poser en plus une Source de
-    // Corruption sur ce même hex (voir CorruptionSource).
-    private const int CorruptionSourceSpawnChancePercent = 50;
+    // Chance, pour chaque nouvel hex de l'Inframonde, de porter une Source de Corruption (voir
+    // CorruptionSource) : tirage plat, indépendant de la distance au point d'arrivée, du niveau de
+    // corruption de l'île et de la présence d'une Corruption sur l'hex. Auparavant la Source était
+    // adossée au tirage de Corruption et exigeait que celui-ci atteigne le plafond de l'île, ce qui
+    // faisait chuter sa fréquence en 0.5^niveau — inversant l'intention du design : des Sources
+    // partout au niveau 1, aucune en fin de progression, là où la Spire de Corruption en a besoin.
+    private const int CorruptionSourceSpawnChancePercent = 10;
+
+    /// <summary>
+    /// Distance minimale au point d'arrivée exigée d'une Source de Corruption, plus stricte que le
+    /// <see cref="MinHexDistanceFromArrival"/> commun aux autres apparitions : la Source alimente son
+    /// hex indéfiniment, une porte d'arrivée cernée de Corruption au premier pas dans l'Inframonde
+    /// serait une punition muette. Contrairement aux monstres, elle n'est pas élargie par
+    /// <see cref="UnderworldSafeRadiusBonusByIsland"/> — la Corruption reste le décor de l'Inframonde,
+    /// pas son danger.
+    /// </summary>
+    private const int CorruptionSourceMinDistanceFromArrival = 3;
 
     /// <summary>
     /// Hexagones de distance <b>ajoutés</b> à <see cref="MinHexDistanceFromArrival"/> autour du point
@@ -696,11 +709,16 @@ public class AutoExtendController
         {
             int level = RollCorruptionLevel(corruptionLevel);
             _state.AddFeature(new Model.IslandFeatures.Corruption(newHex, level));
+        }
 
-            // Le tirage a atteint le plafond de corruption de l'île : chance supplémentaire de poser
-            // aussi une Source de Corruption sur cet hex (voir CorruptionSource).
-            if (level >= corruptionLevel && _prng.Next(100) < CorruptionSourceSpawnChancePercent)
-                _state.AddFeature(new Model.IslandFeatures.CorruptionSource(newHex, corruptionLevel));
+        // Source de Corruption : tirage plat entièrement indépendant de celui ci-dessus — l'hex peut
+        // donc en porter une sans être corrompu (elle y sèmera sa propre Corruption, voir
+        // CorruptionController.ProcessCorruptionSourceGrowth). Seule contrainte, une distance au point
+        // d'arrivée plus large que celle des autres apparitions.
+        if (minDist >= CorruptionSourceMinDistanceFromArrival
+            && _prng!.Next(100) < CorruptionSourceSpawnChancePercent)
+        {
+            _state.AddFeature(new Model.IslandFeatures.CorruptionSource(newHex, corruptionLevel));
         }
     }
 

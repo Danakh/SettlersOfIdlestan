@@ -11,15 +11,16 @@ using Xunit;
 namespace SOITests.ControllerTests
 {
     /// <summary>
-    /// Apparition des Sources de Corruption (voir <see cref="CorruptionSource"/>) : quand la
-    /// Corruption semée par AutoExtendController.TrySpawnUnderworldDenizen sur un nouvel hex de
-    /// l'Inframonde atteint le niveau de corruption maximal de l'île (garanti ici, PrestigeState
-    /// absent ⇒ niveau 1, donc Corruption.RollLevel(prng, 1) retourne toujours 1 = le plafond), 50%
-    /// de chance de plus de poser également une Source sur ce même hex.
+    /// Apparition des Sources de Corruption (voir <see cref="CorruptionSource"/>) : tirage plat de 10%
+    /// sur chaque nouvel hex de l'Inframonde révélé par AutoExtendController.TrySpawnUnderworldDenizen,
+    /// indépendant du tirage de Corruption (l'hex peut en porter une sans être corrompu) et du niveau
+    /// de corruption de l'île ; seule contrainte, une distance au point d'arrivée d'au moins 3.
     ///
     /// Dispositif repris d'AutoExtendAggressiveCivilizationSpawnTests : un avant-poste de l'Inframonde
     /// que l'on étend en construisant des routes vers l'extérieur, ce qui génère de nouveaux hexes
-    /// (donc de nouvelles chances de Corruption/Source) à chaque route.
+    /// (donc de nouvelles chances de Corruption/Source) à chaque route. La carte de départ se réduit
+    /// aux 3 hexagones du vertex d'arrivée (voir LayerState.EstablishOupostInNewAutoExpandLayer), donc
+    /// tout hex à distance ≥ 3 présent à la fin a bel et bien été soumis au tirage.
     /// </summary>
     public class CorruptionSourceSpawnTests
     {
@@ -58,11 +59,16 @@ namespace SOITests.ControllerTests
             }
         }
 
+        /// <summary>Distance d'un hex au vertex d'arrivée : le minimum sur ses 3 hexagones.</summary>
+        private static int DistanceToArrival(LayerState layer, HexCoord hex) =>
+            layer.ArrivalVertex!.GetHexes().Where(h => hex.HasSameZ(h)).Min(hex.DistanceTo);
+
         [Fact]
-        public void CorruptionSource_SpawnsOnlyOnHexesAtTheIslandCorruptionLevel()
+        public void CorruptionSource_SpawnsOnOneTenthOfNewHexes_RegardlessOfCorruption()
         {
-            int corruptionCount = 0;
+            int eligibleHexCount = 0;
             int sourceCount = 0;
+            int sourcesOnCleanHex = 0;
 
             for (int seed = 0; seed < 30; seed++)
             {
@@ -71,26 +77,35 @@ namespace SOITests.ControllerTests
 
                 var corruptions = state.Features.OfType<Corruption>().ToList();
                 var sources = state.Features.OfType<CorruptionSource>().ToList();
-                corruptionCount += corruptions.Count;
+                eligibleHexCount += layer.Map.Tiles.Keys.Count(h => DistanceToArrival(layer, h) >= 3);
                 sourceCount += sources.Count;
 
                 foreach (var source in sources)
                 {
-                    // Sans PrestigeState, le niveau de corruption de l'île vaut 1 : toute Corruption
-                    // semée est donc déjà à son plafond, et chaque Source doit avoir son propre
-                    // plafond figé à ce même niveau.
+                    // Sans PrestigeState, le niveau de corruption de l'île vaut 1 : le plafond de
+                    // production de chaque Source est figé à ce même niveau.
                     Assert.Equal(1, source.CorruptionLevel);
                     Assert.Equal(1, source.GetCorruptionCap());
-                    Assert.Contains(corruptions, c => c.Position.Equals(source.Position));
+
+                    // L'anneau sûr autour de la porte d'arrivée.
+                    Assert.True(DistanceToArrival(layer, source.Position) >= 3,
+                        $"Source de Corruption posée à distance {DistanceToArrival(layer, source.Position)} du point d'arrivée.");
+
+                    if (!corruptions.Any(c => c.Position.Equals(source.Position)))
+                        sourcesOnCleanHex++;
                 }
             }
 
-            Assert.True(corruptionCount > 0, "Aucune Corruption semée sur 30 graines — dispositif de test invalide.");
-            Assert.True(sourceCount > 0, "Aucune Source de Corruption sur 30 graines — la chance de 50% ne semble jamais se déclencher.");
-            Assert.True(sourceCount < corruptionCount, "Une Source de Corruption a été posée à chaque Corruption semée — la chance de 50% ne semble jamais échouer.");
+            Assert.True(eligibleHexCount > 0, "Aucun hex à distance ≥ 3 révélé sur 30 graines — dispositif de test invalide.");
+            Assert.True(sourceCount > 0, "Aucune Source de Corruption sur 30 graines — le tirage ne semble jamais se déclencher.");
 
-            // Chance = 50% par Corruption semée : marge large pour éviter tout flakiness.
-            Assert.InRange(sourceCount, corruptionCount / 4, 3 * corruptionCount / 4);
+            // Le tirage est indépendant de celui de la Corruption : des Sources doivent apparaître sur
+            // des hexagones sains (c'est CorruptionController qui y sèmera ensuite la Corruption).
+            Assert.True(sourcesOnCleanHex > 0,
+                "Toutes les Sources sont sur un hex déjà corrompu — le tirage semble encore adossé à celui de la Corruption.");
+
+            // 10% des hexes éligibles, marge large pour éviter tout flakiness.
+            Assert.InRange(sourceCount, eligibleHexCount * 5 / 100, eligibleHexCount * 16 / 100);
         }
     }
 }
