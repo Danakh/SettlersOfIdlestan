@@ -99,6 +99,14 @@ internal class SoldierProductionEngine
                 var barracks = city.FindBuilding(BuildingType.Barracks) is { } b && b.Level >= SoldierProductionMinLevel ? b : null;
                 if (barracks == null) continue;
 
+                // Une Caserne désactivée ne produit rien, jamais : la désactivation est un ordre
+                // explicite du joueur, pas un simple bridage. Le quota de soldats nourris gratuitement
+                // (SOLDIER_FOOD_FREE_PER_CITY) ne sert qu'à plafonner la production d'une Caserne
+                // active restreinte par AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer ;
+                // il ne rallume pas une Caserne éteinte. (Avant, une Caserne désactivée produisait
+                // quand même jusqu'au quota — la ville se repeuplait de soldats sans cause visible.)
+                if (barracks.ActivationStatus != ActivationStatus.ACTIVE) continue;
+
                 bool restrictedToFreeSoldiers = IsRestrictedToFreeQuota(_state, city, isPlayer, freePerCity);
 
                 // Rejoué cycle par cycle : la place disponible et le stock de Minerai peuvent
@@ -107,13 +115,10 @@ internal class SoldierProductionEngine
                 {
                     if (city.Soldiers + city.IncomingSoldiers.Count >= cityMaxSoldiers) break;
 
-                    if (barracks.ActivationStatus != ActivationStatus.ACTIVE || restrictedToFreeSoldiers)
-                    {
-                        // Même désactivée (ou restreinte via AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer),
-                        // la Caserne continue à produire tant que la ville n'a pas atteint son quota de
-                        // soldats nourris gratuitement (SOLDIER_FOOD_FREE_PER_CITY).
-                        if (city.Soldiers >= freePerCity) break;
-                    }
+                    // Restreinte via AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer,
+                    // la Caserne active ne produit que jusqu'au quota de soldats nourris gratuitement
+                    // (SOLDIER_FOOD_FREE_PER_CITY).
+                    if (restrictedToFreeSoldiers && city.Soldiers >= freePerCity) break;
 
                     if (civ.GetResourceQuantity(Resource.Ore) < 1)
                     {
@@ -138,10 +143,10 @@ internal class SoldierProductionEngine
 
     /// <summary>
     /// Production de soldats par les Arsenaux actifs — voir <see cref="Modifier.ECategory.UNLOCK_ARSENAL_PRODUCTION"/>
-    /// (vertex de prestige Production Accélérée) : 2 soldats pour 1 Acier consommé par cycle. Un Arsenal
-    /// désactivé ne produit jamais, même sous le quota gratuit (SOLDIER_FOOD_FREE_PER_CITY) — l'activation
-    /// est un choix explicite du joueur vu le coût en Acier, une ressource par ailleurs utilisée pour les
-    /// Armures/Armes d'Acier. En revanche, comme les Casernes (<see cref="ProduceSoldiers"/>), un Arsenal
+    /// (vertex de prestige Production Accélérée) : 2 soldats pour 1 Acier consommé par cycle. Comme les
+    /// Casernes (<see cref="ProduceSoldiers"/>) : un Arsenal désactivé ne produit jamais, même sous le
+    /// quota gratuit (SOLDIER_FOOD_FREE_PER_CITY) — l'activation est un choix explicite du joueur vu le
+    /// coût en Acier, une ressource par ailleurs utilisée pour les Armures/Armes d'Acier — et un Arsenal
     /// actif reste plafonné au quota gratuit tant que la restriction par layer
     /// (AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer) est active pour la ville.
     /// </summary>

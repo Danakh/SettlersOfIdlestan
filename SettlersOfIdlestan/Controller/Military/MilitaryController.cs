@@ -175,7 +175,8 @@ public class MilitaryController
     /// Minerai/seconde consommé par la production automatique de soldats (Casernes), toutes villes de
     /// la civilisation confondues. Reflète les mêmes conditions que <see cref="SoldierProductionEngine.ProduceSoldiers"/> —
     /// une ville au plafond de soldats (elle et ses renforts en transit compris), sans Caserne active
-    /// (hors quota gratuit sous <see cref="ECategory.SOLDIER_FOOD_FREE_PER_CITY"/>), ou dont le layer est
+    /// (une Caserne désactivée ne produit jamais, même sous le quota gratuit
+    /// <see cref="ECategory.SOLDIER_FOOD_FREE_PER_CITY"/>), ou dont le layer est
     /// restreint au quota gratuit (AutomationSettings.RestrictSoldierProductionToFreeSoldiersByLayer) et déjà au
     /// quota, ne compte pas : la consommation est basée sur le fait que chaque Caserne éligible est en
     /// train de tourner son cooldown de production (et va donc consommer 1 minerai à la fin de celui-ci),
@@ -194,12 +195,13 @@ public class MilitaryController
         {
             if (city.Soldiers + city.IncomingSoldiers.Count >= GetMaximumSoldierCapacity(city)) continue;
 
-            var barracks = city.FindBuilding(BuildingType.Barracks) is { } b2 && b2.Level >= SoldierProductionEngine.SoldierProductionMinLevel ? b2 : null;
+            var barracks = city.FindBuilding(BuildingType.Barracks) is { ActivationStatus: ActivationStatus.ACTIVE } b2
+                && b2.Level >= SoldierProductionEngine.SoldierProductionMinLevel ? b2 : null;
             if (barracks == null) continue;
 
             bool restrictedToFreeSoldiers = SoldierProductionEngine.IsRestrictedToFreeQuota(
                 _state!, city, civ.Index == _state!.PlayerCivilization.Index, freePerCity);
-            if ((barracks.ActivationStatus != ActivationStatus.ACTIVE || restrictedToFreeSoldiers) && city.Soldiers >= freePerCity) continue;
+            if (restrictedToFreeSoldiers && city.Soldiers >= freePerCity) continue;
 
             total += civ.UnitProductionSpeed * ticksPerSecond / SoldierProductionIntervalTicks;
         }

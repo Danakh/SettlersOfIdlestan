@@ -200,17 +200,34 @@ public class BarracksRestrictionTests
     }
 
     [Fact]
-    public void Restriction_InactiveBarracks_StopsAtFreeQuota_RegardlessOfLayerFlag()
+    public void InactiveBarracks_ProducesNothing_EvenBelowFreeQuota()
     {
-        // Comportement déjà existant hors AutomationSettings : une Caserne désactivée continue de
-        // produire jusqu'au quota gratuit (SOLDIER_FOOD_FREE_PER_CITY) — même sans restriction de layer.
-        var (state, clock, surfaceCity, _) = TwoLayerSetup(freePerCity: 3);
+        // Une Caserne désactivée ne produit rien, même sous le quota gratuit
+        // (SOLDIER_FOOD_FREE_PER_CITY) : le quota plafonne une Caserne active restreinte, il ne
+        // rallume pas une Caserne éteinte. Voir SoldierProductionEngine.ProduceSoldiers.
+        var (state, clock, surfaceCity, underworldCity) = TwoLayerSetup(freePerCity: 3);
         surfaceCity.Buildings.OfType<Barracks>().First().ActivationStatus = ActivationStatus.INACTIVE;
 
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(3, surfaceCity.Soldiers);
+        Assert.Equal(0, surfaceCity.Soldiers);
+        Assert.Equal(Cycles, underworldCity.Soldiers); // ville témoin : Caserne active, non restreinte
+    }
+
+    [Fact]
+    public void InactiveBarracks_ProducesNothing_EvenWithSoldiersAlreadyBelowQuota()
+    {
+        // Même chose avec une garnison déjà entamée sous le quota : la Caserne éteinte ne la
+        // recomplète pas — c'était le symptôme visible (ville qui se repeuple toute seule).
+        var (state, clock, surfaceCity, _) = TwoLayerSetup(freePerCity: 5);
+        surfaceCity.Buildings.OfType<Barracks>().First().ActivationStatus = ActivationStatus.INACTIVE;
+        surfaceCity.Soldiers = 2;
+
+        for (int i = 0; i < Cycles; i++)
+            clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
+
+        Assert.Equal(2, surfaceCity.Soldiers);
     }
 
     /// <summary>
