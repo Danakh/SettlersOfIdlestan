@@ -380,11 +380,11 @@ public class MilitaryController
 
     private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
     {
-        try { Update(e.CurrentTick); }
+        try { Update(e.CurrentTick, e.CurrentTick - e.PreviousTick); }
         catch (Exception ex) { GameLog.Error(nameof(MilitaryController), nameof(Update), ex); }
     }
 
-    private void Update(long currentTick)
+    private void Update(long currentTick, long elapsedTicks)
     {
         if (_state == null) return;
         _reinforcementEngine.ResolveArrivals(currentTick);
@@ -417,7 +417,11 @@ public class MilitaryController
             args => SoldierAttackedCity?.Invoke(this, args),
             args => CityBuildingDestroyed?.Invoke(this, args),
             args => ConsumableConsumed?.Invoke(this, args));
-        _reinforcementEngine.ResolveReinforcements(currentTick,
+        // DeferDefenseClamp en troisième argument : il vaut vrai exactement quand un
+        // MonsterFeatureController est câblé à ce contrôleur, donc quand une rafale d'attaques suivra
+        // dans le même événement ET qu'il rappellera SettleReinforcementBurstBuffer ensuite — les
+        // deux conditions du tampon de rafale (voir ReinforcementEngine.SettleBurstBuffer).
+        _reinforcementEngine.ResolveReinforcements(currentTick, elapsedTicks, monsterBurstFollows: DeferDefenseClamp,
             args => ReinforcementSent?.Invoke(this, args));
         _reinforcementEngine.ResolvePlayerAutoReinforcement(currentTick);
         _raidEngine.ResolvePlayerAutoVendetta(currentTick);
@@ -438,6 +442,13 @@ public class MilitaryController
     /// contrôleur — voir son commentaire pour le scénario complet (saut de temps).</para>
     /// </summary>
     internal bool DeferDefenseClamp { get; set; } = false;
+
+    /// <summary>
+    /// Rend aux villes sources les renforts du tampon de rafale que les attaques de monstres n'ont
+    /// pas consommés — voir <see cref="ReinforcementEngine.SettleBurstBuffer"/>. Même point d'appel
+    /// et même contrat que <see cref="ClampDefenseAfterCombat"/> : une fois la rafale résolue.
+    /// </summary>
+    internal void SettleReinforcementBurstBuffer() => _reinforcementEngine.SettleBurstBuffer();
 
     /// <summary>
     /// Régénération de défense de tous les emplacements de toutes les civilisations, à chaque

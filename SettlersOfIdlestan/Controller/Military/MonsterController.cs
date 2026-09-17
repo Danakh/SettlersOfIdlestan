@@ -186,6 +186,10 @@ public class MonsterFeatureController
         // son maximum par ResolveDefenseRegen, voir DeferDefenseClamp) maintenant que toutes les
         // attaques de monstres dues sur ce tick ont été résolues ci-dessus.
         _militaryController?.ClampDefenseAfterCombat();
+
+        // Voir ReinforcementEngine.SettleBurstBuffer : rend aux villes sources les renforts avancés
+        // pour cette tranche que les attaques ci-dessus n'ont pas consommés.
+        _militaryController?.SettleReinforcementBurstBuffer();
     }
 
     /// <summary>
