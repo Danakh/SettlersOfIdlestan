@@ -23,6 +23,13 @@ public sealed class SkiaGameRuntime : IDisposable
     private bool                  _allowDebugMode;
     private bool                  _demoMode;
 
+    /// <summary>
+    /// Le head sait fermer l'application. Transmis au GameScreen, qui n'offre « Quitter le jeu »
+    /// dans le menu de l'engrenage que dans ce cas — le navigateur et iOS n'ont pas de fenêtre à
+    /// fermer.
+    /// </summary>
+    private bool                  _canQuit;
+
     private TitleScreen?  _titleScreen;
     private GameScreen?   _gameScreen;
     private bool          _onTitleScreen;
@@ -180,23 +187,23 @@ public sealed class SkiaGameRuntime : IDisposable
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
-    public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false, StoreController? storeController = null)
+    public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false, StoreController? storeController = null, bool canQuit = false)
     {
         var autoJson     = fileSystemService.LoadAuto().GetAwaiter().GetResult();
         var settingsJson = fileSystemService.LoadSettings().GetAwaiter().GetResult();
         var statsJson    = fileSystemService.LoadStats().GetAwaiter().GetResult();
-        InitializeCore(fileSystemService, autoJson, settingsJson, statsJson, allowDebugMode, demoMode, storeController);
+        InitializeCore(fileSystemService, autoJson, settingsJson, statsJson, allowDebugMode, demoMode, storeController, canQuit);
     }
 
-    public async Task InitializeAsync(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false, StoreController? storeController = null)
+    public async Task InitializeAsync(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false, StoreController? storeController = null, bool canQuit = false)
     {
         var autoJson     = await fileSystemService.LoadAuto();
         var settingsJson = await fileSystemService.LoadSettings();
         var statsJson    = await fileSystemService.LoadStats();
-        InitializeCore(fileSystemService, autoJson, settingsJson, statsJson, allowDebugMode, demoMode, storeController);
+        InitializeCore(fileSystemService, autoJson, settingsJson, statsJson, allowDebugMode, demoMode, storeController, canQuit);
     }
 
-    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, string? settingsJson, string? statsJson, bool allowDebugMode, bool demoMode = false, StoreController? storeController = null)
+    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, string? settingsJson, string? statsJson, bool allowDebugMode, bool demoMode = false, StoreController? storeController = null, bool canQuit = false)
     {
         if (_isDisposed)    throw new ObjectDisposedException(nameof(SkiaGameRuntime));
         if (_isInitialized) return;
@@ -206,6 +213,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _storeController     = storeController;
         _allowDebugMode      = allowDebugMode;
         _demoMode            = demoMode;
+        _canQuit             = canQuit;
         _resourceManager     = new ResourceManager();
         _localizationService = new LocalizationService();
         _uiLayoutService     = new UILayoutService();
@@ -281,7 +289,8 @@ public sealed class SkiaGameRuntime : IDisposable
             // valeurs par défaut et le joueur retrouvait, par exemple, le tutoriel qu'il venait
             // de masquer. L'instance est partagée avec le runtime, dont l'écran-titre est détruit
             // juste au-dessus — elle est reconstruite au retour au menu (OnReturnToTitle).
-            titleSettings: _titleSettings);
+            titleSettings: _titleSettings,
+            canQuit: _canQuit);
         _gameScreen.ReturnToTitleRequested     += OnReturnToTitle;
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
@@ -311,7 +320,8 @@ public sealed class SkiaGameRuntime : IDisposable
             _demoMode,
             _storeController,
             statsJson: _statsJson,
-            runSynchronized: _stateSynchronizer);
+            runSynchronized: _stateSynchronizer,
+            canQuit: _canQuit);
         _gameScreen.ReturnToTitleRequested     += OnReturnToTitle;
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);

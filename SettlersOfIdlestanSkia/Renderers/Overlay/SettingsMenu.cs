@@ -26,6 +26,7 @@ public class SettingsMenu
     private readonly DebugPanelRenderer? _debugPanelRenderer;
     private readonly Action? _onAfterNewGame;
     private readonly Action? _onReturnToMenu;
+    private readonly Action? _onQuit;
     private readonly Action? _onRestartIsland;
     private readonly Action<string>? _onLoadGame;
     private List<MenuItem> _menuItems = new();
@@ -41,7 +42,11 @@ public class SettingsMenu
 
     public bool IsOpen => _isOpen;
 
-    public SettingsMenu(MainGameController gameController, LocalizationService localization, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, Action? onReturnToMenu = null, Action? onRestartIsland = null, Action<string>? onLoadGame = null)
+    /// <param name="onQuit">
+    /// Ferme l'application. Null sur les heads qui n'ont pas de fenêtre à fermer (navigateur, iOS) :
+    /// l'item « Quitter le jeu » n'apparaît alors pas du tout, plutôt que d'être présent sans effet.
+    /// </param>
+    public SettingsMenu(MainGameController gameController, LocalizationService localization, SettingsPopupRenderer settingsPopupRenderer, IFileSystemService fileSystemService, CityBuildingService cityBuildingService, bool allowDebugMode = false, DebugPanelRenderer? debugPanelRenderer = null, Action? onAfterNewGame = null, Action? onReturnToMenu = null, Action? onRestartIsland = null, Action<string>? onLoadGame = null, Action? onQuit = null)
     {
         _gameController = gameController;
         _localization = localization;
@@ -51,6 +56,7 @@ public class SettingsMenu
         _debugPanelRenderer = debugPanelRenderer;
         _onAfterNewGame = onAfterNewGame;
         _onReturnToMenu = onReturnToMenu;
+        _onQuit = onQuit;
         _onRestartIsland = onRestartIsland;
         _onLoadGame = onLoadGame;
 
@@ -84,6 +90,15 @@ public class SettingsMenu
             LabelKey = "menu_return_to_menu",
             Action = ReturnToMenu
         });
+
+        if (onQuit != null)
+        {
+            _menuItems.Add(new MenuItem
+            {
+                LabelKey = "menu_quit_game",
+                Action = Quit
+            });
+        }
 
         if (allowDebugMode)
         {
@@ -175,6 +190,11 @@ public class SettingsMenu
     private void ReturnToMenu()
     {
         _onReturnToMenu?.Invoke();
+    }
+
+    private void Quit()
+    {
+        _onQuit?.Invoke();
     }
 
     private void OpenDebugPanel()

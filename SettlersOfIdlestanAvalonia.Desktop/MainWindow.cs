@@ -49,7 +49,9 @@ public sealed class MainWindow : Window
             this,
             () => _runtime.LastSaveDirectory,
             _runtime.SetLastSaveDirectory);
-        _runtime.Initialize(fileSystem, allowDebug, demoMode, _storeController);
+        // canQuit : ce head a une fenetre a fermer, le menu de l'engrenage peut donc proposer
+        // « Quitter le jeu ». QuitRequested est deja branche sur Close plus haut.
+        _runtime.Initialize(fileSystem, allowDebug, demoMode, _storeController, canQuit: true);
 
         _host = new GameRuntimeHost(_runtime);
         Content = new GameView(_host);

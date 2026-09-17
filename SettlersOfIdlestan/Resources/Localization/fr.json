@@ -36,6 +36,7 @@
   "menu_load_game": "Charger une partie",
   "menu_restart_island": "Recommencer l'île",
   "menu_return_to_menu": "Retourner au menu",
+  "menu_quit_game": "Quitter le jeu",
   "menu_hard_reset": "Réinitialisation totale",
   "restart_island_title": "⚠ Recommencer l'île",
   "restart_island_line1": "L'île actuelle sera régénérée : vos villes, bâtiments, routes, ressources et armées seront définitivement perdus.",

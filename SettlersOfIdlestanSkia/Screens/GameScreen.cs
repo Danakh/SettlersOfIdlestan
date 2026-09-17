@@ -39,6 +39,12 @@ public sealed class GameScreen : IDisposable
     private readonly StoreController? _storeController;
     private readonly Action<Action>? _runSynchronized;
 
+    /// <summary>
+    /// Le head sait fermer l'application (bureau). Faux pour le navigateur et iOS, où l'item
+    /// « Quitter le jeu » du menu de l'engrenage n'a pas lieu d'être.
+    /// </summary>
+    private readonly bool _canQuit;
+
     private HarvestService? _harvestService;
     private ConstructionInteractionService? _constructionInteractionService;
     private IslandMainRenderer? _islandMainRenderer;
@@ -109,7 +115,10 @@ public sealed class GameScreen : IDisposable
     /// <summary>Déclenché après confirmation d'un hard reset — retourne à l'écran titre.</summary>
     public event Action? ReturnToTitleRequested;
 
-    /// <summary>Déclenché lors du "Quit" sur la popup de sauvegarde corrompue.</summary>
+    /// <summary>
+    /// Déclenché lors du "Quit" sur la popup de sauvegarde corrompue, ou de « Quitter le jeu »
+    /// dans le menu de l'engrenage.
+    /// </summary>
     public event Action? QuitRequested;
 
     public event Action<bool>? FullscreenToggleRequested;
@@ -129,8 +138,10 @@ public sealed class GameScreen : IDisposable
         StoreController? storeController = null,
         string? statsJson = null,
         Action<Action>? runSynchronized = null,
-        GameSettings? titleSettings = null)
+        GameSettings? titleSettings = null,
+        bool canQuit = false)
     {
+        _canQuit              = canQuit;
         _runSynchronized      = runSynchronized;
         _fileSystemService    = fileSystemService;
         _localizationService  = localizationService;
@@ -339,14 +350,16 @@ public sealed class GameScreen : IDisposable
             _fileSystemService, _gameControllerService.CityBuildingService!,
             allowDebugMode, debugPanelRenderer,
             StartNewGameIntro,
-            onReturnToMenu: () => ReturnToTitleRequested?.Invoke(),
+            onReturnToMenu: RequestReturnToTitle,
             // Recommencer l'île depuis le menu passe par une confirmation : le joueur perd sa
             // partie sans rien gagner. La modale de fin de partie, elle, redémarre directement —
             // il n'y a alors plus rien à perdre.
             onRestartIsland: () => _restartIslandPopup?.Open(),
             // Seul rappel du menu qui arrive après une attente du joueur (le sélecteur de
             // fichier) : il faut donc reprendre le verrou de l'hôte avant de toucher au modèle.
-            onLoadGame: json => RunSynchronized(() => HandleLoadGame(json)));
+            onLoadGame: json => RunSynchronized(() => HandleLoadGame(json)),
+            // Null hors bureau : c'est ce qui retire l'item du menu.
+            onQuit: _canQuit ? RequestQuit : null);
 
         _playerResourcesOverlayRenderer = new PlayerResourcesOverlayRenderer();
         // PlayerCivilization est nul pendant l'attente de choix de race d'une Ascension (voir
@@ -822,6 +835,100 @@ public sealed class GameScreen : IDisposable
 
         var statsJson = System.Text.Json.JsonSerializer.Serialize(_gameControllerService.MainGameController.LifetimeStats);
         _fileSystemService.SaveStats(statsJson);
+    }
+
+    /// <summary>
+    /// « Retourner au menu » : la partie est sauvegardée avant qu'on rende la main, parce que
+    /// l'écran-titre relit aussitôt le fichier pour son bouton « Continuer ». Sans cela le joueur
+    /// y retrouverait l'état d'il y a jusqu'à <see cref="AutoSaveInterval"/> secondes de jeu.
+    /// <para>
+    /// Le retour à l'écran-titre du hard reset ne passe pas par ici et ne doit surtout pas le
+    /// faire : il vient d'effacer la sauvegarde, la réécrire la ressusciterait.
+    /// </para>
+    /// </summary>
+    private async void RequestReturnToTitle()
+    {
+        await FlushSave();
+
+        // L'attente a rendu la main au dispatcher : le verrou de GameRuntimeHost est retombé,
+        // alors que la suite détruit l'écran de jeu pendant que le thread de rendu dessine.
+        RunSynchronized(() => ReturnToTitleRequested?.Invoke());
+    }
+
+    /// <summary>
+    /// « Quitter le jeu » : même sauvegarde que le retour au menu, attendue avant de fermer la
+    /// fenêtre — le processus ne sera plus là pour terminer une écriture restée en vol.
+    /// </summary>
+    private async void RequestQuit()
+    {
+        await FlushSave();
+
+        // Rien ne touche au modèle ici, contrairement au retour au menu : la fermeture de la
+        // fenêtre reprend elle-même le verrou (GameRuntimeHost.Dispose).
+        QuitRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Sauvegarde immédiate, hors du rythme de <see cref="AutoSaveInterval"/>, pour les sorties de
+    /// partie voulues par le joueur. La tâche rendue permet d'attendre l'écriture avant de fermer
+    /// la fenêtre ou de laisser l'écran-titre relire le fichier.
+    /// <para>
+    /// Comme la sauvegarde automatique, seule la sérialisation du modèle a lieu ici, sur le thread
+    /// de jeu ; le reste part en tâche de fond. Une sauvegarde automatique encore en vol est
+    /// attendue d'abord : elle porte un état plus ancien, et la laisser se terminer après la nôtre
+    /// la remettrait sur le disque.
+    /// </para>
+    /// </summary>
+    private Task FlushSave()
+    {
+        // Sauvegarde corrompue : le modèle en place est la partie neuve créée pour ne pas laisser
+        // l'écran vide, pas celle du joueur. L'écrire écraserait le fichier qu'il peut encore
+        // vouloir récupérer.
+        if (_corruptSavePending) return Task.CompletedTask;
+        if (_gameControllerService.MainGameController.CurrentMainState is not { } mainState) return Task.CompletedTask;
+
+        ReadOnlyMemory<byte> json;
+        string statsJson;
+        try
+        {
+            json      = _gameControllerService.MainGameController.SerializeMainStateUtf8();
+            statsJson = System.Text.Json.JsonSerializer.Serialize(_gameControllerService.MainGameController.LifetimeStats);
+        }
+        catch (Exception ex)
+        {
+            // Une partie qui refuse de se sérialiser ne doit pas empêcher le joueur de sortir :
+            // on renonce à la sauvegarde, il reste celle de l'autosave précédent.
+            GameLog.Error(nameof(GameScreen), nameof(FlushSave), ex);
+            return Task.CompletedTask;
+        }
+
+        bool cloudSaveEnabled = mainState.Settings.CloudSaveEnabled;
+
+        var pending    = _autoSaveTask;
+        _autoSaveTimer = 0;
+        _autoSaveTask  = Task.Run(() => PersistFlushSave(pending, json, cloudSaveEnabled, statsJson));
+        return _autoSaveTask;
+    }
+
+    private async Task PersistFlushSave(Task? pending, ReadOnlyMemory<byte> json, bool cloudSaveEnabled, string statsJson)
+    {
+        // PersistAutoSave journalise déjà ses propres échecs : on n'attend ici que la fin de
+        // l'écriture précédente, pas son succès.
+        if (pending is { IsCompleted: false })
+        {
+            try { await pending; } catch { }
+        }
+
+        await PersistAutoSave(json, cloudSaveEnabled);
+
+        try
+        {
+            await _fileSystemService.SaveStats(statsJson);
+        }
+        catch (Exception ex)
+        {
+            GameLog.Error(nameof(GameScreen), nameof(PersistFlushSave), ex);
+        }
     }
 
     /// <summary>

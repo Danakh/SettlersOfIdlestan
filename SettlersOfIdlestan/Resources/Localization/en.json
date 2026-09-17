@@ -36,6 +36,7 @@
   "menu_load_game": "Load Game",
   "menu_restart_island": "Restart Island",
   "menu_return_to_menu": "Return to Menu",
+  "menu_quit_game": "Quit Game",
   "menu_hard_reset": "Hard Reset",
   "restart_island_title": "⚠ Restart Island",
   "restart_island_line1": "The current island will be regenerated: your cities, buildings, roads, resources and armies will be permanently lost.",
