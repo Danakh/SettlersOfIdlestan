@@ -11,6 +11,8 @@ namespace SettlersOfIdlestan.Controller.Generator;
 /// Generates a crescent-shaped island: a large outer arc minus an inner bite, opening toward
 /// one of the 6 hex directions (picked randomly at construction). Tile order is outer-arc-first
 /// via a BFS priority queue, guaranteeing connectivity.
+/// À nombre de tuiles égal, l'arc est volontairement court et large (≈ 30 % plus court et un cran
+/// plus épais que la version d'origine) : voir le choix du rayon dans GenerateCoords.
 /// </summary>
 public class IslandShapeGeneratorCrescent : IslandShapeGenerator
 {
@@ -25,30 +27,42 @@ public class IslandShapeGeneratorCrescent : IslandShapeGenerator
     {
         if (count <= 0) return [];
 
-        // Choose outer radius so the disc holds at least 2× the needed tiles
-        int R = 2;
-        while (3 * R * R + 3 * R + 1 < count * 2) R++;
-
-        // Bite: offset toward the opening direction, radius ≈ 55% of R
-        int biteDist = (R + 1) / 2;
-        int biteRadius = Math.Max(1, (int)Math.Round(R * 0.55));
         var origin = new HexCoord(0, 0, layer);
-        var biteCenter = origin;
-        for (int i = 0; i < biteDist; i++)
-            biteCenter = biteCenter.Neighbor(_openingDirection);
 
-        // Collect all hexes inside the outer disc that are outside the bite
-        var validHexes = new HashSet<HexCoord>();
-        for (int q = -R; q <= R; q++)
+        // Le rayon extérieur n'est plus choisi une fois pour toutes depuis l'aire du disque : on le
+        // fait croître jusqu'à ce que le croissant lui-même (disque moins morsure) tienne les tuiles
+        // demandées avec une faible marge. Le BFS remplit alors quasiment toute la forme, donc la
+        // géométrie — et non le budget de tuiles — dicte le résultat : un arc court et épais plutôt
+        // qu'un anneau fin qui s'enroule sur presque 360°.
+        int R = 2;
+        HashSet<HexCoord> validHexes;
+        HexCoord biteCenter;
+        while (true)
         {
-            int rMin = Math.Max(-R, -q - R);
-            int rMax = Math.Min(R, -q + R);
-            for (int r = rMin; r <= rMax; r++)
+            // Morsure : décalée de 90 % de R vers la direction d'ouverture (elle creuse donc une
+            // large bouche au bord et non un trou central), rayon ≈ 55 % de R.
+            int biteDist = (int)Math.Round(R * 0.9);
+            int biteRadius = Math.Max(1, (int)Math.Round(R * 0.55));
+            biteCenter = origin;
+            for (int i = 0; i < biteDist; i++)
+                biteCenter = biteCenter.Neighbor(_openingDirection);
+
+            // Collect all hexes inside the outer disc that are outside the bite
+            validHexes = new HashSet<HexCoord>();
+            for (int q = -R; q <= R; q++)
             {
-                var coord = new HexCoord(q, r, layer);
-                if (coord.DistanceTo(biteCenter) > biteRadius)
-                    validHexes.Add(coord);
+                int rMin = Math.Max(-R, -q - R);
+                int rMax = Math.Min(R, -q + R);
+                for (int r = rMin; r <= rMax; r++)
+                {
+                    var coord = new HexCoord(q, r, layer);
+                    if (coord.DistanceTo(biteCenter) > biteRadius)
+                        validHexes.Add(coord);
+                }
             }
+
+            if (validHexes.Count >= count * 1.1) break;
+            R++;
         }
 
         // Start from the hex farthest from the bite center (natural tip of the crescent,
