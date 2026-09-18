@@ -649,25 +649,61 @@ namespace SettlersOfIdlestan.Controller.Expand
             return (percent, perSecond);
         }
 
+        /// <summary>Clés de source des points de recherche produits, pour l'infobulle de l'en-tête.</summary>
+        public const string PassiveGenerationSourceKey = "tooltip_source_passive_generation";
+        public const string LibraryResearchSourceKey = "tooltip_source_library_research";
+        public const string LaboratoryResearchSourceKey = "tooltip_source_laboratory_research";
+
         public double GetResearchPointsPerSecond()
         {
-            if (_state == null) return 0.0;
+            var (passive, libraries, laboratories) = ComputeResearchPointSources();
+            return passive + libraries + laboratories;
+        }
+
+        /// <summary>
+        /// Détail des sources de points de recherche, pour l'infobulle de l'en-tête de l'onglet
+        /// Recherche — même présentation que les infobulles de ressources. Les sources à zéro sont
+        /// omises. Somme identique à <see cref="GetResearchPointsPerSecond"/>, les deux passant par
+        /// le même calcul.
+        /// </summary>
+        public List<(string SourceKey, double Rate)> GetResearchPointsRatesBySource()
+        {
+            var (passive, libraries, laboratories) = ComputeResearchPointSources();
+            var sources = new List<(string SourceKey, double Rate)>(3);
+            if (libraries > 0) sources.Add((LibraryResearchSourceKey, libraries));
+            if (laboratories > 0) sources.Add((LaboratoryResearchSourceKey, laboratories));
+            if (passive > 0) sources.Add((PassiveGenerationSourceKey, passive));
+            return sources;
+        }
+
+        /// <summary>
+        /// Points de recherche par seconde, ventilés par origine. Reflète les mêmes conditions que
+        /// <see cref="ProduceResearchPoints"/> : chaque Bibliothèque/Laboratoire éligible tourne son
+        /// propre cooldown et produit son lot à la fin de celui-ci.
+        /// </summary>
+        private (double Passive, double Libraries, double Laboratories) ComputeResearchPointSources()
+        {
+            if (_state == null) return (0.0, 0.0, 0.0);
             double productionSpeed = _state.PlayerCivilization.ResearchProductionSpeed;
-            double total = _state.PlayerCivilization.ModifierAggregator.ApplyModifiers(
+            double passive = _state.PlayerCivilization.ModifierAggregator.ApplyModifiers(
                 Modifier.ECategory.RESEARCH_POINTS_PASSIVE_GENERATION, "", 0.0);
-            foreach (var city in _state.PlayerCivilization.Cities)
+            double libraries = 0.0;
+            double laboratories = 0.0;
+            var cities = _state.PlayerCivilization.Cities;
+            for (int i = 0; i < cities.Count; i++)
             {
+                var city = cities[i];
                 var library = city.FindBuilding<Library>(BuildingType.Library);
                 if (library == null || !library.CanProduceResearch) continue;
                 long cooldown = library.GetResearchCooldownTicks();
-                total += 100.0 / cooldown * productionSpeed;
+                libraries += 100.0 / cooldown * productionSpeed;
 
                 var lab = city.FindBuilding<Laboratory>(BuildingType.Laboratory);
                 if (lab == null || lab.Level < 1 || lab.ActivationStatus != ActivationStatus.ACTIVE) continue;
                 long labCooldown = lab.GetResearchCooldownTicks();
-                total += Laboratory.ResearchPointsPerBatch * 100.0 / labCooldown * productionSpeed;
+                laboratories += Laboratory.ResearchPointsPerBatch * 100.0 / labCooldown * productionSpeed;
             }
-            return total;
+            return (passive, libraries, laboratories);
         }
 
         public bool IsResearchUnlocked()

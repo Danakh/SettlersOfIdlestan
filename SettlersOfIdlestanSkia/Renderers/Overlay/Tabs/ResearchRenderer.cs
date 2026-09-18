@@ -23,6 +23,12 @@ public sealed class ResearchRenderer : IGameRenderer
     private const float PanelPadding = 16f;
     private float _topOffset = PlayerResourcesOverlayRenderer.BarHeight + 8f;
     private const float HeaderHeight = 34f;
+    /// <summary>Hauteur de l'en-tête quand une recherche est en cours (voir LayoutHeader).</summary>
+    private const float HeaderHeightTwoLines = 50f;
+    /// <summary>Ligne de base du premier libellé, seul ou en tête de deux.</summary>
+    private const float HeaderBaseline = 24f;
+    /// <summary>Écart vertical entre les deux lignes de l'en-tête.</summary>
+    private const float HeaderLineSpacing = 16f;
 
     private const float MinZoom = 0.4f;
     private const float MaxZoom = 2.5f;
@@ -54,8 +60,18 @@ public sealed class ResearchRenderer : IGameRenderer
     private SKRect _contentBounds;
     private TechnologyId? _hoveredTechId;
     private TechnologyId? _hoveredLoopTechId;
-    private bool _isHoveringHeader;
+    private bool _isHoveringPointsLabel;
+    private bool _isHoveringInvestmentLabel;
     private bool _isHoveringCancelButton;
+
+    /// <summary>Mise en page de l'en-tête, recalculée à chaque image par <see cref="LayoutHeader"/>.</summary>
+    private float _headerHeight = HeaderHeight;
+    private string? _pointsLabel;
+    private string? _investmentLabel;
+    private SKPoint _pointsLabelOrigin;
+    private SKPoint _investmentLabelOrigin;
+    private SKRect _pointsLabelRect = SKRect.Empty;
+    private SKRect _investmentLabelRect = SKRect.Empty;
     private SKPoint _lastPointerPosition;
     private bool _disposed;
     public bool IsActive { get; set; }
@@ -137,9 +153,13 @@ public sealed class ResearchRenderer : IGameRenderer
         var byCol = Layout.GroupBy(kv => kv.Value.col).OrderBy(g => g.Key).ToList();
         int maxRowsInAnyCol = byCol.Max(g => g.Max(kv => kv.Value.row) + 1);
 
+        // Sous l'en-tête et non sous le seul _topOffset : l'en-tête est opaque et dessiné par-dessus
+        // l'arbre, donc tout ce qui commence plus haut lui passe derrière — d'autant plus quand
+        // l'investissement passe à la ligne et le fait grandir.
+        float contentTop = _topOffset + _headerHeight;
         float totalTreeHeight = maxRowsInAnyCol * RowSpacing - (RowSpacing - NodeHeight);
-        float startY = _topOffset + PanelPadding + (canvasSize.Height - _topOffset - PanelPadding * 2 - totalTreeHeight) / 2f;
-        startY = Math.Max(_topOffset + PanelPadding, startY);
+        float startY = contentTop + PanelPadding + (canvasSize.Height - contentTop - PanelPadding * 2 - totalTreeHeight) / 2f;
+        startY = Math.Max(contentTop + PanelPadding, startY);
 
         int maxCol = byCol.Max(g => g.Key);
         float totalTreeWidth = (maxCol + 1) * NodeWidth + maxCol * (ColSpacing - NodeWidth);
@@ -182,17 +202,23 @@ public sealed class ResearchRenderer : IGameRenderer
         var ctrl = _gameControllerService.MainGameController.ResearchController;
 
         float scaled = _uiLayout.SecondRowBottom + 8f;
-        if (Math.Abs(scaled - _topOffset) > 0.5f)
-        {
-            _topOffset = scaled;
+        bool topOffsetChanged = Math.Abs(scaled - _topOffset) > 0.5f;
+        if (topOffsetChanged) _topOffset = scaled;
+
+        // Mis en page avant tout tracé : la hauteur de l'en-tête décide du rognage du contenu.
+        bool showCancelButton = ctrl.ActiveResearch != null && ctrl.IsResearchCancelUnlocked();
+        float previousHeaderHeight = _headerHeight;
+        LayoutHeader(ctrl, showCancelButton);
+
+        // L'arbre est posé sous l'en-tête : un changement de hauteur de l'un ou de l'autre le redescend.
+        if (topOffsetChanged || Math.Abs(previousHeaderHeight - _headerHeight) > 0.5f)
             ComputeNodeRects(_canvasSize);
-        }
 
         canvas.DrawRect(new SKRect(0, _topOffset, _canvasSize.Width, _canvasSize.Height), _bgPaint);
 
         // Zoomed content
         canvas.Save();
-        canvas.ClipRect(new SKRect(0, _topOffset + HeaderHeight, _canvasSize.Width, _canvasSize.Height));
+        canvas.ClipRect(new SKRect(0, _topOffset + _headerHeight, _canvasSize.Width, _canvasSize.Height));
         canvas.Translate(_panOffset.X, _panOffset.Y);
         canvas.Scale(_zoom);
         DrawLines(canvas, ctrl);
@@ -200,24 +226,16 @@ public sealed class ResearchRenderer : IGameRenderer
         canvas.Restore();
 
         // Fixed header (drawn on top so nodes can't overlap it)
-        canvas.DrawRect(new SKRect(0, _topOffset, _canvasSize.Width, _topOffset + HeaderHeight), _bgPaint);
-        if (_gameControllerService.PlayerCivilization != null)
-        {
-            double rps = ctrl.GetResearchPointsPerSecond();
-            string rpBase = $"{_localization.Get("research_points_label")}: {SkiaTextUtils.FormatNumber(ctrl.ResearchPoints)}/{SkiaTextUtils.FormatNumber(ctrl.MaxResearchPoints)}";
-            string rpLabel = rps > 0
-                ? $"{rpBase} (+{rps.ToString("0.##")}/s)"
-                : rpBase;
-            var (investPct, investPs) = ctrl.GetResearchConsumptionInfo();
-            if (investPs > 0)
-                rpLabel += $"  |  {_localization.Get("research_investment_label")} ({investPct.ToString("0")}%): {investPs.ToString("0.##")}/s";
-            SkiaTextUtils.DrawText(canvas, rpLabel, PanelPadding, _topOffset + 24f, _nameFont, _textPaint);
-        }
+        canvas.DrawRect(new SKRect(0, _topOffset, _canvasSize.Width, _topOffset + _headerHeight), _bgPaint);
+        if (_pointsLabel != null)
+            SkiaTextUtils.DrawText(canvas, _pointsLabel, _pointsLabelOrigin.X, _pointsLabelOrigin.Y, _nameFont, _textPaint);
+        if (_investmentLabel != null)
+            SkiaTextUtils.DrawText(canvas, _investmentLabel, _investmentLabelOrigin.X, _investmentLabelOrigin.Y, _nameFont, _textPaint);
 
-        if (ctrl.ActiveResearch != null && ctrl.IsResearchCancelUnlocked())
+        if (showCancelButton)
         {
             float btnX = _canvasSize.Width - PanelPadding - CancelBtnWidth;
-            float btnY = _topOffset + (HeaderHeight - CancelBtnHeight) / 2f;
+            float btnY = _topOffset + (_headerHeight - CancelBtnHeight) / 2f;
             _cancelButtonRect = new SKRect(btnX, btnY, btnX + CancelBtnWidth, btnY + CancelBtnHeight);
             canvas.DrawRoundRect(_cancelButtonRect, 4, 4, _cancelBtnBgPaint);
             canvas.DrawRoundRect(_cancelButtonRect, 4, 4, _cancelBtnBorderPaint);
@@ -258,17 +276,100 @@ public sealed class ResearchRenderer : IGameRenderer
             string tooltip = _localization.Get(ctrl.IsLoopEnabled(_hoveredLoopTechId.Value) ? "tooltip_research_loop_on" : "tooltip_research_loop_off");
             TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { tooltip }, _tooltipFont, uiScale: _lastUiScale);
         }
-        else if (_isHoveringHeader)
+        else if (_isHoveringPointsLabel)
         {
+            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition,
+                BuildResearchPointsTooltip(ctrl), _tooltipFont, uiScale: _lastUiScale);
+        }
+        else if (_isHoveringInvestmentLabel)
+        {
+            // Le débit par seconde est déjà sur la ligne survolée : l'infobulle n'explique que d'où il sort.
+            var (investPct, _) = ctrl.GetResearchConsumptionInfo();
             string tooltip = _localization.GetFormated(
-                "tooltip_research_max_points",
-                SkiaTextUtils.FormatNumber(ResearchController.BaseMaxResearchPoints),
-                SkiaTextUtils.FormatNumber(ctrl.TotalResearchPointsInvested),
-                SkiaTextUtils.FormatNumber(ctrl.MaxResearchPoints));
-            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition, new[] { tooltip }, _tooltipFont, uiScale: _lastUiScale);
+                "tooltip_research_investment",
+                investPct.ToString("0.##"));
+            TooltipRenderUtils.DrawTooltip(canvas, _canvasSize, _lastPointerPosition,
+                new[] { tooltip }, _tooltipFont, uiScale: _lastUiScale);
         }
 
         _cancelPopup.Render(canvas, _canvasSize, context.UiScale);
+    }
+
+    /// <summary>
+    /// Met en page les libellés de l'en-tête et découpe sa bande en zones de survol, chacune
+    /// portant son infobulle : celle de l'investissement dit ce qu'est le pourcentage versé,
+    /// celle des points d'où ils viennent et où est leur plafond.
+    ///
+    /// Chaque libellé a sa ligne, les points d'abord : mis bout à bout, les deux se lisaient
+    /// comme un seul débit alors que l'un alimente le stock et l'autre le vide. Sans recherche
+    /// en cours il n'y a pas d'investissement, et l'en-tête retombe à une ligne.
+    ///
+    /// Le découpage couvre toute la bande plutôt que le seul texte : il n'y a ainsi aucune zone
+    /// morte où le survol n'afficherait rien. Le bouton d'arrêt, lui, garde sa marge à droite.
+    /// </summary>
+    private void LayoutHeader(ResearchController ctrl, bool showCancelButton)
+    {
+        _pointsLabel = null;
+        _investmentLabel = null;
+        _pointsLabelRect = SKRect.Empty;
+        _investmentLabelRect = SKRect.Empty;
+        _headerHeight = HeaderHeight;
+
+        if (_gameControllerService.PlayerCivilization == null) return;
+
+        double rps = ctrl.GetResearchPointsPerSecond();
+        _pointsLabel = $"{_localization.Get("research_points_label")}: {SkiaTextUtils.FormatNumber(ctrl.ResearchPoints)}/{SkiaTextUtils.FormatNumber(ctrl.MaxResearchPoints)}";
+        if (rps > 0) _pointsLabel += $" (+{rps.ToString("0.##")}/s)";
+
+        var (investPct, investPs) = ctrl.GetResearchConsumptionInfo();
+        if (investPs > 0)
+            _investmentLabel = $"{_localization.Get("research_investment_label")} ({investPct.ToString("0")}%): {investPs.ToString("0.##")}/s";
+
+        float rightLimit = _canvasSize.Width - PanelPadding - (showCancelButton ? CancelBtnWidth + PanelPadding : 0f);
+        float firstBaseline = _topOffset + HeaderBaseline;
+
+        if (_investmentLabel == null)
+        {
+            _pointsLabelOrigin = new SKPoint(PanelPadding, firstBaseline);
+            _pointsLabelRect = new SKRect(0, _topOffset, rightLimit, _topOffset + _headerHeight);
+            return;
+        }
+
+        _headerHeight = HeaderHeightTwoLines;
+        _pointsLabelOrigin = new SKPoint(PanelPadding, firstBaseline);
+        _investmentLabelOrigin = new SKPoint(PanelPadding, firstBaseline + HeaderLineSpacing);
+
+        // Juste sous les jambages de la première ligne, pour que chaque libellé soit bien dans sa zone.
+        float lineSplit = firstBaseline + 4f;
+        _pointsLabelRect = new SKRect(0, _topOffset, rightLimit, lineSplit);
+        _investmentLabelRect = new SKRect(0, lineSplit, rightLimit, _topOffset + _headerHeight);
+    }
+
+    /// <summary>
+    /// Infobulle du stock de points de recherche : le détail du plafond, puis d'où viennent les
+    /// points — même présentation que les infobulles de la barre de ressources (total en tête,
+    /// puis une ligne par source).
+    /// </summary>
+    private string[] BuildResearchPointsTooltip(ResearchController ctrl)
+    {
+        var lines = new List<string>
+        {
+            _localization.GetFormated(
+                "tooltip_research_max_points",
+                SkiaTextUtils.FormatNumber(ResearchController.BaseMaxResearchPoints),
+                SkiaTextUtils.FormatNumber(ctrl.TotalResearchPointsInvested),
+                SkiaTextUtils.FormatNumber(ctrl.MaxResearchPoints)),
+        };
+
+        var sources = ctrl.GetResearchPointsRatesBySource();
+        if (sources.Count == 0) return lines.ToArray();
+
+        double total = 0.0;
+        foreach (var (_, rate) in sources) total += rate;
+        lines.Add($"{_localization.Get("research_points_label")} {_localization.GetFormated("tooltip_resource_total", total.ToString("F2"))}");
+        foreach (var (sourceKey, rate) in sources.OrderByDescending(s => s.Rate))
+            lines.Add($"{_localization.Get(sourceKey)} : +{rate:F2}/s");
+        return lines.ToArray();
     }
 
     /// <summary>Debug "carte complète" ou pouvoir divin Oeil de Dieu : révèle tout l'arbre de recherche.</summary>
@@ -469,6 +570,12 @@ public sealed class ResearchRenderer : IGameRenderer
 
     // ─── Input handling ──────────────────────────────────────────────────────
 
+    private void ClearHeaderHover()
+    {
+        _isHoveringPointsLabel = false;
+        _isHoveringInvestmentLabel = false;
+    }
+
     private SKPoint ToContentSpace(SKPoint screen)
         => new((screen.X - _panOffset.X) / _zoom, (screen.Y - _panOffset.Y) / _zoom);
 
@@ -485,7 +592,7 @@ public sealed class ResearchRenderer : IGameRenderer
     private void HandlePointerMoved(object? sender, PointerEventArgs e)
     {
         if (_cancelPopup.IsOpen) return;
-        if (!IsActive) { _hoveredTechId = null; _hoveredLoopTechId = null; _isHoveringHeader = false; _isHoveringCancelButton = false; return; }
+        if (!IsActive) { _hoveredTechId = null; _hoveredLoopTechId = null; ClearHeaderHover(); _isHoveringCancelButton = false; return; }
         _lastPointerPosition = e.Position;
 
         if (_pointerDown)
@@ -504,7 +611,7 @@ public sealed class ResearchRenderer : IGameRenderer
                 _lastPanMovePosition = e.Position;
                 _hoveredTechId = null;
                 _hoveredLoopTechId = null;
-                _isHoveringHeader = false;
+                ClearHeaderHover();
                 return;
             }
         }
@@ -512,9 +619,18 @@ public sealed class ResearchRenderer : IGameRenderer
         _hoveredTechId = null;
         _hoveredLoopTechId = null;
         _isHoveringCancelButton = _cancelButtonRect != SKRect.Empty && _cancelButtonRect.Contains(e.Position.X, e.Position.Y);
-        if (_isHoveringCancelButton) { _isHoveringHeader = false; return; }
-        _isHoveringHeader = e.Position.Y >= _topOffset && e.Position.Y <= _topOffset + HeaderHeight;
-        if (_isHoveringHeader) return;
+        if (_isHoveringCancelButton) { ClearHeaderHover(); return; }
+
+        // Les deux libellés de l'en-tête portent des infobulles distinctes : celle du stock de
+        // points et celle de l'investissement (voir LayoutHeader pour le découpage de la bande).
+        _isHoveringPointsLabel = _pointsLabelRect.Contains(e.Position.X, e.Position.Y);
+        _isHoveringInvestmentLabel = !_isHoveringPointsLabel
+            && _investmentLabelRect.Contains(e.Position.X, e.Position.Y);
+        if (_isHoveringPointsLabel || _isHoveringInvestmentLabel) return;
+
+        // Reste de la bande de l'en-tête : rien à survoler, mais l'arbre est dessous et ne doit
+        // pas répondre au travers.
+        if (e.Position.Y >= _topOffset && e.Position.Y <= _topOffset + _headerHeight) return;
 
         var contentPos = ToContentSpace(e.Position);
         var ctrl = _gameControllerService.MainGameController.ResearchController;
@@ -560,6 +676,10 @@ public sealed class ResearchRenderer : IGameRenderer
             }
             return;
         }
+
+        // L'en-tête est opaque et dessiné par-dessus l'arbre : un nœud amené dessous par un
+        // déplacement ne doit pas se lancer sur un clic qui vise en fait l'en-tête.
+        if (e.Position.Y >= _topOffset && e.Position.Y <= _topOffset + _headerHeight) return;
 
         var contentPos = ToContentSpace(e.Position);
 
