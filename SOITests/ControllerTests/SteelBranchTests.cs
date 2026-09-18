@@ -307,7 +307,7 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
-            Assert.Equal(2, city.Soldiers);
+            Assert.Equal<int>(2, city.Soldiers);
             Assert.Equal(0, civ.GetResourceQuantity(Resource.SteelArmor));
         }
 
@@ -322,7 +322,7 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
-            Assert.Equal(2, city.Soldiers);
+            Assert.Equal<int>(2, city.Soldiers);
             Assert.Equal(5, civ.GetResourceQuantity(Resource.SteelArmor));
         }
 

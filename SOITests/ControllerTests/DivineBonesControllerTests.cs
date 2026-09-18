@@ -88,8 +88,8 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(DivineBonesController.InvestmentIntervalTicks);
 
-            Assert.Equal(11, godState.DivineEssence);
-            Assert.Equal(3, godState.TotalDivineEssenceEarned);
+            Assert.Equal<int>(11, godState.DivineEssence);
+            Assert.Equal<int>(3, godState.TotalDivineEssenceEarned);
             Assert.Empty(state.Features.OfType<DivineBones>());
             Assert.Equal(3, state.EventLog.Entries.Count(e => e.Type == GameEventType.DivineBonesPurified));
             Assert.DoesNotContain(state.EventLog.Entries, e => e.Type == GameEventType.DivineBonesPurifiedNoEssence);
@@ -109,8 +109,8 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(DivineBonesController.InvestmentIntervalTicks);
 
-            Assert.Equal(11, godState.DivineEssence);
-            Assert.Equal(2, godState.TotalDivineEssenceEarned);
+            Assert.Equal<int>(11, godState.DivineEssence);
+            Assert.Equal<int>(2, godState.TotalDivineEssenceEarned);
             Assert.Empty(state.Features.OfType<DivineBones>());
             Assert.Equal(2, state.EventLog.Entries.Count(e => e.Type == GameEventType.DivineBonesPurified));
             Assert.Single(state.EventLog.Entries.Where(e => e.Type == GameEventType.DivineBonesPurifiedNoEssence));

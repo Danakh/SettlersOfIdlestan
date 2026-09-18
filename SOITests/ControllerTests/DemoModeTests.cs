@@ -43,8 +43,8 @@ namespace SOITests.ControllerTests
             controller.PerformPrestige();
 
             var prestige = controller.CurrentMainState!.PrestigeState!;
-            Assert.Equal(PrestigeState.DemoMaxTotalPrestigePointsEarned, prestige.TotalPrestigePointsEarned);
-            Assert.Equal(10, prestige.PrestigePoints);
+            Assert.Equal<int>(PrestigeState.DemoMaxTotalPrestigePointsEarned, prestige.TotalPrestigePointsEarned);
+            Assert.Equal<int>(10, prestige.PrestigePoints);
         }
 
         [Fact]
@@ -56,8 +56,8 @@ namespace SOITests.ControllerTests
             controller.PerformPrestige();
 
             var prestige = controller.CurrentMainState!.PrestigeState!;
-            Assert.Equal(PrestigeState.DemoMaxTotalPrestigePointsEarned, prestige.TotalPrestigePointsEarned);
-            Assert.Equal(0, prestige.PrestigePoints);
+            Assert.Equal<int>(PrestigeState.DemoMaxTotalPrestigePointsEarned, prestige.TotalPrestigePointsEarned);
+            Assert.Equal<int>(0, prestige.PrestigePoints);
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace SOITests.ControllerTests
             controller.PerformPrestige();
 
             var prestige = controller.CurrentMainState!.PrestigeState!;
-            Assert.Equal(990 + expected, prestige.TotalPrestigePointsEarned);
+            Assert.Equal<int>(990 + expected, prestige.TotalPrestigePointsEarned);
             Assert.True(prestige.TotalPrestigePointsEarned > PrestigeState.DemoMaxTotalPrestigePointsEarned);
         }
 

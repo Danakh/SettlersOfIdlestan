@@ -215,8 +215,8 @@ namespace SOITests.ControllerTests
 
             Assert.NotNull(controller.PlaceNecropolis(CityHex));
 
-            Assert.Equal(1, godState.DivineEssence);
-            Assert.Equal(1, godState.TotalDivineEssenceEarned);
+            Assert.Equal<int>(1, godState.DivineEssence);
+            Assert.Equal<int>(1, godState.TotalDivineEssenceEarned);
             Assert.Empty(state.Features.OfType<DivineBones>());
             Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.DivineBonesPurified);
         }
@@ -231,8 +231,8 @@ namespace SOITests.ControllerTests
 
             Assert.NotNull(controller.PlaceNecropolis(CityHex));
 
-            Assert.Equal(5, godState.DivineEssence);
-            Assert.Equal(0, godState.TotalDivineEssenceEarned);
+            Assert.Equal<int>(5, godState.DivineEssence);
+            Assert.Equal<int>(0, godState.TotalDivineEssenceEarned);
             Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.DivineBonesPurifiedNoEssence);
         }
 
@@ -245,8 +245,8 @@ namespace SOITests.ControllerTests
 
             Assert.NotNull(controller.PlaceNecropolis(CityHex));
 
-            Assert.Equal(0, godState.DivineEssence);
-            Assert.Equal(0, godState.TotalDivineEssenceEarned);
+            Assert.Equal<int>(0, godState.DivineEssence);
+            Assert.Equal<int>(0, godState.TotalDivineEssenceEarned);
             Assert.Empty(state.Features.OfType<DivineBones>());
             Assert.DoesNotContain(state.EventLog.Entries, e => e.Type == GameEventType.DivineBonesPurified);
         }

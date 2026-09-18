@@ -275,7 +275,7 @@ namespace SOITests.ControllerTests
             controller.PerformPrestige();
 
             var newIsland = controller.CurrentMainState!.CurrentWorldState!;
-            Assert.Equal(expectedPrestigePoints, controller.CurrentMainState.PrestigeState!.PrestigePoints);
+            Assert.Equal<int>(expectedPrestigePoints, controller.CurrentMainState.PrestigeState!.PrestigePoints);
             Assert.NotSame(initialIsland, newIsland);
             Assert.Equal(initialIsland.WorldId + 1, newIsland.WorldId);
             Assert.False(controller.PrestigeController.PrestigeIsVisible());
@@ -371,8 +371,8 @@ namespace SOITests.ControllerTests
             Assert.Equal(0, newPrestigeState.WalkOfGodNextCostDecayTick);
             Assert.Equal(0, newPrestigeState.PresenceOfGodNextCostDecayTick);
             Assert.Equal(0, newPrestigeState.FistOfGodNextCostDecayTick);
-            Assert.Equal(10, newPrestigeState.PrestigePoints);
-            Assert.Equal(5, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal<int>(10, newPrestigeState.PrestigePoints);
+            Assert.Equal<int>(5, controller.CurrentMainState.GodState.DivineEssence);
         }
 
         // ── Magie Divine — recrédit d'une charge de lancement par sort au prestige ────
@@ -427,8 +427,8 @@ namespace SOITests.ControllerTests
 
             controller.PerformPrestige();
 
-            Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssence);
-            Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
+            Assert.Equal<int>(0, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal<int>(0, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
         }
 
         [Fact]
@@ -447,8 +447,8 @@ namespace SOITests.ControllerTests
 
             // DivineEssence (les essences du run) repart toujours de zéro — ce que garde le
             // Reliquaire est désormais suivi séparément dans DivineEssenceReliquaryFloor.
-            Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssence);
-            Assert.Equal(1, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
+            Assert.Equal<int>(0, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal<int>(1, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
         }
 
         [Fact]
@@ -466,8 +466,8 @@ namespace SOITests.ControllerTests
 
             controller.PerformPrestige();
 
-            Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssence);
-            Assert.Equal(2, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
+            Assert.Equal<int>(0, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal<int>(2, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
         }
 
         [Fact]
@@ -485,8 +485,8 @@ namespace SOITests.ControllerTests
 
             controller.PerformPrestige();
 
-            Assert.Equal(0, controller.CurrentMainState.GodState.DivineEssence);
-            Assert.Equal(1, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
+            Assert.Equal<int>(0, controller.CurrentMainState.GodState.DivineEssence);
+            Assert.Equal<int>(1, controller.CurrentMainState.GodState.DivineEssenceReliquaryFloor);
         }
 
         // ── Bonus de nettoyage de la Corruption (Spire de Corruption) ───────────────
@@ -972,7 +972,7 @@ namespace SOITests.ControllerTests
 
             mainController.PerformPrestige(PrestigeCorruptionShift.Unchanged);
 
-            Assert.Equal(expectedPoints, mainState.PrestigeState!.PrestigePoints);
+            Assert.Equal<int>(expectedPoints, mainState.PrestigeState!.PrestigePoints);
         }
 
         // ── Bonus de prestige du Port Impérial : niveau max du Port maritime, pas niveau 4 fixe ──

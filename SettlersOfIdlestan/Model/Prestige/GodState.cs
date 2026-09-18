@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Model.Ascension;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Obfuscation;
 using System;
 
 namespace SettlersOfIdlestan.Model.Prestige
@@ -55,12 +56,12 @@ namespace SettlersOfIdlestan.Model.Prestige
         /// <summary>
         /// Points divins actuels (cross-prestige).
         /// </summary>
-        public int GodPoints { get; set; }
+        public ObfInt GodPoints { get; set; }
 
         /// <summary>
         /// Total cumulé de points divins gagnés (cross-prestige, ne diminue jamais).
         /// </summary>
-        public int TotalGodPointsEarned { get; set; }
+        public ObfInt TotalGodPointsEarned { get; set; }
 
         /// <summary>
         /// Essences divines gagnées <b>pendant le run courant</b> : chaque Purification d'Os Divins
@@ -74,12 +75,12 @@ namespace SettlersOfIdlestan.Model.Prestige
         /// l'Ascension (seuil, points divins gagnés), c'est la somme des deux qui compte — voir
         /// AscensionController.GetEffectiveDivineEssence.
         /// </summary>
-        public int DivineEssence { get; set; }
+        public ObfInt DivineEssence { get; set; }
 
         /// <summary>
         /// Total cumulé d'essences divines gagnées (cross-prestige, ne diminue jamais).
         /// </summary>
-        public int TotalDivineEssenceEarned { get; set; }
+        public ObfInt TotalDivineEssenceEarned { get; set; }
 
         /// <summary>
         /// Niveau du plus haut Dieu démon jamais vaincu, tous cycles confondus — 0 tant qu'aucun ne
@@ -138,7 +139,7 @@ namespace SettlersOfIdlestan.Model.Prestige
         /// elle, à la perte de la dernière ville dans les Abysses (voir AbyssGateController.OnCityDestroyed,
         /// qui ne fait perdre que <see cref="DivineEssence"/>).
         /// </summary>
-        public int DivineEssenceReliquaryFloor { get; set; }
+        public ObfInt DivineEssenceReliquaryFloor { get; set; }
 
         /// <summary>
         /// Constructeur parameterless requis par certains sérialiseurs.

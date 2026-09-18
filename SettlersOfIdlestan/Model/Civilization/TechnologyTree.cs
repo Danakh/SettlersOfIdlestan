@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.Obfuscation;
 using System;
 using System.Collections.Generic;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
@@ -80,8 +81,11 @@ public class TechnologyTree : IModifierProvider
 
     // long : les coûts des recherches de tier 13+ dépassent int.MaxValue (voir Technology.Cost) ;
     // les anciennes sauvegardes int se désérialisent sans conversion.
-    public long ActiveResearchConsumed { get; set; }
-    public long ResearchPoints { get; set; }
+    // ObfLong : deux quantités que le joueur lit à l'écran (stock de points, avancement de la
+    // recherche en cours), donc brouillées en mémoire — voir Model/Obfuscation. Le tick de dernière
+    // consommation juste en dessous reste un long nu : ce n'est pas une quantité affichée.
+    public ObfLong ActiveResearchConsumed { get; set; }
+    public ObfLong ResearchPoints { get; set; }
     public long ActiveResearchLastConsumptionTick { get; set; }
 
     // Nombre de fois où chaque recherche répétable (Technology.Repeatable) a été complétée. Sert à la fois

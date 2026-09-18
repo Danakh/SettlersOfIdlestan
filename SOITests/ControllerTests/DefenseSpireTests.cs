@@ -121,7 +121,7 @@ public class DefenseSpireTests
 
         clock.SimulateAdvance(DefenseSpire.AttackIntervalTicks);
 
-        Assert.Equal(0, city.Soldiers);
+        Assert.Equal<int>(0, city.Soldiers);
         Assert.Equal(9, bandit.Hp);
     }
 

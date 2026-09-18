@@ -388,7 +388,7 @@ public class RaceSystemTests
         // Choix de race non débloqué : seule Human est acceptée.
         Assert.Throws<InvalidOperationException>(() => controller.PerformAscension(RaceId.Elf));
         // L'échec ne doit rien avoir consommé.
-        Assert.Equal(5, godState.DivineEssence);
+        Assert.Equal<int>(5, godState.DivineEssence);
     }
 
     [Fact]
@@ -405,7 +405,7 @@ public class RaceSystemTests
         // Choix de race encore verrouillé : Humains n'est que la valeur par défaut, pas un choix du
         // joueur — ne doit donc pas débloquer la Ziggourat via AscendedRaces.
         Assert.DoesNotContain(RaceId.Human, godState.AscensionState.AscendedRaces);
-        Assert.Equal(5, godState.GodPoints);
+        Assert.Equal<int>(5, godState.GodPoints);
         // Les quatre premiers vertex (rang 1) sont offerts par le premier jalon (Héritage
         // Ancestral), débloqué par l'Ascension qui vient d'avoir lieu — sans Foi, rien d'autre.
         Assert.Equal(VerticesUpToRank(1), controller.CurrentMainState.PrestigeState!.PurchasedVertices);

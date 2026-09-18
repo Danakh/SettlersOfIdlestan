@@ -1,4 +1,5 @@
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Obfuscation;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
@@ -22,11 +23,11 @@ public class WarFleet : IMilitaryVertex
     public int CivilizationIndex { get; set; }
 
     /// <summary>Défense actuelle (dynamique). Se régénère jusqu'à MaxDefense.</summary>
-    public int CurrentDefense { get; set; }
+    public ObfInt CurrentDefense { get; set; }
 
     public int MaxDefense => DefenseBonus;
 
-    public int Soldiers { get; set; }
+    public ObfInt Soldiers { get; set; }
 
     public int MaxSoldiers => MaxSoldiersBonus;
 

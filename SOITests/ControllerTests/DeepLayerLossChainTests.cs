@@ -159,7 +159,7 @@ namespace SOITests.ControllerTests
             foreach (var kvp in setup.AbyssGate.GetInvestmentCost(state.PlayerCivilization))
                 Assert.Equal(kvp.Value / 2, setup.AbyssGate.InvestedResources[kvp.Key]);
 
-            Assert.Equal(0, setup.GodState.DivineEssence);
+            Assert.Equal<int>(0, setup.GodState.DivineEssence);
             Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.AbyssGateLost);
 
             // Le Portail du Pandémonium siégeait dans l'Abysse : il part avec la couche...

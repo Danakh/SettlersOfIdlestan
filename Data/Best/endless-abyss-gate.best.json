@@ -1,0 +1,31 @@
+{
+  "Objective": {
+    "Kind": "CityCount",
+    "CityCount": 6,
+    "RequiredBuilding": null,
+    "Points": null,
+    "Level": null,
+    "Count": null
+  },
+  "Strategy": {
+    "Name": "Endless-UnifiedAggressive-UntilAbyssGate",
+    "Phases": [
+      {
+        "Kind": "UnifiedAggressive",
+        "ShouldExpand": true,
+        "PrestigePriorityVertexNames": null,
+        "PriorityObjectives": null,
+        "Until": null,
+        "MaxIterations": 20000,
+        "AttackNeighborsAtCities": null
+      }
+    ]
+  },
+  "Result": {
+    "StrategyName": "Endless-UnifiedAggressive-UntilAbyssGate",
+    "Success": true,
+    "Ticks": 71400,
+    "Iterations": 1428,
+    "FailureReason": null
+  }
+}

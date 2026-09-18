@@ -1,6 +1,7 @@
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.IslandMap;
 using SettlersOfIdlestan.Model.GameplayModifier;
+using SettlersOfIdlestan.Model.Obfuscation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -883,13 +884,16 @@ public class Civilization
     /// </summary>
     // Resources are stored as a map from Resource -> quantity.
     // Made private: access should be done through AddResource/RemoveResource and GetResourceQuantity.
-    private readonly Dictionary<Resource, int> _resources = new();
+    // Les quantités sont stockées brouillées (voir ObfInt) : c'est le stock le plus évidemment
+    // éditable en mémoire vive du jeu. Les méthodes publiques ci-dessous restent en int, les
+    // conversions implicites du type faisant la traduction aux frontières.
+    private readonly Dictionary<Resource, ObfInt> _resources = new();
 
     // Expose resources for serialization. The public property is annotated so System.Text.Json
     // will include it during export/import. The private setter maps values back to the private
     // dictionary to preserve encapsulation for runtime access.
     [JsonInclude]
-    public Dictionary<Resource, int> Resources
+    public Dictionary<Resource, ObfInt> Resources
     {
         get => _resources;
         private set

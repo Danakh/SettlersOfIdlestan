@@ -90,8 +90,8 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(2, surfaceCity.Soldiers);
-        Assert.Equal(Cycles, underworldCity.Soldiers);
+        Assert.Equal<int>(2, surfaceCity.Soldiers);
+        Assert.Equal<int>(Cycles, underworldCity.Soldiers);
     }
 
     [Fact]
@@ -103,8 +103,8 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(Cycles, surfaceCity.Soldiers);
-        Assert.Equal(2, underworldCity.Soldiers);
+        Assert.Equal<int>(Cycles, surfaceCity.Soldiers);
+        Assert.Equal<int>(2, underworldCity.Soldiers);
     }
 
     [Fact]
@@ -117,8 +117,8 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(3, surfaceCity.Soldiers);
-        Assert.Equal(3, underworldCity.Soldiers);
+        Assert.Equal<int>(3, surfaceCity.Soldiers);
+        Assert.Equal<int>(3, underworldCity.Soldiers);
     }
 
     [Fact]
@@ -130,8 +130,8 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(Cycles, surfaceCity.Soldiers);
-        Assert.Equal(Cycles, underworldCity.Soldiers);
+        Assert.Equal<int>(Cycles, surfaceCity.Soldiers);
+        Assert.Equal<int>(Cycles, underworldCity.Soldiers);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(Cycles, surfaceCity.Soldiers);
+        Assert.Equal<int>(Cycles, surfaceCity.Soldiers);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(Cycles, surfaceCity.Soldiers);
+        Assert.Equal<int>(Cycles, surfaceCity.Soldiers);
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(Cycles, npcCity.Soldiers);
+        Assert.Equal<int>(Cycles, npcCity.Soldiers);
     }
 
     [Fact]
@@ -211,8 +211,8 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(0, surfaceCity.Soldiers);
-        Assert.Equal(Cycles, underworldCity.Soldiers); // ville témoin : Caserne active, non restreinte
+        Assert.Equal<int>(0, surfaceCity.Soldiers);
+        Assert.Equal<int>(Cycles, underworldCity.Soldiers); // ville témoin : Caserne active, non restreinte
     }
 
     [Fact]
@@ -227,7 +227,7 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(2, surfaceCity.Soldiers);
+        Assert.Equal<int>(2, surfaceCity.Soldiers);
     }
 
     /// <summary>
@@ -276,7 +276,7 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(2, city.Soldiers);
+        Assert.Equal<int>(2, city.Soldiers);
     }
 
     [Fact]
@@ -290,7 +290,7 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(3, city.Soldiers);
+        Assert.Equal<int>(3, city.Soldiers);
     }
 
     [Fact]
@@ -323,8 +323,8 @@ public class BarracksRestrictionTests
         for (int i = 0; i < Cycles; i++)
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-        Assert.Equal(Cycles, surfaceCity.Soldiers);
-        Assert.Equal(Cycles, underworldCity.Soldiers);
+        Assert.Equal<int>(Cycles, surfaceCity.Soldiers);
+        Assert.Equal<int>(Cycles, underworldCity.Soldiers);
     }
 
     [Fact]

@@ -94,8 +94,8 @@ namespace SOITests.ControllerTests
 
             Kill(state, level: 7);
 
-            Assert.Equal(7, godState.DivineEssence);
-            Assert.Equal(7, godState.TotalDivineEssenceEarned);
+            Assert.Equal<int>(7, godState.DivineEssence);
+            Assert.Equal<int>(7, godState.TotalDivineEssenceEarned);
         }
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace SOITests.ControllerTests
 
             Kill(state, level: 4);
 
-            Assert.Equal(9, godState.DivineEssence);
+            Assert.Equal<int>(9, godState.DivineEssence);
             Assert.Equal(9, AscensionController.GetDivineEssenceCap(godState));
         }
 
@@ -123,7 +123,7 @@ namespace SOITests.ControllerTests
 
             Kill(state, level: 3);
 
-            Assert.Equal(3, godState.DivineEssence);
+            Assert.Equal<int>(3, godState.DivineEssence);
         }
 
         /// <summary>
@@ -142,7 +142,7 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(7, godState.HighestDemonGodLevelDefeated);
             Assert.Equal(3, godState.DivineEssenceCapBonusFromDemonGod);
-            Assert.Equal(3, godState.DivineEssence);
+            Assert.Equal<int>(3, godState.DivineEssence);
         }
 
         [Fact]
@@ -236,7 +236,7 @@ namespace SOITests.ControllerTests
 
             Assert.Equal(0, godState.HighestDemonGodLevelDefeated);
             Assert.Equal(0, godState.DivineEssenceCapBonusFromDemonGod);
-            Assert.Equal(0, godState.DivineEssence);
+            Assert.Equal<int>(0, godState.DivineEssence);
             Assert.Null(boss.Defeat);
             Assert.Equal(GameEventType.DemonGodDefeated, boss.RemovedEventType);
         }

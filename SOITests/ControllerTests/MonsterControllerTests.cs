@@ -338,8 +338,8 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(tentacle.AttackIntervalTicks);
 
             // Un coup pour chacune des deux villes ET pour l'Aventurier, dans la même salve.
-            Assert.Equal(100 - damage, onHex.Soldiers);
-            Assert.Equal(100 - damage, twoRings.Soldiers);
+            Assert.Equal<int>(100 - damage, onHex.Soldiers);
+            Assert.Equal<int>(100 - damage, twoRings.Soldiers);
             Assert.Equal(adventurerHp - damage, adventurer.Hp);
             Assert.Equal(3, tentacle.LastAttackImpacts.Count);
             Assert.All(tentacle.LastAttackImpacts, i => Assert.Equal(1, i.Strikes));
@@ -360,8 +360,8 @@ namespace SOITests.ControllerTests
 
             // La cible prioritaire est la ville posée sur l'hex de la Tentacule ; elle seule encaisse,
             // et elle encaisse cinq coups.
-            Assert.Equal(afterSweepOnHex - 5 * damage, onHex.Soldiers);
-            Assert.Equal(afterSweepTwoRings, twoRings.Soldiers);
+            Assert.Equal<int>(afterSweepOnHex - 5 * damage, onHex.Soldiers);
+            Assert.Equal<int>(afterSweepTwoRings, twoRings.Soldiers);
             // L'Aventurier régénère de son côté : seul compte qu'il n'ait pas encaissé de coup de plus.
             Assert.True(adventurer.Hp >= afterSweepAdventurer);
 
@@ -492,7 +492,7 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(DemonGod.DemonGodAttackIntervalTicks);
 
-            Assert.Equal(10_000 - rushDamage, onHex.Soldiers);
+            Assert.Equal<int>(10_000 - rushDamage, onHex.Soldiers);
             Assert.Equal(adventurerHp, adventurer.Hp);
             var impact = Assert.Single(boss.LastAttackImpacts);
             Assert.Equal(onHex.Position, impact.Vertex);
@@ -520,8 +520,8 @@ namespace SOITests.ControllerTests
             // Une ruée à T, puis le déluge à 1,5 T — la ruée suivante n'est due qu'à 2 T.
             clock.SimulateAdvance(DemonGod.DemonGodAreaAttackIntervalTicks);
 
-            Assert.Equal(10_000 - rushDamage - sweepDamage, onHex.Soldiers);
-            Assert.Equal(10_000, twoRings.Soldiers);
+            Assert.Equal<int>(10_000 - rushDamage - sweepDamage, onHex.Soldiers);
+            Assert.Equal<int>(10_000, twoRings.Soldiers);
             Assert.Equal(adventurerHp - sweepDamage, adventurer.Hp);
 
             // Deux cibles balayées, toutes deux bombardées : l'icône ne s'élance pas.
@@ -549,7 +549,7 @@ namespace SOITests.ControllerTests
             // Ruées à T, 2 T et 3 T ; déluges à 1,5 T et 3 T — les deux dernières sur le même tick.
             clock.SimulateAdvance(DemonGod.DemonGodAttackIntervalTicks * 3);
 
-            Assert.Equal(10_000 - 3 * rushDamage - 2 * sweepDamage, onHex.Soldiers);
+            Assert.Equal<int>(10_000 - 3 * rushDamage - 2 * sweepDamage, onHex.Soldiers);
 
             // La dernière volée porte les deux attaques : la ruée d'abord, puis le déluge sur
             // chacune de ses cibles (la ville et l'Aventurier).
@@ -703,7 +703,7 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(tentacle.AttackIntervalTicks);
 
             Assert.Equal(city.Position, tentacle.LastAttackTargetVertex);
-            Assert.Equal(20 - tentacle.AttackDamage, city.Soldiers);
+            Assert.Equal<int>(20 - tentacle.AttackDamage, city.Soldiers);
         }
 
         [Fact]
@@ -715,7 +715,7 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(tentacle.AttackIntervalTicks);
 
             Assert.Null(tentacle.LastAttackTargetVertex);
-            Assert.Equal(20, city.Soldiers);
+            Assert.Equal<int>(20, city.Soldiers);
         }
 
         /// <summary>Garde-fou : la portée 2 du Dragon n'a pas bougé en généralisant le rayon.</summary>
@@ -728,7 +728,7 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(Dragon.DragonAttackIntervalTicks);
 
             Assert.Null(dragon.LastAttackTargetVertex);
-            Assert.Equal(20, city.Soldiers);
+            Assert.Equal<int>(20, city.Soldiers);
         }
 
         // ── Dragon target consistency after a city is destroyed ────────────────

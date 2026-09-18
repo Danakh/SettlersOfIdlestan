@@ -76,8 +76,8 @@ public class ThroneOfWindsRoadlessReinforcementTests
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
 
-        Assert.Equal(5, source.Soldiers);
-        Assert.Equal(0, target.Soldiers);
+        Assert.Equal<int>(5, source.Soldiers);
+        Assert.Equal<int>(0, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
     }
 
@@ -90,8 +90,8 @@ public class ThroneOfWindsRoadlessReinforcementTests
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
 
-        Assert.Equal(4, source.Soldiers);
-        Assert.Equal(0, target.Soldiers);
+        Assert.Equal<int>(4, source.Soldiers);
+        Assert.Equal<int>(0, target.Soldiers);
         Assert.Single(target.IncomingSoldiers);
     }
 
@@ -118,8 +118,8 @@ public class ThroneOfWindsRoadlessReinforcementTests
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
 
-        Assert.Equal(5, source.Soldiers);
-        Assert.Equal(0, target.Soldiers);
+        Assert.Equal<int>(5, source.Soldiers);
+        Assert.Equal<int>(0, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
     }
 }

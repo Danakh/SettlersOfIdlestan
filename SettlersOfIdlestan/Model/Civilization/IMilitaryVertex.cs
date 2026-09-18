@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Obfuscation;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
@@ -11,14 +12,17 @@ namespace SettlersOfIdlestan.Model.Civilization;
 /// </summary>
 public interface IMilitaryVertex : IBuildVertex
 {
-    /// <summary>Défense actuelle (dynamique). Se régénère jusqu'à MaxDefense.</summary>
-    int CurrentDefense { get; set; }
+    /// <summary>
+    /// Défense actuelle (dynamique). Se régénère jusqu'à MaxDefense. Brouillée en mémoire — voir
+    /// Model/Obfuscation ; les maximums restent des int nus, étant recalculés à chaque lecture.
+    /// </summary>
+    ObfInt CurrentDefense { get; set; }
 
     /// <summary>Défense maximale.</summary>
     int MaxDefense { get; }
 
-    /// <summary>Nombre de soldats en garnison.</summary>
-    int Soldiers { get; set; }
+    /// <summary>Nombre de soldats en garnison. Brouillé en mémoire, comme <see cref="CurrentDefense"/>.</summary>
+    ObfInt Soldiers { get; set; }
 
     /// <summary>Capacité maximale de soldats.</summary>
     int MaxSoldiers { get; }

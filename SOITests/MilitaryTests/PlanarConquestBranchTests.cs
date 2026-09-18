@@ -269,7 +269,7 @@ public class PlanarConquestBranchTests
         clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
         Assert.Equal(initialHp - 5, bandit.Hp);
-        Assert.Equal(15, city.Soldiers);
+        Assert.Equal<int>(15, city.Soldiers);
         Assert.NotNull(args);
         Assert.Equal(5, args!.SoldierCount);
     }
@@ -287,7 +287,7 @@ public class PlanarConquestBranchTests
         clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
         Assert.Equal(initialHp - 1, bandit.Hp);
-        Assert.Equal(19, city.Soldiers);
+        Assert.Equal<int>(19, city.Soldiers);
         Assert.Equal(1, args!.SoldierCount);
     }
 
@@ -304,14 +304,14 @@ public class PlanarConquestBranchTests
         int plainHp = demonPlain.Hp;
         clockPlain.SimulateAdvance(MilitaryController.CombatIntervalTicks);
         Assert.Equal(plainHp, demonPlain.Hp);   // 1 - 2 → 0 dégât
-        Assert.Equal(19, cityPlain.Soldiers);   // le soldat meurt quand même
+        Assert.Equal<int>(19, cityPlain.Soldiers);   // le soldat meurt quand même
 
         var demonPhalanx = new DemonGod(Center) { Found = true };
         var (_, clockPhalanx, _, _, cityPhalanx) = CombatSetup(20, demonPhalanx, Phalanx);
         int phalanxHp = demonPhalanx.Hp;
         clockPhalanx.SimulateAdvance(MilitaryController.CombatIntervalTicks);
         Assert.Equal(phalanxHp - 3, demonPhalanx.Hp);   // 5 - 2
-        Assert.Equal(15, cityPhalanx.Soldiers);
+        Assert.Equal<int>(15, cityPhalanx.Soldiers);
     }
 
     [Fact]
@@ -324,7 +324,7 @@ public class PlanarConquestBranchTests
 
         Assert.True(bandit.Hp <= 0);
         Assert.DoesNotContain(bandit, state.Features);
-        Assert.Equal(18, city.Soldiers);   // 2 soldats, pas 5
+        Assert.Equal<int>(18, city.Soldiers);   // 2 soldats, pas 5
     }
 
     [Fact]
@@ -364,8 +364,8 @@ public class PlanarConquestBranchTests
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
-        Assert.Equal(15, attacker.Soldiers);
-        Assert.Equal(5, defender.Soldiers);
+        Assert.Equal<int>(15, attacker.Soldiers);
+        Assert.Equal<int>(5, defender.Soldiers);
         Assert.Equal(5, args!.SoldierCount);
     }
 
@@ -422,7 +422,7 @@ public class PlanarConquestBranchTests
         clock.SimulateAdvance(Bandit.RaidIntervalTicks);
 
         // 2 dégâts ramenés à 1 : un seul soldat tombe.
-        Assert.Equal(19, city.Soldiers);
+        Assert.Equal<int>(19, city.Soldiers);
     }
 
     [Fact]
@@ -432,7 +432,7 @@ public class PlanarConquestBranchTests
 
         clock.SimulateAdvance(Bandit.RaidIntervalTicks);
 
-        Assert.Equal(18, city.Soldiers);
+        Assert.Equal<int>(18, city.Soldiers);
     }
 
     /// <summary>Plancher à 0 : une attaque plus faible que la protection ne fait rien du tout.</summary>
@@ -443,7 +443,7 @@ public class PlanarConquestBranchTests
 
         clock.SimulateAdvance(Bandit.RaidIntervalTicks);
 
-        Assert.Equal(20, city.Soldiers);
+        Assert.Equal<int>(20, city.Soldiers);
     }
 
     /// <summary>
@@ -459,7 +459,7 @@ public class PlanarConquestBranchTests
 
         clock.SimulateAdvance(Bandit.RaidIntervalTicks);
 
-        Assert.Equal(20, city.Soldiers);
+        Assert.Equal<int>(20, city.Soldiers);
     }
 
     /// <summary>
@@ -500,6 +500,6 @@ public class PlanarConquestBranchTests
 
         clock.SimulateAdvance(Bandit.RaidIntervalTicks);
 
-        Assert.Equal(19, camp.Soldiers);
+        Assert.Equal<int>(19, camp.Soldiers);
     }
 }

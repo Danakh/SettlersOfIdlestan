@@ -101,7 +101,7 @@ public class PrestigeMapControllerTests
         bool result = Controller().PurchaseVertex(state, PrestigeMap.CentralVertex);
         Assert.True(result);
         Assert.Contains(PrestigeMap.CentralVertex, state.PurchasedVertices);
-        Assert.Equal(0, state.PrestigePoints); // 10 - 10 = 0
+        Assert.Equal<int>(0, state.PrestigePoints); // 10 - 10 = 0
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class PrestigeMapControllerTests
         var c = Controller();
         Assert.True(c.PurchaseVertex(state, PrestigeMap.CentralVertex));    // costs 10
         Assert.True(c.PurchaseVertex(state, PrestigeMap.LaboratoryVertex)); // costs 25
-        Assert.Equal(0, state.PrestigePoints);
+        Assert.Equal<int>(0, state.PrestigePoints);
         Assert.Contains(PrestigeMap.CentralVertex, state.PurchasedVertices);
         Assert.Contains(PrestigeMap.LaboratoryVertex, state.PurchasedVertices);
     }

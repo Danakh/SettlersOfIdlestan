@@ -327,7 +327,7 @@ public class MobileCampControllerTests
         Assert.NotNull(city);
         Assert.Empty(civ.MobileCamps);
         Assert.Contains(city!.Buildings, b => b.Type == BuildingType.Barracks);
-        Assert.Equal(3, city.Soldiers);
+        Assert.Equal<int>(3, city.Soldiers);
     }
 
     [Fact]
@@ -347,8 +347,8 @@ public class MobileCampControllerTests
         var city = cityController.BuildCity(0, v1);
 
         Assert.NotNull(city);
-        Assert.Equal(city!.MaxSoldiers, city.Soldiers);
-        Assert.Equal(5, city.Soldiers);
+        Assert.Equal<int>(city!.MaxSoldiers, city.Soldiers);
+        Assert.Equal<int>(5, city.Soldiers);
     }
 
     [Fact]

@@ -143,7 +143,7 @@ public class TimeSkipReinforcementTests
 
         clock.SimulateAdvance(TotalTicks, chunkTicks: TotalTicks);
 
-        Assert.Equal(target.MaxSoldiers, target.Soldiers);
+        Assert.Equal<int>(target.MaxSoldiers, target.Soldiers);
     }
 
     /// <summary>

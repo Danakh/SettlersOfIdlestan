@@ -402,7 +402,7 @@ public class AscensionControllerTests
 
         Assert.True(result);
         Assert.True(ascension.IsPowerUnlocked(AscensionPowerId.Faith));
-        Assert.Equal(4, godState.GodPoints);
+        Assert.Equal<int>(4, godState.GodPoints);
     }
 
     [Fact]
@@ -414,7 +414,7 @@ public class AscensionControllerTests
 
         Assert.False(result);
         Assert.False(ascension.IsPowerUnlocked(AscensionPowerId.Faith));
-        Assert.Equal(0, godState.GodPoints);
+        Assert.Equal<int>(0, godState.GodPoints);
     }
 
     [Fact]
@@ -431,7 +431,7 @@ public class AscensionControllerTests
 
         Assert.True(ascension.CanPurchasePower(AscensionPowerId.DivineInventory));
         Assert.True(ascension.PurchasePower(AscensionPowerId.DivineInventory));
-        Assert.Equal(100 - 1 - 2 - 5, godState.GodPoints);
+        Assert.Equal<int>(100 - 1 - 2 - 5, godState.GodPoints);
     }
 
     /// <summary>Pose un Dominion sur un hex de l'île de test — Marche de Dieu ne cible que les hexs sous Dominion de niveau 2+.</summary>
@@ -473,17 +473,17 @@ public class AscensionControllerTests
         // Première marche depuis le dernier prestige : gratuite (seul le Dominion est consommé).
         Assert.Equal(0, ascension.GetWalkOfGodCost());
         Assert.True(ascension.ApplyWalkOfGod(hex));
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(4, dominion.Level);
 
         Assert.Equal(1, ascension.GetWalkOfGodCost());
         Assert.True(ascension.ApplyWalkOfGod(hex));
-        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(9, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(3, dominion.Level);
 
         Assert.Equal(2, ascension.GetWalkOfGodCost());
         Assert.True(ascension.ApplyWalkOfGod(hex));
-        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(7, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(2, dominion.Level);
 
         // Passé 2, le coût double à chaque marche suivante : 4, 8, 16...
@@ -507,7 +507,7 @@ public class AscensionControllerTests
         var result = ascension.ApplyWalkOfGod(hex);
 
         Assert.False(result);
-        Assert.Equal(0, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(0, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(1, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
         Assert.Equal(terrainBefore, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
         Assert.Equal(2, dominion.Level);
@@ -523,7 +523,7 @@ public class AscensionControllerTests
 
         Assert.True(ascension.CanUseWalkOfGod());
         Assert.True(ascension.ApplyWalkOfGod(hex));
-        Assert.Equal(0, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(0, godState.PrestigeState!.PrestigePoints);
 
         Assert.False(ascension.CanUseWalkOfGod());
         Assert.False(ascension.ApplyWalkOfGod(hex));
@@ -917,7 +917,7 @@ public class AscensionControllerTests
 
         Assert.False(ascension.ApplyWalkOfGod(deepWaterHex));
         Assert.False(ascension.ApplyWalkOfGod(voidHex));
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(0, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
     }
 
@@ -929,7 +929,7 @@ public class AscensionControllerTests
         var (hex, _) = SeedDominion(state, level: 1);
 
         Assert.False(ascension.ApplyWalkOfGod(hex));
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(0, godState.PrestigeState!.WalkOfGodUsesSinceLastPrestige);
     }
 
@@ -946,7 +946,7 @@ public class AscensionControllerTests
         Assert.NotEqual(TerrainType.Water, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
         Assert.Equal(1, dominion.Level);
         // Première marche : gratuite, la cagnotte est intacte.
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints);
 
         // Retombé au niveau 1 : l'hex n'est plus ciblable tant que le Dominion n'a pas regagné du niveau.
         Assert.DoesNotContain(hex, ascension.GetWalkOfGodTargetHexes());
@@ -970,7 +970,7 @@ public class AscensionControllerTests
         Assert.Contains(hex, ascension.GetWalkOfGodTargetHexes());
         Assert.True(ascension.ApplyWalkOfGod(hex));
         Assert.NotEqual(TerrainType.Mountain, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints); // Première marche : gratuite.
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints); // Première marche : gratuite.
     }
 
     /// <summary>Le Void, quel que soit le calque, reste hors de portée même avec un Dominion suffisant — voir aussi ApplyWalkOfGod_OnVoidHexWithDominion_IsRejected pour le Void de surface.</summary>
@@ -992,7 +992,7 @@ public class AscensionControllerTests
 
         Assert.DoesNotContain(voidHex, ascension.GetWalkOfGodTargetHexes());
         Assert.False(ascension.ApplyWalkOfGod(voidHex));
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints);
     }
 
     /// <summary>Crée une couche Inframonde (triangle Montagne par défaut) et l'attache à l'état de test.</summary>
@@ -1016,7 +1016,7 @@ public class AscensionControllerTests
         Assert.Contains(hex, ascension.GetWalkOfGodTargetHexes());
         Assert.True(ascension.ApplyWalkOfGod(hex));
         Assert.NotEqual(TerrainType.Mountain, state.GetMapFor(hex)!.GetTile(hex)!.TerrainType);
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints); // Première marche : gratuite.
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints); // Première marche : gratuite.
     }
 
     /// <summary>Le pool aléatoire souterrain (AscensionController.UnderworldRandomTerrainPool) ne contient ni Forêt ni Plaine, absentes sous terre.</summary>
@@ -1121,7 +1121,7 @@ public class AscensionControllerTests
         Assert.Equal(3, state.GetFeaturesAt(west).OfType<Dominion>().Single().Level);
 
         // Première manifestation depuis le dernier prestige : gratuite.
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(1, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
     }
 
@@ -1134,15 +1134,15 @@ public class AscensionControllerTests
 
         Assert.Equal(0, ascension.GetPresenceOfGodCost());
         Assert.True(ascension.ApplyPresenceOfGod(hex));
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints);
 
         Assert.Equal(1, ascension.GetPresenceOfGodCost());
         Assert.True(ascension.ApplyPresenceOfGod(hex));
-        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(9, godState.PrestigeState!.PrestigePoints);
 
         Assert.Equal(2, ascension.GetPresenceOfGodCost());
         Assert.True(ascension.ApplyPresenceOfGod(hex));
-        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(7, godState.PrestigeState!.PrestigePoints);
 
         // Passé 2, le coût double à chaque manifestation suivante : 4, 8, 16...
         Assert.Equal(4, ascension.GetPresenceOfGodCost());
@@ -1160,7 +1160,7 @@ public class AscensionControllerTests
 
         Assert.False(ascension.ApplyPresenceOfGod(hex));
 
-        Assert.Equal(0, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(0, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(1, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
         Assert.Empty(state.Features.OfType<Dominion>());
     }
@@ -1233,7 +1233,7 @@ public class AscensionControllerTests
         state.GetMapFor(east)!.GetTile(east)!.TerrainType = TerrainType.DeepWater;
 
         Assert.False(ascension.ApplyPresenceOfGod(east));
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints);
         Assert.Equal(0, godState.PrestigeState!.PresenceOfGodUsesSinceLastPrestige);
     }
 
@@ -1466,15 +1466,15 @@ public class AscensionControllerTests
 
         Assert.Equal(0, ascension.GetFistOfGodCost());
         Assert.True(ascension.ApplyFistOfGod(Center));
-        Assert.Equal(10, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(10, godState.PrestigeState!.PrestigePoints);
 
         Assert.Equal(1, ascension.GetFistOfGodCost());
         Assert.True(ascension.ApplyFistOfGod(Center));
-        Assert.Equal(9, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(9, godState.PrestigeState!.PrestigePoints);
 
         Assert.Equal(2, ascension.GetFistOfGodCost());
         Assert.True(ascension.ApplyFistOfGod(Center));
-        Assert.Equal(7, godState.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(7, godState.PrestigeState!.PrestigePoints);
 
         // Passé 2, le coût double à chaque coup suivant : 4, 8, 16...
         Assert.Equal(4, ascension.GetFistOfGodCost());
@@ -1543,8 +1543,8 @@ public class AscensionControllerTests
 
         Assert.True(ascension.ApplyFistOfGod(Center));
 
-        Assert.Equal(0, enemyCity.Soldiers);
-        Assert.Equal(0, enemyCity.CurrentDefense);
+        Assert.Equal<int>(0, enemyCity.Soldiers);
+        Assert.Equal<int>(0, enemyCity.CurrentDefense);
         Assert.Equal(2, enemyCity.Buildings.OfType<TownHall>().Single().Level);
     }
 
@@ -1559,8 +1559,8 @@ public class AscensionControllerTests
 
         Assert.True(ascension.ApplyFistOfGod(Center));
 
-        Assert.Equal(100, enemyCity.Soldiers);
-        Assert.Equal(50, enemyCity.CurrentDefense);
+        Assert.Equal<int>(100, enemyCity.Soldiers);
+        Assert.Equal<int>(50, enemyCity.CurrentDefense);
         Assert.Equal(3, enemyCity.Buildings.OfType<TownHall>().Single().Level);
     }
 
@@ -1596,8 +1596,8 @@ public class AscensionControllerTests
         Assert.True(city.Position.IsAdjacentTo(Center));
         Assert.True(ascension.ApplyFistOfGod(Center));
 
-        Assert.Equal(5, city.Soldiers);
-        Assert.Equal(7, city.CurrentDefense);
+        Assert.Equal<int>(5, city.Soldiers);
+        Assert.Equal<int>(7, city.CurrentDefense);
         Assert.Equal(3, city.Buildings.OfType<TownHall>().Single().Level);
     }
 
@@ -2009,8 +2009,8 @@ public class AscensionControllerTests
         // dotation, versée avec le total de points divins déjà gagnés — ici uniquement ceux de cette
         // Ascension (GetGodPointsGain, sans Nécropole : 5 essences -> 5 points).
         int expectedPoints = AscensionController.MinDivineEssenceForAscension;
-        Assert.Equal(expectedPoints, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
-        Assert.Equal(expectedPoints, controller.CurrentMainState.PrestigeState.TotalPrestigePointsEarned);
+        Assert.Equal<int>(expectedPoints, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(expectedPoints, controller.CurrentMainState.PrestigeState.TotalPrestigePointsEarned);
     }
 
     [Fact]
@@ -2020,7 +2020,7 @@ public class AscensionControllerTests
 
         controller.PerformAscension();
 
-        Assert.Equal(0, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
+        Assert.Equal<int>(0, controller.CurrentMainState!.PrestigeState!.PrestigePoints);
     }
 
     // ── Jalon Exode Divin (AscensionMilestoneId.FreeRelocation) ─────────────────────────────

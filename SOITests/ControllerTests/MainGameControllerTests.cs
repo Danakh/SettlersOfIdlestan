@@ -178,7 +178,7 @@ namespace SOITests.ControllerTests
             Assert.Null(controller.CurrentMainState!.PrestigeState);
             Assert.Null(controller.CurrentMainState!.CurrentWorldState);
             Assert.Null(controller.PlayerCivilization);
-            Assert.Equal(expectedGodPoints, controller.CurrentMainState!.GodState.GodPoints);
+            Assert.Equal<int>(expectedGodPoints, controller.CurrentMainState!.GodState.GodPoints);
 
             var exported = controller.ExportMainState();
 
@@ -190,7 +190,7 @@ namespace SOITests.ControllerTests
             Assert.Null(reloaded.PrestigeState);
             Assert.Null(reloaded.CurrentWorldState);
             Assert.Null(reloadedController.PlayerCivilization);
-            Assert.Equal(expectedGodPoints, reloaded.GodState.GodPoints);
+            Assert.Equal<int>(expectedGodPoints, reloaded.GodState.GodPoints);
 
             // La partie doit pouvoir reprendre normalement depuis cet état rechargé.
             reloadedController.ConfirmAscensionRace(SettlersOfIdlestan.Model.Races.RaceId.Human);
@@ -241,7 +241,7 @@ namespace SOITests.ControllerTests
 
             Assert.True(controller.AscensionController.IsAscensionPending);
             Assert.Null(mainState.CurrentWorldState);
-            Assert.Equal(0, godState.DivineEssence);
+            Assert.Equal<int>(0, godState.DivineEssence);
             int totalEssenceEarned = godState.TotalDivineEssenceEarned;
 
             // Le joueur appuie sur lecture depuis l'écran d'Ascension, avant d'avoir choisi sa race.
@@ -250,8 +250,8 @@ namespace SOITests.ControllerTests
 
             Assert.False(bones.Purified,
                 "L'île détruite par l'Ascension a continué d'être simulée pendant le choix de race.");
-            Assert.Equal(0, godState.DivineEssence);
-            Assert.Equal(totalEssenceEarned, godState.TotalDivineEssenceEarned);
+            Assert.Equal<int>(0, godState.DivineEssence);
+            Assert.Equal<int>(totalEssenceEarned, godState.TotalDivineEssenceEarned);
 
             // Rien d'autre non plus : récolte, commerce, monstres... tout tenait au même abonnement.
             foreach (var (resource, quantity) in resourcesBefore)

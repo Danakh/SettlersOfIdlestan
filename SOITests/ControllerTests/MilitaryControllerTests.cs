@@ -71,11 +71,11 @@ namespace SOITests.ControllerTests
         {
             var (_, clock, _, city) = CreateSetup(initialSoldiers: 0);
 
-            Assert.Equal(0, city.Soldiers);
+            Assert.Equal<int>(0, city.Soldiers);
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
-            Assert.Equal(1, city.Soldiers);
+            Assert.Equal<int>(1, city.Soldiers);
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
-            Assert.Equal(2, city.Soldiers);
+            Assert.Equal<int>(2, city.Soldiers);
         }
 
         [Fact]
@@ -86,7 +86,7 @@ namespace SOITests.ControllerTests
             for (int i = 0; i < Barracks.MaxSoldiersPerLevel + 5; i++)
                 clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-            Assert.Equal(Barracks.MaxSoldiersPerLevel * 1, city.Soldiers);
+            Assert.Equal<int>(Barracks.MaxSoldiersPerLevel * 1, city.Soldiers);
         }
 
         [Fact]
@@ -97,7 +97,7 @@ namespace SOITests.ControllerTests
             for (int i = 0; i < Barracks.MaxSoldiersPerLevel * 2 + 5; i++)
                 clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks);
 
-            Assert.Equal(Barracks.MaxSoldiersPerLevel * 2, city.Soldiers);
+            Assert.Equal<int>(Barracks.MaxSoldiersPerLevel * 2, city.Soldiers);
         }
 
         // ── Combat — bandits ──────────────────────────────────────────────────
@@ -114,7 +114,7 @@ namespace SOITests.ControllerTests
 
             // 1 attaque (production trop lente : 1000 ticks vs combat 100 ticks) : soldats 3→2, bandit MaxHp→MaxHp-1.
             Assert.Equal(bandit.MaxHp - 1, bandit.Hp);
-            Assert.Equal(2, city.Soldiers);
+            Assert.Equal<int>(2, city.Soldiers);
         }
 
         /// <summary>
@@ -135,7 +135,7 @@ namespace SOITests.ControllerTests
             clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
             Assert.Equal(bandit.MaxHp - 2, bandit.Hp);
-            Assert.Equal(2, city.Soldiers);
+            Assert.Equal<int>(2, city.Soldiers);
         }
 
         /// <summary>
@@ -176,7 +176,7 @@ namespace SOITests.ControllerTests
                 clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
             Assert.Empty(state.Features.OfType<Bandit>());
-            Assert.Equal(0, city.Soldiers);
+            Assert.Equal<int>(0, city.Soldiers);
         }
 
         [Fact]
@@ -358,7 +358,7 @@ namespace SOITests.ControllerTests
 
             // Avec UnitProductionSpeedBonus=1.0 (Garnison niveau 4, propre à cette ville), l'intervalle effectif est 500 ticks
             clock.SimulateAdvance(MilitaryController.SoldierProductionIntervalTicks / 2);
-            Assert.Equal(1, city.Soldiers);
+            Assert.Equal<int>(1, city.Soldiers);
         }
 
         // ── Vendetta — une cible et un raid par plan, menés en parallèle ──────

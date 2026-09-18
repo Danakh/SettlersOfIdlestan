@@ -1068,7 +1068,7 @@ namespace SOITests.ControllerTests
             Assert.True(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
 
             Assert.Equal(200, civ.GetResourceQuantity(Resource.Crystal));
-            Assert.Equal(100, civ.Cities[0].Soldiers);
+            Assert.Equal<int>(100, civ.Cities[0].Soldiers);
         }
 
         [Fact]
@@ -1108,7 +1108,7 @@ namespace SOITests.ControllerTests
 
             Assert.True(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
 
-            Assert.Equal(5, civ.Cities[0].Soldiers);
+            Assert.Equal<int>(5, civ.Cities[0].Soldiers);
         }
 
         [Fact]
@@ -1130,7 +1130,7 @@ namespace SOITests.ControllerTests
 
             Assert.True(controller.CastSpellOnCity(SpellId.SummonTroops, civ.Cities[0].Position));
 
-            Assert.Equal(28, civ.Cities[0].Soldiers);
+            Assert.Equal<int>(28, civ.Cities[0].Soldiers);
         }
 
         [Fact]
@@ -1229,8 +1229,8 @@ namespace SOITests.ControllerTests
             Assert.Equal(1, temple.Level);
 
             // Défense et garnison fournies au maximum, sans coût supplémentaire
-            Assert.Equal(city.MaxDefense, city.CurrentDefense);
-            Assert.Equal(city.MaxSoldiers, city.Soldiers);
+            Assert.Equal<int>(city.MaxDefense, city.CurrentDefense);
+            Assert.Equal<int>(city.MaxSoldiers, city.Soldiers);
         }
 
         [Fact]

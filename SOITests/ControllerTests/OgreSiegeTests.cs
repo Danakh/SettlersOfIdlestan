@@ -63,7 +63,7 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(300); // un intervalle d'attaque
 
-            Assert.Equal(10 - ogre.AttackDamage, city.Soldiers);
+            Assert.Equal<int>(10 - ogre.AttackDamage, city.Soldiers);
             Assert.Equal(city.Position, ogre.LastAttackTargetVertex);
         }
 
@@ -122,7 +122,7 @@ namespace SOITests.ControllerTests
 
             clock.SimulateAdvance(5_000);
 
-            Assert.Equal(10, city.Soldiers);
+            Assert.Equal<int>(10, city.Soldiers);
             Assert.Null(ogre.LastAttackTargetVertex);
         }
     }

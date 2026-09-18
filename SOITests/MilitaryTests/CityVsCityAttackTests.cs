@@ -147,7 +147,7 @@ public class CityVsCityAttackTests
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
-        Assert.Equal(Barracks.MaxSoldiersPerLevel * 2 - 1, cityA.Soldiers);
+        Assert.Equal<int>(Barracks.MaxSoldiersPerLevel * 2 - 1, cityA.Soldiers);
     }
 
     [Fact]
@@ -160,15 +160,15 @@ public class CityVsCityAttackTests
 
         // Premier tick exact → 1 attaque
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
-        Assert.Equal(9, cityA.Soldiers);
+        Assert.Equal<int>(9, cityA.Soldiers);
 
         // Avant le prochain intervalle → pas d'attaque supplémentaire
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks - 1);
-        Assert.Equal(9, cityA.Soldiers);
+        Assert.Equal<int>(9, cityA.Soldiers);
 
         // Au prochain intervalle → 2e attaque
         clock.SimulateAdvance(1);
-        Assert.Equal(8, cityA.Soldiers);
+        Assert.Equal<int>(8, cityA.Soldiers);
     }
 
     // ── Dégâts sur la ville défenseure ───────────────────────────────────
@@ -182,7 +182,7 @@ public class CityVsCityAttackTests
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
-        Assert.Equal(9, cityB.CurrentDefense);
+        Assert.Equal<int>(9, cityB.CurrentDefense);
     }
 
     [Fact]
@@ -198,8 +198,8 @@ public class CityVsCityAttackTests
 
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
-        Assert.Equal(8, cityB.CurrentDefense);
-        Assert.Equal(4, state.Civilizations[0].Cities[0].Soldiers); // un seul soldat engagé
+        Assert.Equal<int>(8, cityB.CurrentDefense);
+        Assert.Equal<int>(4, state.Civilizations[0].Cities[0].Soldiers); // un seul soldat engagé
     }
 
     [Fact]
@@ -320,7 +320,7 @@ public class CityVsCityAttackTests
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
         Assert.Null(cityA.FlowTarget);
-        Assert.Equal(5, cityA.Soldiers); // aucun soldat consommé, l'attaque n'a pas eu lieu
+        Assert.Equal<int>(5, cityA.Soldiers); // aucun soldat consommé, l'attaque n'a pas eu lieu
         Assert.Single(state.Civilizations[1].Cities); // cityC intacte
     }
 
@@ -376,7 +376,7 @@ public class CityVsCityAttackTests
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
         Assert.Null(cityA.FlowTarget);
-        Assert.Equal(5, cityA.Soldiers);
+        Assert.Equal<int>(5, cityA.Soldiers);
         Assert.Single(state.Civilizations[1].Cities);
     }
 
@@ -390,7 +390,7 @@ public class CityVsCityAttackTests
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
         Assert.NotNull(args);
-        Assert.Equal(4, cityA.Soldiers);
+        Assert.Equal<int>(4, cityA.Soldiers);
     }
 
     [Fact]
@@ -401,7 +401,7 @@ public class CityVsCityAttackTests
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
         Assert.Null(cityA.FlowTarget);
-        Assert.Equal(5, cityA.Soldiers);
+        Assert.Equal<int>(5, cityA.Soldiers);
         Assert.Single(state.Civilizations[1].Cities);
     }
 
@@ -415,6 +415,6 @@ public class CityVsCityAttackTests
         clock.SimulateAdvance(MilitaryController.CityAttackIntervalTicks);
 
         Assert.NotNull(args);
-        Assert.Equal(4, cityA.Soldiers);
+        Assert.Equal<int>(4, cityA.Soldiers);
     }
 }

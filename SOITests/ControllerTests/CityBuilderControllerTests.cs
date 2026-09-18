@@ -583,7 +583,7 @@ public class CityBuilderControllerTests
         Assert.Equal(1, city.Buildings.Single(b => b.Type == BuildingType.Barracks).Level);
         // Caserne niveau 1 seule -> capacité 5 (Barracks.MaxSoldiersPerLevel), plafonnée sous 20.
         Assert.Equal(Barracks.MaxSoldiersPerLevel, city.MaxSoldiers);
-        Assert.Equal(city.MaxSoldiers, city.Soldiers);
+        Assert.Equal<int>(city.MaxSoldiers, city.Soldiers);
     }
 
     [Fact]

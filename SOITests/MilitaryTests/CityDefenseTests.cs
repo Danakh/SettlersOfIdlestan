@@ -53,7 +53,7 @@ public class CityDefenseTests
     public void Defense_StartsAtZero()
     {
         var (_, _, city) = Setup(new Palisade { Level = 1 });
-        Assert.Equal(0, city.CurrentDefense);
+        Assert.Equal<int>(0, city.CurrentDefense);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class CityDefenseTests
 
         clock.SimulateAdvance(MilitaryController.DefenseRegenIntervalTicks);
 
-        Assert.Equal(1, city.CurrentDefense);
+        Assert.Equal<int>(1, city.CurrentDefense);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class CityDefenseTests
         clock.SimulateAdvance(MilitaryController.DefenseRegenIntervalTicks);
         clock.SimulateAdvance(MilitaryController.DefenseRegenIntervalTicks);
 
-        Assert.Equal(3, city.CurrentDefense);
+        Assert.Equal<int>(3, city.CurrentDefense);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class CityDefenseTests
         for (int i = 0; i < max + 5; i++)
             clock.SimulateAdvance(MilitaryController.DefenseRegenIntervalTicks);
 
-        Assert.Equal(max, city.CurrentDefense);
+        Assert.Equal<int>(max, city.CurrentDefense);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class CityDefenseTests
         for (int i = 0; i < 10; i++)
             clock.SimulateAdvance(MilitaryController.DefenseRegenIntervalTicks);
 
-        Assert.Equal(0, city.CurrentDefense);
+        Assert.Equal<int>(0, city.CurrentDefense);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class CityDefenseTests
         for (int i = 0; i < max + 5; i++)
             clock.SimulateAdvance(MilitaryController.DefenseRegenIntervalTicks);
 
-        Assert.Equal(max, city.CurrentDefense);
+        Assert.Equal<int>(max, city.CurrentDefense);
     }
 
     [Fact]
@@ -151,9 +151,9 @@ public class CityDefenseTests
         Assert.Equal(1.36 * 100.0 / MilitaryController.DefenseRegenIntervalTicks, ctrl.GetDefenseRegenRate(city), 5);
 
         clock.SimulateAdvance(360);
-        Assert.Equal(0, city.CurrentDefense);
+        Assert.Equal<int>(0, city.CurrentDefense);
         clock.SimulateAdvance(10);
-        Assert.Equal(1, city.CurrentDefense);
+        Assert.Equal<int>(1, city.CurrentDefense);
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public class CityDefenseTests
         for (int i = 0; i < max + 5; i++)
             clock.SimulateAdvance(MilitaryController.DefenseRegenIntervalTicks);
 
-        Assert.Equal(15, city.CurrentDefense);
+        Assert.Equal<int>(15, city.CurrentDefense);
     }
 
     // ── Bastion Consacré (TEMPLE_DEFENSE_BONUS) ───────────────────────────

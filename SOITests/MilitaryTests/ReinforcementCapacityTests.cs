@@ -76,8 +76,8 @@ public class ReinforcementCapacityTests
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
 
-        Assert.Equal(4, source.Soldiers);
-        Assert.Equal(0, target.Soldiers);
+        Assert.Equal<int>(4, source.Soldiers);
+        Assert.Equal<int>(0, target.Soldiers);
         Assert.Single(target.IncomingSoldiers);
     }
 
@@ -90,8 +90,8 @@ public class ReinforcementCapacityTests
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
         clock.SimulateAdvance(MilitaryController.ReinforcementTicksPerRoadSegment);
 
-        Assert.Equal(4, source.Soldiers);
-        Assert.Equal(1, target.Soldiers);
+        Assert.Equal<int>(4, source.Soldiers);
+        Assert.Equal<int>(1, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
     }
 
@@ -122,8 +122,8 @@ public class ReinforcementCapacityTests
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
 
-        Assert.Equal(5, source.Soldiers);
-        Assert.Equal(5, target.Soldiers);
+        Assert.Equal<int>(5, source.Soldiers);
+        Assert.Equal<int>(5, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
     }
 
@@ -151,20 +151,20 @@ public class ReinforcementCapacityTests
 
         // Expédition au tick 100 → slot réservé
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
-        Assert.Equal(4, source.Soldiers);
-        Assert.Equal(4, target.Soldiers);
+        Assert.Equal<int>(4, source.Soldiers);
+        Assert.Equal<int>(4, target.Soldiers);
         Assert.Single(target.IncomingSoldiers);
 
         // Arrivée au tick 120
         clock.SimulateAdvance(MilitaryController.ReinforcementTicksPerRoadSegment);
-        Assert.Equal(4, source.Soldiers);
-        Assert.Equal(5, target.Soldiers);
+        Assert.Equal<int>(4, source.Soldiers);
+        Assert.Equal<int>(5, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
 
         // Intervalle suivant (tick 220) : cible pleine → aucune nouvelle expédition
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
-        Assert.Equal(4, source.Soldiers);
-        Assert.Equal(5, target.Soldiers);
+        Assert.Equal<int>(4, source.Soldiers);
+        Assert.Equal<int>(5, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
     }
 
@@ -177,13 +177,13 @@ public class ReinforcementCapacityTests
         // Expédition puis arrivée (deux avancements séparés)
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
         clock.SimulateAdvance(MilitaryController.ReinforcementTicksPerRoadSegment);
-        Assert.Equal(4, source.Soldiers);
-        Assert.Equal(5, target.Soldiers);
+        Assert.Equal<int>(4, source.Soldiers);
+        Assert.Equal<int>(5, target.Soldiers);
 
         // Intervalle suivant : cible pleine, aucun transfert
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
-        Assert.Equal(4, source.Soldiers);
-        Assert.Equal(5, target.Soldiers);
+        Assert.Equal<int>(4, source.Soldiers);
+        Assert.Equal<int>(5, target.Soldiers);
     }
 
     [Fact]
@@ -200,7 +200,7 @@ public class ReinforcementCapacityTests
 
         Assert.True(target.Soldiers <= target.MaxSoldiers,
             $"La cible a {target.Soldiers} soldats mais le max est {target.MaxSoldiers}.");
-        Assert.Equal(5, target.Soldiers);
+        Assert.Equal<int>(5, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
     }
 
@@ -233,8 +233,8 @@ public class ReinforcementCapacityTests
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
 
-        Assert.Equal(5, source.Soldiers);
-        Assert.Equal(0, target.Soldiers);
+        Assert.Equal<int>(5, source.Soldiers);
+        Assert.Equal<int>(0, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
     }
 
@@ -266,8 +266,8 @@ public class ReinforcementCapacityTests
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
 
-        Assert.Equal(5, source.Soldiers);
-        Assert.Equal(0, target.Soldiers);
+        Assert.Equal<int>(5, source.Soldiers);
+        Assert.Equal<int>(0, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
 
         // Construction de la route reliant les deux villes (1 segment) — le flux redevient valide.
@@ -275,13 +275,13 @@ public class ReinforcementCapacityTests
         civ.AddRoad(new Road(roadEdge) { CivilizationIndex = 0, DistanceToNearestCity = 1 });
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
-        Assert.Equal(4, source.Soldiers);
-        Assert.Equal(0, target.Soldiers);
+        Assert.Equal<int>(4, source.Soldiers);
+        Assert.Equal<int>(0, target.Soldiers);
         Assert.Single(target.IncomingSoldiers);
 
         clock.SimulateAdvance(MilitaryController.ReinforcementTicksPerRoadSegment);
-        Assert.Equal(4, source.Soldiers);
-        Assert.Equal(1, target.Soldiers);
+        Assert.Equal<int>(4, source.Soldiers);
+        Assert.Equal<int>(1, target.Soldiers);
         Assert.Empty(target.IncomingSoldiers);
     }
 
@@ -294,7 +294,7 @@ public class ReinforcementCapacityTests
 
         clock.SimulateAdvance(MilitaryController.ReinforcementIntervalTicks);
 
-        Assert.Equal(0, source.Soldiers);
-        Assert.Equal(0, target.Soldiers);
+        Assert.Equal<int>(0, source.Soldiers);
+        Assert.Equal<int>(0, target.Soldiers);
     }
 }

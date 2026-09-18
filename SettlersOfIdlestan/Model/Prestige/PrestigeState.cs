@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.HexGrid;
 using SettlersOfIdlestan.Model.IslandMap;
+using SettlersOfIdlestan.Model.Obfuscation;
 using SettlersOfIdlestan.Model.Prestige.PrestigeMap;
 
 namespace SettlersOfIdlestan.Model.Prestige;
@@ -12,9 +13,11 @@ public class PrestigeState
 {
     public WorldState? WorldState { get; set; }
 
-    public int PrestigePoints { get; set; }
+    // Brouillés en mémoire (voir Model/Obfuscation) : ce sont des quantités affichées, donc les
+    // premières cherchées par un éditeur de mémoire.
+    public ObfInt PrestigePoints { get; set; }
 
-    public int TotalPrestigePointsEarned { get; set; }
+    public ObfInt TotalPrestigePointsEarned { get; set; }
 
     /// <summary>
     /// Plafond de <see cref="TotalPrestigePointsEarned"/> en version démo : une fois atteint, les

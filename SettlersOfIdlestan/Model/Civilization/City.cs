@@ -1,5 +1,6 @@
 using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestan.Model.Obfuscation;
 
 namespace SettlersOfIdlestan.Model.Civilization;
 
@@ -84,8 +85,11 @@ public class City : IBuildingContext, IMilitaryVertex
 
     /// <summary>
     /// Défense actuelle (dynamique). Se régénère jusqu'à MaxDefense.
+    /// <para>Brouillée en mémoire (voir Model/Obfuscation) : c'est une valeur lue à l'écran. Le
+    /// maximum juste en dessous reste un int nu, étant recalculé depuis les bâtiments et les
+    /// modificateurs à chaque lecture plutôt que stocké.</para>
     /// </summary>
-    public int CurrentDefense { get; set; }
+    public ObfInt CurrentDefense { get; set; }
 
     [NonSerialized]
     private int _cachedMaxDefense;
@@ -184,8 +188,9 @@ public class City : IBuildingContext, IMilitaryVertex
 
     /// <summary>
     /// Nombre de soldats en garnison dans cette ville.
+    /// <para>Brouillé en mémoire, comme <see cref="CurrentDefense"/>.</para>
     /// </summary>
-    public int Soldiers { get; set; }
+    public ObfInt Soldiers { get; set; }
 
     [NonSerialized]
     private int _cachedMaxSoldiers;

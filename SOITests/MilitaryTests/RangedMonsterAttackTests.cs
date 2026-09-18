@@ -131,7 +131,7 @@ public class RangedMonsterAttackTests
         clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
         Assert.True(monster.Hp < initialHp);
-        Assert.Equal(4, city.Soldiers);
+        Assert.Equal<int>(4, city.Soldiers);
         Assert.Null(city.FlowTarget);
     }
 
@@ -145,7 +145,7 @@ public class RangedMonsterAttackTests
         clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
         Assert.Equal(initialHp, monster.Hp);
-        Assert.Equal(5, city.Soldiers);
+        Assert.Equal<int>(5, city.Soldiers);
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public class RangedMonsterAttackTests
         clock.SimulateAdvance(MilitaryController.CombatIntervalTicks);
 
         Assert.Equal(initialHp, monster.Hp);
-        Assert.Equal(5, city.Soldiers);
+        Assert.Equal<int>(5, city.Soldiers);
     }
 
     [Fact]

@@ -149,7 +149,7 @@ public class SoldierFeedingTests
 
         clock.SimulateAdvance(MilitaryController.SoldierFeedIntervalTicks);
 
-        Assert.Equal(0, civ.Cities[0].Soldiers);
+        Assert.Equal<int>(0, civ.Cities[0].Soldiers);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class SoldierFeedingTests
 
         clock.SimulateAdvance(MilitaryController.SoldierFeedIntervalTicks);
 
-        Assert.Equal(3, civ.Cities[0].Soldiers);
+        Assert.Equal<int>(3, civ.Cities[0].Soldiers);
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class SoldierFeedingTests
 
         clock.SimulateAdvance(MilitaryController.SoldierFeedIntervalTicks);
 
-        Assert.Equal(5, civ.Cities[0].Soldiers);
+        Assert.Equal<int>(5, civ.Cities[0].Soldiers);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class SoldierFeedingTests
 
         clock.SimulateAdvance(MilitaryController.SoldierFeedIntervalTicks);
 
-        Assert.Equal(10, civ.Cities[0].Soldiers);
+        Assert.Equal<int>(10, civ.Cities[0].Soldiers);
         Assert.DoesNotContain(state.EventLog.Entries, e => e.Type == GameEventType.SoldierStarved);
     }
 
@@ -220,7 +220,7 @@ public class SoldierFeedingTests
 
         clock.SimulateAdvance(MilitaryController.SoldierFeedIntervalTicks);
 
-        Assert.Equal(10, civ.Cities[0].Soldiers);
+        Assert.Equal<int>(10, civ.Cities[0].Soldiers);
         Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.SoldierStarved);
     }
 
@@ -252,8 +252,8 @@ public class SoldierFeedingTests
 
         clock.SimulateAdvance(MilitaryController.SoldierFeedIntervalTicks);
 
-        Assert.Equal(5, city1.Soldiers);
-        Assert.Equal(5, city2.Soldiers);
+        Assert.Equal<int>(5, city1.Soldiers);
+        Assert.Equal<int>(5, city2.Soldiers);
     }
 
     [Fact]
@@ -266,8 +266,8 @@ public class SoldierFeedingTests
 
         clock.SimulateAdvance(MilitaryController.SoldierFeedIntervalTicks);
 
-        Assert.Equal(0, city1.Soldiers);
-        Assert.Equal(0, city2.Soldiers);
+        Assert.Equal<int>(0, city1.Soldiers);
+        Assert.Equal<int>(0, city2.Soldiers);
     }
 
     [Fact]
@@ -281,8 +281,8 @@ public class SoldierFeedingTests
 
         clock.SimulateAdvance(MilitaryController.SoldierFeedIntervalTicks);
 
-        Assert.Equal(10, city1.Soldiers); // perd ses 10 soldats payants
-        Assert.Equal(10, city2.Soldiers); // tous dans le quota → aucune mort
-        Assert.Equal(0,  city3.Soldiers); // inchangé
+        Assert.Equal<int>(10, city1.Soldiers); // perd ses 10 soldats payants
+        Assert.Equal<int>(10, city2.Soldiers); // tous dans le quota → aucune mort
+        Assert.Equal<int>(0,  city3.Soldiers); // inchangé
     }
 }
