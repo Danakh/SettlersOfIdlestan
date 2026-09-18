@@ -480,10 +480,12 @@ public class CorruptionControllerTests
     }
 
     [Fact]
-    public void Cascade_CorruptionSource_FillsItsNeighbourhoodUpToItsCapAndStops()
+    public void Cascade_CorruptionSource_FillsItsNeighbourhoodInASlopeAndStops()
     {
-        // Une Source isolée finit par saturer tout son disque de rayon MaxCascadeRadius à son propre
-        // plafond, et rien au-delà : la cascade borne l'emprise d'une source, elle ne l'étend pas sans fin.
+        // L'emprise d'une source isolée est une pente, pas un plateau : son plafond ne vaut en plein
+        // que sur son propre hex et perd un niveau par hex de distance. Une Source de plafond 2
+        // s'arrête donc au rayon 1 (plafond 1), bien avant MaxCascadeRadius — le rayon 2 aurait un
+        // plafond nul.
         var sourceHex = new HexCoord(0, 0, IslandMap.SurfaceLayer);
         var allHexes = HexDisc(sourceHex, CorruptionController.MaxCascadeRadius + 2);
         var map = new IslandMap(allHexes.Select(h => new HexTile(h, TerrainType.Plain)).ToArray());
@@ -501,16 +503,77 @@ public class CorruptionControllerTests
         foreach (var hex in allHexes)
         {
             var corruption = state.GetFirstFeatureAt<Corruption>(hex);
-            if (hex.DistanceTo(sourceHex) <= CorruptionController.MaxCascadeRadius)
+            int expected = 2 - hex.DistanceTo(sourceHex);
+            if (expected > 0)
             {
                 Assert.NotNull(corruption);
-                Assert.Equal(2, corruption!.Level);
+                Assert.Equal(expected, corruption!.Level);
             }
             else
             {
                 Assert.Null(corruption);
             }
         }
+    }
+
+    [Fact]
+    public void Cascade_TempleDominion_KeepsFullCapOnItsCityHexes_ThenLosesOneLevelPerDistance()
+    {
+        // Le plafond du Temple (2 x niveau) est maintenu en plein sur les 3 hexes de sa ville, puis
+        // décroît d'un niveau par hex de distance supplémentaire : un Temple de niveau 2 (plafond 4)
+        // monte ses hexes de ville à 4, leurs voisins à 3, puis 2, puis 1, et rien au-delà du rayon 3.
+        var (state, city, cityHexes, allHexes) = CreateWideMapCitySetup(radius: CorruptionController.MaxCascadeRadius + 2);
+        city.AddBuilding(new Temple { Level = 2 });
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 2000; i++)
+            clock.SimulateAdvance(CorruptionController.ProductionIntervalTicks);
+
+        foreach (var hex in allHexes)
+        {
+            var dominion = state.GetFirstFeatureAt<Dominion>(hex);
+            int expected = 4 - DistanceToSeeds(hex, cityHexes);
+            if (expected > 0)
+            {
+                Assert.NotNull(dominion);
+                Assert.Equal(expected, dominion!.Level);
+            }
+            else
+            {
+                Assert.Null(dominion);
+            }
+        }
+    }
+
+    [Fact]
+    public void Cascade_DistantOpposingHex_IsStillFought_EvenWhereTheRingCapIsExhausted()
+    {
+        // Le plafond décroissant borne la montée, pas le combat : une Corruption posée au rayon 4,
+        // là où le plafond d'un Temple de niveau 2 est déjà retombé à zéro, reste attaquée. Tout le
+        // disque intérieur est porté à sa pente maximale pour qu'il ne reste plus rien à monter.
+        var (state, city, cityHexes, allHexes) = CreateWideMapCitySetup(radius: CorruptionController.MaxCascadeRadius + 2);
+        city.AddBuilding(new Temple { Level = 2 }); // plafond 4 : pente épuisée dès le rayon 4
+        foreach (var hex in allHexes)
+        {
+            int slope = 4 - DistanceToSeeds(hex, cityHexes);
+            if (slope > 0) state.AddFeature(new Dominion(hex, level: slope));
+        }
+
+        var farHex = allHexes.First(h => DistanceToSeeds(h, cityHexes) == 4);
+        var corruption = new Corruption(farHex, level: 3);
+        state.AddFeature(corruption);
+
+        var clock = new GameClock();
+        clock.Start();
+        CreateController(state, clock);
+
+        for (int i = 0; i < 3; i++)
+            AdvanceOneTempleProduction(clock);
+
+        Assert.Null(state.GetFirstFeatureAt<Corruption>(farHex));
     }
 
     // ── Recherches de la Théocratie (Dogme de l'Emprise, Évangélisation, Terre Consacrée) ──

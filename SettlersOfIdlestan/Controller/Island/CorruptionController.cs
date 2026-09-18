@@ -20,7 +20,8 @@ namespace SettlersOfIdlestan.Controller.Island;
 /// 1. <see cref="ProcessTempleProduction"/> — chaque Temple au-delà du niveau 1 (atteignable
 ///    uniquement via les pouvoirs divins Foi +3 et Magisterium Divin +1, voir
 ///    AscensionBuildingMaxLevelGrants) produit du Dominion depuis les 3 hexes touchant sa ville, plafonné à
-///    <see cref="TempleDominionCapPerLevel"/> × niveau effectif du Temple. Le niveau effectif est le
+///    <see cref="TempleDominionCapPerLevel"/> × niveau effectif du Temple — en plein sur ces 3 hexes,
+///    puis un niveau de moins par hex de distance supplémentaire (voir point 3). Le niveau effectif est le
 ///    niveau réel augmenté de TEMPLE_DOMINION_LEVEL_BONUS (Ziggourat +1), ce qui abaisse aussi d'autant
 ///    le niveau à partir duquel un Temple produit — voir <see cref="ProducesDominion"/>.
 ///    DOMINION_SPREAD_CHANCE (Humains) accorde en plus, par niveau effectif de Temple, une chance de
@@ -39,6 +40,11 @@ namespace SettlersOfIdlestan.Controller.Island;
 ///    Temple, son propre hex pour les autres). S'ils sont tous saturés, elle retente anneau par anneau
 ///    — rayon 1, 2, … jusqu'à <see cref="MaxCascadeRadius"/> — et s'arrête au premier anneau offrant un
 ///    hex non saturé, le moins fourni de cet anneau. Au-delà, la production est perdue.
+///    Le plafond appliqué à cet anneau n'est plus celui de la source mais celui-ci <b>moins la
+///    distance</b> : plein sur les hexes de départ, −1 sur leurs voisins, −2 un cran plus loin, etc.
+///    Une source ne peut donc pas hisser au même niveau tout ce qu'elle atteint — son emprise est une
+///    pente qui retombe à zéro à la distance de son plafond, bien avant
+///    <see cref="MaxCascadeRadius"/> pour les sources faibles.
 /// 4. <see cref="GetFill"/> — le « remplissage » qui classe les candidats compte le statut opposé en
 ///    <b>négatif</b> : un hex tenu par l'adversaire est donc toujours le candidat le plus attirant, et
 ///    le plus fort d'abord. La production s'y dépense alors en combat (−1 à l'adversaire, rien de posé)
@@ -59,9 +65,10 @@ namespace SettlersOfIdlestan.Controller.Island;
 /// <see cref="IslandFeatures.DivineBones.GetCorruptionCap"/> (2× le niveau de corruption de l'île figé
 /// à la génération des Os), <see cref="GetMonsterCorruptionCap"/> (2× le niveau de corruption courant
 /// de l'île) et <see cref="IslandFeatures.CorruptionSource.GetCorruptionCap"/> (le niveau de corruption
-/// de l'île à sa génération, jamais doublé). Le plafond d'une source s'applique tel quel à tout hex
-/// qu'elle atteint en cascade, et ne borne que sa propre production : un hex déjà au-dessus n'est
-/// jamais rabaissé, il cesse simplement d'être un candidat.
+/// de l'île à sa génération, jamais doublé). Le plafond d'une source s'applique en plein sur ses
+/// hexes de départ et décroît d'un niveau par hex de distance (voir point 3), et ne borne que sa
+/// propre production : un hex déjà au-dessus n'est jamais rabaissé, il cesse simplement d'être un
+/// candidat.
 /// Invariant : Corruption et Dominion ne coexistent jamais sur un même hex —
 /// <see cref="ApplyProduction"/> combat toujours le statut opposé au lieu de poser le sien par-dessus.
 /// </summary>
@@ -77,8 +84,10 @@ public class CorruptionController
     /// <summary>
     /// Rayon maximal exploré par la cascade autour des hexes de départ d'une source (voir
     /// <see cref="FindProductionTarget"/>) : une source entièrement cernée d'hexes saturés jusqu'à
-    /// cette distance perd sa production. Borne aussi l'emprise maximale d'une source isolée — un
-    /// disque de 91 hexes autour de son point de départ.
+    /// cette distance perd sa production. Borne l'emprise d'une source isolée — un disque de 91 hexes
+    /// autour de son point de départ — mais ne la détermine plus : son plafond décroissant avec la
+    /// distance l'arrête généralement plus tôt (une source de plafond 2 ne dépasse pas le rayon 1).
+    /// Ce rayon reste la portée de combat, que le plafond ne limite pas.
     /// </summary>
     public const int MaxCascadeRadius = 5;
 
@@ -287,6 +296,14 @@ public class CorruptionController
     /// hors carte (bord de carte) pour que le rayon reste une distance et non une connexité, mais
     /// ceux-ci ne sont jamais candidats (voir <see cref="IsValidHex"/>). Les ex aequo de remplissage
     /// sont départagés au tirage, comme l'était le ciblage du Temple.</para>
+    ///
+    /// <para><b>Décroissance du plafond avec la distance</b> : le plafond de la source ne vaut en
+    /// plein que sur ses hexes de départ (rayon 0 — les 3 hexes de ville d'un Temple, l'hex du
+    /// générateur pour les autres), puis perd un niveau par anneau franchi. Une source ne peut donc
+    /// plus porter au même niveau tout son disque de rayon <see cref="MaxCascadeRadius"/> : son
+    /// emprise s'éteint d'elle-même à la distance où son plafond tombe à zéro, et elle décroît en
+    /// pente depuis son foyer. Le combat, lui, n'est pas concerné (voir
+    /// <see cref="PickLeastFilled"/>) : c'est un plafond de <b>montée</b>, pas de portée.</para>
     /// </summary>
     private HexCoord? FindProductionTarget(bool isDominion, List<HexCoord> seeds, int cap)
     {
@@ -304,7 +321,10 @@ public class CorruptionController
 
         for (int radius = 0; ; radius++)
         {
-            var target = PickLeastFilled(isDominion, frontier, effectiveCap);
+            // Plafond de l'anneau : celui de la source, diminué d'un niveau par hex de distance
+            // parcouru depuis ses hexes de départ. Il peut devenir nul ou négatif — l'anneau n'offre
+            // alors plus aucune montée, mais reste explorable pour y combattre l'adversaire.
+            var target = PickLeastFilled(isDominion, frontier, effectiveCap - radius);
             if (target != null) return target;
 
             if (radius >= MaxCascadeRadius) return null;
@@ -332,10 +352,12 @@ public class CorruptionController
 
     /// <summary>
     /// Hex le moins fourni parmi <paramref name="candidates"/>, en ignorant les hexes hors carte et
-    /// ceux déjà saturés. Null si l'anneau n'offre rien. Les ex aequo sont départagés au tirage — un
-    /// seul appel au PRNG, et uniquement quand il y a vraiment plusieurs candidats à égalité.
+    /// ceux déjà saturés pour <paramref name="ringCap"/> — le plafond de la source amputé de la
+    /// distance de l'anneau (voir <see cref="FindProductionTarget"/>). Null si l'anneau n'offre rien.
+    /// Les ex aequo sont départagés au tirage — un seul appel au PRNG, et uniquement quand il y a
+    /// vraiment plusieurs candidats à égalité.
     /// </summary>
-    private HexCoord? PickLeastFilled(bool isDominion, List<HexCoord> candidates, int effectiveCap)
+    private HexCoord? PickLeastFilled(bool isDominion, List<HexCoord> candidates, int ringCap)
     {
         var best = _cascadeCandidatesScratch;
         best.Clear();
@@ -347,7 +369,12 @@ public class CorruptionController
             if (!IsValidHex(hex)) continue;
 
             int fill = GetFill(isDominion, hex);
-            if (fill >= effectiveCap) continue;
+
+            // Le plafond ne borne que la montée : un hex tenu par l'adversaire (remplissage négatif,
+            // voir GetFill) reste toujours une cible de combat, même sur un anneau dont le plafond
+            // est déjà retombé à zéro. La distance affaiblit ce qu'une source peut poser, pas sa
+            // capacité à défendre son front.
+            if (fill >= 0 && fill >= ringCap) continue;
 
             if (fill < bestFill)
             {
