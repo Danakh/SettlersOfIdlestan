@@ -400,13 +400,18 @@ public sealed class GameScreen : IDisposable
         _overlayRenderer.ConnectTargetSelectionService(_targetSelectionService);
         _renderService.RegisterRenderer(_overlayRenderer);
 
+        // Le panneau de tutoriel est dessiné en Skia par-dessus la carte : l'arbre visuel Avalonia
+        // ne l'arbitre pas, c'est donc ici qu'on empêche le survol (et l'infobulle) des hexagones
+        // situés dessous. _tutorialRenderer n'existe pas encore : le champ est lu à l'appel.
         _constructionInteractionService.ShouldSuppressHover = pos =>
             (_overlayRenderer.IsPointBlockedByUI(pos))
+            || (_tutorialRenderer?.ContainsPoint(pos) == true)
             || (_targetSelectionService.IsActive)
             || (_militaryInteractionService.ShouldSuppressConstruction);
 
         _militaryInteractionService.ShouldSuppressInteraction = pos =>
             (_overlayRenderer.IsPointBlockedByUI(pos))
+            || (_tutorialRenderer?.ContainsPoint(pos) == true)
             || (_targetSelectionService.IsActive);
 
         if (allowDebugMode)

@@ -563,7 +563,7 @@ public static class PrestigeMapFactory
                 modifiers: new Modifier[]
                 {
                     new(ECategory.RESEARCH_SPEED_PER_MAGE_TOWER, EType.ADDITIVE, 0.05),
-                    new(ECategory.CRYSTAL_GENERATION_PER_LABORATORY, EType.ADDITIVE, 0.1),
+                    new(ECategory.CRYSTAL_GENERATION_PER_LABORATORY, EType.ADDITIVE, 0.05),
                 }
             ),
             new(

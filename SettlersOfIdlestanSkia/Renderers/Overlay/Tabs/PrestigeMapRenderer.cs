@@ -844,7 +844,7 @@ public sealed class PrestigeMapRenderer : IGameRenderer
         Modifier.ECategory.RESEARCH_SPEED_PER_UNIQUE_BUILDING_SQUARED
                                                              => localization.Get("prestige_tooltip_research_speed_per_unique_building_squared"),
         Modifier.ECategory.STRENGTH_POTION_PER_CYCLE          => localization.Get("prestige_tooltip_strength_potion_per_cycle"),
-        Modifier.ECategory.CRYSTAL_GENERATION_PER_LABORATORY => $"+{mod.Value:0.#} {localization.Get("prestige_tooltip_crystal_generation_per_laboratory")}",
+        Modifier.ECategory.CRYSTAL_GENERATION_PER_LABORATORY => $"+{mod.Value:0.##} {localization.GetFormated("prestige_tooltip_crystal_generation_per_laboratory", (int)(SettlersOfIdlestan.Controller.Island.HarvestController.PassiveCrystalGenerationIntervalTicks / 100))}",
         Modifier.ECategory.SMITH_DOUBLE_PROD_CHANCE_PERCENT  => $"+{(int)mod.Value}% {localization.Get("prestige_tooltip_smith_double_prod_chance")}",
         Modifier.ECategory.AUTO_CAMP_ON_CONQUEST             => localization.Get("prestige_tooltip_auto_camp_on_conquest"),
         Modifier.ECategory.DEEP_LAYER_CITY_MAX_SOLDIERS_BONUS => localization.GetFormated("prestige_tooltip_deep_layer_city_max_soldiers", (int)mod.Value),

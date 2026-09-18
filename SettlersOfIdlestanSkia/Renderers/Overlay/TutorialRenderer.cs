@@ -27,6 +27,15 @@ public class TutorialRenderer : IGameRenderer
     private SKPoint _lastPointerPosition;
     private TutorialTask? _hoveredTask;
     private readonly List<(SKRect Rect, TutorialTask Task)> _taskRects = [];
+    private SKRect? _panelRect;
+
+    /// <summary>
+    /// Le panneau est dessiné en Skia, dans le même canevas que la carte : contrairement aux
+    /// panneaux Avalonia, l'arbre visuel ne bloque rien pour lui. Sans cette zone, le survol
+    /// continue d'atteindre les hexagones placés dessous et leur infobulle s'affiche derrière
+    /// le panneau (voir ShouldSuppressHover dans GameScreen).
+    /// </summary>
+    public bool ContainsPoint(SKPoint point) => _panelRect?.Contains(point.X, point.Y) == true;
 
     private const float PanelLeft    = 10f;
     private const float PanelWidth   = 320f;
@@ -66,7 +75,11 @@ public class TutorialRenderer : IGameRenderer
             _tooltipFont.Dispose();
             _tooltipFont = new SKFont { Size = 11 * _lastUiScale, Typeface = SkiaFonts.Regular };
         }
-        if (_step == null) return;
+        if (_step == null)
+        {
+            _panelRect = null;
+            return;
+        }
         _taskRects.Clear();
 
         var mainState = context.GameState as MainGameState;
@@ -77,6 +90,7 @@ public class TutorialRenderer : IGameRenderer
         if (mainState != null && !mainState.Settings.ShowTutorial)
         {
             _hoveredTask = null;
+            _panelRect = null;
             return;
         }
 
@@ -110,6 +124,7 @@ public class TutorialRenderer : IGameRenderer
         float panelTop        = _canvasSize.Height - panelH - bottomMargin;
 
         var panelRect = new SKRect(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelH);
+        _panelRect = panelRect;
 
         using var bgPaint = new SKPaint { Color = ColorBg, IsAntialias = true };
         canvas.DrawRoundRect(panelRect, 8f * s, 8f * s, bgPaint);

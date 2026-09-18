@@ -1037,11 +1037,52 @@ public sealed class AscensionRenderer : IDisposable
             : _localization.GetFormated("ascension_action_button_with_total", projectedGain);
         SkiaTextUtils.DrawText(canvas, label, rect.MidX, rect.MidY + 5f, SKTextAlign.Center, _buttonFont, canAscend ? _buttonTextPaint : _mutedPaint);
 
-        if (!canAscend && hovered)
+        if (hovered)
+            SetAscendGainTooltip(rect, godState, ascension, canAscend, projectedGain);
+    }
+
+    /// <summary>
+    /// Infobulle du bouton d'Ascension : le détail du calcul de <see cref="AscensionController.GetGodPointsGain"/>,
+    /// affiché que l'Ascension soit possible ou non — c'est justement quand elle ne l'est pas que le
+    /// joueur a besoin de voir ce qui manque. Une ligne par terme du calcul : essences du cycle,
+    /// réserve du Reliquaire (seulement s'il est débloqué), majoration de la Nécropole (seulement si
+    /// une est bâtie sur l'île). La ligne de total ne s'affiche que s'il y a plus d'un terme —
+    /// sinon elle répéterait la ligne du dessus. Le rappel du seuil ferme l'infobulle tant que
+    /// l'Ascension reste impossible.
+    /// </summary>
+    private void SetAscendGainTooltip(SKRect rect, GodState godState, AscensionController ascension, bool canAscend, int projectedGain)
+    {
+        var lines = new List<string> { _localization.Get("ascension_gain_tooltip_title"), "" };
+        int detailLines = 0;
+
+        lines.Add(_localization.GetFormated("ascension_gain_tooltip_essence", (int)godState.DivineEssence));
+        detailLines++;
+
+        if (ascension.HasDivineEssenceReliquary)
         {
-            _hoveredLockedRect = rect;
-            _hoveredLockedTooltip = _localization.GetFormated("ascension_action_requires_essence_tooltip", AscensionController.MinDivineEssenceForAscension);
+            lines.Add(_localization.GetFormated("ascension_gain_tooltip_reliquary", (int)godState.DivineEssenceReliquaryFloor));
+            detailLines++;
         }
+
+        int necropolisLevel = ascension.GetNecropolisLevel();
+        if (necropolisLevel > 0)
+        {
+            lines.Add(_localization.GetFormated("ascension_gain_tooltip_necropolis",
+                necropolisLevel,
+                (int)Math.Round(ascension.GetNecropolisAscensionBonus() * 100)));
+            detailLines++;
+        }
+
+        if (detailLines > 1)
+            lines.Add(_localization.GetFormated("ascension_gain_tooltip_total", projectedGain));
+
+        if (!canAscend)
+        {
+            lines.Add("");
+            lines.Add(_localization.GetFormated("ascension_action_requires_essence_tooltip", AscensionController.MinDivineEssenceForAscension));
+        }
+
+        _tooltipRenderer.SetTooltipLines(lines.ToArray(), new SKPoint(rect.Right, rect.Top));
     }
 
     /// <summary>Trait reliant le centre à l'extrémité de chaque branche, dessiné sous les
