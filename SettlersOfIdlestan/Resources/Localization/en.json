@@ -263,6 +263,7 @@
   "tooltip_requires_3_production_level4": "⚠ Requires 3 production buildings (Sawmill, Brickworks, Quarry or Mill) at level 4 in this city",
   "tooltip_requires_forge_level4": "⚠ Requires a level 4 Forge in this city",
   "tooltip_requires_garrison": "⚠ Requires a Garrison in this city",
+  "tooltip_requires_barracks_level4": "⚠ Requires a level 4 Barracks in this city",
   "tooltip_requires_fairy_circle": "⚠ Must be built next to a discovered Fairy Circle",
   "tooltip_requires_crystal_cave_or_fairy_circle": "⚠ Must be built next to a discovered Crystal Cave or Fairy Circle",
   "tooltip_requires_fairy_circle_or_mushroom_cave": "⚠ Must be built next to a discovered Fairy Circle or a Mushroom Cave",

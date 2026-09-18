@@ -1,4 +1,4 @@
-using SettlersOfIdlestan.Model.GameplayModifier;
+﻿using SettlersOfIdlestan.Model.GameplayModifier;
 using SettlersOfIdlestan.Model.IslandMap;
 using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
@@ -20,10 +20,17 @@ public class WarRoom : Building, IUniqueBuilding
     public long GetAutoMilitaryCooldownTicks() => 1000L;
 
     public override bool HasBuildPrerequisites(IBuildingContext city, WorldState? state) =>
-        city.HasBuildingAtLevel(BuildingType.Garrison, 1);
+        city.HasBuildingAtLevel(BuildingType.Garrison, 1) &&
+        city.HasBuildingAtLevel(BuildingType.Barracks, 4);
 
-    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state) =>
-        HasBuildPrerequisites(city, state) ? null : "tooltip_requires_garrison";
+    public override string? GetMissingPrerequisiteKey(IBuildingContext city, WorldState? state)
+    {
+        if (!city.HasBuildingAtLevel(BuildingType.Garrison, 1))
+            return "tooltip_requires_garrison";
+        if (!city.HasBuildingAtLevel(BuildingType.Barracks, 4))
+            return "tooltip_requires_barracks_level4";
+        return null;
+    }
 
     public override ResourceSet GetBuildCost() => new ResourceSet
     {

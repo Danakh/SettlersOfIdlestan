@@ -1406,6 +1406,7 @@ public class RaceSystemTests
         var civ = state.Civilizations[0];
         var city = civ.Cities[0];
         city.AddBuilding(new TownHall { Level = 4 });
+        city.AddBuilding(new Barracks { Level = 4 }); // autre prérequis de la Salle de Guerre, satisfait d'emblée
         AddRaceModifiers(civ,
             new Modifier(ECategory.BUILDING_MAX_LEVEL, nameof(BuildingType.WarRoom), EType.ADDITIVE, 1),
             new Modifier(ECategory.UNIQUE_BUILDING_PREREQUISITE_REDUCTION, EType.ADDITIVE, 1));
