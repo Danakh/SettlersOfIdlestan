@@ -2,6 +2,10 @@
 
 ---
 
+v0.24
+
+---
+
 v0.23
 • Le jeu a des bruitages : combats, récolte manuelle, fondation et perte de ville, notifications, fanfare des succès. Tout se règle dans le nouvel onglet Son des Options — volume d'ensemble et activation famille par famille
 

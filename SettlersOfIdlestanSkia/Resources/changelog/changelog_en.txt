@@ -2,6 +2,10 @@
 
 ---
 
+v0.24
+
+---
+
 v0.23
 • The game has sound effects: combat, manual harvesting, city founding and loss, notifications, achievement fanfare. Everything is tuned in the new Sound tab of the Settings — overall volume and per-family toggles
 
