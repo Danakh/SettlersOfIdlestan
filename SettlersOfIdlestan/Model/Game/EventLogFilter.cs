@@ -28,21 +28,35 @@ public enum EventLogCategory
 }
 
 /// <summary>
-/// Préférences d'affichage du Journal : quelles familles d'événements le joueur ne veut plus voir.
+/// Préférences du Journal : quelles familles d'événements le joueur ne veut plus voir, et
+/// lesquelles il ne veut plus entendre. Deux réglages indépendants par famille — l'onglet
+/// Réglages du Journal affiche une colonne pour chacun.
 ///
-/// Filtre unique pour les trois manifestations d'un événement — l'entrée du journal, la
-/// surbrillance de l'onglet et le toast — parce qu'il est appliqué à la source, dans
-/// <see cref="GameEventLog.Add"/> : un événement masqué n'est jamais ajouté, donc ni listé, ni
+/// L'affichage est un filtre unique pour les trois manifestations visibles d'un événement —
+/// l'entrée du journal, la surbrillance de l'onglet et le toast — parce qu'il est appliqué à la
+/// source, dans <see cref="GameEventLog.Add"/> : un événement masqué n'est jamais listé, donc ni
 /// compté par la pulsation de l'onglet (<c>TabBarRenderer.UpdateEventNotification</c> lit
-/// <c>Entries.Count</c>), ni mis en file d'attente des toasts. Filtrer côté affichage aurait
-/// laissé passer les deux derniers.
+/// <c>Entries.Count</c>), ni affiché en toast. Filtrer côté affichage aurait laissé passer les
+/// deux derniers.
 ///
-/// On stocke les catégories masquées plutôt que les visibles : une catégorie ajoutée plus tard est
-/// ainsi visible par défaut, y compris dans une sauvegarde antérieure.
+/// Le son, lui, ne se déduit pas de l'affichage : une famille masquée mais non muette continue
+/// d'être annoncée à l'oreille (c'est tout l'intérêt de deux colonnes), d'où l'entrée qui reste
+/// mise en file d'attente des toasts avec la seule consigne « son, pas d'image » — voir
+/// <c>PendingToast</c>.
+///
+/// On stocke les catégories masquées et muettes plutôt que leurs contraires : une catégorie
+/// ajoutée plus tard est ainsi visible et sonore par défaut, y compris dans une sauvegarde
+/// antérieure.
 /// </summary>
 public class EventLogFilter
 {
     public HashSet<EventLogCategory> HiddenCategories { get; set; } = [];
+
+    /// <summary>
+    /// Familles dont le joueur ne veut plus entendre le bruitage de notification. Indépendant de
+    /// <see cref="HiddenCategories"/> : les deux colonnes se cochent séparément.
+    /// </summary>
+    public HashSet<EventLogCategory> MutedCategories { get; set; } = [];
 
     /// <summary>
     /// Familles déjà croisées au moins une fois dans la partie. L'onglet Réglages n'affiche que
@@ -61,6 +75,8 @@ public class EventLogFilter
     public HashSet<EventLogCategory> KnownCategories { get; set; } = [];
 
     public bool IsCategoryVisible(EventLogCategory category) => !HiddenCategories.Contains(category);
+
+    public bool IsCategoryAudible(EventLogCategory category) => !MutedCategories.Contains(category);
 
     public bool IsCategoryKnown(EventLogCategory category) => KnownCategories.Contains(category);
 
@@ -83,11 +99,31 @@ public class EventLogFilter
     public void ToggleCategory(EventLogCategory category) =>
         SetCategoryVisible(category, !IsCategoryVisible(category));
 
+    public void SetCategoryAudible(EventLogCategory category, bool audible)
+    {
+        if (audible) MutedCategories.Remove(category);
+        else MutedCategories.Add(category);
+    }
+
+    public void ToggleCategorySound(EventLogCategory category) =>
+        SetCategoryAudible(category, !IsCategoryAudible(category));
+
     /// <summary>Vrai si cet événement doit être journalisé. Un type sans catégorie l'est toujours.</summary>
     public bool IsEventVisible(GameEventType type)
     {
         var category = GetCategory(type);
         return category == null || IsCategoryVisible(category.Value);
+    }
+
+    /// <summary>
+    /// Vrai si le bruitage de notification de cet événement doit sortir. Un type sans catégorie
+    /// n'est pas réglable ici : il suit le seul interrupteur global des notifications
+    /// (<c>GameSettings.SoundToastEnabled</c>), comme avant.
+    /// </summary>
+    public bool IsEventAudible(GameEventType type)
+    {
+        var category = GetCategory(type);
+        return category == null || IsCategoryAudible(category.Value);
     }
 
     /// <summary>

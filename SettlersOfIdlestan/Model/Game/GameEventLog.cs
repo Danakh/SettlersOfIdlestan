@@ -217,12 +217,23 @@ public record GameLogEntry(GameEventType Type, string? Message = null, bool Toas
     }
 }
 
+/// <summary>
+/// Un toast en attente de traitement par la couche d'affichage. L'image et le son sont deux
+/// consignes distinctes parce que le joueur les règle séparément, famille par famille (voir
+/// <see cref="EventLogFilter"/>) : une famille masquée mais audible sort d'ici avec
+/// <paramref name="Show"/> faux et <paramref name="PlaySound"/> vrai — rien à l'écran, le bruitage
+/// quand même. Une entrée dont ni l'un ni l'autre n'est demandé n'est jamais mise en file.
+/// </summary>
+/// <param name="Show">Afficher le toast à l'écran.</param>
+/// <param name="PlaySound">Jouer le bruitage de notification correspondant.</param>
+public readonly record struct PendingToast(GameLogEntry Entry, bool Show, bool PlaySound);
+
 public class GameEventLog
 {
     private const int MaxEntries = 50;
     public List<GameLogEntry> Entries { get; } = new();
 
-    private readonly Queue<GameLogEntry> _pendingToasts = new();
+    private readonly Queue<PendingToast> _pendingToasts = new();
 
     private EventLogFilter? _filter;
 
@@ -267,18 +278,29 @@ public class GameEventLog
         _filter?.MarkKnown(type);
 
         // Famille masquée par le joueur : on refuse l'entrée à la source plutôt que de la filtrer
-        // à l'affichage. C'est ce qui éteint d'un coup ses trois manifestations — la ligne du
-        // journal, la pulsation de l'onglet (qui compte Entries) et le toast (jamais mis en file).
-        if (_filter?.IsEventVisible(type) == false) return;
+        // à l'affichage. C'est ce qui éteint d'un coup ses trois manifestations visibles — la
+        // ligne du journal, la pulsation de l'onglet (qui compte Entries) et l'image du toast.
+        bool visible = _filter?.IsEventVisible(type) != false;
+
+        // Le son se règle à part : masquée, une famille peut rester audible. L'entrée ne rejoint
+        // alors pas le journal mais passe quand même par la file des toasts, muette d'image.
+        bool audible = _filter?.IsEventAudible(type) != false;
+
+        if (!visible && !audible) return;
 
         var entry = new GameLogEntry(type, message, toast);
-        Entries.Insert(0, entry);
-        if (Entries.Count > MaxEntries)
-            Entries.RemoveAt(MaxEntries);
-        if (toast) _pendingToasts.Enqueue(entry);
+
+        if (visible)
+        {
+            Entries.Insert(0, entry);
+            if (Entries.Count > MaxEntries)
+                Entries.RemoveAt(MaxEntries);
+        }
+
+        if (toast) _pendingToasts.Enqueue(new PendingToast(entry, visible, audible));
     }
 
-    public bool TryDequeueToast(out GameLogEntry entry) => _pendingToasts.TryDequeue(out entry!);
+    public bool TryDequeueToast(out PendingToast toast) => _pendingToasts.TryDequeue(out toast);
 
     public bool HasEntries => Entries.Count > 0;
 }

@@ -444,6 +444,7 @@ public sealed class SkiaGameRuntime : IDisposable
 
     public void ToggleEventLogSettings() => _gameScreen?.ToggleEventLogSettingsFromHost();
     public void ToggleEventLogFilter(string key) => _gameScreen?.ToggleEventLogFilterFromHost(key);
+    public void ToggleEventLogFilterSound(string key) => _gameScreen?.ToggleEventLogFilterSoundFromHost(key);
 
     /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
     public StatsSnapshot GetStatsSnapshot() =>

@@ -18,16 +18,21 @@ public sealed class EventLogEntryViewModel
     public SkiaLayer.EventLogTone Tone { get; }
 }
 
-/// <summary>Une case a cocher de l'onglet Reglages : une famille d'evenements affichable ou non.</summary>
+/// <summary>
+/// Une ligne de l'onglet Reglages : une famille d'evenements, affichable et audible
+/// independamment. Deux cases a cocher, une par colonne.
+/// </summary>
 public sealed class EventLogFilterViewModel : ViewModelBase
 {
     private bool _isChecked;
+    private bool _isSoundChecked;
 
     public EventLogFilterViewModel(SkiaLayer.EventLogFilterSnapshot snapshot)
     {
         Key = snapshot.Key;
         Label = snapshot.Label;
         _isChecked = snapshot.IsChecked;
+        _isSoundChecked = snapshot.IsSoundChecked;
     }
 
     public string Key { get; }
@@ -36,6 +41,14 @@ public sealed class EventLogFilterViewModel : ViewModelBase
     /// Cochee = les evenements de cette famille sont journalises. Le modele, lui, stocke
     /// l'inverse (les familles masquees) : voir EventLogFilter.
     public bool IsChecked { get => _isChecked; internal set => SetProperty(ref _isChecked, value); }
+
+    /// Cochee = le bruitage de notification de cette famille se fait entendre. Independant de
+    /// <see cref="IsChecked"/> : une famille masquee peut rester audible.
+    public bool IsSoundChecked
+    {
+        get => _isSoundChecked;
+        internal set => SetProperty(ref _isSoundChecked, value);
+    }
 }
 
 /// <summary>
@@ -53,6 +66,8 @@ public sealed class EventLogViewModel : ViewModelBase
     private string _settingsTitle = "";
     private string _settingsHint = "";
     private string _settingsEmptyMessage = "";
+    private string _settingsDisplayHeader = "";
+    private string _settingsSoundHeader = "";
     private IReadOnlyList<SkiaLayer.EventLogEntrySnapshot> _last = [];
 
     public EventLogViewModel(GameRuntimeHost host) => _host = host;
@@ -65,10 +80,12 @@ public sealed class EventLogViewModel : ViewModelBase
     public string EmptyMessage { get => _emptyMessage; private set => SetProperty(ref _emptyMessage, value); }
 
     /// Sous-onglet Reglages ouvert : la liste des entrees cede la place aux cases a cocher.
+    /// Le setter est interne et non prive pour que les tests d'interface puissent ouvrir la page
+    /// sans partie en cours — hors tests, il ne se pilote que par l'instantane.
     public bool ShowSettings
     {
         get => _showSettings;
-        private set
+        internal set
         {
             if (SetProperty(ref _showSettings, value)) RaisePropertyChanged(nameof(ShowEntries));
         }
@@ -81,6 +98,19 @@ public sealed class EventLogViewModel : ViewModelBase
     {
         get => _settingsEmptyMessage;
         private set => SetProperty(ref _settingsEmptyMessage, value);
+    }
+
+    /// En-tetes des deux colonnes de cases a cocher.
+    public string SettingsDisplayHeader
+    {
+        get => _settingsDisplayHeader;
+        private set => SetProperty(ref _settingsDisplayHeader, value);
+    }
+
+    public string SettingsSoundHeader
+    {
+        get => _settingsSoundHeader;
+        private set => SetProperty(ref _settingsSoundHeader, value);
     }
 
     public bool IsEmpty => Entries.Count == 0;
@@ -108,6 +138,8 @@ public sealed class EventLogViewModel : ViewModelBase
         SettingsTitle = snapshot.SettingsTitle;
         SettingsHint = snapshot.SettingsHint;
         SettingsEmptyMessage = snapshot.SettingsEmptyMessage;
+        SettingsDisplayHeader = snapshot.SettingsDisplayHeader;
+        SettingsSoundHeader = snapshot.SettingsSoundHeader;
 
         Sync(snapshot.Entries);
         SyncFilters(snapshot.Filters);
@@ -126,6 +158,13 @@ public sealed class EventLogViewModel : ViewModelBase
         Refresh();
     }
 
+    /// <summary>Colonne Son : coupe ou rend le bruitage de cette famille, sans toucher a l'affichage.</summary>
+    public void ToggleFilterSound(EventLogFilterViewModel filter)
+    {
+        _host.ToggleEventLogFilterSound(filter.Key);
+        Refresh();
+    }
+
     /// <summary>
     /// La liste des familles est fixe : seul l'etat des cases change. On ne la reconstruit donc
     /// que si les cles different — sinon chaque tick recreerait les controles sous le curseur.
@@ -137,7 +176,11 @@ public sealed class EventLogViewModel : ViewModelBase
 
         if (sameKeys)
         {
-            for (int i = 0; i < incoming.Count; i++) Filters[i].IsChecked = incoming[i].IsChecked;
+            for (int i = 0; i < incoming.Count; i++)
+            {
+                Filters[i].IsChecked = incoming[i].IsChecked;
+                Filters[i].IsSoundChecked = incoming[i].IsSoundChecked;
+            }
             return;
         }
 

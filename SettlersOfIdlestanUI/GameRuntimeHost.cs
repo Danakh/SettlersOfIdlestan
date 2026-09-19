@@ -173,6 +173,7 @@ public sealed class GameRuntimeHost : IDisposable
 
     public void ToggleEventLogSettings() => Invoke(r => r.ToggleEventLogSettings());
     public void ToggleEventLogFilter(string key) => Invoke(r => r.ToggleEventLogFilter(key));
+    public void ToggleEventLogFilterSound(string key) => Invoke(r => r.ToggleEventLogFilterSound(key));
 
     public SkiaLayer.StatsSnapshot GetStatsSnapshot() =>
         Read(r => r.GetStatsSnapshot()) ?? SkiaLayer.StatsSnapshot.Hidden;

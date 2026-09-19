@@ -348,6 +348,7 @@ public sealed class OverlayRenderer : IGameRenderer
 
     public void ToggleEventLogSettingsFromHost() => _eventLogRenderer.ToggleSettingsFromHost();
     public void ToggleEventLogFilterFromHost(string key) => _eventLogRenderer.ToggleFilterFromHost(key);
+    public void ToggleEventLogFilterSoundFromHost(string key) => _eventLogRenderer.ToggleFilterSoundFromHost(key);
 
     /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
     public StatsSnapshot GetStatsSnapshot() =>

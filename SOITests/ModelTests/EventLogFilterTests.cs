@@ -7,10 +7,10 @@ using Xunit;
 namespace SOITests.ModelTests;
 
 /// <summary>
-/// Filtre d'affichage du journal (onglet Réglages du Journal). Il est appliqué à la source, dans
-/// <see cref="GameEventLog.Add"/> : c'est ce qui éteint d'un seul geste les trois manifestations
-/// d'un événement — la ligne du journal, la surbrillance de l'onglet (qui compte les entrées) et
-/// le toast.
+/// Réglages du journal (onglet Réglages du Journal) : affichage et son, une colonne chacun. Ils
+/// sont appliqués à la source, dans <see cref="GameEventLog.Add"/> — c'est ce qui éteint d'un seul
+/// geste les trois manifestations visibles d'un événement : la ligne du journal, la surbrillance
+/// de l'onglet (qui compte les entrées) et l'image du toast.
 /// </summary>
 public class EventLogFilterTests
 {
@@ -25,7 +25,7 @@ public class EventLogFilterTests
     }
 
     [Fact]
-    public void Une_famille_masquee_ne_produit_ni_entree_ni_toast()
+    public void Une_famille_masquee_ne_produit_ni_entree_ni_image_de_toast()
     {
         var filter = new EventLogFilter();
         filter.SetCategoryVisible(EventLogCategory.Dragon, false);
@@ -37,7 +37,67 @@ public class EventLogFilterTests
 
         Assert.Empty(log.Entries);
         Assert.False(log.HasEntries, "L'onglet Journal se met en surbrillance sur le nombre d'entrées.");
+
+        // Le son, lui, n'a pas été coupé : le toast reste en file, avec la seule consigne sonore.
+        Assert.True(log.TryDequeueToast(out var toast));
+        Assert.False(toast.Show);
+        Assert.True(toast.PlaySound);
+    }
+
+    /// <summary>
+    /// Les deux colonnes sont indépendantes : couper le son ne retire rien de l'écran. Sans cela,
+    /// un joueur qui ne veut que le silence perdrait aussi ses entrées de journal.
+    /// </summary>
+    [Fact]
+    public void Une_famille_muette_reste_affichee()
+    {
+        var filter = new EventLogFilter();
+        filter.SetCategoryAudible(EventLogCategory.Dragon, false);
+        var log = new GameEventLog();
+        log.Bind(filter);
+
+        log.Add(GameEventType.DragonDiscovered, toast: true);
+
+        Assert.Single(log.Entries);
+        Assert.True(filter.IsCategoryVisible(EventLogCategory.Dragon));
+        Assert.True(log.TryDequeueToast(out var toast));
+        Assert.True(toast.Show);
+        Assert.False(toast.PlaySound);
+    }
+
+    /// Masquée ET muette : plus rien à faire de cet événement, il ne passe même pas par la file.
+    [Fact]
+    public void Une_famille_masquee_et_muette_ne_met_rien_en_file()
+    {
+        var filter = new EventLogFilter();
+        filter.SetCategoryVisible(EventLogCategory.Dragon, false);
+        filter.SetCategoryAudible(EventLogCategory.Dragon, false);
+        var log = new GameEventLog();
+        log.Bind(filter);
+
+        log.Add(GameEventType.DragonDiscovered, toast: true);
+
+        Assert.Empty(log.Entries);
         Assert.False(log.TryDequeueToast(out _));
+    }
+
+    /// <summary>
+    /// Couper le son d'une famille n'en coupe aucune autre, et ne touche pas aux événements de
+    /// progression — eux ne suivent que l'interrupteur global des notifications.
+    /// </summary>
+    [Fact]
+    public void Le_son_se_coupe_famille_par_famille()
+    {
+        var filter = new EventLogFilter();
+        filter.SetCategoryAudible(EventLogCategory.Dragon, false);
+
+        Assert.False(filter.IsEventAudible(GameEventType.DragonDiscovered));
+        Assert.False(filter.IsEventAudible(GameEventType.DragonDefeated));
+        Assert.True(filter.IsEventAudible(GameEventType.TrollDiscovered));
+        Assert.True(filter.IsEventAudible(GameEventType.WonderPlaced));
+
+        filter.ToggleCategorySound(EventLogCategory.Dragon);
+        Assert.True(filter.IsEventAudible(GameEventType.DragonDiscovered));
     }
 
     /// Masquer une famille ne doit pas en emporter d'autres, ni les événements non filtrables.
@@ -119,15 +179,19 @@ public class EventLogFilterTests
     {
         var settings = new GameSettings();
         settings.EventLogFilter.SetCategoryVisible(EventLogCategory.Rats, false);
+        settings.EventLogFilter.SetCategoryAudible(EventLogCategory.Ogre, false);
         settings.EventLogFilter.MarkKnown(GameEventType.DragonDiscovered);
 
         string json = JsonSerializer.Serialize(settings);
         Assert.Contains("\"Rats\"", json);
+        Assert.Contains("\"Ogre\"", json);
         Assert.Contains("\"Dragon\"", json);
 
         var restored = JsonSerializer.Deserialize<GameSettings>(json)!;
         Assert.False(restored.EventLogFilter.IsCategoryVisible(EventLogCategory.Rats));
         Assert.True(restored.EventLogFilter.IsCategoryVisible(EventLogCategory.Dragon));
+        Assert.False(restored.EventLogFilter.IsCategoryAudible(EventLogCategory.Ogre));
+        Assert.True(restored.EventLogFilter.IsCategoryAudible(EventLogCategory.Rats));
         Assert.True(restored.EventLogFilter.IsCategoryKnown(EventLogCategory.Dragon));
     }
 

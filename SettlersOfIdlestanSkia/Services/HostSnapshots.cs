@@ -718,10 +718,13 @@ public enum EventLogTone
 public sealed record EventLogEntrySnapshot(string Title, string Body, EventLogTone Tone);
 
 /// <summary>
-/// Une famille d'evenements masquable depuis l'onglet Reglages du journal. La cle est le nom de
+/// Une famille d'evenements reglable depuis l'onglet Reglages du journal. La cle est le nom de
 /// l'EventLogCategory du modele : elle repart telle quelle vers le renderer au clic.
+///
+/// Deux cases independantes : <paramref name="IsChecked"/> pour l'affichage (journal, onglet,
+/// toast) et <paramref name="IsSoundChecked"/> pour le bruitage de notification.
 /// </summary>
-public sealed record EventLogFilterSnapshot(string Key, string Label, bool IsChecked);
+public sealed record EventLogFilterSnapshot(string Key, string Label, bool IsChecked, bool IsSoundChecked);
 
 /// <summary>
 /// Onglet plein ecran du journal. La liste vient du modele, deja bornee a 50 entrees et triee
@@ -733,6 +736,8 @@ public sealed record EventLogFilterSnapshot(string Key, string Label, bool IsChe
 /// <paramref name="Filters"/> ne contient que les familles deja croisees dans la partie, et peut
 /// donc etre vide — d'ou <paramref name="SettingsEmptyMessage"/>.
 /// </summary>
+/// <param name="SettingsDisplayHeader">En-tete de la colonne des cases d'affichage.</param>
+/// <param name="SettingsSoundHeader">En-tete de la colonne des cases de son.</param>
 public sealed record EventLogSnapshot(
     bool IsVisible,
     string Title,
@@ -742,9 +747,11 @@ public sealed record EventLogSnapshot(
     string SettingsTitle,
     string SettingsHint,
     string SettingsEmptyMessage,
+    string SettingsDisplayHeader,
+    string SettingsSoundHeader,
     IReadOnlyList<EventLogFilterSnapshot> Filters)
 {
-    public static readonly EventLogSnapshot Hidden = new(false, "", "", [], false, "", "", "", []);
+    public static readonly EventLogSnapshot Hidden = new(false, "", "", [], false, "", "", "", "", "", []);
 }
 
 /// <summary>

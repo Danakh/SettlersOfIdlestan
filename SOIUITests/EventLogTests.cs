@@ -101,8 +101,73 @@ public class EventLogViewTests
             "L'entree occupe zero pixel : son template ne s'est pas applique."));
     }
 
+    /// <summary>
+    /// Page Reglages : deux cases par famille, l'affichage et le son, reglables separement. Une
+    /// seule case par ligne — le cas d'avant — rendrait le son indissociable de l'affichage.
+    /// </summary>
+    [AvaloniaFact]
+    public void Chaque_famille_porte_une_case_d_affichage_et_une_case_de_son()
+    {
+        var (_, _, view) = BuildProbeWindow(visible: true, filters:
+        [
+            new("Bandit", "Bandits", IsChecked: true, IsSoundChecked: false),
+            new("Dragon", "Dragons", IsChecked: false, IsSoundChecked: true),
+        ]);
+
+        var rows = FilterRows(view);
+        Assert.Equal(2, rows.Count);
+
+        Assert.Collection(Boxes(rows[0]),
+            display => Assert.True(display.IsChecked),
+            sound => Assert.False(sound.IsChecked));
+
+        Assert.Collection(Boxes(rows[1]),
+            display => Assert.False(display.IsChecked),
+            sound => Assert.True(sound.IsChecked));
+    }
+
+    /// <summary>
+    /// Les cases se rangent sous leur entete de colonne. L'entete et les lignes sont deux grilles
+    /// distinctes : elles ne s'alignent que parce que leurs colonnes ont une largeur fixe — une
+    /// largeur auto se calerait sur le contenu de chacune, donc differemment.
+    /// </summary>
+    [AvaloniaFact]
+    public void Les_cases_s_alignent_sous_leur_entete_de_colonne()
+    {
+        var (_, _, view) = BuildProbeWindow(visible: true, filters:
+        [
+            new("Bandit", "Bandits", IsChecked: true, IsSoundChecked: true),
+        ]);
+
+        var headerGrid = view.GetVisualDescendants().OfType<Grid>()
+            .Single(g => g.Name == EventLogView.ColumnHeaderName);
+        var headers = headerGrid.Children.OfType<TextBlock>().OrderBy(t => CenterX(t, view)).ToList();
+
+        var boxes = Boxes(FilterRows(view)[0]);
+
+        Assert.Equal(2, headers.Count);
+        Assert.Equal(CenterX(headers[0], view), CenterX(boxes[0], view), precision: 0);
+        Assert.Equal(CenterX(headers[1], view), CenterX(boxes[1], view), precision: 0);
+    }
+
+    private static List<Grid> FilterRows(EventLogView view) =>
+        view.GetVisualDescendants().OfType<Grid>()
+            .Where(g => g.Name == EventLogView.FilterRowName)
+            .ToList();
+
+    /// Les deux cases d'une ligne, dans l'ordre des colonnes : affichage puis son.
+    private static List<CheckBox> Boxes(Grid row) =>
+        row.GetVisualDescendants().OfType<CheckBox>().OrderBy(b => CenterX(b, row)).ToList();
+
+    /// Abscisse du centre d'un controle, exprimee dans le repere de l'onglet : l'entete et les
+    /// lignes sont dans deux sous-arbres differents, leurs Bounds locaux ne se comparent pas.
+    private static double CenterX(Visual visual, Visual relativeTo) =>
+        visual.TranslatePoint(new Point(visual.Bounds.Width / 2, 0), relativeTo)!.Value.X;
+
     private static (Window Window, ProbeMapControl Map, EventLogView View) BuildProbeWindow(
-        bool visible, SkiaLayer.EventLogEntrySnapshot[]? entries = null)
+        bool visible,
+        SkiaLayer.EventLogEntrySnapshot[]? entries = null,
+        SkiaLayer.EventLogFilterSnapshot[]? filters = null)
     {
         var host = new GameRuntimeHost(new SkiaLayer.SkiaGameRuntime());
         var map = new ProbeMapControl();
@@ -110,6 +175,11 @@ public class EventLogViewTests
 
         // Pas de partie en cours : la liste est alimentee a la main pour eprouver la vue.
         foreach (var entry in entries ?? []) vm.Entries.Add(new EventLogEntryViewModel(entry));
+
+        // Les reglages sont la seconde page de l'onglet : sans ce basculement, ses controles ne
+        // sont pas materialises.
+        foreach (var filter in filters ?? []) vm.Filters.Add(new EventLogFilterViewModel(filter));
+        if (filters is { Length: > 0 }) vm.ShowSettings = true;
 
         var view = new EventLogView(vm) { IsVisible = visible };
 

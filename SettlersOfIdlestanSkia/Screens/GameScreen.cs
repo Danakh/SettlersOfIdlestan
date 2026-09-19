@@ -544,6 +544,7 @@ public sealed class GameScreen : IDisposable
 
     public void ToggleEventLogSettingsFromHost() => _overlayRenderer?.ToggleEventLogSettingsFromHost();
     public void ToggleEventLogFilterFromHost(string key) => _overlayRenderer?.ToggleEventLogFilterFromHost(key);
+    public void ToggleEventLogFilterSoundFromHost(string key) => _overlayRenderer?.ToggleEventLogFilterSoundFromHost(key);
 
     /// <summary>Instantané de l'onglet Stats pour une vue portée par l'hôte.</summary>
     public StatsSnapshot GetStatsSnapshot() =>
@@ -1414,8 +1415,8 @@ public sealed class GameScreen : IDisposable
     {
         var eventLog = _gameControllerService.CurrentGameState?.CurrentWorldState?.EventLog;
         if (eventLog == null || _notificationToastRenderer == null) return;
-        while (eventLog.TryDequeueToast(out var entry))
-            ShowEventToast(entry);
+        while (eventLog.TryDequeueToast(out var toast))
+            ShowEventToast(toast);
     }
 
     /// <summary>
@@ -1430,10 +1431,28 @@ public sealed class GameScreen : IDisposable
             NotificationIcon.Achievement);
     }
 
-    private void ShowEventToast(GameLogEntry entry)
+    /// <summary>
+    /// Traite un toast sorti de la file du journal. L'image et le son sont deux consignes
+    /// separees, reglables famille par famille dans l'onglet Reglages du Journal : une famille
+    /// masquee mais audible n'affiche rien et s'entend quand meme (voir PendingToast).
+    /// </summary>
+    private void ShowEventToast(PendingToast toast)
     {
         if (_notificationToastRenderer == null) return;
-        var (title, message, icon) = entry.Type switch
+
+        var entry = toast.Entry;
+        var (title, message, icon) = GetEventToastContent(entry);
+
+        if (toast.Show) _notificationToastRenderer.ShowNotification(title, message, icon);
+
+        // L'icône que le switch vient de choisir sert de classement par défaut au son — voir
+        // GameAudioService.PlayForToast, qui ne liste que les événements qu'elle range mal.
+        if (toast.PlaySound) _audio?.PlayForToast(entry.Type, icon);
+    }
+
+    private (string Title, string Body, NotificationIcon Icon) GetEventToastContent(GameLogEntry entry)
+    {
+        return entry.Type switch
         {
             GameEventType.WonderLevelUp => (
                 _localizationService.Get("event_wonder_levelup_title"),
@@ -1573,11 +1592,6 @@ public sealed class GameScreen : IDisposable
                 NotificationIcon.StoreFail),
             _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
         };
-        _notificationToastRenderer.ShowNotification(title, message, icon);
-
-        // L'icône que le switch vient de choisir sert de classement par défaut au son — voir
-        // GameAudioService.PlayForToast, qui ne liste que les événements qu'elle range mal.
-        _audio?.PlayForToast(entry.Type, icon);
     }
 
     private void OnAchievementUnlocked(object? sender, AchievementId id)

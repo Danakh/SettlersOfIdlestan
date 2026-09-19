@@ -55,12 +55,15 @@ public sealed class EventLogRenderer : IDisposable
             SettingsTitle: _localization.Get("events_settings_title"),
             SettingsHint: _localization.Get("events_settings_hint"),
             SettingsEmptyMessage: _localization.Get("events_settings_empty"),
+            SettingsDisplayHeader: _localization.Get("events_settings_column_display"),
+            SettingsSoundHeader: _localization.Get("events_settings_column_sound"),
             Filters: GetFilterRows());
     }
 
     /// <summary>
     /// Une ligne par famille déjà croisée dans la partie, dans l'ordre d'affichage du modèle.
-    /// Cochée = visible : le modèle, lui, stocke les catégories masquées (voir EventLogFilter).
+    /// Deux cases par ligne : l'affichage et le son, réglables séparément. Cochée = visible (ou
+    /// audible) : le modèle, lui, stocke les catégories masquées et muettes (voir EventLogFilter).
     ///
     /// Les familles jamais rencontrées sont omises — les lister dévoilerait le bestiaire complet,
     /// dieu démon compris, dès le premier bandit.
@@ -78,7 +81,8 @@ public sealed class EventLogRenderer : IDisposable
             rows.Add(new EventLogFilterSnapshot(
                 Key: category.ToString(),
                 Label: _localization.Get(EventLogFilter.GetLabelKey(category)),
-                IsChecked: filter.IsCategoryVisible(category)));
+                IsChecked: filter.IsCategoryVisible(category),
+                IsSoundChecked: filter.IsCategoryAudible(category)));
         }
         return rows;
     }
@@ -95,6 +99,17 @@ public sealed class EventLogRenderer : IDisposable
         var filter = _gameControllerService.CurrentGameState?.Settings.EventLogFilter;
         if (filter == null) return;
         if (Enum.TryParse<EventLogCategory>(key, out var category)) filter.ToggleCategory(category);
+    }
+
+    /// <summary>
+    /// Bascule le bruitage d'une famille depuis une vue portée par l'hôte. Même contrat que
+    /// <see cref="ToggleFilterFromHost"/> : clé inconnue ignorée sans lever.
+    /// </summary>
+    public void ToggleFilterSoundFromHost(string key)
+    {
+        var filter = _gameControllerService.CurrentGameState?.Settings.EventLogFilter;
+        if (filter == null) return;
+        if (Enum.TryParse<EventLogCategory>(key, out var category)) filter.ToggleCategorySound(category);
     }
 
     /// <summary>

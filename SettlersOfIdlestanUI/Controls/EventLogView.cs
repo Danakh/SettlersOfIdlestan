@@ -147,9 +147,22 @@ public sealed class EventLogView : UserControl
     }
 
     /// <summary>
-    /// Page Reglages : une case a cocher par famille d'evenements. Decochee, la famille disparait
-    /// du journal, n'allume plus l'onglet et ne produit plus de toast — le filtre est applique a
-    /// la source, dans GameEventLog.Add.
+    /// Largeur des deux colonnes de cases a cocher. Les memes valeurs servent a l'entete et a
+    /// chaque ligne : deux grilles distinctes ne s'alignent que si leurs colonnes sont fixes —
+    /// une largeur auto se calerait sur le contenu de chaque grille, donc differemment.
+    /// </summary>
+    private const double DisplayColumnWidth = 84;
+    private const double SoundColumnWidth = 60;
+
+    /// <summary>Noms des grilles de la page Reglages — voir <see cref="BuildRowGrid"/>.</summary>
+    internal const string ColumnHeaderName = "EventFilterColumnHeader";
+    internal const string FilterRowName = "EventFilterRow";
+
+    /// <summary>
+    /// Page Reglages : par famille d'evenements, une case pour l'affichage et une pour le son,
+    /// independantes. Affichage decoche, la famille disparait du journal, n'allume plus l'onglet
+    /// et ne produit plus de toast — le filtre est applique a la source, dans GameEventLog.Add.
+    /// Son decoche, seul le bruitage de notification se tait.
     /// </summary>
     private static Control BuildSettingsPage(EventLogViewModel viewModel)
     {
@@ -192,6 +205,7 @@ public sealed class EventLogView : UserControl
         stack.Children.Add(header);
         stack.Children.Add(hint);
         stack.Children.Add(noFilter);
+        stack.Children.Add(BuildColumnHeader());
         stack.Children.Add(rows);
 
         return new Border
@@ -206,21 +220,103 @@ public sealed class EventLogView : UserControl
         };
     }
 
+    /// <summary>
+    /// Entete des deux colonnes. Il suit la meme grille que les lignes, et n'est masque avec elles
+    /// que par la page entiere : une liste vide affiche deja son propre message.
+    /// </summary>
+    private static Control BuildColumnHeader()
+    {
+        var grid = BuildRowGrid(ColumnHeaderName);
+        grid.Margin = new Thickness(0, 0, 0, 6);
+        grid[!IsVisibleProperty] = new Binding(nameof(EventLogViewModel.HasNoFilter))
+        {
+            Converter = new FuncValueConverter<bool, bool>(none => !none),
+        };
+
+        var display = BuildColumnTitle(nameof(EventLogViewModel.SettingsDisplayHeader));
+        var sound = BuildColumnTitle(nameof(EventLogViewModel.SettingsSoundHeader));
+
+        Grid.SetColumn(display, 1);
+        Grid.SetColumn(sound, 2);
+        grid.Children.Add(display);
+        grid.Children.Add(sound);
+        return grid;
+    }
+
+    private static TextBlock BuildColumnTitle(string property) => new()
+    {
+        FontSize = 11,
+        Foreground = Muted,
+        TextAlignment = TextAlignment.Center,
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        [!TextBlock.TextProperty] = new Binding(property),
+    };
+
+    /// <summary>
+    /// Grille commune a l'entete et aux lignes : libelle etire, puis les deux colonnes.
+    ///
+    /// Le nom sert aux tests d'interface a retrouver ces grilles-la : les templates de Fluent en
+    /// posent d'autres, qui heritent du meme DataContext et seraient sinon indiscernables.
+    /// </summary>
+    private static Grid BuildRowGrid(string name) => new()
+    {
+        Name = name,
+        ColumnDefinitions = new ColumnDefinitions
+        {
+            new ColumnDefinition(GridLength.Star),
+            new ColumnDefinition(new GridLength(DisplayColumnWidth)),
+            new ColumnDefinition(new GridLength(SoundColumnWidth)),
+        },
+    };
+
     private static Control BuildFilterRow(EventLogViewModel viewModel)
+    {
+        var label = new TextBlock
+        {
+            FontSize = 13,
+            // Sans couleur explicite, le libelle herite du noir du theme, illisible sur ce fond
+            // sombre (meme correctif que la bascule globale de l'onglet Automatisation).
+            Foreground = BodyText,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 12, 0),
+            [!TextBlock.TextProperty] = new Binding(nameof(EventLogFilterViewModel.Label)),
+        };
+
+        var display = BuildFilterBox(
+            nameof(EventLogFilterViewModel.IsChecked), viewModel.ToggleFilter);
+        var sound = BuildFilterBox(
+            nameof(EventLogFilterViewModel.IsSoundChecked), viewModel.ToggleFilterSound);
+
+        var grid = BuildRowGrid(FilterRowName);
+        Grid.SetColumn(display, 1);
+        Grid.SetColumn(sound, 2);
+        grid.Children.Add(label);
+        grid.Children.Add(display);
+        grid.Children.Add(sound);
+
+        return grid;
+    }
+
+    /// <summary>
+    /// Une case d'une des deux colonnes. Sans contenu : c'est le libelle de la ligne qui nomme la
+    /// famille, et l'entete qui nomme la colonne.
+    /// </summary>
+    private static Control BuildFilterBox(string property, Action<EventLogFilterViewModel> toggle)
     {
         EventLogFilterViewModel? model = null;
 
         var box = new CheckBox
         {
-            // Sans couleur explicite, le libelle herite du noir du theme, illisible sur ce fond
-            // sombre (meme correctif que la bascule globale de l'onglet Automatisation).
-            Foreground = BodyText,
-            [!ToggleButton.IsCheckedProperty] = new Binding(nameof(EventLogFilterViewModel.IsChecked)),
-            [!ContentProperty] = new Binding(nameof(EventLogFilterViewModel.Label)),
+            MinWidth = 0,
+            Padding = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            [!ToggleButton.IsCheckedProperty] = new Binding(property),
         };
 
         box.DataContextChanged += (_, _) => model = box.DataContext as EventLogFilterViewModel;
-        box.Click += (_, _) => { if (model != null) viewModel.ToggleFilter(model); };
+        box.Click += (_, _) => { if (model != null) toggle(model); };
 
         return box;
     }
