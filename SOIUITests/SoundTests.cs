@@ -188,8 +188,14 @@ public class SoundCategoryTests
         return (audio, played);
     }
 
-    private static GameSettings Settings(bool combat = true, bool toast = true) =>
-        new() { SoundEnabled = true, SoundVolume = 1f, SoundCombatEnabled = combat, SoundToastEnabled = toast };
+    private static GameSettings Settings(
+        bool combat = true, bool toast = true, bool achievement = true, bool city = true, bool harvest = true) =>
+        new()
+        {
+            SoundEnabled = true, SoundVolume = 1f,
+            SoundCombatEnabled = combat, SoundToastEnabled = toast, SoundAchievementEnabled = achievement,
+            SoundCityEnabled = city, SoundHarvestEnabled = harvest,
+        };
 
     /// <summary>
     /// La table des familles liste chaque <see cref="SoundId"/> une a une et leve sur une valeur
@@ -220,7 +226,10 @@ public class SoundCategoryTests
         Assert.Equal([SoundId.ToastWarning, SoundId.HarvestManual, SoundId.CityFounded], played);
     }
 
-    /// <summary>La fanfare de succes est un toast : elle suit la meme case que les autres.</summary>
+    /// <summary>
+    /// Couper les notifications coupe aussi la fanfare de succes, qui en est une sous-famille :
+    /// c'est ce que dit la ligne grisee dans les reglages.
+    /// </summary>
     [Fact]
     public void Les_bruitages_de_notification_coupes_laissent_passer_le_reste()
     {
@@ -231,9 +240,60 @@ public class SoundCategoryTests
         audio.Play(SoundId.Achievement);
         audio.PlayForToast(GameEventType.DragonDiscovered, NotificationIcon.StoreFail);
         audio.Play(SoundId.AttackDealt);
-        audio.Play(SoundId.BuildingBuilt);
+        audio.Play(SoundId.HarvestManual);
 
-        Assert.Equal([SoundId.AttackDealt, SoundId.BuildingBuilt], played);
+        Assert.Equal([SoundId.AttackDealt, SoundId.HarvestManual], played);
+    }
+
+    /// <summary>
+    /// La reciproque : la fanfare seule se coupe, les toasts restent. C'est tout l'objet de sa
+    /// case separee — elle est le seul son long du jeu.
+    /// </summary>
+    [Fact]
+    public void La_fanfare_coupee_laisse_passer_les_toasts()
+    {
+        var (audio, played) = Build(Settings(achievement: false));
+
+        audio.Play(SoundId.Achievement);
+        audio.Play(SoundId.ToastInfo);
+        audio.Play(SoundId.ToastVictory);
+        audio.PlayForToast(GameEventType.DemonGodDefeatedFirst, NotificationIcon.Achievement);
+
+        Assert.Equal([SoundId.ToastInfo, SoundId.ToastVictory], played);
+    }
+
+    /// <summary>
+    /// La fondation de villes a sa propre case : l'automatisation des avant-postes en enchaine
+    /// des rafales, et le joueur doit pouvoir les taire sans perdre le reste.
+    /// </summary>
+    [Fact]
+    public void Les_bruitages_de_fondation_coupes_laissent_passer_le_reste()
+    {
+        var (audio, played) = Build(Settings(city: false));
+
+        audio.Play(SoundId.CityFounded);
+        audio.Play(SoundId.HarvestManual);
+        audio.Play(SoundId.ToastInfo);
+        audio.Play(SoundId.AttackDealt);
+
+        Assert.Equal([SoundId.HarvestManual, SoundId.ToastInfo, SoundId.AttackDealt], played);
+    }
+
+    /// <summary>
+    /// La recolte manuelle est le son le plus joue de la partie — un par clic : le joueur qui
+    /// recolte en continu doit pouvoir la taire sans perdre ses annonces.
+    /// </summary>
+    [Fact]
+    public void Les_bruitages_de_recolte_coupes_laissent_passer_le_reste()
+    {
+        var (audio, played) = Build(Settings(harvest: false));
+
+        audio.Play(SoundId.HarvestManual);
+        audio.Play(SoundId.CityFounded);
+        audio.Play(SoundId.ToastInfo);
+        audio.Play(SoundId.AttackDealt);
+
+        Assert.Equal([SoundId.CityFounded, SoundId.ToastInfo, SoundId.AttackDealt], played);
     }
 
     /// <summary>

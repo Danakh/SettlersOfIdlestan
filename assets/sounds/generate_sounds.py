@@ -271,14 +271,6 @@ def building_destroyed():
     return finish(mix(gain(crash, 0.7), boom), peak=0.6)
 
 
-def building_built():
-    """Pose de charpente : un "tock" de bois puis deux notes montantes, tres discretes."""
-    knock = envelope(lowpass(noise(0.05), 1600), attack=0.001, curve=5.0)
-    a = envelope(tone(523, 0.10, "triangle"), attack=0.003, curve=3.5)
-    b = envelope(tone(698, 0.13, "triangle"), attack=0.003, curve=3.5)
-    return finish(mix(gain(knock, 0.45), gain(a, 0.6), at(gain(b, 0.5), 0.07)), peak=0.45)
-
-
 def city_founded():
     """Triade chaude qui s'ouvre : une ville de plus, moment rare et positif."""
     notes = [262, 330, 392]
@@ -298,7 +290,6 @@ SOUNDS = {
     "attack_dealt": attack_dealt,
     "attack_taken": attack_taken,
     "building_destroyed": building_destroyed,
-    "building_built": building_built,
     "city_founded": city_founded,
 }
 

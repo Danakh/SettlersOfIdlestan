@@ -134,6 +134,12 @@ public sealed class SettingsContentPanel
             // volume : le joueur voit ce qu'il retrouvera en rétablissant le son.
             Toggle(SettingsPanelSnapshot.KeySoundCombat, localization.Get("settings_sound_combat"), settings.SoundCombatEnabled, sound, enabled: settings.SoundEnabled),
             Toggle(SettingsPanelSnapshot.KeySoundToast, localization.Get("settings_sound_toasts"), settings.SoundToastEnabled, sound, enabled: settings.SoundEnabled),
+            // La fanfare est une sous-famille des notifications : elle se grise aussi quand
+            // celles-ci sont coupées, puisqu'elles la coupent déjà.
+            Toggle(SettingsPanelSnapshot.KeySoundAchievement, localization.Get("settings_sound_achievement"), settings.SoundAchievementEnabled, sound,
+                enabled: settings.SoundEnabled && settings.SoundToastEnabled),
+            Toggle(SettingsPanelSnapshot.KeySoundCity, localization.Get("settings_sound_city"), settings.SoundCityEnabled, sound, enabled: settings.SoundEnabled),
+            Toggle(SettingsPanelSnapshot.KeySoundHarvest, localization.Get("settings_sound_harvest"), settings.SoundHarvestEnabled, sound, enabled: settings.SoundEnabled),
         };
 
         if (allowDebugMode)
@@ -214,6 +220,37 @@ public sealed class SettingsContentPanel
                 settings.SoundToastEnabled = !settings.SoundToastEnabled;
                 if (settings.SoundToastEnabled) PreviewSound(settings);
                 else _audio?.ApplySettings(settings);
+                break;
+            // La fanfare suit les notifications : la ligne est grisée quand elles sont coupées,
+            // et le clic reste sans effet, comme pour les lignes grisées par l'interrupteur général.
+            case SettingsPanelSnapshot.KeySoundAchievement:
+                if (!settings.SoundEnabled || !settings.SoundToastEnabled) break;
+                settings.SoundAchievementEnabled = !settings.SoundAchievementEnabled;
+                if (_audio != null)
+                {
+                    _audio.ApplySettings(settings);
+                    if (settings.SoundAchievementEnabled) _audio.PlayPreview(Services.Audio.SoundId.Achievement);
+                }
+                break;
+            case SettingsPanelSnapshot.KeySoundCity:
+                if (!settings.SoundEnabled) break;
+                settings.SoundCityEnabled = !settings.SoundCityEnabled;
+                // Même raison que pour le combat : l'aperçu est le son de la famille qu'on vient
+                // de rallumer, pas le toast d'information des autres réglages sonores.
+                if (_audio != null)
+                {
+                    _audio.ApplySettings(settings);
+                    if (settings.SoundCityEnabled) _audio.PlayPreview(Services.Audio.SoundId.CityFounded);
+                }
+                break;
+            case SettingsPanelSnapshot.KeySoundHarvest:
+                if (!settings.SoundEnabled) break;
+                settings.SoundHarvestEnabled = !settings.SoundHarvestEnabled;
+                if (_audio != null)
+                {
+                    _audio.ApplySettings(settings);
+                    if (settings.SoundHarvestEnabled) _audio.PlayPreview(Services.Audio.SoundId.HarvestManual);
+                }
                 break;
             // Sans store connecte, la sauvegarde cloud n'a pas d'objet : la ligne est grisee et
             // le clic reste sans effet, comme dans le rendu Skia.

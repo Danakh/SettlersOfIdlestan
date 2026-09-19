@@ -43,29 +43,39 @@ public enum SoundId
     /// <summary>Un bâtiment d'une de nos villes vient d'être détruit au combat.</summary>
     BuildingDestroyed,
 
-    /// <summary>Bâtiment construit dans une de nos villes.</summary>
-    BuildingBuilt,
-
     /// <summary>Ville ou avant-poste fondé.</summary>
     CityFounded,
 }
 
 /// <summary>
 /// Famille d'un bruitage. Le joueur coupe une famille entière depuis l'onglet Son des réglages,
-/// sans toucher aux autres ni à l'interrupteur général — voir <c>GameSettings.SoundCombatEnabled</c>
-/// et <c>GameSettings.SoundToastEnabled</c>.
+/// sans toucher aux autres ni à l'interrupteur général — chaque famille a sa case dans
+/// <c>GameSettings</c> (<c>SoundToastEnabled</c>, <c>SoundAchievementEnabled</c>,
+/// <c>SoundCombatEnabled</c>, <c>SoundCityEnabled</c>, <c>SoundHarvestEnabled</c>).
 ///
 /// <para>Chaque <see cref="SoundId"/> appartient à exactement une famille : la table est dans
-/// <c>GameAudioService.Category</c>, et <c>SoundCategoryTests</c> échoue si une valeur y manque.</para>
+/// <c>GameAudioService.Category</c>, et <c>SoundCategoryTests</c> échoue si une valeur y manque.
+/// Il n'y a volontairement pas de famille fourre-tout : un son ajouté sans la sienne lève, plutôt
+/// que de se ranger en silence là où aucune case ne le gouverne.</para>
 /// </summary>
 public enum SoundCategory
 {
-    /// <summary>Notifications : les quatre toasts et la fanfare de succès.</summary>
+    /// <summary>Notifications : les quatre toasts.</summary>
     Toast,
+
+    /// <summary>
+    /// La fanfare des succès. Sous-famille des notifications : sa case se grise avec la leur, et
+    /// couper les notifications la coupe aussi — un succès <i>est</i> une notification, la case
+    /// séparée ne sert qu'à garder les toasts sans la fanfare.
+    /// </summary>
+    Achievement,
 
     /// <summary>Combat : coups portés, coups reçus, bâtiment détruit au combat.</summary>
     Combat,
 
-    /// <summary>Le reste (récolte manuelle, construction, fondation) : suit le seul interrupteur général.</summary>
-    Other,
+    /// <summary>Fondation de villes et d'avant-postes.</summary>
+    City,
+
+    /// <summary>Récolte manuelle — le son le plus joué de la partie.</summary>
+    Harvest,
 }

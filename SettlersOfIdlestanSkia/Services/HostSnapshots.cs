@@ -292,6 +292,9 @@ public sealed record SettingsPanelSnapshot(
     public const string KeySoundVolume         = "soundVolume";
     public const string KeySoundCombat         = "soundCombat";
     public const string KeySoundToast          = "soundToast";
+    public const string KeySoundAchievement    = "soundAchievement";
+    public const string KeySoundCity           = "soundCity";
+    public const string KeySoundHarvest        = "soundHarvest";
     public const string KeyUiScale             = "uiScale";
     public const string KeyCloudSave           = "cloudSave";
     public const string KeyNumberFormat        = "numberFormat";

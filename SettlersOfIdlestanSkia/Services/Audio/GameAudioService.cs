@@ -42,6 +42,9 @@ public sealed class GameAudioService : IDisposable
     private bool _enabled = true;
     private bool _combatEnabled = true;
     private bool _toastEnabled = true;
+    private bool _achievementEnabled = true;
+    private bool _cityEnabled = true;
+    private bool _harvestEnabled = true;
     private float _volume = DefaultVolume;
     private bool _disposed;
 
@@ -68,7 +71,6 @@ public sealed class GameAudioService : IDisposable
         SoundId.AttackDealt       => 0.13,
         SoundId.AttackTaken       => 0.16,
         SoundId.HarvestManual     => 0.05,
-        SoundId.BuildingBuilt     => 0.25,
         SoundId.BuildingDestroyed => 0.30,
         SoundId.CityFounded       => 0.30,
         _                         => 0.35,
@@ -77,18 +79,22 @@ public sealed class GameAudioService : IDisposable
     /// <summary>
     /// Famille d'un son. Sert à couper une famille entière depuis les réglages — voir
     /// <see cref="SoundCategory"/>. Chaque valeur est listée à dessein plutôt que couverte par un
-    /// repli sur <see cref="SoundCategory.Other"/> : un son ajouté sans sa famille se serait rangé
-    /// en silence dans celle qu'aucune case à cocher ne gouverne. Ici il lève, et
+    /// repli sur une famille fourre-tout : un son ajouté sans la sienne se serait rangé en
+    /// silence dans celle qu'aucune case à cocher ne gouverne. Ici il lève, et
     /// <c>SoundCategoryTests</c> le rattrape avant le joueur.
     /// </summary>
     private static SoundCategory Category(SoundId id) => id switch
     {
-        SoundId.ToastInfo    or SoundId.ToastWarning or SoundId.ToastVictory or
-        SoundId.ToastLoss    or SoundId.Achievement                              => SoundCategory.Toast,
+        SoundId.ToastInfo    or SoundId.ToastWarning or
+        SoundId.ToastVictory or SoundId.ToastLoss                                 => SoundCategory.Toast,
+
+        SoundId.Achievement                                                       => SoundCategory.Achievement,
 
         SoundId.AttackDealt  or SoundId.AttackTaken  or SoundId.BuildingDestroyed => SoundCategory.Combat,
 
-        SoundId.HarvestManual or SoundId.BuildingBuilt or SoundId.CityFounded     => SoundCategory.Other,
+        SoundId.CityFounded                                                       => SoundCategory.City,
+
+        SoundId.HarvestManual                                                     => SoundCategory.Harvest,
 
         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "Son sans famille déclarée."),
     };
@@ -103,7 +109,6 @@ public sealed class GameAudioService : IDisposable
         SoundId.HarvestManual     => 0.55f,
         SoundId.AttackDealt       => 0.5f,
         SoundId.AttackTaken       => 0.6f,
-        SoundId.BuildingBuilt     => 0.6f,
         SoundId.BuildingDestroyed => 0.8f,
         SoundId.CityFounded       => 0.8f,
         _                         => 1f,
@@ -121,15 +126,23 @@ public sealed class GameAudioService : IDisposable
         _enabled = settings.SoundEnabled;
         _combatEnabled = settings.SoundCombatEnabled;
         _toastEnabled = settings.SoundToastEnabled;
+        _achievementEnabled = settings.SoundAchievementEnabled;
+        _cityEnabled = settings.SoundCityEnabled;
+        _harvestEnabled = settings.SoundHarvestEnabled;
         _volume = Math.Clamp(settings.SoundVolume, 0f, 1f);
     }
 
     /// <summary>Vrai si la famille de ce son n'est pas coupée par les réglages.</summary>
     private bool IsCategoryEnabled(SoundId id) => Category(id) switch
     {
-        SoundCategory.Toast  => _toastEnabled,
-        SoundCategory.Combat => _combatEnabled,
-        _                    => true,
+        SoundCategory.Toast       => _toastEnabled,
+        // La fanfare est une notification : couper les notifications la coupe aussi, sa case ne
+        // sert qu'à la retirer seule. C'est ce que dit la ligne grisée dans les réglages.
+        SoundCategory.Achievement => _toastEnabled && _achievementEnabled,
+        SoundCategory.Combat      => _combatEnabled,
+        SoundCategory.City        => _cityEnabled,
+        SoundCategory.Harvest     => _harvestEnabled,
+        _                         => true,
     };
 
     /// <summary>
@@ -268,16 +281,7 @@ public sealed class GameAudioService : IDisposable
         main.VolcanoController.VolcanoHitCity += (_, e) => PlayIfOurs(e.TargetCityVertex, SoundId.AttackTaken);
         main.MilitaryController.CityBuildingDestroyed += (_, e) => PlayIfOurs(e.CityVertex, SoundId.BuildingDestroyed);
 
-        // ── Construction ──
-        main.BuildingController.OnBuildingBuilt += (_, e) =>
-        {
-            // Les montées de niveau sont bien plus fréquentes que les poses, et l'automatisation
-            // en enchaîne : seule une construction neuve s'annonce.
-            if (!e.IsNewBuilding) return;
-            if (e.City.CivilizationIndex != _playerCivilization?.Invoke()?.Index) return;
-            Play(SoundId.BuildingBuilt);
-        };
-
+        // ── Fondation ──
         main.CityBuilderController.OnCityBuilt += (_, e) => PlayIfOurCiv(e.CivilizationIndex, SoundId.CityFounded);
         main.CityBuilderController.OnAutoOutpostBuilt += (_, e) => PlayIfOurCiv(e.CivilizationIndex, SoundId.CityFounded);
     }

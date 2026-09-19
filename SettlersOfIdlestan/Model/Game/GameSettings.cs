@@ -42,11 +42,38 @@ public class GameSettings
     public bool SoundCombatEnabled { get; set; } = true;
 
     /// <summary>
-    /// Bruitages des notifications (toasts et fanfare de succès). Même logique que
+    /// Bruitages des notifications (les toasts). Même logique que
     /// <see cref="SoundCombatEnabled"/> : une famille se coupe sans toucher aux autres.
     /// Sans effet quand <see cref="SoundEnabled"/> est faux.
     /// </summary>
     public bool SoundToastEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Fanfare des succès. Sous-réglage de <see cref="SoundToastEnabled"/> plutôt que famille
+    /// indépendante : un succès est une notification, couper les notifications le coupe aussi.
+    /// Cette case ne sert qu'à garder les toasts sans la fanfare, qui est le seul son long du
+    /// jeu et le plus remarquable — c'est pourquoi elle est grisée quand les notifications le
+    /// sont déjà.
+    /// Sans effet quand <see cref="SoundEnabled"/> ou <see cref="SoundToastEnabled"/> est faux.
+    /// </summary>
+    public bool SoundAchievementEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Bruitage de fondation des villes et avant-postes. Même logique que
+    /// <see cref="SoundCombatEnabled"/> : une famille se coupe sans toucher aux autres. Il est
+    /// isolé parce que l'automatisation des avant-postes en fonde des rafales entières, là où le
+    /// joueur qui pose ses villes à la main n'en entend qu'une de temps en temps.
+    /// Sans effet quand <see cref="SoundEnabled"/> est faux.
+    /// </summary>
+    public bool SoundCityEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Bruitage de récolte manuelle. C'est le son le plus joué de la partie — un par clic — et
+    /// donc celui qu'un joueur qui récolte en continu voudra couper en premier, sans pour autant
+    /// perdre les annonces.
+    /// Sans effet quand <see cref="SoundEnabled"/> est faux.
+    /// </summary>
+    public bool SoundHarvestEnabled { get; set; } = true;
 
     public bool DemoMode { get; set; } = false;
     public bool CloudSaveEnabled { get; set; } = true;
