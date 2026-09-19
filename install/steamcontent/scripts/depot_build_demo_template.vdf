@@ -1,0 +1,23 @@
+"DepotBuildConfig"
+{
+    // Depot ID de la DEMO - different de ceux du jeu complet.
+    // Copier ce fichier en depot_build_demo_win.vdf / depot_build_demo_linux.vdf
+    // (non versionnes) et y remplacer le TODO.
+    "DepotID" "TODO"
+
+    "ContentRoot" "..\demo_win64"
+
+    "FileMapping"
+    {
+        "LocalPath" "*"
+        "DepotPath" "."
+        "recursive" "1"
+    }
+
+    "FileExclusion" "*.pdb"
+    "FileExclusion" "*.ipdb"
+    "FileExclusion" "*.iobj"
+    // Marqueur interne pose par build_desktop_demo_*.bat pour qu'upload_demo.bat reconnaisse
+    // un repertoire de demo : il n'a rien a faire chez le joueur.
+    "FileExclusion" "demo_build.marker"
+}

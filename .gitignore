@@ -497,6 +497,17 @@ export
 /install/steamcontent/scripts/app_build_win.vdf
 /install/steamcontent/scripts/depot_build_win.vdf
 
+# Démo Steam : contenu généré et scripts portant l'App ID / les Depot ID de la démo, qui ne
+# doivent pas être versionnés. Les gabarits sans identifiant (app_build_demo_template.vdf,
+# depot_build_demo_template.vdf) le sont, eux.
+/install/steamcontent/demo_win64
+/install/steamcontent/demo_linux64
+/install/steamcontent/scripts/app_build_demo_win.vdf
+/install/steamcontent/scripts/depot_build_demo_win.vdf
+/install/steamcontent/scripts/app_build_demo_linux.vdf
+/install/steamcontent/scripts/depot_build_demo_linux.vdf
+/install/steamcontent/scripts/deploy_demo.bat
+
 # Sorties locales de SOIStrategyTester (gauntlet par race, manche Pandémonium)
 /SOIStrategyTester/race-gauntlet/
 /SOIStrategyTester/race-gauntlet-endgame/

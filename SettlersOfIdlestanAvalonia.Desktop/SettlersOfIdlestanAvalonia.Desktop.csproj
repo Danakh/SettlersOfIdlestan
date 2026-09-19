@@ -15,6 +15,18 @@
     <AssemblyName>SettlersOfIdlestan</AssemblyName>
   </PropertyGroup>
 
+  <!--
+    Build demo Steam. Reste a false dans le depot : c'est install\build_desktop_demo_*.bat qui
+    passe -p:DemoBuild=true, de sorte que le mode demo depend du script lance et jamais de la
+    branche checkoutee. La constante n'est lue que par MainWindow, qui force alors le drapeau
+    demo au lieu de le lire sur la ligne de commande — un joueur ne peut pas retirer la
+    restriction en enlevant l'argument de lancement du raccourci.
+  -->
+  <PropertyGroup>
+    <DemoBuild Condition="'$(DemoBuild)' == ''">false</DemoBuild>
+    <DefineConstants Condition="'$(DemoBuild)' == 'true'">$(DefineConstants);DEMO</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.1" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />

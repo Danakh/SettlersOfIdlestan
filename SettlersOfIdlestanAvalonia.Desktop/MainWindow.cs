@@ -37,7 +37,13 @@ public sealed class MainWindow : Window
 #if DEBUG
         allowDebug = args.Contains("--debug");
 #endif
+#if DEMO
+        // Build produite par install\build_desktop_demo_*.bat (-p:DemoBuild=true) : le binaire
+        // EST la demo, le drapeau ne se negocie pas en ligne de commande.
+        bool demoMode = true;
+#else
         bool demoMode = args.Contains("--demo");
+#endif
 
         _storeController = new StoreController([new StoreServiceSteam()]);
         // La fenetre se passe elle-meme : c'est d'elle que le service tire le selecteur de

@@ -1,0 +1,26 @@
+"AppBuild"
+{
+    // App ID de la DEMO - different de celui du jeu complet.
+    // Copier ce fichier en app_build_demo_win.vdf / app_build_demo_linux.vdf (non versionnes)
+    // et y remplacer les TODO.
+    "AppID" "TODO"
+
+    // Description du build (apparaît dans Steamworks)
+    "Desc" "Demo"
+
+    // Dossier où SteamCMD stocke les informations du build
+    "BuildOutput" "..\output"
+
+    // Dossier contenant les fichiers de la demo - jamais ..\win64 ni ..\linux64,
+    // qui portent le jeu complet.
+    "ContentRoot" "..\demo_win64"
+
+    // Branche de destination - vide : le build doit être passé en live à la main
+    "SetLive" ""
+
+    // Dépot(s) à construire
+    "Depots"
+    {
+        "TODO" "depot_build_demo_win.vdf"
+    }
+}
