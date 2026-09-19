@@ -346,5 +346,66 @@ namespace SOITests.ControllerTests
             // La Corruption qu'elle engendrait, elle, n'est pas retirée par ce mécanisme.
             Assert.Contains(state.Features.OfType<Corruption>(), f => f.Position.Equals(UnderworldHex));
         }
+
+        [Fact]
+        public void PlaceCorruptionSpire_AutomationActiveAndAllResourcesProducible_AutoStartsInvestment()
+        {
+            // Ville de production distincte de l'avant-poste de l'Inframonde, dont les trois hexes
+            // couvrent tout ce qu'il faut pour produire les cinq ressources du coût de la Spire (voir
+            // SpireCost_Includes200Mithril) : Montagne (Carrière → Pierre), Filon de Mithril (Mine de
+            // Mithril → Mithril) et un Cercle de Fées découvert (Hutte d'Alchimie → Cristal). Le
+            // Marché (Or) et la Fonderie (Acier) ne dépendent eux d'aucun terrain particulier — voir
+            // MonumentInvestment.CanProduceResource.
+            var state = IslandTestFactory.CreateSevenHexIslandState();
+            var civ = state.PlayerCivilization;
+
+            var prodCenter = new HexCoord(10, 0, IslandMap.SurfaceLayer);
+            var prodE = new HexCoord(11, 0, IslandMap.SurfaceLayer);
+            var prodNE = new HexCoord(10, 1, IslandMap.SurfaceLayer);
+
+            var surfaceMap = state.GetMapFor(prodCenter)!;
+            surfaceMap.AddTile(new HexTile(prodCenter, TerrainType.Mountain));
+            surfaceMap.AddTile(new HexTile(prodE, TerrainType.MithrilVein));
+            surfaceMap.AddTile(new HexTile(prodNE, TerrainType.Plain));
+            state.AddFeature(new FairyCircle(prodNE) { Found = true });
+
+            var productionVertex = Vertex.Create(prodCenter, prodNE, prodE);
+            var productionCity = new City(productionVertex) { CivilizationIndex = civ.Index };
+            productionCity.AddBuilding(new Quarry { Level = 1 });
+            productionCity.AddBuilding(new MithrilMine { Level = 1 });
+            productionCity.AddBuilding(new Market { Level = 1 });
+            productionCity.AddBuilding(new Smelter { Level = 1 });
+            productionCity.AddBuilding(new AlchimistHut { Level = 1 });
+            civ.AddCity(productionCity);
+
+            // Petite zone d'Inframonde : un seul hex Montagne portant la Source de Corruption,
+            // révélé par un avant-poste adjacent — requis à la fois pour la pose (GetPlaceableHexes)
+            // et pour l'investissement (MonumentInvestment.HasAdjacentCity).
+            var tiles = new[] { new HexTile(UnderworldHex, TerrainType.Mountain) };
+            state.AddLayer(LayerState.UnderworldZ, new LayerState(new IslandMap(tiles, LayerState.UnderworldZ)));
+            state.AddFeature(new Corruption(UnderworldHex));
+            state.AddFeature(new CorruptionSource(UnderworldHex, corruptionLevel: 1));
+
+            var underworldVertex = Vertex.Create(UnderworldHex, UnderworldHex.Neighbor(HexDirection.E), UnderworldHex.Neighbor(HexDirection.NE));
+            var outpost = new City(underworldVertex) { CivilizationIndex = civ.Index };
+            civ.AddCity(outpost);
+
+            UnlockAbyss(civ, CorruptionSpireController.AbyssUnlockThreshold);
+            state.AutomationSettings.MonumentInvestmentAutomationEnabled = true;
+
+            var clock = new GameClock();
+            clock.Start();
+            var harvestController = new HarvestController();
+            harvestController.Initialize(state, clock);
+
+            var controller = new CorruptionSpireController();
+            controller.Initialize(state, clock, harvestController);
+
+            var spire = controller.PlaceCorruptionSpire(UnderworldHex);
+
+            Assert.NotNull(spire);
+            foreach (var resource in CorruptionSpire.GetSpireCost().Keys)
+                Assert.Contains(resource, spire!.InvestmentEnabled);
+        }
     }
 }

@@ -248,7 +248,16 @@ public sealed class TabBarRenderer : IDisposable
         // Chaque Purification d'Os Divins octroie directement 1 essence divine (voir
         // DivineBonesController) : l'onglet apparaît dès qu'on en détient une, ou dès la première
         // Ascension (points divins gagnés), même si l'essence courante est retombée à zéro depuis.
-        return mgs.GodState.DivineEssence > 0 || mgs.GodState.TotalGodPointsEarned > 0;
+        // On compte l'essence effective (Reliquaire inclus, voir
+        // AscensionController.GetEffectiveDivineEssence) : après un prestige, les essences gardées
+        // vivent dans GodState.DivineEssenceReliquaryFloor et GodState.DivineEssence repart de zéro —
+        // sans ce terme, l'onglet disparaîtrait alors que le joueur détient encore de quoi ascensionner.
+        try
+        {
+            var ascension = _gameControllerService.MainGameController.AscensionController;
+            return ascension.GetEffectiveDivineEssence(mgs.GodState) > 0 || mgs.GodState.TotalGodPointsEarned > 0;
+        }
+        catch (Exception ex) { GameLog.Error(nameof(TabBarRenderer), nameof(HasGodPoints), ex); return false; }
     }
 
     /// <summary>
