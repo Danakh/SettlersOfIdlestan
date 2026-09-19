@@ -1,6 +1,9 @@
 ﻿{
   "menu_settings": "Paramètres",
   "settings_title": "Paramètres",
+  "settings_tab_general": "Général",
+  "settings_tab_display": "Affichage",
+  "settings_tab_sound": "Son",
   "settings_language": "Langue",
   "settings_pause_after_prestige": "Pause après prestige",
   "settings_harvest_particles": "Particules de récolte",
@@ -10,6 +13,8 @@
   "settings_show_tutorial": "Afficher le tutoriel",
   "settings_sound_enabled": "Bruitages",
   "settings_sound_volume": "Volume des bruitages",
+  "settings_sound_combat": "Bruitages de combat",
+  "settings_sound_toasts": "Bruitages des notifications",
   "settings_fullscreen": "Plein écran",
   "settings_force_menu_position": "Menu en bas",
   "settings_ui_scale": "Échelle de l'interface",

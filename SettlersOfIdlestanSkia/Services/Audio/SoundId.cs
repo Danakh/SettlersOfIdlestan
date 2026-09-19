@@ -49,3 +49,23 @@ public enum SoundId
     /// <summary>Ville ou avant-poste fondé.</summary>
     CityFounded,
 }
+
+/// <summary>
+/// Famille d'un bruitage. Le joueur coupe une famille entière depuis l'onglet Son des réglages,
+/// sans toucher aux autres ni à l'interrupteur général — voir <c>GameSettings.SoundCombatEnabled</c>
+/// et <c>GameSettings.SoundToastEnabled</c>.
+///
+/// <para>Chaque <see cref="SoundId"/> appartient à exactement une famille : la table est dans
+/// <c>GameAudioService.Category</c>, et <c>SoundCategoryTests</c> échoue si une valeur y manque.</para>
+/// </summary>
+public enum SoundCategory
+{
+    /// <summary>Notifications : les quatre toasts et la fanfare de succès.</summary>
+    Toast,
+
+    /// <summary>Combat : coups portés, coups reçus, bâtiment détruit au combat.</summary>
+    Combat,
+
+    /// <summary>Le reste (récolte manuelle, construction, fondation) : suit le seul interrupteur général.</summary>
+    Other,
+}

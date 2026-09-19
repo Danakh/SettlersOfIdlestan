@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -17,6 +16,20 @@ public sealed class SettingsPopupView : UserControl
     private static readonly SolidColorBrush PanelBackground = new(Color.FromArgb(245, 24, 24, 30));
     private static readonly SolidColorBrush Border_ = new(Colors.Gold);
     private static readonly SolidColorBrush CloseButton = new(Color.FromArgb(230, 90, 50, 50));
+
+    private const double BorderWidth = 2;
+    private const double Padding_ = 24;
+
+    /// <summary>
+    /// Marge a droite du panneau. Moitie de ce qu'elle valait : le panneau reserve desormais une
+    /// bande a son ascenseur, qui separe deja celui-ci du bord, et l'ecart total paraissait
+    /// double de celui des autres cotes.
+    /// </summary>
+    private const double RightPadding = 13;
+
+    /// <summary>Largeur du cadre : le panneau, plus ses marges et sa bordure.</summary>
+    public const double BoxWidth =
+        SettingsPanelView.TotalWidth + Padding_ + RightPadding + 2 * BorderWidth;
 
     public SettingsPopupView(SettingsPopupViewModel viewModel)
     {
@@ -36,15 +49,10 @@ public sealed class SettingsPopupView : UserControl
             [!TextBlock.TextProperty] = new Binding(nameof(SettingsPopupViewModel.Title)),
         };
 
+        // Pas d'ascenseur ici : le panneau porte le sien, sous une barre d'onglets ancree, et sa
+        // hauteur ne depend pas de l'onglet affiche. Le cadre garde donc la meme taille d'un
+        // onglet a l'autre, et les boutons d'onglet ne bougent pas.
         var panel = new SettingsPanelView(viewModel.Panel);
-
-        var scroll = new ScrollViewer
-        {
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            MaxHeight = 420,
-            Content = panel,
-        };
 
         var close = new Button
         {
@@ -74,7 +82,7 @@ public sealed class SettingsPopupView : UserControl
 
         var stack = new StackPanel { Orientation = Orientation.Vertical };
         stack.Children.Add(title);
-        stack.Children.Add(scroll);
+        stack.Children.Add(panel);
 
         var body = new Panel();
         body.Children.Add(stack);
@@ -82,14 +90,18 @@ public sealed class SettingsPopupView : UserControl
 
         var box = new Border
         {
-            // La largeur du cadre suit celle du panneau : 24 de padding et 2 de bordure de
-            // chaque cote, plus un peu de jeu pour l'ascenseur.
-            Width = SettingsPanelView.ContentWidth + 60,
+            // La largeur du cadre se deduit du panneau et de ses marges : aucun jeu, le panneau
+            // remplit exactement la boite de contenu, ce qui aligne le titre sur lui. La hauteur,
+            // elle, n'est pas imposee ici : le panneau a la sienne, fixe, donc le cadre garde la
+            // meme d'un onglet a l'autre — c'est ce que verifie SettingsPanelSizeTests.
+            Width = BoxWidth,
             Background = PanelBackground,
             BorderBrush = Border_,
-            BorderThickness = new Thickness(2),
+            BorderThickness = new Thickness(BorderWidth),
             CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(24),
+            // Moins de padding a droite qu'ailleurs : c'est de ce cote que le panneau porte la
+            // bande de son ascenseur, qui fait deja office de marge.
+            Padding = new Thickness(Padding_, Padding_, RightPadding, Padding_),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Child = body,

@@ -1,6 +1,9 @@
 ﻿{
   "menu_settings": "Settings",
   "settings_title": "Settings",
+  "settings_tab_general": "General",
+  "settings_tab_display": "Display",
+  "settings_tab_sound": "Sound",
   "settings_language": "Language",
   "settings_pause_after_prestige": "Pause after prestige",
   "settings_harvest_particles": "Harvest particles",
@@ -10,6 +13,8 @@
   "settings_show_tutorial": "Show tutorial",
   "settings_sound_enabled": "Sound effects",
   "settings_sound_volume": "Sound effects volume",
+  "settings_sound_combat": "Combat sounds",
+  "settings_sound_toasts": "Notification sounds",
   "settings_fullscreen": "Fullscreen",
   "settings_force_menu_position": "Menu at bottom",
   "settings_ui_scale": "UI scale",

@@ -59,14 +59,16 @@ public sealed class SettingsContentPanel
     {
         if (_audio == null) return;
         _audio.ApplySettings(settings);
-        if (settings.SoundEnabled) _audio.Play(Services.Audio.SoundId.ToastInfo);
+        // PlayPreview plutôt que Play : l'aperçu est un toast, et le joueur qui vient de couper
+        // la famille des toasts doit quand même entendre où il met le curseur de volume.
+        if (settings.SoundEnabled) _audio.PlayPreview(Services.Audio.SoundId.ToastInfo);
     }
 
-    private static SettingRowSnapshot Toggle(string key, string label, bool value, bool enabled = true) =>
-        new(key, label, SettingRowKind.Toggle, enabled, value, [], 0, 0, 0, "", "");
+    private static SettingRowSnapshot Toggle(string key, string label, bool value, SettingsTab tab, bool enabled = true) =>
+        new(key, label, SettingRowKind.Toggle, enabled, value, [], 0, 0, 0, "", "", tab);
 
-    private static SettingRowSnapshot Choice(string key, string label, IReadOnlyList<SettingChoiceSnapshot> choices) =>
-        new(key, label, SettingRowKind.Choice, true, false, choices, 0, 0, 0, "", "");
+    private static SettingRowSnapshot Choice(string key, string label, IReadOnlyList<SettingChoiceSnapshot> choices, SettingsTab tab) =>
+        new(key, label, SettingRowKind.Choice, true, false, choices, 0, 0, 0, "", "", tab);
 
     /// <summary>
     /// Instantane du panneau pour une vue portee par l'hote. Reprend l'ordre des lignes, leurs
@@ -86,39 +88,52 @@ public sealed class SettingsContentPanel
 
         double uiScale = _pendingUiScaleValue ?? settings.UiScale;
 
+        const SettingsTab general = SettingsTab.General;
+        const SettingsTab display = SettingsTab.Display;
+        const SettingsTab sound   = SettingsTab.Sound;
+
         var rows = new List<SettingRowSnapshot>
         {
+            // ── Général ──
             Choice(SettingsPanelSnapshot.KeyLanguage, localization.Get("settings_language"),
             [
                 new("english", localization.Get("menu_language_english"), settings.Language == Language.English),
                 new("french",  localization.Get("menu_language_french"),  settings.Language == Language.French),
-            ]),
-            Toggle(SettingsPanelSnapshot.KeyFullscreen, localization.Get("settings_fullscreen"), settings.Fullscreen),
-            Toggle(SettingsPanelSnapshot.KeyMenuPosition, localization.Get("settings_force_menu_position"), _uiLayout.MenuAtBottomSetting),
-            Toggle(SettingsPanelSnapshot.KeyPauseAfterPrestige, localization.Get("settings_pause_after_prestige"), settings.PauseAfterPrestige),
-            Toggle(SettingsPanelSnapshot.KeyHarvestParticles, localization.Get("settings_harvest_particles"), settings.ShowHarvestParticles),
-            Toggle(SettingsPanelSnapshot.KeyMilitaryStats, localization.Get("settings_show_military_stats"), settings.ShowCityMilitaryStats),
-            Toggle(SettingsPanelSnapshot.KeyHarvestCooldown, localization.Get("settings_harvest_cooldown"), settings.ShowHarvestCooldown),
-            Toggle(SettingsPanelSnapshot.KeyCorruptionDominion, localization.Get("settings_corruption_dominion"), settings.ShowCorruptionDominion),
-            Toggle(SettingsPanelSnapshot.KeyShowTutorial, localization.Get("settings_show_tutorial"), settings.ShowTutorial),
-            Toggle(SettingsPanelSnapshot.KeySoundEnabled, localization.Get("settings_sound_enabled"), settings.SoundEnabled),
-            // Le curseur de volume reste visible, mais grisé, quand le son est coupé : l'effacer
-            // ferait sauter toutes les lignes suivantes d'un cran à chaque bascule.
-            new(SettingsPanelSnapshot.KeySoundVolume, localization.Get("settings_sound_volume"), SettingRowKind.Slider,
-                IsEnabled: settings.SoundEnabled, ToggleValue: false, Choices: [],
-                SliderValue: settings.SoundVolume, SliderMin: 0, SliderMax: 1,
-                SliderText: $"{settings.SoundVolume * 100:0} %", TextValue: ""),
+            ], general),
+            Toggle(SettingsPanelSnapshot.KeyPauseAfterPrestige, localization.Get("settings_pause_after_prestige"), settings.PauseAfterPrestige, general),
+            Toggle(SettingsPanelSnapshot.KeyShowTutorial, localization.Get("settings_show_tutorial"), settings.ShowTutorial, general),
+            Toggle(SettingsPanelSnapshot.KeyCloudSave, cloudLabel, settings.CloudSaveEnabled, general, enabled: cloudAvailable),
+
+            // ── Affichage ──
+            Toggle(SettingsPanelSnapshot.KeyFullscreen, localization.Get("settings_fullscreen"), settings.Fullscreen, display),
+            Toggle(SettingsPanelSnapshot.KeyMenuPosition, localization.Get("settings_force_menu_position"), _uiLayout.MenuAtBottomSetting, display),
             new(SettingsPanelSnapshot.KeyUiScale, localization.Get("settings_ui_scale"), SettingRowKind.Slider,
                 IsEnabled: true, ToggleValue: false, Choices: [],
                 SliderValue: uiScale, SliderMin: UiScaleMin, SliderMax: UiScaleMax,
-                SliderText: $"x{uiScale:0.0}", TextValue: ""),
-            Toggle(SettingsPanelSnapshot.KeyCloudSave, cloudLabel, settings.CloudSaveEnabled, enabled: cloudAvailable),
+                SliderText: $"x{uiScale:0.0}", TextValue: "", Tab: display),
+            Toggle(SettingsPanelSnapshot.KeyHarvestParticles, localization.Get("settings_harvest_particles"), settings.ShowHarvestParticles, display),
+            Toggle(SettingsPanelSnapshot.KeyMilitaryStats, localization.Get("settings_show_military_stats"), settings.ShowCityMilitaryStats, display),
+            Toggle(SettingsPanelSnapshot.KeyHarvestCooldown, localization.Get("settings_harvest_cooldown"), settings.ShowHarvestCooldown, display),
+            Toggle(SettingsPanelSnapshot.KeyCorruptionDominion, localization.Get("settings_corruption_dominion"), settings.ShowCorruptionDominion, display),
             Choice(SettingsPanelSnapshot.KeyNumberFormat, localization.Get("settings_number_format"),
             [
                 new("classic",     localization.Get("settings_number_format_classic"),     settings.NumberFormat == NumberFormatMode.Classic),
                 new("scientific",  localization.Get("settings_number_format_scientific"),  settings.NumberFormat == NumberFormatMode.Scientific),
                 new("engineering", localization.Get("settings_number_format_engineering"), settings.NumberFormat == NumberFormatMode.Engineering),
-            ]),
+            ], display),
+
+            // ── Son ──
+            Toggle(SettingsPanelSnapshot.KeySoundEnabled, localization.Get("settings_sound_enabled"), settings.SoundEnabled, sound),
+            // Le curseur de volume reste visible, mais grisé, quand le son est coupé : l'effacer
+            // ferait sauter toutes les lignes suivantes d'un cran à chaque bascule.
+            new(SettingsPanelSnapshot.KeySoundVolume, localization.Get("settings_sound_volume"), SettingRowKind.Slider,
+                IsEnabled: settings.SoundEnabled, ToggleValue: false, Choices: [],
+                SliderValue: settings.SoundVolume, SliderMin: 0, SliderMax: 1,
+                SliderText: $"{settings.SoundVolume * 100:0} %", TextValue: "", Tab: sound),
+            // Les familles se grisent avec l'interrupteur général, pour la même raison que le
+            // volume : le joueur voit ce qu'il retrouvera en rétablissant le son.
+            Toggle(SettingsPanelSnapshot.KeySoundCombat, localization.Get("settings_sound_combat"), settings.SoundCombatEnabled, sound, enabled: settings.SoundEnabled),
+            Toggle(SettingsPanelSnapshot.KeySoundToast, localization.Get("settings_sound_toasts"), settings.SoundToastEnabled, sound, enabled: settings.SoundEnabled),
         };
 
         if (allowDebugMode)
@@ -129,12 +144,17 @@ public sealed class SettingsContentPanel
 
             rows.Add(new SettingRowSnapshot(
                 SettingsPanelSnapshot.KeyDebugResolution, localization.Get("settings_debug_window_resolution"),
-                SettingRowKind.TextInput, true, false, [], 0, 0, 0, "", _debugResolutionText));
+                SettingRowKind.TextInput, true, false, [], 0, 0, 0, "", _debugResolutionText, display));
             rows.Add(Toggle(SettingsPanelSnapshot.KeyExportTransparentBg,
-                localization.Get("settings_debug_export_transparent_bg"), DebugSettings.ExportTransparentBackground));
+                localization.Get("settings_debug_export_transparent_bg"), DebugSettings.ExportTransparentBackground, display));
         }
 
-        return new SettingsPanelSnapshot(rows);
+        return new SettingsPanelSnapshot(rows,
+        [
+            new(general, localization.Get("settings_tab_general")),
+            new(display, localization.Get("settings_tab_display")),
+            new(sound,   localization.Get("settings_tab_sound")),
+        ]);
     }
 
     /// <summary>
@@ -175,6 +195,25 @@ public sealed class SettingsContentPanel
             case SettingsPanelSnapshot.KeySoundEnabled:
                 settings.SoundEnabled = !settings.SoundEnabled;
                 PreviewSound(settings);
+                break;
+            // Les deux familles sont grisées quand le son est coupé : même prudence que pour le
+            // volume, on refuse ici plutôt que de compter sur la vue.
+            case SettingsPanelSnapshot.KeySoundCombat:
+                if (!settings.SoundEnabled) break;
+                settings.SoundCombatEnabled = !settings.SoundCombatEnabled;
+                // L'aperçu du combat est un coup porté : la famille qu'on vient de rallumer doit
+                // s'entendre, et non le toast d'information des autres réglages sonores.
+                if (_audio != null)
+                {
+                    _audio.ApplySettings(settings);
+                    if (settings.SoundCombatEnabled) _audio.PlayPreview(Services.Audio.SoundId.AttackDealt);
+                }
+                break;
+            case SettingsPanelSnapshot.KeySoundToast:
+                if (!settings.SoundEnabled) break;
+                settings.SoundToastEnabled = !settings.SoundToastEnabled;
+                if (settings.SoundToastEnabled) PreviewSound(settings);
+                else _audio?.ApplySettings(settings);
                 break;
             // Sans store connecte, la sauvegarde cloud n'a pas d'objet : la ligne est grisee et
             // le clic reste sans effet, comme dans le rendu Skia.

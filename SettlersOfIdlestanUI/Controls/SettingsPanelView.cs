@@ -25,6 +25,8 @@ public sealed class SettingsPanelView : UserControl
     private static readonly SolidColorBrush Muted = new(Color.FromRgb(120, 120, 132));
     private static readonly SolidColorBrush ChoiceActive = new(Color.FromRgb(60, 100, 160));
     private static readonly SolidColorBrush ChoiceInactive = new(Color.FromRgb(45, 45, 58));
+    private static readonly SolidColorBrush TabActive = new(Color.FromRgb(45, 90, 145));
+    private static readonly SolidColorBrush TabInactive = new(Color.FromArgb(120, 40, 40, 52));
 
     /// <summary>
     /// Largeur du panneau, fixe et commune aux deux hotes (popup en jeu, ecran-titre).
@@ -35,19 +37,124 @@ public sealed class SettingsPanelView : UserControl
     /// </summary>
     public const double ContentWidth = 500;
 
+    /// <summary>
+    /// Hauteur de la zone des lignes, la meme pour tous les onglets. Fixe et non pas ajustee au
+    /// contenu : sans cela le panneau — donc le popup qui l'entoure — changeait de taille a
+    /// chaque changement d'onglet, et la barre d'onglets sautait sous le curseur.
+    ///
+    /// <para>Mesuree sur l'onglet le plus charge (Affichage, 8 lignes) : 370 px. La marge est
+    /// mince a dessein, un onglet ne doit pas s'ouvrir sur une moitie de vide. Les deux lignes du
+    /// mode debogage depassent et defilent — elles n'existent pas dans le jeu livre.
+    /// <c>SettingsPanelSizeTests</c> echoue si une ligne ajoutee fait deborder un onglet.</para>
+    /// </summary>
+    public const double RowsHeight = 380;
+
+    private const double TabButtonHeight = 30;
+    private const double TabBarGap = 14;
+
+    /// <summary>Hauteur de la barre d'onglets, sa marge basse comprise.</summary>
+    public const double TabBarHeight = TabButtonHeight + TabBarGap;
+
+    /// <summary>
+    /// Bande reservee a l'ascenseur, a droite des lignes. L'ascenseur de Fluent se pose
+    /// <b>par-dessus</b> le contenu, au bord droit de sa zone : sans cette bande il recouvrait
+    /// les controles des reglages, tous alignes a droite.
+    ///
+    /// <para>Sa valeur est la largeur de l'ascenseur de Fluent ; en deca, il mordrait encore sur
+    /// les controles. Elle s'ajoute a la largeur du panneau au lieu de la deborder : un enfant
+    /// qui sort des limites du panneau n'est pas dessine — l'ascenseur, pousse dehors, avait
+    /// purement disparu alors que la molette marchait toujours.</para>
+    /// </summary>
+    private const double ScrollbarGutter = 16;
+
+    /// <summary>
+    /// Largeur totale du panneau, bande de l'ascenseur comprise. C'est elle que doit suivre
+    /// l'hote qui encadre le panneau (voir <see cref="SettingsPopupView"/>).
+    /// </summary>
+    public const double TotalWidth = ContentWidth + ScrollbarGutter;
+
     public SettingsPanelView(SettingsPanelViewModel viewModel)
     {
         DataContext = viewModel;
-        Width = ContentWidth;
+        Width = TotalWidth;
         HorizontalAlignment = HorizontalAlignment.Center;
 
-        Content = new ItemsControl
+        var rows = new ItemsControl
         {
+            // Les lignes s'arretent avant la bande de l'ascenseur : elles gardent ContentWidth,
+            // et lui occupe seul ce qui reste a droite.
+            Margin = new Thickness(0, 0, ScrollbarGutter, 0),
             [!ItemsControl.ItemsSourceProperty] = new Binding(nameof(SettingsPanelViewModel.Rows)),
             ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel { Spacing = 10 }),
             ItemTemplate = new FuncDataTemplate<SettingRowViewModel>(
                 (_, _) => new SettingRow(viewModel), supportsRecycling: true),
         };
+
+        // Seules les lignes defilent : la barre d'onglets est ancree au-dessus de la zone de
+        // defilement, donc immobile, et reste atteignable meme si un onglet deborde.
+        var scroll = new ScrollViewer
+        {
+            Height = RowsHeight,
+            VerticalAlignment = VerticalAlignment.Top,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Content = rows,
+        };
+
+        var tabBar = BuildTabBar(viewModel);
+        DockPanel.SetDock(tabBar, Dock.Top);
+
+        var layout = new DockPanel { LastChildFill = true };
+        layout.Children.Add(tabBar);
+        layout.Children.Add(scroll);
+
+        Content = layout;
+    }
+
+    /// <summary>
+    /// Barre d'onglets. Absente d'un panneau d'un seul tenant (instantane sans onglets) : la
+    /// place qu'elle prend ne se justifie que s'il y a un choix a faire.
+    /// </summary>
+    private static Control BuildTabBar(SettingsPanelViewModel owner) => new ItemsControl
+    {
+        Height = TabButtonHeight,
+        Margin = new Thickness(0, 0, 0, TabBarGap),
+        HorizontalAlignment = HorizontalAlignment.Center,
+        [!IsVisibleProperty] = new Binding(nameof(SettingsPanelViewModel.HasTabs)),
+        [!ItemsControl.ItemsSourceProperty] = new Binding(nameof(SettingsPanelViewModel.Tabs)),
+        ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+        }),
+        ItemTemplate = new FuncDataTemplate<SettingsTabViewModel>((_, _) => BuildTabButton(owner), true),
+    };
+
+    private static Control BuildTabButton(SettingsPanelViewModel owner)
+    {
+        SettingsTabViewModel? tab = null;
+
+        var button = new Button
+        {
+            MinWidth = 110,
+            Height = TabButtonHeight,
+            FontSize = 13,
+            Padding = new Thickness(10, 0),
+            Foreground = Brushes.White,
+            CornerRadius = new CornerRadius(5),
+            BorderThickness = new Thickness(0),
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            [!ContentProperty] = new Binding(nameof(SettingsTabViewModel.Label)),
+            [!BackgroundProperty] = new Binding(nameof(SettingsTabViewModel.IsActive))
+            {
+                Converter = new FuncValueConverter<bool, IBrush>(a => a ? TabActive : TabInactive),
+            },
+        };
+        button.Classes.Add(GameControlStyles.ToneButton);
+        button.DataContextChanged += (_, _) => tab = button.DataContext as SettingsTabViewModel;
+        button.Click += (_, _) => { if (tab != null) owner.SelectTab(tab); };
+        return button;
     }
 
     /// <summary>Une ligne : libelle a gauche, controle a droite selon la nature du reglage.</summary>

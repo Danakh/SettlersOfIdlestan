@@ -32,6 +32,22 @@ public class GameSettings
     /// couche d'affichage — le modèle ne connaît pas le service audio.
     /// </summary>
     public float SoundVolume { get; set; } = 0.6f;
+
+    /// <summary>
+    /// Bruitages de combat (coups portés, coups reçus, bâtiment détruit). Une fin de partie où
+    /// vingt villes affrontent trente monstres les enchaîne sans fin : le joueur qui veut garder
+    /// les annonces peut couper cette famille seule, sans couper le son.
+    /// Sans effet quand <see cref="SoundEnabled"/> est faux.
+    /// </summary>
+    public bool SoundCombatEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Bruitages des notifications (toasts et fanfare de succès). Même logique que
+    /// <see cref="SoundCombatEnabled"/> : une famille se coupe sans toucher aux autres.
+    /// Sans effet quand <see cref="SoundEnabled"/> est faux.
+    /// </summary>
+    public bool SoundToastEnabled { get; set; } = true;
+
     public bool DemoMode { get; set; } = false;
     public bool CloudSaveEnabled { get; set; } = true;
 

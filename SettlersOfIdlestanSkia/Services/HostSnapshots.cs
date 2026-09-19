@@ -211,6 +211,20 @@ public sealed record TitleScreenSnapshot(
     public const string ActionDiscord   = "discord";
 }
 
+/// <summary>
+/// Onglet du panneau de reglages. Range les lignes par nature de preoccupation plutot que de les
+/// empiler : la liste unique depassait la hauteur du popup.
+/// </summary>
+public enum SettingsTab
+{
+    /// Langue, rythme de la partie, sauvegarde.
+    General,
+    /// Tout ce qui se voit : plein ecran, echelle, indicateurs sur la carte, format des nombres.
+    Display,
+    /// Bruitages : interrupteur general, volume, et les familles qui se coupent separement.
+    Sound,
+}
+
 /// <summary>Nature d'un reglage, qui dicte le controle a afficher.</summary>
 public enum SettingRowKind
 {
@@ -231,6 +245,8 @@ public sealed record SettingChoiceSnapshot(string Key, string Label, bool IsSele
 /// <param name="Key">Identifiant stable du reglage : sert au routage de la commande.</param>
 /// <param name="IsEnabled">Faux quand le reglage est sans objet (sauvegarde cloud sans store
 /// connecte) : la ligne s'affiche en grise et n'agit pas.</param>
+/// <param name="Tab">Onglet qui porte cette ligne. En dernier et avec une valeur par defaut pour
+/// qu'un appelant qui compose des lignes a la main (les tests de vue) n'ait pas a la nommer.</param>
 public sealed record SettingRowSnapshot(
     string Key,
     string Label,
@@ -242,14 +258,25 @@ public sealed record SettingRowSnapshot(
     double SliderMin,
     double SliderMax,
     string SliderText,
-    string TextValue);
+    string TextValue,
+    SettingsTab Tab = SettingsTab.General);
+
+/// <summary>Un onglet du panneau de reglages, avec son libelle localise.</summary>
+public sealed record SettingsTabSnapshot(SettingsTab Tab, string Label);
 
 /// <summary>
 /// Panneau de reglages, partage par le popup en jeu et l'ecran-titre. La composition (dont les
 /// lignes de debogage) et l'effet de chaque reglage restent dans SettingsContentPanel.
 /// </summary>
-public sealed record SettingsPanelSnapshot(IReadOnlyList<SettingRowSnapshot> Rows)
+/// <param name="Tabs">Onglets a proposer, dans l'ordre. Vide = panneau d'un seul tenant : la vue
+/// n'affiche alors aucune barre d'onglets et montre toutes les lignes.</param>
+public sealed record SettingsPanelSnapshot(
+    IReadOnlyList<SettingRowSnapshot> Rows,
+    IReadOnlyList<SettingsTabSnapshot> Tabs)
 {
+    /// <summary>Panneau sans onglets — les lignes seules, telles que les composent les tests de vue.</summary>
+    public SettingsPanelSnapshot(IReadOnlyList<SettingRowSnapshot> rows) : this(rows, []) { }
+
     public static readonly SettingsPanelSnapshot Empty = new([]);
 
     public const string KeyLanguage            = "language";
@@ -263,6 +290,8 @@ public sealed record SettingsPanelSnapshot(IReadOnlyList<SettingRowSnapshot> Row
     public const string KeyShowTutorial        = "showTutorial";
     public const string KeySoundEnabled        = "soundEnabled";
     public const string KeySoundVolume         = "soundVolume";
+    public const string KeySoundCombat         = "soundCombat";
+    public const string KeySoundToast          = "soundToast";
     public const string KeyUiScale             = "uiScale";
     public const string KeyCloudSave           = "cloudSave";
     public const string KeyNumberFormat        = "numberFormat";

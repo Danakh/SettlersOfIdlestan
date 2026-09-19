@@ -40,6 +40,8 @@ public sealed class GameAudioService : IDisposable
     private Func<Civilization?>? _playerCivilization;
 
     private bool _enabled = true;
+    private bool _combatEnabled = true;
+    private bool _toastEnabled = true;
     private float _volume = DefaultVolume;
     private bool _disposed;
 
@@ -73,6 +75,25 @@ public sealed class GameAudioService : IDisposable
     };
 
     /// <summary>
+    /// Famille d'un son. Sert à couper une famille entière depuis les réglages — voir
+    /// <see cref="SoundCategory"/>. Chaque valeur est listée à dessein plutôt que couverte par un
+    /// repli sur <see cref="SoundCategory.Other"/> : un son ajouté sans sa famille se serait rangé
+    /// en silence dans celle qu'aucune case à cocher ne gouverne. Ici il lève, et
+    /// <c>SoundCategoryTests</c> le rattrape avant le joueur.
+    /// </summary>
+    private static SoundCategory Category(SoundId id) => id switch
+    {
+        SoundId.ToastInfo    or SoundId.ToastWarning or SoundId.ToastVictory or
+        SoundId.ToastLoss    or SoundId.Achievement                              => SoundCategory.Toast,
+
+        SoundId.AttackDealt  or SoundId.AttackTaken  or SoundId.BuildingDestroyed => SoundCategory.Combat,
+
+        SoundId.HarvestManual or SoundId.BuildingBuilt or SoundId.CityFounded     => SoundCategory.Other,
+
+        _ => throw new ArgumentOutOfRangeException(nameof(id), id, "Son sans famille déclarée."),
+    };
+
+    /// <summary>
     /// Volume relatif d'un son dans le mélange, avant le volume général du joueur. Les sons qui
     /// se répètent sans fin (récolte, coups) passent volontairement sous les annonces, qui doivent
     /// rester audibles par-dessus une bataille en cours.
@@ -98,17 +119,30 @@ public sealed class GameAudioService : IDisposable
     {
         if (settings == null) return;
         _enabled = settings.SoundEnabled;
+        _combatEnabled = settings.SoundCombatEnabled;
+        _toastEnabled = settings.SoundToastEnabled;
         _volume = Math.Clamp(settings.SoundVolume, 0f, 1f);
     }
+
+    /// <summary>Vrai si la famille de ce son n'est pas coupée par les réglages.</summary>
+    private bool IsCategoryEnabled(SoundId id) => Category(id) switch
+    {
+        SoundCategory.Toast  => _toastEnabled,
+        SoundCategory.Combat => _combatEnabled,
+        _                    => true,
+    };
 
     /// <summary>
     /// Vrai si ce son passerait maintenant. Ne consomme rien : sert aux appelants qui doivent
     /// écarter un son bon marché <b>avant</b> de payer la recherche du propriétaire d'un vertex
     /// (voir <see cref="PlayIfOurs"/>).
     /// </summary>
-    private bool IsReady(SoundId id)
+    /// <param name="ignoreCategory">Vrai pour un aperçu demandé depuis les réglages — voir
+    /// <see cref="PlayPreview"/>.</param>
+    private bool IsReady(SoundId id, bool ignoreCategory = false)
     {
         if (_disposed || _audio == null || !_enabled || _volume <= 0f) return false;
+        if (!ignoreCategory && !IsCategoryEnabled(id)) return false;
         if (_suppressed?.Invoke() == true) return false;
 
         long last = _lastPlayed[(int)id];
@@ -120,6 +154,21 @@ public sealed class GameAudioService : IDisposable
     public void Play(SoundId id)
     {
         if (!IsReady(id)) return;
+
+        _lastPlayed[(int)id] = Stopwatch.GetTimestamp();
+        _audio!.Play(id, Mix(id) * _volume);
+    }
+
+    /// <summary>
+    /// Fait entendre un son en réponse à un geste du joueur dans les réglages. Ignore la famille
+    /// du son — sans quoi l'aperçu du volume (un toast d'information) deviendrait muet dès que le
+    /// joueur coupe les bruitages de notification, et le curseur se réglerait à l'aveugle. Les
+    /// autres garde-fous, eux, tiennent : coupé, à volume nul ou pendant un saut de temps, rien
+    /// ne sort.
+    /// </summary>
+    public void PlayPreview(SoundId id)
+    {
+        if (!IsReady(id, ignoreCategory: true)) return;
 
         _lastPlayed[(int)id] = Stopwatch.GetTimestamp();
         _audio!.Play(id, Mix(id) * _volume);

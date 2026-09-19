@@ -164,3 +164,122 @@ public class ToastSoundTests
         public void Dispose() { }
     }
 }
+
+/// <summary>
+/// Familles de bruitages, coupables separement depuis l'onglet Son des reglages. Un joueur qui
+/// coupe les combats doit garder ses annonces, et reciproquement : sans ce decoupage il n'avait
+/// que l'interrupteur general.
+/// </summary>
+public class SoundCategoryTests
+{
+    /// <summary>Sortie audio de test : retient chaque son demande.</summary>
+    private sealed class RecordingAudioService(List<SoundId> played) : IAudioService
+    {
+        public void Load(SoundId id, byte[] wav) { }
+        public void Play(SoundId id, float volume) => played.Add(id);
+        public void Dispose() { }
+    }
+
+    private static (GameAudioService Audio, List<SoundId> Played) Build(GameSettings settings)
+    {
+        var played = new List<SoundId>();
+        var audio = new GameAudioService(new RecordingAudioService(played));
+        audio.ApplySettings(settings);
+        return (audio, played);
+    }
+
+    private static GameSettings Settings(bool combat = true, bool toast = true) =>
+        new() { SoundEnabled = true, SoundVolume = 1f, SoundCombatEnabled = combat, SoundToastEnabled = toast };
+
+    /// <summary>
+    /// La table des familles liste chaque <see cref="SoundId"/> une a une et leve sur une valeur
+    /// oubliee : un son ajoute sans sa famille doit tomber ici, pas en pleine partie.
+    /// </summary>
+    [Fact]
+    public void Chaque_son_a_sa_famille_declaree()
+    {
+        var (audio, played) = Build(Settings());
+
+        foreach (var id in Enum.GetValues<SoundId>()) audio.Play(id);
+
+        Assert.Equal(Enum.GetValues<SoundId>().Length, played.Count);
+    }
+
+    [Fact]
+    public void Les_bruitages_de_combat_coupes_laissent_passer_le_reste()
+    {
+        var (audio, played) = Build(Settings(combat: false));
+
+        audio.Play(SoundId.AttackDealt);
+        audio.Play(SoundId.AttackTaken);
+        audio.Play(SoundId.BuildingDestroyed);
+        audio.Play(SoundId.ToastWarning);
+        audio.Play(SoundId.HarvestManual);
+        audio.Play(SoundId.CityFounded);
+
+        Assert.Equal([SoundId.ToastWarning, SoundId.HarvestManual, SoundId.CityFounded], played);
+    }
+
+    /// <summary>La fanfare de succes est un toast : elle suit la meme case que les autres.</summary>
+    [Fact]
+    public void Les_bruitages_de_notification_coupes_laissent_passer_le_reste()
+    {
+        var (audio, played) = Build(Settings(toast: false));
+
+        audio.Play(SoundId.ToastInfo);
+        audio.Play(SoundId.ToastLoss);
+        audio.Play(SoundId.Achievement);
+        audio.PlayForToast(GameEventType.DragonDiscovered, NotificationIcon.StoreFail);
+        audio.Play(SoundId.AttackDealt);
+        audio.Play(SoundId.BuildingBuilt);
+
+        Assert.Equal([SoundId.AttackDealt, SoundId.BuildingBuilt], played);
+    }
+
+    /// <summary>
+    /// Couper une famille ne touche pas les autres reglages sonores : retablir la case rend la
+    /// famille, sans passer par l'interrupteur general ni le volume.
+    /// </summary>
+    [Fact]
+    public void Retablir_la_famille_rend_ses_sons()
+    {
+        var settings = Settings(combat: false);
+        var (audio, played) = Build(settings);
+
+        audio.Play(SoundId.BuildingDestroyed);
+        Assert.Empty(played);
+
+        settings.SoundCombatEnabled = true;
+        audio.ApplySettings(settings);
+        audio.Play(SoundId.BuildingDestroyed);
+
+        Assert.Equal([SoundId.BuildingDestroyed], played);
+    }
+
+    /// <summary>
+    /// L'apercu joue depuis les reglages ignore la famille : regler le volume est impossible si
+    /// le son temoin — un toast — se tait des que le joueur coupe les notifications.
+    /// </summary>
+    [Fact]
+    public void L_apercu_des_reglages_passe_malgre_la_famille_coupee()
+    {
+        var (audio, played) = Build(Settings(toast: false));
+
+        audio.PlayPreview(SoundId.ToastInfo);
+
+        Assert.Equal([SoundId.ToastInfo], played);
+    }
+
+    /// <summary>Mais l'apercu reste soumis a l'interrupteur general et au volume.</summary>
+    [Fact]
+    public void L_apercu_se_tait_quand_le_son_est_coupe()
+    {
+        var (audio, played) = Build(new GameSettings { SoundEnabled = false, SoundVolume = 1f });
+        audio.PlayPreview(SoundId.ToastInfo);
+        Assert.Empty(played);
+
+        var (silent, none) = Build(new GameSettings { SoundEnabled = true, SoundVolume = 0f });
+        silent.PlayPreview(SoundId.ToastInfo);
+        Assert.Empty(none);
+    }
+}
