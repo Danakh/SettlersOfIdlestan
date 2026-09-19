@@ -75,6 +75,28 @@ namespace SettlersOfIdlestan.Controller
         private readonly long _expandCooldownTicks;
         private long _nextExpandAllowedTick = long.MinValue;
 
+        /// <summary>Durée d'abandon d'une arête à sa première reprise par un voisin, doublée à chaque
+        /// reprise suivante jusqu'à <see cref="ContestedEdgeMaxCooldownTicks"/> — voir
+        /// <see cref="NoteContestedEdges"/>.</summary>
+        public const long ContestedEdgeInitialCooldownTicks = 6_000L;   // 1 minute simulée
+
+        /// <summary>Plafond de l'abandon progressif : au-delà, une arête reprise encore et encore est
+        /// de fait abandonnée pour l'île.</summary>
+        public const long ContestedEdgeMaxCooldownTicks = 360_000L;     // 1 heure simulée
+
+        /// <summary>Arêtes posées par <see cref="TryExpandOnce"/> et pas encore tenues assez longtemps
+        /// pour être considérées comme acquises. Bornée à quelques entrées : seules les toutes
+        /// dernières poses peuvent encore être reprises dans le dos de l'expansion.</summary>
+        private readonly List<(Edge Edge, long BuiltAtTick)> _pendingExpansionEdges = new();
+        private const int PendingExpansionEdgeLimit = 8;
+
+        /// <summary>Arêtes reprises par un voisin : tick avant lequel on ne les retente pas, et durée
+        /// appliquée à la dernière reprise (doublée à la suivante). Les entrées expirées sont
+        /// <b>conservées</b> — c'est leur durée qui porte l'escalade, la purger remettrait une frontière
+        /// tenue par le voisin à une minute d'abandon à chaque tour de piste. Le dictionnaire ne grossit
+        /// que du nombre d'arêtes réellement disputées, et meurt avec l'autoplayer (donc avec l'île).</summary>
+        private readonly Dictionary<Edge, (long UntilTick, long Cooldown)> _contestedEdges = new();
+
         public Civilization Civilization => _civ;
         public WorldState? WorldState => _worldState;
         public HarvestController HarvestController => _harvestController;
@@ -592,25 +614,33 @@ namespace SettlersOfIdlestan.Controller
             bool buildableRoadFound = false;
             var candidates = GetProspectiveVertices();
             var expansionTarget = FindBestExpansionTarget(candidates);
+
+            // Une seule collecte pour les deux branches : la seconde ne s'exécute que si la première
+            // n'a rien bâti, donc la liste y est encore à jour.
+            var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
+            long nowTick = _harvestController.CurrentTick;
+            NoteContestedEdges(buildableRoads, nowTick);
+
             if (expansionTarget != null)
             {
                 var (target, from) = expansionTarget.Value;
-                var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
                 var path = HexGridPathfinder.FindVertexPath(from, target);
                 var shared = path[0].GetHexes().Intersect(path[1].GetHexes()).ToArray();
                 Debug.Assert(shared.Length == 2);
                 var edge = Edge.Create(shared[0], shared[1]);
-                if (buildableRoads.Any(r => r.Position.Equals(edge)))
+                if (!IsEdgeContested(edge, nowTick) && buildableRoads.Any(r => r.Position.Equals(edge)))
                 {
                     buildableRoadFound = true;
                     if (TryBuildRoadOnce(edge, withGrind: true))
+                    {
+                        NotePendingExpansionEdge(edge, nowTick);
                         didSomething = true;
+                    }
                 }
             }
 
             if (!buildableRoadFound)
             {
-                var buildableRoads = _roadController.GetBuildableRoads(_civ.Index);
                 Road? nextRoad;
                 if (expansionTarget != null)
                 {
@@ -620,24 +650,92 @@ namespace SettlersOfIdlestan.Controller
                     // edge brings the network closest to that same target. Re-evaluated on every call,
                     // this routes the network around the obstruction one segment at a time instead of
                     // abandoning the target the moment its direct path is blocked.
+                    //
+                    // Les arêtes contestées sont écartées : c'est ce repli, et lui seul, qui
+                    // retombait indéfiniment sur la même arête de frontière (voir NoteContestedEdges).
                     var target = expansionTarget.Value.target;
                     nextRoad = buildableRoads
-                        .Where(r => r.Position.Z == target.Z)
+                        .Where(r => r.Position.Z == target.Z && !IsEdgeContested(r.Position, nowTick))
                         .OrderBy(r => r.Position.GetVertices().Min(v => v.EdgeDistanceTo(target)))
                         .FirstOrDefault();
                 }
                 else
                 {
                     nextRoad = buildableRoads
+                        .Where(r => !IsEdgeContested(r.Position, nowTick))
                         .OrderByDescending(r => r.DistanceToNearestCity)
                         .FirstOrDefault();
                 }
                 if (nextRoad != null && TryBuildRoadOnce(nextRoad.Position, withGrind: true))
+                {
+                    NotePendingExpansionEdge(nextRoad.Position, nowTick);
                     didSomething = true;
+                }
             }
 
             return didSomething;
         }
+
+        /// <summary>
+        /// Repère les arêtes que <see cref="TryExpandOnce"/> a posées et qu'un voisin lui a reprises,
+        /// et les met de côté pour un temps qui double à chaque reprise.
+        ///
+        /// <para>La détection est gratuite : une arête que nous possédons n'est pas constructible (elle
+        /// est occupée), donc une arête fraîchement posée qui <b>redevient</b> constructible est une
+        /// arête perdue — <c>RoadController.TryRemoveEnemyRoadAt</c>, qu'un voisin déclenche en bâtissant
+        /// dessus. Chercher le nouveau propriétaire coûterait un parcours des routes de toutes les
+        /// civilisations à chaque passe d'expansion.</para>
+        ///
+        /// <para>Sans cette mémoire, le repli routier de <see cref="TryExpandOnce"/> repique
+        /// systématiquement l'arête la plus proche de la cible, donc toujours la même arête de
+        /// frontière, et la partie s'enferme dans un bras de fer avec le voisin. Mesuré sur les Elfes,
+        /// île 5 du race gauntlet : <b>672 routes posées et 670 reprises</b> en 4 000 itérations, sur
+        /// trois arêtes, toute la production de Brique y passant — et la ville qui aurait débloqué
+        /// l'objectif d'expansion n'arrivant jamais.</para>
+        ///
+        /// <para>Le doublement est ce qui distingue une arête disputée une fois (une minute simulée de
+        /// patience, puis on retente) d'une frontière structurellement tenue par le voisin (abandonnée
+        /// pour l'île au bout de quelques essais). Une arête tenue assez longtemps pour ne plus pouvoir
+        /// être reprise sans qu'on le voie sort de la liste d'attente.</para>
+        /// </summary>
+        private void NoteContestedEdges(List<Road> buildableRoads, long now)
+        {
+            for (int i = _pendingExpansionEdges.Count - 1; i >= 0; i--)
+            {
+                var (edge, builtAtTick) = _pendingExpansionEdges[i];
+
+                bool buildableAgain = false;
+                for (int j = 0; j < buildableRoads.Count; j++)
+                    if (buildableRoads[j].Position.Equals(edge)) { buildableAgain = true; break; }
+
+                if (buildableAgain)
+                {
+                    long cooldown = _contestedEdges.TryGetValue(edge, out var previous)
+                        ? Math.Min(previous.Cooldown * 2, ContestedEdgeMaxCooldownTicks)
+                        : ContestedEdgeInitialCooldownTicks;
+                    _contestedEdges[edge] = (now + cooldown, cooldown);
+                    _pendingExpansionEdges.RemoveAt(i);
+                }
+                else if (now - builtAtTick > ContestedEdgeMaxCooldownTicks)
+                {
+                    _pendingExpansionEdges.RemoveAt(i);
+                }
+            }
+        }
+
+        /// <summary>Met une arête fraîchement posée sous surveillance, en bornant la liste d'attente :
+        /// une reprise se voit dans les secondes qui suivent la pose, pas une heure après.</summary>
+        private void NotePendingExpansionEdge(Edge edge, long now)
+        {
+            if (_pendingExpansionEdges.Count >= PendingExpansionEdgeLimit)
+                _pendingExpansionEdges.RemoveAt(0);
+            _pendingExpansionEdges.Add((edge, now));
+        }
+
+        /// <summary>Vrai tant qu'une arête reprise par un voisin est sous le coup de son abandon
+        /// temporaire (voir <see cref="NoteContestedEdges"/>).</summary>
+        private bool IsEdgeContested(Edge edge, long now)
+            => _contestedEdges.TryGetValue(edge, out var entry) && now < entry.UntilTick;
 
         /// <summary>
         /// Places the Wonder if not yet placed (requires Architecture/UNLOCK_WONDERS to be unlocked),
