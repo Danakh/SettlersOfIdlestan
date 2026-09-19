@@ -280,6 +280,20 @@ def city_founded():
     return lowpass(mix(*voices, shimmer), 4500)
 
 
+def city_lost():
+    """
+    Une de nos villes vient de tomber. Glas grave a deux notes descendantes, sur un grondement
+    d'effondrement qui s'eteint. C'est le son le plus long du jeu apres la fanfare, et le seul
+    son grave a etre tenu : il doit passer par-dessus la bataille qui vient de l'emporter, la ou
+    building_destroyed (plus sec, plus court) ne coute qu'un batiment.
+    """
+    toll = mix(bell(196, 0.55, brightness=0.12, curve=1.6),
+               at(gain(bell(147, 0.62, brightness=0.10, curve=1.4), 0.9), 0.20))
+    rubble = envelope(lowpass(noise(0.78), 420), attack=0.03, curve=1.8)
+    sub = envelope(tone(82, 0.70, "sine", freq_end=41), attack=0.02, curve=2.0)
+    return finish(lowpass(mix(toll, gain(rubble, 0.45), gain(sub, 0.6)), 2200), peak=0.7)
+
+
 SOUNDS = {
     "toast_info": toast_info,
     "toast_warning": toast_warning,
@@ -291,6 +305,7 @@ SOUNDS = {
     "attack_taken": attack_taken,
     "building_destroyed": building_destroyed,
     "city_founded": city_founded,
+    "city_lost": city_lost,
 }
 
 

@@ -294,6 +294,7 @@ public sealed record SettingsPanelSnapshot(
     public const string KeySoundToast          = "soundToast";
     public const string KeySoundAchievement    = "soundAchievement";
     public const string KeySoundCity           = "soundCity";
+    public const string KeySoundCityLost       = "soundCityLost";
     public const string KeySoundHarvest        = "soundHarvest";
     public const string KeyUiScale             = "uiScale";
     public const string KeyCloudSave           = "cloudSave";

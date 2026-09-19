@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
@@ -44,6 +45,7 @@ public sealed class GameAudioService : IDisposable
     private bool _toastEnabled = true;
     private bool _achievementEnabled = true;
     private bool _cityEnabled = true;
+    private bool _cityLostEnabled = true;
     private bool _harvestEnabled = true;
     private float _volume = DefaultVolume;
     private bool _disposed;
@@ -73,6 +75,9 @@ public sealed class GameAudioService : IDisposable
         SoundId.HarvestManual     => 0.05,
         SoundId.BuildingDestroyed => 0.30,
         SoundId.CityFounded       => 0.30,
+        // Le plus long des bruitages : deux chutes de ville dans le même tick se
+        // superposeraient en bouillie, là où une seule dit déjà qu'on recule.
+        SoundId.CityLost          => 0.90,
         _                         => 0.35,
     };
 
@@ -93,6 +98,8 @@ public sealed class GameAudioService : IDisposable
         SoundId.AttackDealt  or SoundId.AttackTaken  or SoundId.BuildingDestroyed => SoundCategory.Combat,
 
         SoundId.CityFounded                                                       => SoundCategory.City,
+
+        SoundId.CityLost                                                          => SoundCategory.CityLost,
 
         SoundId.HarvestManual                                                     => SoundCategory.Harvest,
 
@@ -128,6 +135,7 @@ public sealed class GameAudioService : IDisposable
         _toastEnabled = settings.SoundToastEnabled;
         _achievementEnabled = settings.SoundAchievementEnabled;
         _cityEnabled = settings.SoundCityEnabled;
+        _cityLostEnabled = settings.SoundCityLostEnabled;
         _harvestEnabled = settings.SoundHarvestEnabled;
         _volume = Math.Clamp(settings.SoundVolume, 0f, 1f);
     }
@@ -141,6 +149,7 @@ public sealed class GameAudioService : IDisposable
         SoundCategory.Achievement => _toastEnabled && _achievementEnabled,
         SoundCategory.Combat      => _combatEnabled,
         SoundCategory.City        => _cityEnabled,
+        SoundCategory.CityLost    => _cityLostEnabled,
         SoundCategory.Harvest     => _harvestEnabled,
         _                         => true,
     };
@@ -284,6 +293,21 @@ public sealed class GameAudioService : IDisposable
         // ── Fondation ──
         main.CityBuilderController.OnCityBuilt += (_, e) => PlayIfOurCiv(e.CivilizationIndex, SoundId.CityFounded);
         main.CityBuilderController.OnAutoOutpostBuilt += (_, e) => PlayIfOurCiv(e.CivilizationIndex, SoundId.CityFounded);
+
+        // ── Perte ──
+        // Seules les deux causes qui nous arrachent la ville. `Terrain` est écartée parce qu'elle
+        // porte déjà son propre toast (CityLostToTerrain, donc ToastLoss) : les deux sons se
+        // chevaucheraient. `PlayerChoice` l'est parce que le joueur vient de cliquer « Détruire »
+        // — ce n'est pas une perte, c'est une décision.
+        //
+        // Cet abonnement vient après ceux de MainGameController, dont RemoveEliminatedCivilization
+        // qui doit rester le dernier à pouvoir retrouver la civilisation détruite. Sans effet ici :
+        // on ne compare que des index, et on ne cherche que la nôtre — jamais celle qui tombe.
+        main.CityBuilderController.OnCityDestroyed += (_, e) =>
+        {
+            if (e.Cause is not (CityDestructionCause.Combat or CityDestructionCause.Monster)) return;
+            PlayIfOurCiv(e.CivilizationIndex, SoundId.CityLost);
+        };
     }
 
     private void PlayIfOurCiv(int civilizationIndex, SoundId sound)

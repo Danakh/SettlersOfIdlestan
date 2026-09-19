@@ -68,6 +68,17 @@ public class GameSettings
     public bool SoundCityEnabled { get; set; } = true;
 
     /// <summary>
+    /// Bruitage de perte d'une ville (prise par un ennemi ou rasée par un monstre). Famille à
+    /// part plutôt que rangée dans <see cref="SoundCombatEnabled"/>, dont elle est pourtant
+    /// l'issue : les bruitages de combat sont une ambiance que le joueur coupe volontiers en fin
+    /// de partie, là où la chute d'une ville reste l'annonce qu'il veut entendre. Séparée aussi
+    /// de <see cref="SoundCityEnabled"/>, pour que taire les rafales d'avant-postes automatiques
+    /// ne coupe pas l'alerte qui compte.
+    /// Sans effet quand <see cref="SoundEnabled"/> est faux.
+    /// </summary>
+    public bool SoundCityLostEnabled { get; set; } = true;
+
+    /// <summary>
     /// Bruitage de récolte manuelle. C'est le son le plus joué de la partie — un par clic — et
     /// donc celui qu'un joueur qui récolte en continu voudra couper en premier, sans pour autant
     /// perdre les annonces.

@@ -17,6 +17,7 @@
   "settings_sound_toasts": "Bruitages des notifications",
   "settings_sound_achievement": "Fanfare des succès",
   "settings_sound_city": "Bruitages de fondation de villes",
+  "settings_sound_city_lost": "Bruitage de perte de ville",
   "settings_sound_harvest": "Bruitages de récolte manuelle",
   "settings_fullscreen": "Plein écran",
   "settings_force_menu_position": "Menu en bas",

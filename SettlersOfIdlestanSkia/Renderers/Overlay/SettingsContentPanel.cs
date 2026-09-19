@@ -139,6 +139,7 @@ public sealed class SettingsContentPanel
             Toggle(SettingsPanelSnapshot.KeySoundAchievement, localization.Get("settings_sound_achievement"), settings.SoundAchievementEnabled, sound,
                 enabled: settings.SoundEnabled && settings.SoundToastEnabled),
             Toggle(SettingsPanelSnapshot.KeySoundCity, localization.Get("settings_sound_city"), settings.SoundCityEnabled, sound, enabled: settings.SoundEnabled),
+            Toggle(SettingsPanelSnapshot.KeySoundCityLost, localization.Get("settings_sound_city_lost"), settings.SoundCityLostEnabled, sound, enabled: settings.SoundEnabled),
             Toggle(SettingsPanelSnapshot.KeySoundHarvest, localization.Get("settings_sound_harvest"), settings.SoundHarvestEnabled, sound, enabled: settings.SoundEnabled),
         };
 
@@ -241,6 +242,17 @@ public sealed class SettingsContentPanel
                 {
                     _audio.ApplySettings(settings);
                     if (settings.SoundCityEnabled) _audio.PlayPreview(Services.Audio.SoundId.CityFounded);
+                }
+                break;
+            case SettingsPanelSnapshot.KeySoundCityLost:
+                if (!settings.SoundEnabled) break;
+                settings.SoundCityLostEnabled = !settings.SoundCityLostEnabled;
+                // Même raison que pour le combat et la fondation : l'aperçu est le son de la
+                // famille qu'on vient de rallumer, pas le toast d'information.
+                if (_audio != null)
+                {
+                    _audio.ApplySettings(settings);
+                    if (settings.SoundCityLostEnabled) _audio.PlayPreview(Services.Audio.SoundId.CityLost);
                 }
                 break;
             case SettingsPanelSnapshot.KeySoundHarvest:

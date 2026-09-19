@@ -189,12 +189,13 @@ public class SoundCategoryTests
     }
 
     private static GameSettings Settings(
-        bool combat = true, bool toast = true, bool achievement = true, bool city = true, bool harvest = true) =>
+        bool combat = true, bool toast = true, bool achievement = true, bool city = true,
+        bool cityLost = true, bool harvest = true) =>
         new()
         {
             SoundEnabled = true, SoundVolume = 1f,
             SoundCombatEnabled = combat, SoundToastEnabled = toast, SoundAchievementEnabled = achievement,
-            SoundCityEnabled = city, SoundHarvestEnabled = harvest,
+            SoundCityEnabled = city, SoundCityLostEnabled = cityLost, SoundHarvestEnabled = harvest,
         };
 
     /// <summary>
@@ -277,6 +278,37 @@ public class SoundCategoryTests
         audio.Play(SoundId.AttackDealt);
 
         Assert.Equal([SoundId.HarvestManual, SoundId.ToastInfo, SoundId.AttackDealt], played);
+    }
+
+    /// <summary>
+    /// La perte d'une ville a sa propre case, distincte du combat comme de la fondation : couper
+    /// l'ambiance des batailles ou les rafales d'avant-postes ne doit pas emporter l'annonce que
+    /// le joueur vient de reculer.
+    /// </summary>
+    [Fact]
+    public void La_perte_de_ville_se_coupe_sans_toucher_au_combat_ni_a_la_fondation()
+    {
+        var (audio, played) = Build(Settings(cityLost: false));
+
+        audio.Play(SoundId.CityLost);
+        audio.Play(SoundId.CityFounded);
+        audio.Play(SoundId.AttackTaken);
+        audio.Play(SoundId.BuildingDestroyed);
+
+        Assert.Equal([SoundId.CityFounded, SoundId.AttackTaken, SoundId.BuildingDestroyed], played);
+    }
+
+    /// <summary>La reciproque : couper le combat et la fondation laisse passer la perte.</summary>
+    [Fact]
+    public void La_perte_de_ville_passe_malgre_le_combat_et_la_fondation_coupes()
+    {
+        var (audio, played) = Build(Settings(combat: false, city: false));
+
+        audio.Play(SoundId.AttackTaken);
+        audio.Play(SoundId.CityFounded);
+        audio.Play(SoundId.CityLost);
+
+        Assert.Equal([SoundId.CityLost], played);
     }
 
     /// <summary>

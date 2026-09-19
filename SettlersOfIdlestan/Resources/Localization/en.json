@@ -17,6 +17,7 @@
   "settings_sound_toasts": "Notification sounds",
   "settings_sound_achievement": "Achievement fanfare",
   "settings_sound_city": "City founding sounds",
+  "settings_sound_city_lost": "City loss sound",
   "settings_sound_harvest": "Manual harvest sounds",
   "settings_fullscreen": "Fullscreen",
   "settings_force_menu_position": "Menu at bottom",

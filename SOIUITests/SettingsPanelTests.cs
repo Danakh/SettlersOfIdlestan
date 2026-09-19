@@ -166,6 +166,7 @@ internal static class RealSettingsSnapshot
         Toggle("soundToast", "Bruitages des notifications", SkiaLayer.SettingsTab.Sound),
         Toggle("soundAchievement", "Fanfare des succès", SkiaLayer.SettingsTab.Sound),
         Toggle("soundCity", "Bruitages de fondation de villes", SkiaLayer.SettingsTab.Sound),
+        Toggle("soundCityLost", "Bruitage de perte de ville", SkiaLayer.SettingsTab.Sound),
         Toggle("soundHarvest", "Bruitages de récolte manuelle", SkiaLayer.SettingsTab.Sound),
     ],
     [
