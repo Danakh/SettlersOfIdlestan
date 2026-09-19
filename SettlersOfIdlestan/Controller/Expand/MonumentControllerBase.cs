@@ -13,7 +13,8 @@ namespace SettlersOfIdlestan.Controller.Island
     /// <summary>
     /// Squelette commun à tous les contrôleurs de Monument (Merveille, Grand Phare, Observatoire,
     /// Nécropole, Mine Profonde, Percée de Surface, Spire de Corruption, Faille des Abysses, Portail
-    /// du Pandémonium) : abonnement à l'horloge, cycle d'investissement par tick, pose de la feature
+    /// du Pandémonium) : abonnement à l'horloge, cycle d'investissement par tick, pose de la feature,
+    /// destruction de celles que le joueur a cessé de voir (voir <see cref="LostToDarknessMessageKey"/>)
     /// et liste des hexes recevables autour des villes du joueur.
     ///
     /// <para>Les dix contrôleurs étaient des copies quasi conformes les uns des autres ; seuls les
@@ -54,6 +55,11 @@ namespace SettlersOfIdlestan.Controller.Island
 
         private void OnClockAdvanced(object? sender, GameClockAdvancedEventArgs e)
         {
+            // Avant l'investissement : inutile d'y verser les ressources du tick dans un monument
+            // que le même tick s'apprête à détruire.
+            try { DestroyIfLostToDarkness(); }
+            catch (Exception ex) { GameLog.Error(GetType().Name, nameof(DestroyIfLostToDarkness), ex); }
+
             // Le nom de source loggué est celui du type concret (GetType().Name), pas celui de la
             // base : c'est le contrôleur fautif que l'on veut lire dans le journal.
             try { ProcessInvestment(); }
@@ -70,6 +76,51 @@ namespace SettlersOfIdlestan.Controller.Island
 
         /// <summary>Le monument piloté, ou null s'il n'est pas encore posé.</summary>
         protected TFeature? FindFeature() => _state?.GetFirstFeature<TFeature>();
+
+        /// <summary>
+        /// True si l'hexagone est actuellement révélé au joueur — une de ses villes ou de ses routes
+        /// l'éclaire (voir <see cref="VisibleIslandMap"/>). Une couche vidée de ses tuiles (perte de
+        /// l'Inframonde, de l'Abysse…) ne révèle plus rien : tous ses hexagones y répondent faux.
+        /// </summary>
+        protected bool IsHexVisibleToPlayer(HexCoord hex)
+            => _state != null
+               && _state.Visibility.GetForZ(hex.Z).TryGetValue(_state.PlayerCivilization.Index, out var visibleMap)
+               && visibleMap.GetTile(hex) != null;
+
+        /// <summary>
+        /// Clé de localisation du corps d'annonce à journaliser quand ce monument est détruit pour
+        /// avoir cessé d'être visible (voir <see cref="GameEventType.MonumentLostToDarkness"/>), ou
+        /// null — le défaut — pour les monuments qui survivent à l'obscurité.
+        ///
+        /// <para>Seules la Spire de Corruption et la Faille des Abysses la redéfinissent : elles se
+        /// posent sur un hexagone simplement visible, pas forcément adjacent à une ville, et rien ne
+        /// les rattache donc à la carte du joueur une fois la vue perdue. Invisibles, elles
+        /// resteraient indéfiniment dans le monde — bonus de prestige de nettoyage toujours acquis,
+        /// panneau injoignable, et nouvelle Spire interdite puisqu'il ne peut y en avoir qu'une.</para>
+        /// </summary>
+        protected virtual string? LostToDarknessMessageKey => null;
+
+        /// <summary>
+        /// Effets propres au contrôleur après une destruction par perte de vue (événement public à
+        /// relever…). L'entrée de journal et le retrait de la feature sont déjà faits.
+        /// </summary>
+        protected virtual void OnLostToDarkness(TFeature monument) { }
+
+        /// <summary>
+        /// Détruit le monument dont l'hexagone n'est plus visible du joueur, quand son type le veut
+        /// (voir <see cref="LostToDarknessMessageKey"/>). Ne touche à rien d'autre : la couche qu'il
+        /// a ouverte, elle, continue d'exister tant que le joueur y a des villes.
+        /// </summary>
+        private void DestroyIfLostToDarkness()
+        {
+            if (_state == null || LostToDarknessMessageKey is not string messageKey) return;
+            var monument = FindFeature();
+            if (monument == null || IsHexVisibleToPlayer(monument.Position)) return;
+
+            _state.RemoveFeature(monument);
+            _state.EventLog.Add(GameEventType.MonumentLostToDarkness, message: messageKey, toast: true);
+            OnLostToDarkness(monument);
+        }
 
         /// <summary>
         /// Un cycle d'investissement : prélève les ressources dues et, si l'objectif courant est

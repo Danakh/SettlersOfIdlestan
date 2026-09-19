@@ -1590,6 +1590,10 @@ public sealed class GameScreen : IDisposable
                 _localizationService.Get("event_military_vertex_lost_to_terrain_title"),
                 _localizationService.Get(entry.Message ?? "event_military_vertex_lost_to_terrain_beacon_body"),
                 NotificationIcon.StoreFail),
+            GameEventType.MonumentLostToDarkness => (
+                _localizationService.Get("event_monument_lost_to_darkness_title"),
+                _localizationService.Get(entry.Message ?? "event_monument_lost_to_darkness_spire_body"),
+                NotificationIcon.StoreFail),
             _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
         };
     }

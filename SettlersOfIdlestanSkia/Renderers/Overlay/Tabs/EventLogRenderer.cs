@@ -280,6 +280,10 @@ public sealed class EventLogRenderer : IDisposable
             EventLogTone.Danger,
             _localization.Get("event_military_vertex_lost_to_terrain_title"),
             _localization.Get(entry.Message ?? "event_military_vertex_lost_to_terrain_beacon_body")),
+        GameEventType.MonumentLostToDarkness => (
+            EventLogTone.Danger,
+            _localization.Get("event_monument_lost_to_darkness_title"),
+            _localization.Get(entry.Message ?? "event_monument_lost_to_darkness_spire_body")),
         GameEventType.CorruptionSpirePlaced => (
             EventLogTone.Discovery,
             _localization.Get("event_corruption_spire_placed_title"),

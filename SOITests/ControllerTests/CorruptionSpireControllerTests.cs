@@ -347,6 +347,59 @@ namespace SOITests.ControllerTests
             Assert.Contains(state.Features.OfType<Corruption>(), f => f.Position.Equals(UnderworldHex));
         }
 
+        /// <summary>
+        /// Perdre de vue l'hexagone de la Spire la détruit : la Spire se pose sur n'importe quelle
+        /// Source de Corruption visible, et rien ne la rattache plus à la carte du joueur une fois
+        /// la dernière ville de l'Inframonde tombée. Sans ce nettoyage elle conserverait le bonus de
+        /// prestige et interdirait d'en replacer une, depuis un panneau devenu injoignable.
+        /// </summary>
+        [Fact]
+        public void Spire_HexNoLongerVisible_IsDestroyed()
+        {
+            var (state, clock, controller) = CreateSetup();
+            var civ = state.PlayerCivilization;
+            UnlockAbyss(civ, CorruptionSpireController.AbyssUnlockThreshold);
+
+            var spire = controller.PlaceCorruptionSpire(UnderworldHex)!;
+            foreach (var kvp in CorruptionSpire.GetSpireCost())
+            {
+                spire.InvestedResources[kvp.Key] = kvp.Value;
+                spire.InvestmentEnabled.Add(kvp.Key);
+            }
+            clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks);
+            Assert.True(spire.Built);
+
+            bool destroyedEventRaised = false;
+            controller.OnCorruptionSpireDestroyed += (_, _) => destroyedEventRaised = true;
+
+            // Dernier avant-poste de l'Inframonde détruit : plus aucune ville ni route n'éclaire
+            // l'hex de la Spire (recalcul de visibilité comme le fait CityBuilderController.DestroyCity).
+            var outpost = civ.Cities.Single(c => c.Position.Z == LayerState.UnderworldZ);
+            civ.RemoveCity(outpost);
+            state.Visibility.RecalculateFor(civ.Index);
+
+            clock.SimulateAdvance(1);
+
+            Assert.Empty(state.Features.OfType<CorruptionSpire>());
+            Assert.False(controller.HasCorruptionSpireBuilt());
+            Assert.True(destroyedEventRaised);
+            Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.MonumentLostToDarkness);
+            // Une nouvelle Spire redevient posable, sur une Source que le joueur voit.
+            Assert.True(controller.CanPlaceCorruptionSpire(civ));
+        }
+
+        [Fact]
+        public void Spire_HexStillVisible_Survives()
+        {
+            var (state, clock, controller) = CreateSetup();
+            controller.PlaceCorruptionSpire(UnderworldHex);
+
+            clock.SimulateAdvance(CorruptionSpireController.InvestmentIntervalTicks * 5);
+
+            Assert.Single(state.Features.OfType<CorruptionSpire>());
+            Assert.DoesNotContain(state.EventLog.Entries, e => e.Type == GameEventType.MonumentLostToDarkness);
+        }
+
         [Fact]
         public void PlaceCorruptionSpire_AutomationActiveAndAllResourcesProducible_AutoStartsInvestment()
         {

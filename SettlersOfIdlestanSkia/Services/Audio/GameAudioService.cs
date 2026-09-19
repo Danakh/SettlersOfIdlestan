@@ -214,6 +214,7 @@ public sealed class GameAudioService : IDisposable
         {
             GameEventType.CityLostToTerrain                    => SoundId.ToastLoss,
             GameEventType.MilitaryVertexLostToTerrain          => SoundId.ToastLoss,
+            GameEventType.MonumentLostToDarkness               => SoundId.ToastLoss,
             GameEventType.AbyssGateLost                        => SoundId.ToastLoss,
             GameEventType.AbyssLostDivineEssence               => SoundId.ToastLoss,
             GameEventType.PandemoniumGateLost                  => SoundId.ToastLoss,

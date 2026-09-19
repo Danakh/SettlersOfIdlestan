@@ -274,6 +274,49 @@ namespace SOITests.ControllerTests
             Assert.False(state.Layers.ContainsKey(LayerState.AbyssZ));
         }
 
+        /// <summary>
+        /// La Faille siège dans l'Inframonde : perdre de vue son hexagone la détruit, exactement
+        /// comme la Spire qu'elle remplace. L'Abysse qu'elle a ouvert, lui, continue d'exister tant
+        /// que le joueur y a des villes — ce n'est pas une perte de couche (AbyssGateLost), et aucune
+        /// carte neuve n'est regénérée.
+        /// </summary>
+        [Fact]
+        public void AbyssGate_HexNoLongerVisible_IsDestroyedButAbyssSurvives()
+        {
+            var (state, clock, spireController, gateController) = CreateSetup(
+                maxCorruptionLevelCleared: AbyssGate.RequiredCorruptionLevel, godState: new GodState());
+            var civ = state.PlayerCivilization;
+            var spire = spireController.PlaceCorruptionSpire(UnderworldHex)!;
+            BuildSpireInstantly(state, spire);
+            var gate = gateController.PlaceAbyssGate()!;
+
+            foreach (var kvp in AbyssGate.GetGateCost())
+            {
+                gate.InvestedResources[kvp.Key] = kvp.Value;
+                gate.InvestmentEnabled.Add(kvp.Key);
+            }
+            clock.SimulateAdvance(AbyssGateController.InvestmentIntervalTicks);
+            Assert.True(gate.Built);
+            var abyssOutpost = civ.Cities.Single(c => c.Position.Z == LayerState.AbyssZ);
+            int abyssTiles = state.Layers[LayerState.AbyssZ].Map.Tiles.Count;
+
+            // Dernier avant-poste de l'Inframonde détruit : plus rien n'éclaire l'hex de la Faille.
+            var underworldOutpost = civ.Cities.Single(c => c.Position.Z == LayerState.UnderworldZ);
+            civ.RemoveCity(underworldOutpost);
+            state.Visibility.RecalculateFor(civ.Index);
+
+            clock.SimulateAdvance(AbyssGateController.InvestmentIntervalTicks);
+
+            Assert.Empty(state.Features.OfType<AbyssGate>());
+            Assert.False(gateController.HasAbyssGateBuilt());
+            Assert.Contains(state.EventLog.Entries, e => e.Type == GameEventType.MonumentLostToDarkness);
+
+            // L'Abysse tient : même carte, même avant-poste, et pas de perte de couche annoncée.
+            Assert.Equal(abyssTiles, state.Layers[LayerState.AbyssZ].Map.Tiles.Count);
+            Assert.Contains(abyssOutpost, civ.Cities);
+            Assert.DoesNotContain(state.EventLog.Entries, e => e.Type == GameEventType.AbyssGateLost);
+        }
+
         [Fact]
         public void CorruptionSpireController_RaisesAbyssGateEligibleToast_WhenSpireFinishesAndCleanupRecordAlreadyAtThreshold()
         {

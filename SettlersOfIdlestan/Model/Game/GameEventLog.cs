@@ -183,6 +183,14 @@ public enum GameEventType
     /// elle ne gardait pas l'Abysse. Même annonce que <see cref="TentacleDefeated"/> sans l'ouverture.
     /// </summary>
     TentacleDefeatedNoGate,
+
+    /// <summary>
+    /// Une Spire de Corruption ou une Faille des Abysses a été détruite parce que son hexagone n'est
+    /// plus visible du joueur — plus aucune ville ni route pour l'éclairer, typiquement après la
+    /// perte de l'Inframonde. Voir CorruptionSpireController.DestroyMonumentLostToDarkness.
+    /// Message = clé de localisation nommant la structure perdue.
+    /// </summary>
+    MonumentLostToDarkness,
 }
 
 /// <param name="Message">

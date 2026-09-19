@@ -45,6 +45,18 @@ namespace SettlersOfIdlestan.Controller.Expand
         protected override bool IsInvestmentComplete(CorruptionSpire spire) => spire.Built;
 
         /// <summary>
+        /// La Spire se pose sur n'importe quelle Source de Corruption visible, pas nécessairement
+        /// adjacente à une ville (voir <see cref="GetPlaceableHexes"/>) : perdre de vue son hexagone
+        /// — dernière ville de l'Inframonde détruite, route coupée — la détruit. La laisser vivre
+        /// dans le noir lui aurait conservé le bonus de prestige de nettoyage, tout en interdisant
+        /// d'en replacer une (une seule Spire par île) depuis un panneau devenu injoignable.
+        /// </summary>
+        protected override string? LostToDarknessMessageKey => "event_monument_lost_to_darkness_spire_body";
+
+        protected override void OnLostToDarkness(CorruptionSpire spire)
+            => OnCorruptionSpireDestroyed?.Invoke(this, EventArgs.Empty);
+
+        /// <summary>
         /// Construction achevée : la Source de Corruption sous la Spire est détruite, ce qui active le
         /// bonus de prestige de nettoyage tant que la Spire reste sur l'île (voir
         /// PrestigeController.GetCorruptionClearBonusMultiplier — dérivé du niveau de corruption du

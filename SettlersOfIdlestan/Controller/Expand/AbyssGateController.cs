@@ -46,6 +46,19 @@ namespace SettlersOfIdlestan.Controller.Expand
 
         protected override bool IsInvestmentComplete(AbyssGate gate) => gate.Built;
 
+        /// <summary>
+        /// Comme la Spire qu'elle remplace, la Faille est détruite dès que son hexagone cesse d'être
+        /// visible du joueur — elle siège dans l'Inframonde, qui peut se perdre entièrement.
+        ///
+        /// <para>Sa disparition ne referme pas l'Abysse : la couche et ses villes vivent leur vie
+        /// une fois ouvertes, et ne se perdent qu'à la destruction de la dernière ville qui s'y
+        /// trouve (voir <see cref="OnCityDestroyed"/>). <see cref="TryInitializeAbyss"/> n'en
+        /// regénère pas non plus une nouvelle, puisqu'il ne travaille que sans ville d'Abysse.
+        /// Concrètement : le joueur garde son Abysse, mais devra rebâtir une Spire puis une Faille
+        /// s'il veut retrouver le bonus de prestige de nettoyage.</para>
+        /// </summary>
+        protected override string? LostToDarknessMessageKey => "event_monument_lost_to_darkness_abyss_gate_body";
+
         protected override void OnInvestmentCycleCompleted(AbyssGate gate, Civilization playerCiv)
         {
             // Comme la Spire : l'investissement reste affiché à 100% une fois la Faille bâtie.
