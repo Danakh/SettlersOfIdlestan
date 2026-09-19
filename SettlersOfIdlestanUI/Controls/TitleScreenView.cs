@@ -196,6 +196,14 @@ public sealed class TitleScreenView : UserControl
             Margin = new Thickness(0, 18, 0, 0),
             [!TextBlock.TextProperty] = new Binding(nameof(TitleScreenViewModel.CreditsDev)),
         };
+        var sound = new TextBlock
+        {
+            FontSize = 13,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 8, 0, 0),
+            [!TextBlock.TextProperty] = new Binding(nameof(TitleScreenViewModel.CreditsSound)),
+        };
 
         var stack = new StackPanel
         {
@@ -207,6 +215,7 @@ public sealed class TitleScreenView : UserControl
         };
         stack.Children.Add(studio);
         stack.Children.Add(dev);
+        stack.Children.Add(sound);
         return stack;
     }
 

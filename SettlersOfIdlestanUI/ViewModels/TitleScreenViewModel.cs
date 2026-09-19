@@ -56,6 +56,7 @@ public sealed class TitleScreenViewModel : ViewModelBase
     private string _changelogText = "";
     private string _creditsStudio = "";
     private string _creditsDev = "";
+    private string _creditsSound = "";
     private string _discordUrl = "";
     private string _activeTabKey = SkiaLayer.TitleScreenSnapshot.TabChangelog;
 
@@ -78,6 +79,7 @@ public sealed class TitleScreenViewModel : ViewModelBase
     public string ChangelogText { get => _changelogText; private set => SetProperty(ref _changelogText, value); }
     public string CreditsStudio { get => _creditsStudio; private set => SetProperty(ref _creditsStudio, value); }
     public string CreditsDev { get => _creditsDev; private set => SetProperty(ref _creditsDev, value); }
+    public string CreditsSound { get => _creditsSound; private set => SetProperty(ref _creditsSound, value); }
     public string DiscordUrl { get => _discordUrl; private set => SetProperty(ref _discordUrl, value); }
 
     // Les trois onglets s'excluent : exactement un contenu est affiche.
@@ -96,6 +98,7 @@ public sealed class TitleScreenViewModel : ViewModelBase
         ChangelogText = snapshot.ChangelogText;
         CreditsStudio = snapshot.CreditsStudio;
         CreditsDev = snapshot.CreditsDev;
+        CreditsSound = snapshot.CreditsSound;
         DiscordUrl = snapshot.DiscordUrl;
 
         SyncTabs(snapshot.Tabs);

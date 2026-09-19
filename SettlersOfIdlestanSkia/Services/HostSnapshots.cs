@@ -194,12 +194,13 @@ public sealed record TitleScreenSnapshot(
     string ChangelogText,
     string CreditsStudio,
     string CreditsDev,
+    string CreditsSound,
     SettingsPanelSnapshot Settings,
     IReadOnlyList<TitleActionSnapshot> Actions,
     string DiscordUrl)
 {
     public static readonly TitleScreenSnapshot Hidden =
-        new(false, "", [], "", "", "", SettingsPanelSnapshot.Empty, [], "");
+        new(false, "", [], "", "", "", "", SettingsPanelSnapshot.Empty, [], "");
 
     public const string TabChangelog = "changelog";
     public const string TabCredits   = "credits";

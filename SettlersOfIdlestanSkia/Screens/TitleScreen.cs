@@ -139,6 +139,7 @@ public sealed class TitleScreen : IDisposable
             ChangelogText: GetChangelogContent(),
             CreditsStudio: _localization.Get("credits_studio"),
             CreditsDev: _localization.Get("credits_dev"),
+            CreditsSound: _localization.Get("credits_sound"),
             Settings: _settingsPanel.GetSnapshot(_settings, _localization, _allowDebugMode, _canvasSize, _storeController),
             Actions: actions,
             DiscordUrl: DiscordUrl);
