@@ -19,6 +19,19 @@ public class GameSettings
     /// </summary>
     public bool ShowTutorial { get; set; } = true;
     public bool Fullscreen { get; set; } = false;
+
+    /// <summary>
+    /// Interrupteur général des bruitages. Distinct de <see cref="SoundVolume"/> : couper le son
+    /// puis le rétablir doit rendre le volume que le joueur avait réglé, pas zéro.
+    /// </summary>
+    public bool SoundEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Volume des bruitages, de 0 à 1. Sans effet quand <see cref="SoundEnabled"/> est faux.
+    /// La valeur par défaut est celle de <c>GameAudioService.DefaultVolume</c>, qui vit dans la
+    /// couche d'affichage — le modèle ne connaît pas le service audio.
+    /// </summary>
+    public float SoundVolume { get; set; } = 0.6f;
     public bool DemoMode { get; set; } = false;
     public bool CloudSaveEnabled { get; set; } = true;
 

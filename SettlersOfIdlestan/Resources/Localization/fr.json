@@ -8,6 +8,8 @@
   "settings_harvest_cooldown": "Indicateurs de temps de récolte",
   "settings_corruption_dominion": "Corruption et dominion",
   "settings_show_tutorial": "Afficher le tutoriel",
+  "settings_sound_enabled": "Bruitages",
+  "settings_sound_volume": "Volume des bruitages",
   "settings_fullscreen": "Plein écran",
   "settings_force_menu_position": "Menu en bas",
   "settings_ui_scale": "Échelle de l'interface",

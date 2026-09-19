@@ -51,7 +51,10 @@ public sealed class MainWindow : Window
             _runtime.SetLastSaveDirectory);
         // canQuit : ce head a une fenetre a fermer, le menu de l'engrenage peut donc proposer
         // « Quitter le jeu ». QuitRequested est deja branche sur Close plus haut.
-        _runtime.Initialize(fileSystem, allowDebug, demoMode, _storeController, canQuit: true);
+        // Le service audio se construit avant l'initialisation : c'est elle qui charge les
+        // bruitages et applique le volume des reglages relus sur le disque.
+        _runtime.Initialize(fileSystem, allowDebug, demoMode, _storeController, canQuit: true,
+            audioService: new DesktopAudioService());
 
         _host = new GameRuntimeHost(_runtime);
         Content = new GameView(_host);

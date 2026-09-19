@@ -51,7 +51,7 @@ public sealed class TitleScreen : IDisposable
 
     public TitleScreen(IFileSystemService fileSystemService, LocalizationService localization,
         UILayoutService uiLayoutService, ResourceManager resourceManager, bool hasSave, GameSettings? settings = null, bool allowDebugMode = false,
-        StoreController? storeController = null)
+        StoreController? storeController = null, Services.Audio.GameAudioService? audio = null)
     {
         _fileSystemService = fileSystemService;
         _localization      = localization;
@@ -60,7 +60,7 @@ public sealed class TitleScreen : IDisposable
         _settings          = settings ?? new GameSettings();
         _allowDebugMode    = allowDebugMode;
         _storeController   = storeController;
-        _settingsPanel     = new SettingsContentPanel(_uiLayoutService);
+        _settingsPanel     = new SettingsContentPanel(_uiLayoutService, audio);
         _settingsPanel.FullscreenToggleRequested += v => FullscreenToggleRequested?.Invoke(v);
         _settingsPanel.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
         _settingsPanel.UiScaleChanged += v => _uiLayoutService.ManualUiScaleMultiplier =

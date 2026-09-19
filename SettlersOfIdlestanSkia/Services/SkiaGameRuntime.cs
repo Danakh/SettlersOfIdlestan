@@ -20,6 +20,14 @@ public sealed class SkiaGameRuntime : IDisposable
     private UILayoutService?      _uiLayoutService;
     private IFileSystemService?   _fileSystemService;
     private StoreController?      _storeController;
+
+    /// <summary>
+    /// Bruitages, construits une fois pour toute la session à partir de la sortie audio du head.
+    /// Porté ici plutôt que par le GameScreen : il survit aux changements d'écran, et l'écran-titre
+    /// s'en sert pour l'aperçu du réglage de volume. Jamais null, mais muet si le head n'a fourni
+    /// aucune sortie (iOS, tests, outils).
+    /// </summary>
+    private Audio.GameAudioService _audio = new(null);
     private bool                  _allowDebugMode;
     private bool                  _demoMode;
 
@@ -187,23 +195,23 @@ public sealed class SkiaGameRuntime : IDisposable
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
-    public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false, StoreController? storeController = null, bool canQuit = false)
+    public void Initialize(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false, StoreController? storeController = null, bool canQuit = false, Audio.IAudioService? audioService = null)
     {
         var autoJson     = fileSystemService.LoadAuto().GetAwaiter().GetResult();
         var settingsJson = fileSystemService.LoadSettings().GetAwaiter().GetResult();
         var statsJson    = fileSystemService.LoadStats().GetAwaiter().GetResult();
-        InitializeCore(fileSystemService, autoJson, settingsJson, statsJson, allowDebugMode, demoMode, storeController, canQuit);
+        InitializeCore(fileSystemService, autoJson, settingsJson, statsJson, allowDebugMode, demoMode, storeController, canQuit, audioService);
     }
 
-    public async Task InitializeAsync(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false, StoreController? storeController = null, bool canQuit = false)
+    public async Task InitializeAsync(IFileSystemService fileSystemService, bool allowDebugMode = false, bool demoMode = false, StoreController? storeController = null, bool canQuit = false, Audio.IAudioService? audioService = null)
     {
         var autoJson     = await fileSystemService.LoadAuto();
         var settingsJson = await fileSystemService.LoadSettings();
         var statsJson    = await fileSystemService.LoadStats();
-        InitializeCore(fileSystemService, autoJson, settingsJson, statsJson, allowDebugMode, demoMode, storeController, canQuit);
+        InitializeCore(fileSystemService, autoJson, settingsJson, statsJson, allowDebugMode, demoMode, storeController, canQuit, audioService);
     }
 
-    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, string? settingsJson, string? statsJson, bool allowDebugMode, bool demoMode = false, StoreController? storeController = null, bool canQuit = false)
+    private void InitializeCore(IFileSystemService fileSystemService, string? autoJson, string? settingsJson, string? statsJson, bool allowDebugMode, bool demoMode = false, StoreController? storeController = null, bool canQuit = false, Audio.IAudioService? audioService = null)
     {
         if (_isDisposed)    throw new ObjectDisposedException(nameof(SkiaGameRuntime));
         if (_isInitialized) return;
@@ -217,6 +225,7 @@ public sealed class SkiaGameRuntime : IDisposable
         _resourceManager     = new ResourceManager();
         _localizationService = new LocalizationService();
         _uiLayoutService     = new UILayoutService();
+        _audio               = new Audio.GameAudioService(audioService);
 
         var parsedSettings = ParseSettings(settingsJson);
 
@@ -244,6 +253,7 @@ public sealed class SkiaGameRuntime : IDisposable
         // et l'écran-titre y afficherait encore ses textes de démo. GameScreen fait de même sur
         // les réglages de la partie.
         _titleSettings.DemoMode = _demoMode;
+        _audio.ApplySettings(_titleSettings);
         _localizationService.SetLanguage(_titleSettings.Language);
         SkiaTextUtils.NumberFormat = _titleSettings.NumberFormat;
 
@@ -258,7 +268,7 @@ public sealed class SkiaGameRuntime : IDisposable
     private void ShowTitleScreen(bool hasSave)
     {
         _titleScreen?.Dispose();
-        _titleScreen = new TitleScreen(_fileSystemService!, _localizationService!, _uiLayoutService!, _resourceManager!, hasSave, _titleSettings, _allowDebugMode, _storeController);
+        _titleScreen = new TitleScreen(_fileSystemService!, _localizationService!, _uiLayoutService!, _resourceManager!, hasSave, _titleSettings, _allowDebugMode, _storeController, _audio);
         _titleScreen.NewGameRequested          += OnNewGameRequested;
         _titleScreen.ContinueRequested         += OnContinueRequested;
         _titleScreen.DiscordLinkClicked        += url => DiscordLinkClicked?.Invoke(url);
@@ -290,7 +300,8 @@ public sealed class SkiaGameRuntime : IDisposable
             // de masquer. L'instance est partagée avec le runtime, dont l'écran-titre est détruit
             // juste au-dessus — elle est reconstruite au retour au menu (OnReturnToTitle).
             titleSettings: _titleSettings,
-            canQuit: _canQuit);
+            canQuit: _canQuit,
+            audio: _audio);
         _gameScreen.ReturnToTitleRequested     += OnReturnToTitle;
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
@@ -321,7 +332,8 @@ public sealed class SkiaGameRuntime : IDisposable
             _storeController,
             statsJson: _statsJson,
             runSynchronized: _stateSynchronizer,
-            canQuit: _canQuit);
+            canQuit: _canQuit,
+            audio: _audio);
         _gameScreen.ReturnToTitleRequested     += OnReturnToTitle;
         _gameScreen.QuitRequested              += () => QuitRequested?.Invoke();
         _gameScreen.FullscreenToggleRequested  += v => FullscreenStateChanged?.Invoke(v);
@@ -742,6 +754,9 @@ public sealed class SkiaGameRuntime : IDisposable
         _titleScreen?.Dispose();
         _gameScreen?.Dispose();
         _resourceManager?.Dispose();
+        // Ferme le périphérique audio du head : sans cela, le thread de mixage de miniaudio
+        // survit à la fenêtre et retient le processus.
+        _audio.Dispose();
         _titleScreen     = null;
         _gameScreen      = null;
         _resourceManager = null;

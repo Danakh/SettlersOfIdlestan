@@ -24,6 +24,13 @@ public sealed class SettingsContentPanel
 
     private readonly UILayoutService _uiLayout;
 
+    /// <summary>
+    /// Service audio, ou null pour un head muet. Sert à deux choses : appliquer immédiatement le
+    /// réglage que le joueur vient de changer (sans quoi il faudrait attendre la frame suivante)
+    /// et lui faire entendre le résultat.
+    /// </summary>
+    private readonly Services.Audio.GameAudioService? _audio;
+
     private string _debugResolutionText     = "";
     private bool   _debugResolutionFocused;
 
@@ -34,9 +41,25 @@ public sealed class SettingsContentPanel
     public event Action<float>? UiScaleChanged;
     public event Action<int, int>? DebugWindowResizeRequested;
 
-    public SettingsContentPanel(UILayoutService uiLayout)
+    public SettingsContentPanel(UILayoutService uiLayout, Services.Audio.GameAudioService? audio = null)
     {
         _uiLayout = uiLayout;
+        _audio = audio;
+    }
+
+    /// <summary>
+    /// Applique le réglage sonore qui vient de changer et le fait entendre. L'aperçu est le son
+    /// d'information, le plus neutre : un volume se règle à l'oreille, et attendre le prochain
+    /// toast pour savoir où l'on a mis le curseur ne marche pas.
+    ///
+    /// <para>Passe par <c>Play</c>, donc par l'intervalle minimum entre deux passages du même
+    /// son : glisser le curseur émet un instantané régulier plutôt qu'un son par pixel parcouru.</para>
+    /// </summary>
+    private void PreviewSound(GameSettings settings)
+    {
+        if (_audio == null) return;
+        _audio.ApplySettings(settings);
+        if (settings.SoundEnabled) _audio.Play(Services.Audio.SoundId.ToastInfo);
     }
 
     private static SettingRowSnapshot Toggle(string key, string label, bool value, bool enabled = true) =>
@@ -78,6 +101,13 @@ public sealed class SettingsContentPanel
             Toggle(SettingsPanelSnapshot.KeyHarvestCooldown, localization.Get("settings_harvest_cooldown"), settings.ShowHarvestCooldown),
             Toggle(SettingsPanelSnapshot.KeyCorruptionDominion, localization.Get("settings_corruption_dominion"), settings.ShowCorruptionDominion),
             Toggle(SettingsPanelSnapshot.KeyShowTutorial, localization.Get("settings_show_tutorial"), settings.ShowTutorial),
+            Toggle(SettingsPanelSnapshot.KeySoundEnabled, localization.Get("settings_sound_enabled"), settings.SoundEnabled),
+            // Le curseur de volume reste visible, mais grisé, quand le son est coupé : l'effacer
+            // ferait sauter toutes les lignes suivantes d'un cran à chaque bascule.
+            new(SettingsPanelSnapshot.KeySoundVolume, localization.Get("settings_sound_volume"), SettingRowKind.Slider,
+                IsEnabled: settings.SoundEnabled, ToggleValue: false, Choices: [],
+                SliderValue: settings.SoundVolume, SliderMin: 0, SliderMax: 1,
+                SliderText: $"{settings.SoundVolume * 100:0} %", TextValue: ""),
             new(SettingsPanelSnapshot.KeyUiScale, localization.Get("settings_ui_scale"), SettingRowKind.Slider,
                 IsEnabled: true, ToggleValue: false, Choices: [],
                 SliderValue: uiScale, SliderMin: UiScaleMin, SliderMax: UiScaleMax,
@@ -142,6 +172,10 @@ public sealed class SettingsContentPanel
             case SettingsPanelSnapshot.KeyShowTutorial:
                 settings.ShowTutorial = !settings.ShowTutorial;
                 break;
+            case SettingsPanelSnapshot.KeySoundEnabled:
+                settings.SoundEnabled = !settings.SoundEnabled;
+                PreviewSound(settings);
+                break;
             // Sans store connecte, la sauvegarde cloud n'a pas d'objet : la ligne est grisee et
             // le clic reste sans effet, comme dans le rendu Skia.
             case SettingsPanelSnapshot.KeyCloudSave:
@@ -179,11 +213,23 @@ public sealed class SettingsContentPanel
     /// <summary>Applique la valeur d'un curseur depuis la vue de l'hote.</summary>
     public void SetSliderFromHost(string key, double value, GameSettings settings)
     {
-        if (key != SettingsPanelSnapshot.KeyUiScale) return;
-        float clamped = Math.Clamp((float)value, UiScaleMin, UiScaleMax);
-        settings.UiScale = clamped;
-        _pendingUiScaleValue = null;
-        UiScaleChanged?.Invoke(clamped);
+        switch (key)
+        {
+            case SettingsPanelSnapshot.KeyUiScale:
+                float clamped = Math.Clamp((float)value, UiScaleMin, UiScaleMax);
+                settings.UiScale = clamped;
+                _pendingUiScaleValue = null;
+                UiScaleChanged?.Invoke(clamped);
+                break;
+
+            case SettingsPanelSnapshot.KeySoundVolume:
+                // La ligne est grisée quand le son est coupé, mais rien n'empêche une vue de
+                // pousser quand même une valeur : on refuse ici plutôt que de compter sur elle.
+                if (!settings.SoundEnabled) break;
+                settings.SoundVolume = Math.Clamp((float)value, 0f, 1f);
+                PreviewSound(settings);
+                break;
+        }
     }
 
     /// <summary>Applique le texte d'un champ depuis la vue de l'hote (resolution de debogage).</summary>

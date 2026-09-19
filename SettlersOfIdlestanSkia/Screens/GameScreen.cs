@@ -45,6 +45,12 @@ public sealed class GameScreen : IDisposable
     /// </summary>
     private readonly bool _canQuit;
 
+    /// <summary>
+    /// Bruitages, ou null pour un head muet. Porté par le runtime plutôt que par cet écran :
+    /// l'écran-titre s'en sert aussi, pour l'aperçu du réglage de volume.
+    /// </summary>
+    private readonly Services.Audio.GameAudioService? _audio;
+
     private HarvestService? _harvestService;
     private ConstructionInteractionService? _constructionInteractionService;
     private IslandMainRenderer? _islandMainRenderer;
@@ -139,9 +145,11 @@ public sealed class GameScreen : IDisposable
         string? statsJson = null,
         Action<Action>? runSynchronized = null,
         GameSettings? titleSettings = null,
-        bool canQuit = false)
+        bool canQuit = false,
+        Services.Audio.GameAudioService? audio = null)
     {
         _canQuit              = canQuit;
+        _audio                = audio;
         _runSynchronized      = runSynchronized;
         _fileSystemService    = fileSystemService;
         _localizationService  = localizationService;
@@ -322,7 +330,7 @@ public sealed class GameScreen : IDisposable
 
         var selectedMonumentPanelRenderer = new SelectedMonumentPanelRenderer(_monumentService, _localizationService, _gameControllerService);
 
-        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _uiLayoutService, allowDebugMode, _storeController);
+        var settingsPopupRenderer = new SettingsPopupRenderer(_gameControllerService.MainGameController, _localizationService, _uiLayoutService, allowDebugMode, _storeController, _audio);
         settingsPopupRenderer.FullscreenToggleRequested  += v => FullscreenToggleRequested?.Invoke(v);
         settingsPopupRenderer.UiScaleChanged             += ApplyManualUiScale;
         settingsPopupRenderer.DebugWindowResizeRequested += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);
@@ -451,6 +459,17 @@ public sealed class GameScreen : IDisposable
 
         _gameControllerService.MainGameController.CityBuilderController.OnCityDestroyed += OnCityDestroyedCheckGameOver;
         _gameControllerService.MainGameController.PandemoniumGateController.OnDemonGodDefeated += OnDemonGodDefeated;
+
+        // Les bruitages s'abonnent aux mêmes événements que les particules, avec le même filtre :
+        // une simulation qui défile (saut de temps, fondu de prestige, intro) ne doit rien émettre.
+        // Le rattrapage hors-ligne, lui, passe par l'horloge normale et reste audible — c'est
+        // l'intervalle minimum par son qui l'empêche de tourner à la mitraille.
+        _audio?.Connect(
+            _gameControllerService,
+            _harvestService,
+            () => _prestigeTransitionPending
+                  || _gameControllerService.TimeJump.IsActive
+                  || _introRenderer?.IsActive == true);
     }
 
     /// <summary>Instantané des toasts pour une vue portée par l'hôte.</summary>
@@ -781,6 +800,12 @@ public sealed class GameScreen : IDisposable
         }
 
         _gameControllerService.Update(deltaTime);
+
+        // Relu à chaque frame plutôt qu'au changement : les réglages sonores se modifient depuis
+        // le popup en jeu comme depuis l'écran-titre, et une partie chargée apporte les siens.
+        // Deux affectations coûtent moins cher que de suivre tous ces chemins.
+        _audio?.ApplySettings(GetCurrentSettings());
+
         DrainEventToasts();
 
         // Les toasts sont dessinés par l'hôte : leur Render ne tourne plus, c'est donc la boucle
@@ -1549,6 +1574,10 @@ public sealed class GameScreen : IDisposable
             _ => (entry.Type.ToString(), entry.Message ?? string.Empty, NotificationIcon.Info)
         };
         _notificationToastRenderer.ShowNotification(title, message, icon);
+
+        // L'icône que le switch vient de choisir sert de classement par défaut au son — voir
+        // GameAudioService.PlayForToast, qui ne liste que les événements qu'elle range mal.
+        _audio?.PlayForToast(entry.Type, icon);
     }
 
     private void OnAchievementUnlocked(object? sender, AchievementId id)
@@ -1558,6 +1587,7 @@ public sealed class GameScreen : IDisposable
         string title   = _localizationService.Get("notification_achievement_title");
         string message = def != null ? _localizationService.Get(def.NameKey) : id.ToString();
         _notificationToastRenderer.ShowNotification(title, message, NotificationIcon.Achievement);
+        _audio?.Play(Services.Audio.SoundId.Achievement);
     }
 
     private void OnCityDestroyedCheckGameOver(object? sender, SettlersOfIdlestan.Controller.Island.CityDestroyedEventArgs e)

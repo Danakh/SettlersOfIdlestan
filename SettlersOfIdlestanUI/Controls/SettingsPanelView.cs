@@ -155,6 +155,10 @@ public sealed class SettingsPanelView : UserControl
                 [!Slider.MinimumProperty] = new Binding(nameof(SettingRowViewModel.SliderMin)),
                 [!Slider.MaximumProperty] = new Binding(nameof(SettingRowViewModel.SliderMax)),
                 [!Slider.ValueProperty] = new Binding(nameof(SettingRowViewModel.SliderValue)),
+                // Comme la bascule : un curseur sans objet (le volume quand le son est coupe) se
+                // grise et ne bouge plus. Sans cela il se laissait tirer, puis revenait a sa
+                // valeur au tick suivant — l'instantane, lui, refuse deja la nouvelle valeur.
+                [!IsEnabledProperty] = new Binding(nameof(SettingRowViewModel.IsEnabled)),
                 TickFrequency = 0.1,
                 IsSnapToTickEnabled = true,
             };

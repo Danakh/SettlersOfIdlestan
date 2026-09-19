@@ -14,6 +14,18 @@ using static SettlersOfIdlestan.Model.GameplayModifier.Modifier;
 
 namespace SettlersOfIdlestan.Controller.Military;
 
+/// <summary>
+/// Un monstre vient de porter un coup à un emplacement militaire (ville, Flotte de Guerre, Camp
+/// Mobile). Pendant côté monstre de <see cref="SoldierAttackEventArgs"/>.
+/// </summary>
+public class MonsterAttackEventArgs(HexCoord monsterPosition, Vertex targetVertex) : EventArgs
+{
+    public HexCoord MonsterPosition { get; } = monsterPosition;
+
+    /// <summary>Cible touchée. L'abonné y reconnaît, ou non, un de ses propres emplacements.</summary>
+    public Vertex TargetVertex { get; } = targetVertex;
+}
+
 public class MonsterFeatureController
 {
     private WorldState? _state;
@@ -33,6 +45,17 @@ public class MonsterFeatureController
 
     /// <summary>Un consommable (Armure d'Acier) a été détruit pour sauver un soldat lors d'une attaque de monstre. Les Potions de Force ne servent qu'en attaque et ne sont jamais bues ici.</summary>
     public event EventHandler<ConsumableConsumedEventArgs>? ConsumableConsumed;
+
+    /// <summary>
+    /// Coup porté par un monstre sur un emplacement militaire : une occurrence par cible touchée
+    /// dans la volée qui vient d'être résolue, tous propriétaires confondus — c'est à l'abonné de
+    /// reconnaître les siens (voir GameAudioService).
+    ///
+    /// <para>Existe pour le seul retour au joueur. Le rendu des boules de feu, lui, ne s'y abonne
+    /// pas : il relit <see cref="MonsterFeature.LastAttackImpacts"/> à chaque frame, parce qu'une
+    /// particule doit rester visible plusieurs frames après le tick qui l'a produite. Un son, non.</para>
+    /// </summary>
+    public event EventHandler<MonsterAttackEventArgs>? MonsterAttackedVertex;
 
     internal void Initialize(WorldState? state, GameClock? clock, GamePRNG? prng = null, CityBuilderController? cityBuilderController = null, PrestigeState? prestigeState = null, WarFleetController? warFleetController = null, MobileCampController? mobileCampController = null, BuildingController? buildingController = null, MilitaryController? militaryController = null)
     {
@@ -793,6 +816,15 @@ public class MonsterFeatureController
         {
             monster.LastAttackTick = currentTick;
             SetPrimaryAttackTarget(monster);
+
+            // Signalé une fois la volée entière résolue, en relisant ses impacts : les émettre au
+            // coup par coup depuis ApplyMonsterAttack ferait sonner trois fois une salve concentrée
+            // sur la même ville. Les impacts sur un monstre (Hex, pas Vertex) ne concernent pas le
+            // joueur, qui n'en possède aucun — l'Aventurier et le Titan se défendent seuls.
+            var impacts = monster.LastAttackImpacts;
+            for (int i = 0; i < impacts.Count; i++)
+                if (impacts[i].Vertex is { } hitVertex)
+                    MonsterAttackedVertex?.Invoke(this, new MonsterAttackEventArgs(monster.Position, hitVertex));
         }
     }
 

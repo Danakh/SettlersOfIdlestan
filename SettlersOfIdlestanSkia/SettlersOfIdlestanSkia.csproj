@@ -13,6 +13,8 @@
     <EmbeddedResource Include="Resources\icons\**\*.svg" />
     <EmbeddedResource Include="Resources\fonts\*.ttf" />
     <EmbeddedResource Include="Resources\changelog\*.txt" />
+    <!-- Bruitages, generes par assets\sounds\generate_sounds.py : voir SoundBank. -->
+    <EmbeddedResource Include="Resources\sounds\*.wav" />
   </ItemGroup>
 
   <PropertyGroup>

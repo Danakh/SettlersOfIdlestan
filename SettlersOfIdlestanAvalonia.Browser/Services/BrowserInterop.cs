@@ -93,4 +93,20 @@ internal static partial class BrowserInterop
     [JSImport("registerFullscreenHandler", Module)]
     public static partial void RegisterFullscreenHandler(
         [JSMarshalAs<JSType.Function<JSType.Boolean>>] Action<bool> onChanged);
+
+    // ── Bruitages ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Confie un WAV a Web Audio, qui le decode de son cote. Le decodage etant asynchrone, le son
+    /// n'est pas forcement jouable au retour de cet appel — quelques dizaines de millisecondes au
+    /// demarrage, pendant lesquelles un declenchement est ignore sans bruit.
+    /// </summary>
+    [JSImport("audioLoad", Module)]
+    public static partial void AudioLoad(string name, byte[] wav);
+
+    [JSImport("audioPlay", Module)]
+    public static partial void AudioPlay(string name, float volume);
+
+    [JSImport("audioClose", Module)]
+    public static partial void AudioClose();
 }

@@ -261,6 +261,8 @@ public sealed record SettingsPanelSnapshot(IReadOnlyList<SettingRowSnapshot> Row
     public const string KeyHarvestCooldown     = "harvestCooldown";
     public const string KeyCorruptionDominion  = "corruptionDominion";
     public const string KeyShowTutorial        = "showTutorial";
+    public const string KeySoundEnabled        = "soundEnabled";
+    public const string KeySoundVolume         = "soundVolume";
     public const string KeyUiScale             = "uiScale";
     public const string KeyCloudSave           = "cloudSave";
     public const string KeyNumberFormat        = "numberFormat";

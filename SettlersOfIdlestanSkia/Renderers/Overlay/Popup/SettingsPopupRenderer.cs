@@ -20,13 +20,13 @@ public sealed class SettingsPopupRenderer : PopupRendererBase
     public event Action<float>? UiScaleChanged;
     public event Action<int, int>? DebugWindowResizeRequested;
 
-    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, UILayoutService uiLayout, bool allowDebugMode = false, StoreController? storeController = null)
+    public SettingsPopupRenderer(MainGameController gameController, LocalizationService localization, UILayoutService uiLayout, bool allowDebugMode = false, StoreController? storeController = null, Services.Audio.GameAudioService? audio = null)
     {
         _gameController    = gameController;
         _localization      = localization;
         _allowDebugMode    = allowDebugMode;
         _storeController   = storeController;
-        _contentPanel      = new SettingsContentPanel(uiLayout);
+        _contentPanel      = new SettingsContentPanel(uiLayout, audio);
         _contentPanel.FullscreenToggleRequested    += v => FullscreenToggleRequested?.Invoke(v);
         _contentPanel.UiScaleChanged                += v => UiScaleChanged?.Invoke(v);
         _contentPanel.DebugWindowResizeRequested    += (w, h) => DebugWindowResizeRequested?.Invoke(w, h);

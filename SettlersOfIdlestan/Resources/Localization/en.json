@@ -8,6 +8,8 @@
   "settings_harvest_cooldown": "Harvest cooldown indicators",
   "settings_corruption_dominion": "Corruption and dominion",
   "settings_show_tutorial": "Show tutorial",
+  "settings_sound_enabled": "Sound effects",
+  "settings_sound_volume": "Sound effects volume",
   "settings_fullscreen": "Fullscreen",
   "settings_force_menu_position": "Menu at bottom",
   "settings_ui_scale": "UI scale",

@@ -29,7 +29,8 @@ public sealed class BrowserGameView : Border
 
         try
         {
-            _runtime.Initialize(new BrowserFileSystemService(), demoMode: BrowserInterop.HasQueryFlag("demo"));
+            _runtime.Initialize(new BrowserFileSystemService(), demoMode: BrowserInterop.HasQueryFlag("demo"),
+                audioService: new BrowserAudioService());
         }
         catch (Exception ex)
         {

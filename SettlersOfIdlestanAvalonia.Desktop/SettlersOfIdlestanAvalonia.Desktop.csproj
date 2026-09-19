@@ -20,6 +20,12 @@
     <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
     <PackageReference Include="Steamworks.NET" Version="2024.8.0" />
+    <!--
+      Bruitages : moteur audio multiplateforme adosse a miniaudio. Les binaires natifs voyagent
+      dans le paquet et sont deposes par RID a la publication, comme ceux de SkiaSharp — les trois
+      scripts install\build_desktop_*.bat n'ont rien de particulier a faire.
+    -->
+    <PackageReference Include="SoundFlow" Version="1.4.1" />
   </ItemGroup>
 
   <ItemGroup>

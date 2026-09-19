@@ -168,3 +168,77 @@ export function registerFullscreenHandler(onChanged) {
 export function appReady() {
     document.getElementById('loading')?.remove();
 }
+
+// ── Bruitages ───────────────────────────────────────────────────────────────────
+//
+// Web Audio, pendant navigateur de DesktopAudioService. Les WAV arrivent tels quels depuis les
+// ressources embarquees du jeu ; decodeAudioData s'occupe du reste, y compris du
+// reechantillonnage vers la frequence du contexte.
+//
+// Deux contraintes propres au navigateur :
+//   - un AudioContext cree hors geste utilisateur demarre « suspended » et reste muet. On le
+//     reveille au premier clic ou a la premiere touche, une seule fois (voir resumeOnGesture).
+//   - decodeAudioData est asynchrone. Les sons se chargent au demarrage, un declenchement qui
+//     tombe avant la fin du decodage ne trouve rien et ne joue rien, sans erreur.
+
+let audioContext = null;
+const audioBuffers = new Map();
+
+function ensureAudioContext() {
+    if (audioContext) return audioContext;
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return null;
+    try {
+        audioContext = new Ctor();
+        resumeOnGesture();
+        return audioContext;
+    } catch (e) {
+        console.error('[SOI] AudioContext indisponible', e);
+        return null;
+    }
+}
+
+function resumeOnGesture() {
+    const wake = () => {
+        audioContext?.resume?.().catch(() => {});
+        if (!audioContext || audioContext.state === 'running') {
+            document.removeEventListener('pointerdown', wake);
+            document.removeEventListener('keydown', wake);
+        }
+    };
+    document.addEventListener('pointerdown', wake);
+    document.addEventListener('keydown', wake);
+}
+
+// `wav` est le fichier brut. decodeAudioData consomme l'ArrayBuffer : on lui en donne une copie,
+// le tableau venu de .NET pouvant etre reutilise par l'appelant.
+export function audioLoad(name, wav) {
+    const ctx = ensureAudioContext();
+    if (!ctx) return;
+    const copy = new Uint8Array(wav).buffer;
+    ctx.decodeAudioData(copy)
+        .then((buffer) => audioBuffers.set(name, buffer))
+        .catch((e) => console.error('[SOI] WAV illisible : ' + name, e));
+}
+
+export function audioPlay(name, volume) {
+    const ctx = audioContext;
+    if (!ctx || ctx.state !== 'running') return;
+    const buffer = audioBuffers.get(name);
+    if (!buffer) return;
+
+    // Une source Web Audio est a usage unique : elle se cree, se joue et se laisse ramasser.
+    // C'est ce qui permet a un meme son de se superposer a lui-meme.
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.value = Math.max(0, Math.min(1, volume));
+    source.connect(gain).connect(ctx.destination);
+    source.start();
+}
+
+export function audioClose() {
+    audioBuffers.clear();
+    audioContext?.close?.().catch(() => {});
+    audioContext = null;
+}
