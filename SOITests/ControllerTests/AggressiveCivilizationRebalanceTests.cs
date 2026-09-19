@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SettlersOfIdlestan.Controller.Island;
+using SettlersOfIdlestan.Model.Buildings;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.GameplayModifier;
@@ -108,6 +109,94 @@ namespace SOITests.ControllerTests
             state.Visibility.RecalculateFor(civ.Index);
 
             Assert.Empty(state.Civilizations.Where(c => c.IsNpc));
+        }
+
+        // ── Bâtiments verrouillés des villes PNJ de couche ────────────────────
+
+        /// <summary>Les trois hexs du vertex de la ville, avec des terrains variés pour qu'un maximum
+        /// de bâtiments passe le filtre de terrain de PopulateAggressiveCity.</summary>
+        private static (IslandMap Map, Vertex Vertex) BuildCityVertexMap()
+        {
+            var h1 = new HexCoord(0, 0, IslandMap.SurfaceLayer);
+            var h2 = new HexCoord(1, 0, IslandMap.SurfaceLayer);
+            var h3 = new HexCoord(0, 1, IslandMap.SurfaceLayer);
+            var map = new IslandMap(new[]
+            {
+                new HexTile(h1, TerrainType.Mountain),
+                new HexTile(h2, TerrainType.Forest),
+                new HexTile(h3, TerrainType.Plain),
+            });
+            return (map, Vertex.Create(h1, h2, h3));
+        }
+
+        private static City PopulateCityFor(Civilization civ)
+        {
+            var (map, vertex) = BuildCityVertexMap();
+            var city = new City(vertex) { CivilizationIndex = civ.Index };
+            AutoExtendController.PopulateAggressiveCity(city, map, civ);
+            return city;
+        }
+
+        [Fact]
+        public void PopulateAggressiveCity_NeverGrantsBuildingLockedForThatCivilization()
+        {
+            var state = new WorldState(
+                new IslandMap(new[] { new HexTile(new HexCoord(0, 0, IslandMap.SurfaceLayer), TerrainType.Plain) }),
+                new List<Civilization> { new() { Index = 0 } },
+                AtlasController.InvalidIslandId);
+            var controller = new AutoExtendController();
+            controller.Initialize(state, new GamePRNG(1), prestigeState: new PrestigeState()); // Tier == 1
+
+            var npcCiv = new Civilization { Index = 1, IsNpc = true };
+            npcCiv.SetNpcModifiers(new StaticModifierProvider(
+                controller.BuildLayerCivModifiers(tierOffset: 1, fixedBonusMultiplier: 1)));
+
+            var city = PopulateCityFor(npcCiv);
+
+            // Aucun bâtiment posé ne doit être hors de portée des recherches/prestiges de la civ.
+            var locked = city.Buildings
+                .Where(b => npcCiv.GetBuildingMaxLevel(b) <= 0)
+                .Select(b => b.Type)
+                .ToList();
+            Assert.Empty(locked);
+
+            // Cas concret à l'origine de la règle : la Spire de Défense n'est ouverte que par un vertex
+            // de prestige de la branche magie, très au-delà du rayon d'un PNJ de Tier 1.
+            Assert.Equal(0, npcCiv.GetBuildingMaxLevel(new DefenseSpire()));
+            Assert.DoesNotContain(city.Buildings, b => b.Type == BuildingType.DefenseSpire);
+        }
+
+        [Fact]
+        public void PopulateAggressiveCity_GrantsLockedBuilding_AtTheLevelItsOwnModifiersUnlock()
+        {
+            var npcCiv = new Civilization { Index = 1, IsNpc = true };
+            npcCiv.SetNpcModifiers(new StaticModifierProvider(new List<Modifier>
+            {
+                new(ECategory.BUILDING_MAX_LEVEL, "DefenseSpire", EType.ADDITIVE, 2),
+            }));
+
+            var city = PopulateCityFor(npcCiv);
+
+            var spire = city.Buildings.SingleOrDefault(b => b.Type == BuildingType.DefenseSpire);
+            Assert.NotNull(spire);
+            Assert.Equal(2, spire!.Level);
+        }
+
+        [Fact]
+        public void PopulateAggressiveCity_KeepsDefaultMaxLevel_ForBuildingsUnlockedByDefault()
+        {
+            var npcCiv = new Civilization { Index = 1, IsNpc = true };
+            npcCiv.SetNpcModifiers(new StaticModifierProvider(new List<Modifier>
+            {
+                // Un bonus de niveau max sur un bâtiment déjà ouvert par défaut ne doit pas gonfler la
+                // ville PNJ : seuls les bâtiments verrouillés changent de traitement.
+                new(ECategory.BUILDING_MAX_LEVEL, "Sawmill", EType.ADDITIVE, 5),
+            }));
+
+            var city = PopulateCityFor(npcCiv);
+
+            var sawmill = city.Buildings.Single(b => b.Type == BuildingType.Sawmill);
+            Assert.Equal(new Sawmill().GetDefaultMaxLevel(), sawmill.Level);
         }
     }
 }

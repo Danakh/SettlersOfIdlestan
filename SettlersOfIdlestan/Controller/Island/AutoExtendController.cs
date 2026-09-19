@@ -920,7 +920,7 @@ public class AutoExtendController
             if (tooCloseToOwn) continue;
 
             var city = new City(vertex) { CivilizationIndex = npcCiv.Index };
-            PopulateAggressiveCity(city, map);
+            PopulateAggressiveCity(city, map, npcCiv);
             city.Soldiers = city.MaxSoldiers + npcCiv.GetCityMaxSoldiersBonus(vertex.Z);
             npcCiv.AddCity(city);
             citiesPlaced++;
@@ -966,10 +966,25 @@ public class AutoExtendController
         return candidates;
     }
 
-    // Niveau appliqué aux bâtiments dont le max de base est 0 (verrouillés par prestige)
-    private const int NpcPrestigeLevelOverride = 3;
-
-    private static void PopulateAggressiveCity(City city, IslandMap map)
+    /// <summary>
+    /// Remplit une ville PNJ de couche avec un exemplaire de chaque bâtiment non unique que le terrain
+    /// autorise, <b>et que les recherches/le prestige de <paramref name="civ"/> lui ouvrent réellement</b>.
+    ///
+    /// <para>Un bâtiment dont <c>GetDefaultMaxLevel()</c> vaut 0 n'existe que si une recherche, un vertex
+    /// de prestige, un pouvoir divin ou une race lui accorde un BUILDING_MAX_LEVEL : c'est le cas de la
+    /// Spire de Défense (vertex de prestige de la branche magie), de l'Atelier de Colosses, de la Forge
+    /// Runique… Ces bâtiments recevaient jusqu'ici un niveau forfaitaire de 3, sans rapport avec le jeu de
+    /// modificateurs de la civilisation : le joueur croisait des Spires de Défense chez des PNJ dont le
+    /// tier n'atteint même pas le vertex qui les débloque. On interroge donc
+    /// <see cref="Model.Civilization.Civilization.GetBuildingMaxLevel"/>, qui lit l'agrégateur déjà posé
+    /// par <see cref="CreateAggressiveCivilizationShell"/> : max 0 = verrouillé pour cette civ, le
+    /// bâtiment n'est pas construit du tout.</para>
+    ///
+    /// <para>Les bâtiments déjà ouverts par défaut (max de base &gt; 0) gardent leur niveau max de base
+    /// plutôt que le plafond gonflé par les modificateurs — la puissance des villes PNJ existantes ne
+    /// bouge pas, seuls les bâtiments verrouillés disparaissent.</para>
+    /// </summary>
+    internal static void PopulateAggressiveCity(City city, IslandMap map, Civilization civ)
     {
         // TownHall en premier — son level détermine city.Level pour les checks AvailableAtLevel
         var townHall = new TownHall { Level = new TownHall().GetDefaultMaxLevel() };
@@ -990,10 +1005,18 @@ public class AutoExtendController
             // générées sans que rien ici ne le demande.
             if (!building.IsBuildingAvailableForCity(map, city, null)) continue;
 
-            int maxLevel = building.GetDefaultMaxLevel() > 0
-                ? building.GetDefaultMaxLevel()
-                : NpcPrestigeLevelOverride;
-            building.Level = maxLevel;
+            int defaultMaxLevel = building.GetDefaultMaxLevel();
+            if (defaultMaxLevel <= 0)
+            {
+                // Verrouillé par défaut : seul le jeu de modificateurs de la civilisation peut l'ouvrir.
+                int unlockedMaxLevel = civ.GetBuildingMaxLevel(building);
+                if (unlockedMaxLevel <= 0) continue;
+                building.Level = unlockedMaxLevel;
+            }
+            else
+            {
+                building.Level = defaultMaxLevel;
+            }
 
             if (building.ActivationStatus != ActivationStatus.NON_ACTIVABLE)
                 building.ActivationStatus = ActivationStatus.ACTIVE;
