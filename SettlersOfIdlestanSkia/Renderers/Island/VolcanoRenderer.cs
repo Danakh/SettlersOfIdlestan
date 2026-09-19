@@ -21,8 +21,15 @@ public class VolcanoRenderer : HexBasedRenderer, IGameRenderer
     private const long TicksBeforeShake     = 300L;    // 3 s  → tremblement
 
     private const float IconSize         = 32f;
-    private const float FireballDuration = 0.7f;
     private const float FireballIconSize = 20f;
+
+    /// <summary>
+    /// Temps de vol d'une bombe volcanique jusqu'à la ville. Public parce que
+    /// <c>GameAudioService</c> en déduit l'instant de l'impact : le bruitage du coup encaissé part
+    /// quand la bombe touche, pas quand le volcan crache.
+    /// </summary>
+    public const float FireballDuration = 0.7f;
+
     private const float ShakeFrequency   = 35f;   // rad/s
     private const float ShakeMaxAmplitude = 4f;   // px
 

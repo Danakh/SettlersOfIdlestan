@@ -29,7 +29,7 @@ public class SoundBankTests
     {
         Assert.Equal("toast_warning.wav", SoundBank.FileName(SoundId.ToastWarning));
         Assert.Equal("achievement.wav", SoundBank.FileName(SoundId.Achievement));
-        Assert.Equal("building_destroyed.wav", SoundBank.FileName(SoundId.BuildingDestroyed));
+        Assert.Equal("city_founded.wav", SoundBank.FileName(SoundId.CityFounded));
     }
 
     /// <summary>
@@ -219,7 +219,6 @@ public class SoundCategoryTests
 
         audio.Play(SoundId.AttackDealt);
         audio.Play(SoundId.AttackTaken);
-        audio.Play(SoundId.BuildingDestroyed);
         audio.Play(SoundId.ToastWarning);
         audio.Play(SoundId.HarvestManual);
         audio.Play(SoundId.CityFounded);
@@ -293,9 +292,8 @@ public class SoundCategoryTests
         audio.Play(SoundId.CityLost);
         audio.Play(SoundId.CityFounded);
         audio.Play(SoundId.AttackTaken);
-        audio.Play(SoundId.BuildingDestroyed);
 
-        Assert.Equal([SoundId.CityFounded, SoundId.AttackTaken, SoundId.BuildingDestroyed], played);
+        Assert.Equal([SoundId.CityFounded, SoundId.AttackTaken], played);
     }
 
     /// <summary>La reciproque : couper le combat et la fondation laisse passer la perte.</summary>
@@ -338,14 +336,14 @@ public class SoundCategoryTests
         var settings = Settings(combat: false);
         var (audio, played) = Build(settings);
 
-        audio.Play(SoundId.BuildingDestroyed);
+        audio.Play(SoundId.AttackTaken);
         Assert.Empty(played);
 
         settings.SoundCombatEnabled = true;
         audio.ApplySettings(settings);
-        audio.Play(SoundId.BuildingDestroyed);
+        audio.Play(SoundId.AttackTaken);
 
-        Assert.Equal([SoundId.BuildingDestroyed], played);
+        Assert.Equal([SoundId.AttackTaken], played);
     }
 
     /// <summary>
@@ -373,5 +371,181 @@ public class SoundCategoryTests
         var (silent, none) = Build(new GameSettings { SoundEnabled = true, SoundVolume = 0f });
         silent.PlayPreview(SoundId.ToastInfo);
         Assert.Empty(none);
+    }
+}
+
+/// <summary>
+/// Les coups sonnent a l'impact, pas a l'evenement : le controleur resout une attaque d'un bloc,
+/// le rendu met une demi-seconde a plus d'une seconde a l'amener sur sa cible. Sans ce delai le
+/// joueur entend le coup au depart de la particule, bien avant de le voir porter.
+/// </summary>
+public class CombatImpactSoundTests
+{
+    private sealed class RecordingAudioService(List<SoundId> played) : IAudioService
+    {
+        public void Load(SoundId id, byte[] wav) { }
+        public void Play(SoundId id, float volume) => played.Add(id);
+        public void Dispose() { }
+    }
+
+    /// <summary>Assez court pour ne pas ralentir la suite, assez long pour tenir une frame.</summary>
+    private const float Travel = 0.05f;
+
+    private static GameSettings Settings(bool combat = true) =>
+        new() { SoundEnabled = true, SoundVolume = 1f, SoundCombatEnabled = combat };
+
+    private static (GameAudioService Audio, List<SoundId> Played) Build(GameSettings settings)
+    {
+        var played = new List<SoundId>();
+        var audio = new GameAudioService(new RecordingAudioService(played));
+        audio.ApplySettings(settings);
+        return (audio, played);
+    }
+
+    /// <summary>Attendre l'echeance sans dependre de la precision du sommeil.</summary>
+    private static void AttendreLImpact() => Thread.Sleep((int)(Travel * 1000) + 40);
+
+    [Fact]
+    public void Le_coup_ne_sonne_pas_au_depart_de_la_particule()
+    {
+        var (audio, played) = Build(Settings());
+
+        audio.PlayOnImpact(SoundId.AttackDealt, Travel);
+        Assert.Empty(played);
+
+        // Frame suivante, la particule est encore en vol.
+        audio.Update();
+        Assert.Empty(played);
+    }
+
+    [Fact]
+    public void Le_coup_sonne_quand_la_particule_arrive()
+    {
+        var (audio, played) = Build(Settings());
+
+        audio.PlayOnImpact(SoundId.AttackDealt, Travel);
+        AttendreLImpact();
+        audio.Update();
+
+        Assert.Equal([SoundId.AttackDealt], played);
+    }
+
+    /// <summary>Une fois joue, le coup quitte la file : la frame d'apres ne le rejoue pas.</summary>
+    [Fact]
+    public void Un_coup_arrive_ne_sonne_qu_une_fois()
+    {
+        var (audio, played) = Build(Settings());
+
+        audio.PlayOnImpact(SoundId.AttackDealt, Travel);
+        AttendreLImpact();
+        audio.Update();
+        audio.Update();
+        audio.Update();
+
+        Assert.Single(played);
+    }
+
+    /// <summary>
+    /// Sans animation a attendre, l'appelant n'a rien de special a faire : le son part tout de
+    /// suite, sans passer par la file.
+    /// </summary>
+    [Fact]
+    public void Un_temps_de_vol_nul_sonne_immediatement()
+    {
+        var (audio, played) = Build(Settings());
+
+        audio.PlayOnImpact(SoundId.AttackDealt, 0f);
+
+        Assert.Equal([SoundId.AttackDealt], played);
+    }
+
+    /// <summary>
+    /// Le garde-fou de cadence compte les departs : une fin de partie qui resout cinquante coups
+    /// dans le meme tick ne doit pas remplir la file de cinquante impacts a venir.
+    /// </summary>
+    [Fact]
+    public void La_cadence_est_consommee_au_depart()
+    {
+        var (audio, played) = Build(Settings());
+
+        for (int i = 0; i < 50; i++) audio.PlayOnImpact(SoundId.AttackDealt, Travel);
+        AttendreLImpact();
+        audio.Update();
+
+        Assert.Single(played);
+    }
+
+    /// <summary>
+    /// Le joueur peut couper le son pendant qu'un coup est en vol : ce sont les reglages de
+    /// l'arrivee qui decident, pas ceux du depart.
+    /// </summary>
+    [Fact]
+    public void Couper_la_famille_pendant_le_vol_tait_le_coup()
+    {
+        var settings = Settings();
+        var (audio, played) = Build(settings);
+
+        audio.PlayOnImpact(SoundId.AttackDealt, Travel);
+        settings.SoundCombatEnabled = false;
+        audio.ApplySettings(settings);
+
+        AttendreLImpact();
+        audio.Update();
+
+        Assert.Empty(played);
+    }
+
+    /// <summary>La reciproque : une famille coupee au depart ne met rien en file.</summary>
+    [Fact]
+    public void La_famille_coupee_au_depart_ne_met_rien_en_file()
+    {
+        var settings = Settings(combat: false);
+        var (audio, played) = Build(settings);
+
+        audio.PlayOnImpact(SoundId.AttackDealt, Travel);
+        settings.SoundCombatEnabled = true;
+        audio.ApplySettings(settings);
+
+        AttendreLImpact();
+        audio.Update();
+
+        Assert.Empty(played);
+    }
+
+    /// <summary>
+    /// Saut de temps, transition de prestige, intro : les coups restes en vol sont jetes, pas
+    /// deverses d'un bloc au retour — c'est ce que font aussi les renderers de leurs particules.
+    /// </summary>
+    [Fact]
+    public void Une_suppression_jette_les_coups_en_vol()
+    {
+        var played = new List<SoundId>();
+        bool suppressed = false;
+        var audio = new GameAudioService(new RecordingAudioService(played));
+        audio.ApplySettings(Settings());
+        audio.SetSuppression(() => suppressed);
+
+        audio.PlayOnImpact(SoundId.AttackDealt, Travel);
+        suppressed = true;
+        audio.Update();
+
+        suppressed = false;
+        AttendreLImpact();
+        audio.Update();
+
+        Assert.Empty(played);
+    }
+
+    /// <summary>Sans sortie audio, la file ne se remplit pas et Update ne leve pas.</summary>
+    [Fact]
+    public void Sans_service_audio_l_impact_reste_silencieux_sans_erreur()
+    {
+        var audio = new GameAudioService(null);
+
+        audio.ApplySettings(Settings());
+        audio.PlayOnImpact(SoundId.AttackDealt, Travel);
+        AttendreLImpact();
+        audio.Update();
+        audio.Dispose();
     }
 }

@@ -16,10 +16,27 @@ namespace SettlersOfIdlestanSkia.Renderers.Island;
 public class MonsterRenderer : HexBasedRenderer, IGameRenderer
 {
     private const float AnimationDuration = 1f;
-    private const float AttackAnimDuration = 0.8f;
+    /// <summary>
+    /// Durée de l'élan du corps-à-corps, aller-retour compris : l'icône du monstre est sur sa
+    /// cible à la moitié (voir <see cref="MeleeImpactDelay"/>).
+    /// </summary>
+    public const float AttackAnimDuration = 0.8f;
+
+    /// <summary>
+    /// Instant, après le début de l'élan, où l'icône du monstre touche sa cible. Public parce que
+    /// <c>GameAudioService</c> y cale le bruitage du coup encaissé.
+    /// </summary>
+    public const float MeleeImpactDelay = AttackAnimDuration / 2f;
+
     private const float ResourceFlyDuration = 0.6f;
     private const float ResourceIconSize = 18f;
-    private const float AttackParticleDuration = 0.5f;
+
+    /// <summary>
+    /// Temps de vol d'une particule d'attaque — soldat, boule de feu rouge ou bleue. Public parce
+    /// que <c>GameAudioService</c> en déduit l'instant de l'impact : le bruitage part à l'arrivée
+    /// sur la cible, pas au départ.
+    /// </summary>
+    public const float AttackParticleDuration = 0.5f;
     private const float AttackParticleIconSize = 16f;
 
     /// <summary>Taille d'une boule de feu, rouge ou bleue — celle du volcan (voir VolcanoRenderer).</summary>

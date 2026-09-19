@@ -788,6 +788,11 @@ public sealed class GameScreen : IDisposable
         _tickStopwatch.Restart();
         var deltaTime = (float)Math.Max(elapsed, 0f);
 
+        // Coups portés dont la particule vient d'atteindre sa cible. Avant le saut de temps, qui
+        // court-circuite le reste : c'est là que les coups restés en vol sont jetés plutôt que
+        // déversés d'un bloc au retour.
+        _audio?.Update();
+
         // Saut de temps en cours : la simulation avance par tranches bornées en temps et rien
         // d'autre ne tourne. Le temps réel est volontairement ignoré pendant ce temps — l'horloge
         // plafonne de toute façon son rattrapage à 100 ms au retour — et la sauvegarde auto attend

@@ -18,12 +18,20 @@ namespace SettlersOfIdlestan.Controller.Military;
 /// Un monstre vient de porter un coup à un emplacement militaire (ville, Flotte de Guerre, Camp
 /// Mobile). Pendant côté monstre de <see cref="SoldierAttackEventArgs"/>.
 /// </summary>
-public class MonsterAttackEventArgs(HexCoord monsterPosition, Vertex targetVertex) : EventArgs
+public class MonsterAttackEventArgs(HexCoord monsterPosition, Vertex targetVertex, bool ranged = false) : EventArgs
 {
     public HexCoord MonsterPosition { get; } = monsterPosition;
 
     /// <summary>Cible touchée. L'abonné y reconnaît, ou non, un de ses propres emplacements.</summary>
     public Vertex TargetVertex { get; } = targetVertex;
+
+    /// <summary>
+    /// Coup tiré de loin (voir <see cref="Model.Monsters.MonsterAttack.IsRanged"/>) plutôt que
+    /// porté d'une ruée. Les deux ne mettent pas le même temps à atteindre la cible à l'écran —
+    /// une boule de feu traverse la distance, l'icône du monstre s'élance et revient — et
+    /// <c>GameAudioService</c> s'en sert pour faire sonner le coup au moment de l'impact.
+    /// </summary>
+    public bool Ranged { get; } = ranged;
 }
 
 public class MonsterFeatureController
@@ -824,7 +832,7 @@ public class MonsterFeatureController
             var impacts = monster.LastAttackImpacts;
             for (int i = 0; i < impacts.Count; i++)
                 if (impacts[i].Vertex is { } hitVertex)
-                    MonsterAttackedVertex?.Invoke(this, new MonsterAttackEventArgs(monster.Position, hitVertex));
+                    MonsterAttackedVertex?.Invoke(this, new MonsterAttackEventArgs(monster.Position, hitVertex, impacts[i].Ranged));
         }
     }
 

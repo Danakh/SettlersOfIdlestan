@@ -17,7 +17,12 @@ namespace SettlersOfIdlestanSkia.Renderers.Island;
 
 public class MilitaryRenderer : HexBasedRenderer, IGameRenderer
 {
-    private const float SegmentDuration = 0.35f;
+    /// <summary>
+    /// Durée de parcours d'un segment du chemin par une particule d'assaut. Public parce que
+    /// <c>GameAudioService</c> en déduit l'instant de l'impact : le bruitage du coup part quand la
+    /// particule touche la ville visée, pas quand le contrôleur résout l'attaque.
+    /// </summary>
+    public const float SegmentDuration = 0.35f;
     private const float ParticleIconSize = 16f;
     private const float SvgNativeSize = 64f;
     private const float ArrowSize = 9f;

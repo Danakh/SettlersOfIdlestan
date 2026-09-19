@@ -3,6 +3,7 @@ using SettlersOfIdlestan.Controller.Island;
 using SettlersOfIdlestan.Model.Civilization;
 using SettlersOfIdlestan.Model.Game;
 using SettlersOfIdlestan.Model.HexGrid;
+using SettlersOfIdlestanSkia.Renderers.Island;
 using SettlersOfIdlestanSkia.Renderers.Overlay;
 
 namespace SettlersOfIdlestanSkia.Services.Audio;
@@ -26,6 +27,13 @@ namespace SettlersOfIdlestanSkia.Services.Audio;
 /// <item>le filtrage par propriétaire : les combats des civilisations PNJ entre elles sont
 /// silencieux, seuls les coups portés et reçus par le joueur s'entendent.</item>
 /// </list>
+///
+/// <para><b>Les coups sonnent à l'impact, pas à l'événement</b> — voir
+/// <see cref="PlayOnImpact"/>. Le contrôleur résout une attaque d'un bloc, alors que le rendu la
+/// met une demi-seconde à plus d'une seconde à la montrer : soldats qui remontent le chemin,
+/// boule de feu qui traverse la distance, monstre qui s'élance sur sa cible. Joué à l'événement,
+/// le bruitage tombait sur le départ de la particule et le joueur entendait le coup avant de le
+/// voir porter.</para>
 /// </summary>
 public sealed class GameAudioService : IDisposable
 {
@@ -36,6 +44,9 @@ public sealed class GameAudioService : IDisposable
 
     /// Horodatage (<see cref="Stopwatch.GetTimestamp"/>) du dernier passage de chaque son.
     private readonly long[] _lastPlayed;
+
+    /// Coups partis mais pas encore arrivés — voir <see cref="PlayOnImpact"/> et <see cref="Update"/>.
+    private readonly List<PendingSound> _pending = new();
 
     private Func<bool>? _suppressed;
     private Func<Civilization?>? _playerCivilization;
@@ -70,15 +81,14 @@ public sealed class GameAudioService : IDisposable
     /// </summary>
     private static double MinInterval(SoundId id) => id switch
     {
-        SoundId.AttackDealt       => 0.13,
-        SoundId.AttackTaken       => 0.16,
-        SoundId.HarvestManual     => 0.05,
-        SoundId.BuildingDestroyed => 0.30,
-        SoundId.CityFounded       => 0.30,
+        SoundId.AttackDealt   => 0.13,
+        SoundId.AttackTaken   => 0.16,
+        SoundId.HarvestManual => 0.05,
+        SoundId.CityFounded   => 0.30,
         // Le plus long des bruitages : deux chutes de ville dans le même tick se
         // superposeraient en bouillie, là où une seule dit déjà qu'on recule.
-        SoundId.CityLost          => 0.90,
-        _                         => 0.35,
+        SoundId.CityLost      => 0.90,
+        _                     => 0.35,
     };
 
     /// <summary>
@@ -91,17 +101,17 @@ public sealed class GameAudioService : IDisposable
     private static SoundCategory Category(SoundId id) => id switch
     {
         SoundId.ToastInfo    or SoundId.ToastWarning or
-        SoundId.ToastVictory or SoundId.ToastLoss                                 => SoundCategory.Toast,
+        SoundId.ToastVictory or SoundId.ToastLoss    => SoundCategory.Toast,
 
-        SoundId.Achievement                                                       => SoundCategory.Achievement,
+        SoundId.Achievement                          => SoundCategory.Achievement,
 
-        SoundId.AttackDealt  or SoundId.AttackTaken  or SoundId.BuildingDestroyed => SoundCategory.Combat,
+        SoundId.AttackDealt  or SoundId.AttackTaken  => SoundCategory.Combat,
 
-        SoundId.CityFounded                                                       => SoundCategory.City,
+        SoundId.CityFounded                          => SoundCategory.City,
 
-        SoundId.CityLost                                                          => SoundCategory.CityLost,
+        SoundId.CityLost                             => SoundCategory.CityLost,
 
-        SoundId.HarvestManual                                                     => SoundCategory.Harvest,
+        SoundId.HarvestManual                        => SoundCategory.Harvest,
 
         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "Son sans famille déclarée."),
     };
@@ -113,12 +123,11 @@ public sealed class GameAudioService : IDisposable
     /// </summary>
     private static float Mix(SoundId id) => id switch
     {
-        SoundId.HarvestManual     => 0.55f,
-        SoundId.AttackDealt       => 0.5f,
-        SoundId.AttackTaken       => 0.6f,
-        SoundId.BuildingDestroyed => 0.8f,
-        SoundId.CityFounded       => 0.8f,
-        _                         => 1f,
+        SoundId.HarvestManual => 0.55f,
+        SoundId.AttackDealt   => 0.5f,
+        SoundId.AttackTaken   => 0.6f,
+        SoundId.CityFounded   => 0.8f,
+        _                     => 1f,
     };
 
     /// <summary>
@@ -196,6 +205,66 @@ public sealed class GameAudioService : IDisposable
         _audio!.Play(id, Mix(id) * _volume);
     }
 
+    /// <summary>Un son retenu jusqu'à l'instant (<see cref="Stopwatch.GetTimestamp"/>) de l'impact.</summary>
+    private readonly record struct PendingSound(SoundId Id, long DueAt);
+
+    /// <summary>
+    /// Retient un son jusqu'à ce que le rendu ait amené le coup sur sa cible : la particule
+    /// arrive, ou l'icône du monstre est au contact. <paramref name="travelSeconds"/> est le temps
+    /// de vol, lu sur les constantes d'animation des renderers concernés — c'est là qu'il se
+    /// règle, ici on ne fait que le suivre.
+    ///
+    /// <para><b>Le garde-fou de cadence est consommé au départ, pas à l'arrivée</b> : le budget
+    /// « un passage par intervalle » compte les coups portés, et deux salves espacées de moins que
+    /// l'intervalle ne doivent produire qu'un son même si leurs particules ont des chemins de
+    /// longueurs différentes. La contrepartie est que deux impacts peuvent se rapprocher à
+    /// l'arrivée — une attaque lointaine puis une attaque au contact ; à ces durées c'est
+    /// inaudible, et c'est le prix du son calé sur l'image.</para>
+    ///
+    /// <para>Un temps de vol nul ou négatif joue tout de suite : l'appelant qui n'a pas
+    /// d'animation à attendre n'a rien de spécial à faire.</para>
+    /// </summary>
+    public void PlayOnImpact(SoundId id, float travelSeconds)
+    {
+        if (travelSeconds <= 0f) { Play(id); return; }
+        if (!IsReady(id)) return;
+
+        long now = Stopwatch.GetTimestamp();
+        _lastPlayed[(int)id] = now;
+        _pending.Add(new PendingSound(id, now + (long)(travelSeconds * Stopwatch.Frequency)));
+    }
+
+    /// <summary>
+    /// Fait sonner les coups dont la particule vient d'arriver. Appelée à chaque frame par
+    /// <c>GameScreen</c>, <b>avant</b> qu'un saut de temps ne court-circuite le reste de la boucle :
+    /// c'est ce qui permet d'y jeter les coups en vol plutôt que de les déverser d'un bloc au
+    /// retour, exactement comme les renderers cessent d'émettre leurs particules pendant le saut.
+    /// </summary>
+    public void Update()
+    {
+        if (_pending.Count == 0) return;
+
+        if (_disposed || _audio == null || _suppressed?.Invoke() == true)
+        {
+            _pending.Clear();
+            return;
+        }
+
+        long now = Stopwatch.GetTimestamp();
+        for (int i = 0; i < _pending.Count; i++)
+        {
+            var p = _pending[i];
+            if (now < p.DueAt) continue;
+
+            _pending.RemoveAt(i--);
+
+            // Relus à l'arrivée : le joueur a pu couper le son, la famille ou le volume pendant
+            // que le coup était en vol. L'intervalle, lui, a déjà été consommé au départ.
+            if (!_enabled || _volume <= 0f || !IsCategoryEnabled(p.Id)) continue;
+            _audio.Play(p.Id, Mix(p.Id) * _volume);
+        }
+    }
+
     // ── Toasts ───────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -259,7 +328,7 @@ public sealed class GameAudioService : IDisposable
     {
         if (_disposed || _audio == null) return;
 
-        _suppressed = suppressed;
+        SetSuppression(suppressed);
         _playerCivilization = () => controllers.PlayerCivilization;
 
         var main = controllers.MainGameController;
@@ -274,22 +343,36 @@ public sealed class GameAudioService : IDisposable
         };
 
         // ── Coups portés ──
-        main.MilitaryController.SoldierAttackedMonster += (_, e) => PlayIfOurs(e.CityVertex, SoundId.AttackDealt);
-        main.MilitaryController.DefenseSpireAttackedMonster += (_, e) => PlayIfOurs(e.CityVertex, SoundId.AttackDealt);
+        // Soldats et Spire de Défense lancent la même particule vers le monstre (MonsterRenderer),
+        // qui met AttackParticleDuration à l'atteindre.
+        main.MilitaryController.SoldierAttackedMonster += (_, e) =>
+            PlayIfOurs(e.CityVertex, SoundId.AttackDealt, MonsterRenderer.AttackParticleDuration);
+        main.MilitaryController.DefenseSpireAttackedMonster += (_, e) =>
+            PlayIfOurs(e.CityVertex, SoundId.AttackDealt, MonsterRenderer.AttackParticleDuration);
 
         // Une attaque entre villes se juge des deux côtés : nos soldats partent à l'assaut, ou
         // c'est notre ville qui est prise pour cible. Une civilisation PNJ qui en attaque une
         // autre ne produit rien.
+        //
+        // Les soldats remontent le chemin segment par segment (MilitaryRenderer) : une ville
+        // voisine est touchée en un tiers de seconde, une ville au bout de quatre routes en plus
+        // d'une seconde. Le son suit — c'est la seule attaque du jeu dont le délai dépend de la
+        // distance.
         main.MilitaryController.SoldierAttackedCity += (_, e) =>
         {
-            if (IsReady(SoundId.AttackDealt) && IsOurs(e.SourceCity)) Play(SoundId.AttackDealt);
-            else if (IsReady(SoundId.AttackTaken) && IsOurs(e.TargetCity)) Play(SoundId.AttackTaken);
+            float travel = CityAttackTravelTime(e.Path);
+            if (IsReady(SoundId.AttackDealt) && IsOurs(e.SourceCity)) PlayOnImpact(SoundId.AttackDealt, travel);
+            else if (IsReady(SoundId.AttackTaken) && IsOurs(e.TargetCity)) PlayOnImpact(SoundId.AttackTaken, travel);
         };
 
         // ── Coups reçus ──
-        main.MonsterFeatureController.MonsterAttackedVertex += (_, e) => PlayIfOurs(e.TargetVertex, SoundId.AttackTaken);
-        main.VolcanoController.VolcanoHitCity += (_, e) => PlayIfOurs(e.TargetCityVertex, SoundId.AttackTaken);
-        main.MilitaryController.CityBuildingDestroyed += (_, e) => PlayIfOurs(e.CityVertex, SoundId.BuildingDestroyed);
+        // Un monstre frappe de deux façons (MonsterRenderer) : la boule de feu traverse la
+        // distance, la ruée amène l'icône sur sa cible à la moitié de son élan.
+        main.MonsterFeatureController.MonsterAttackedVertex += (_, e) => PlayIfOurs(
+            e.TargetVertex, SoundId.AttackTaken,
+            e.Ranged ? MonsterRenderer.AttackParticleDuration : MonsterRenderer.MeleeImpactDelay);
+        main.VolcanoController.VolcanoHitCity += (_, e) =>
+            PlayIfOurs(e.TargetCityVertex, SoundId.AttackTaken, VolcanoRenderer.FireballDuration);
 
         // ── Fondation ──
         main.CityBuilderController.OnCityBuilt += (_, e) => PlayIfOurCiv(e.CivilizationIndex, SoundId.CityFounded);
@@ -311,20 +394,34 @@ public sealed class GameAudioService : IDisposable
         };
     }
 
+    /// <summary>
+    /// Branche le prédicat qui fait tout taire : saut de temps, transition de prestige, animation
+    /// d'intro. Séparé de <see cref="Connect"/>, qui l'appelle, parce que les deux ne relèvent pas
+    /// de la même chose — l'état de l'affichage d'un côté, les événements de la partie de l'autre.
+    /// </summary>
+    public void SetSuppression(Func<bool> suppressed) => _suppressed = suppressed;
+
     private void PlayIfOurCiv(int civilizationIndex, SoundId sound)
     {
         if (civilizationIndex != _playerCivilization?.Invoke()?.Index) return;
         Play(sound);
     }
 
-    private void PlayIfOurs(Vertex vertex, SoundId sound)
+    /// <summary>
+    /// Temps que met la salve d'assaut à parcourir son chemin jusqu'à la ville visée — un segment
+    /// par route empruntée, à la cadence de <see cref="MilitaryRenderer"/>.
+    /// </summary>
+    private static float CityAttackTravelTime(List<Vertex> path)
+        => Math.Max(1, path.Count - 1) * MilitaryRenderer.SegmentDuration;
+
+    private void PlayIfOurs(Vertex vertex, SoundId sound, float travelSeconds)
     {
         // Ordre voulu : le garde-fou de cadence est une comparaison d'entiers, la recherche du
         // propriétaire un parcours de toutes nos villes. Inversé, chaque coup porté par chaque
         // soldat balaierait la liste.
         if (!IsReady(sound)) return;
         if (!IsOurs(vertex)) return;
-        Play(sound);
+        PlayOnImpact(sound, travelSeconds);
     }
 
     /// <summary>Vrai si ce vertex porte une de nos villes, Flottes de Guerre ou Camps Mobiles.</summary>
@@ -344,6 +441,7 @@ public sealed class GameAudioService : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        _pending.Clear();
         _audio?.Dispose();
     }
 }

@@ -14,6 +14,12 @@ Remplacer un son par un vrai enregistrement ne demande aucun changement de code 
 deposer un WAV du meme nom dans Resources/sounds/ (mono ou stereo, 16 bits ou 32 bits flottants,
 n'importe quelle frequence : SoundBank reechantillonne).
 
+C'est le cas de toast_warning, seul son importe du jeu : l'original est assets/sounds/
+toast_warning.mp3 (Epidemic Sound, "User Interface, Alert, Attention, Sudden"), converti une
+fois en WAV mono 44100 Hz et coupe a 0.95 s. Il n'est donc pas dans SOUNDS et ce script ne le
+reecrit jamais. Les trois autres toasts sont bien synthetises ici, mais calques sur lui pour
+que la famille tienne ensemble : voir `chime`.
+
 Deux regles valent pour tous les sons :
   - duree courte (< 1 s) : ce sont des retours d'interface, pas de la musique ;
   - fondu de fin systematique (voir `finish`), sinon la coupure nette claque dans le haut-parleur.
@@ -152,12 +158,38 @@ def at(buf, delay):
 
 def bell(freq, duration, brightness=0.35, curve=3.0):
     """
-    Cloche : fondamentale sinus plus une douzieme (x3) discrete. C'est ce timbre qui donne aux
-    toasts leur caractere "interface" sans sonner synthetique.
+    Cloche : fondamentale sinus plus une douzieme (x3) discrete. Timbre des sons d'evenement
+    (succes, fondation, chute d'une ville) : franc a l'attaque, eteint en quelques centaines de
+    millisecondes. Les toasts, eux, prennent la voix plus douce et plus longue de `chime`.
     """
     base = envelope(tone(freq, duration, "sine"), attack=0.004, curve=curve)
     harm = envelope(tone(freq * 3, duration * 0.6, "sine"), attack=0.002, curve=curve + 2)
     return mix(base, gain(harm, brightness))
+
+
+def chime(freq, duration, swell=0.08, sustain=0.10, curve=1.5,
+          octave=0.75, twelfth=0.50, fourth=0.26):
+    """
+    Voix des toasts, relevee sur toast_warning.wav (l'enregistrement importe, voir l'entete).
+    Trois traits la distinguent de `bell`, et ce sont eux qui font la famille :
+
+      - pas de transitoire : l'attaque est un fondu de 80 ms, le son s'ouvre au lieu de claquer ;
+      - les quatre premiers partiels sont presque aussi forts que la fondamentale, ce qui donne
+        le timbre de verre de l'original (la moitie de son energie est entre 800 et 2000 Hz) ;
+      - la queue est longue et tenue, la ou les cloches du jeu s'eteignent en 300 ms.
+
+    Rien au-dessus de 5 kHz : l'original n'y a rien non plus, et c'est ce qui lui permet d'etre
+    entendu sans etre agressif.
+    """
+    base = envelope(tone(freq, duration, "sine"),
+                    attack=swell, sustain=sustain, curve=curve)
+    p2 = envelope(tone(freq * 2, duration * 0.85, "sine"),
+                  attack=swell * 0.9, sustain=sustain * 0.7, curve=curve + 0.3)
+    p3 = envelope(tone(freq * 3, duration * 0.75, "sine"),
+                  attack=swell * 0.7, sustain=sustain * 0.5, curve=curve + 0.6)
+    p4 = envelope(tone(freq * 4, duration * 0.55, "sine"),
+                  attack=swell * 0.6, curve=curve + 1.0)
+    return mix(base, gain(p2, octave), gain(p3, twelfth), gain(p4, fourth))
 
 
 def finish(buf, peak=0.72, fade=0.02):
@@ -187,40 +219,54 @@ def write(name, buf):
 
 # -- Les sons ----------------------------------------------------------------
 
+# Les trois toasts synthetises. toast_warning est importe (voir l'entete) : c'est lui qui fixe
+# le timbre (`chime`), la duree (~1 s, queue comprise) et surtout le niveau. Il sort deux fois
+# plus bas que les anciennes cloches, d'ou les pics sur mesure ci-dessous : cales a l'oreille
+# electronique (RMS pondere A sur les 300 ms les plus fortes), les quatre toasts tombent a
+# -20 dB a un demi-decibel pres, donc aucun ne saute au visage a cote des autres.
+#
+# Ils sont aussi tous en re, la ou l'importe est un septieme diminue de do diese, l'accord qui
+# appelle re : la menace reste en suspens, les trois autres se posent.
+
 def toast_info():
-    """Deux cloches douces, seconde majeure ascendante. Neutre, ne doit rien evoquer."""
-    return mix(bell(784, 0.30),
-               at(gain(bell(880, 0.34), 0.85), 0.09))
-
-
-def toast_warning():
     """
-    Corne basse a deux notes descendantes, carre adouci. Une menace vient d'apparaitre : le son
-    doit attirer l'oeil sans faire sursauter, d'ou le filtre a 900 Hz qui retire le mordant.
+    Quinte a vide re-la doublee a l'octave : ni majeur ni mineur, rien a evoquer. Le plus court
+    et le plus discret des quatre, parce que c'est celui qui sonne le plus souvent.
     """
-    a = envelope(tone(311, 0.22, "square"), attack=0.012, sustain=0.06, curve=2.0)
-    b = envelope(tone(233, 0.34, "square"), attack=0.012, sustain=0.08, curve=1.8)
-    return lowpass(mix(a, at(b, 0.17)), 900)
+    return finish(lowpass(mix(chime(587, 0.72),
+                              at(gain(chime(880, 0.62), 0.7), 0.07),
+                              gain(chime(1175, 0.50), 0.26)), 6000), peak=0.30)
 
 
 def toast_victory():
-    """Arpege majeur ascendant : un monstre est tombe, une civilisation s'est eteinte."""
-    notes = [(523, 0.00), (659, 0.07), (784, 0.14), (1047, 0.21)]
-    return mix(*[at(gain(bell(f, 0.34 + i * 0.06), 0.9 ** i), d)
-                 for i, (f, d) in enumerate(notes)])
+    """
+    Re majeur qui monte, puis se repete une octave plus haut en echo lointain : un monstre est
+    tombe, une civilisation s'est eteinte. L'echo est le geste de l'importe, qui se redit lui
+    aussi a mi-parcours.
+    """
+    notes = [(587, 0.00), (740, 0.06), (880, 0.12), (1175, 0.18)]
+    voices = [at(gain(chime(f, 0.95 - i * 0.10, sustain=0.12), 0.9 ** i), d)
+              for i, (f, d) in enumerate(notes)]
+    echo = at(gain(mix(chime(880, 0.42), gain(chime(1175, 0.38), 0.7)), 0.28), 0.46)
+    return finish(lowpass(mix(*voices, echo), 6000), peak=0.40)
 
 
 def toast_loss():
     """
-    Chute mineure a trois notes, legerement desaccordee. Reservee aux vraies pertes (ville rasee,
-    portail perdu) : c'est le seul son du jeu qui s'autorise a sonner faux.
+    Re mineur qui retombe d'une tierce, chaque note doublee un demi-pour-cent plus bas. Reservee
+    aux vraies pertes (ville rasee, portail perdu) : c'est le seul son du jeu qui s'autorise a
+    sonner faux, le battement entre les deux voix en fait un accord qui se derobe.
     """
-    notes = [(440, 0.00), (349, 0.13), (262, 0.26)]
-    voices = []
-    for f, d in notes:
-        voices.append(at(bell(f, 0.42, brightness=0.15, curve=2.2), d))
-        voices.append(at(gain(bell(f * 0.995, 0.42, brightness=0.1, curve=2.2), 0.6), d))
-    return lowpass(mix(*voices), 2600)
+    def cluster(freqs, duration, level):
+        voices = []
+        for f in freqs:
+            voices.append(gain(chime(f, duration), level))
+            voices.append(gain(chime(f * 0.994, duration, octave=0.50, twelfth=0.26, fourth=0.10),
+                               level * 0.5))
+        return mix(*voices)
+
+    return finish(lowpass(mix(cluster([587, 698, 880], 0.88, 1.0),
+                              at(cluster([466, 587, 698], 0.56, 0.45), 0.34)), 5000), peak=0.36)
 
 
 def achievement():
@@ -264,13 +310,6 @@ def attack_taken():
     return finish(mix(thud, gain(body, 0.5)), peak=0.55)
 
 
-def building_destroyed():
-    """Effondrement : meme grave que le coup encaisse, tenu plus longtemps, avec un gravier."""
-    crash = envelope(lowpass(noise(0.40), 1100), attack=0.004, curve=2.2)
-    boom = envelope(tone(110, 0.32, "sine", freq_end=48), attack=0.003, curve=2.6)
-    return finish(mix(gain(crash, 0.7), boom), peak=0.6)
-
-
 def city_founded():
     """Triade chaude qui s'ouvre : une ville de plus, moment rare et positif."""
     notes = [262, 330, 392]
@@ -285,7 +324,7 @@ def city_lost():
     Une de nos villes vient de tomber. Glas grave a deux notes descendantes, sur un grondement
     d'effondrement qui s'eteint. C'est le son le plus long du jeu apres la fanfare, et le seul
     son grave a etre tenu : il doit passer par-dessus la bataille qui vient de l'emporter, la ou
-    building_destroyed (plus sec, plus court) ne coute qu'un batiment.
+    attack_taken (plus sec, plus court) ne marque qu'un coup encaisse.
     """
     toll = mix(bell(196, 0.55, brightness=0.12, curve=1.6),
                at(gain(bell(147, 0.62, brightness=0.10, curve=1.4), 0.9), 0.20))
@@ -294,16 +333,15 @@ def city_lost():
     return finish(lowpass(mix(toll, gain(rubble, 0.45), gain(sub, 0.6)), 2200), peak=0.7)
 
 
+# toast_warning n'y figure pas : c'est le seul son importe, ce script ne doit pas l'ecraser.
 SOUNDS = {
     "toast_info": toast_info,
-    "toast_warning": toast_warning,
     "toast_victory": toast_victory,
     "toast_loss": toast_loss,
     "achievement": achievement,
     "harvest_manual": harvest_manual,
     "attack_dealt": attack_dealt,
     "attack_taken": attack_taken,
-    "building_destroyed": building_destroyed,
     "city_founded": city_founded,
     "city_lost": city_lost,
 }

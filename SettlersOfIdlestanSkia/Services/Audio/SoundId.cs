@@ -40,16 +40,13 @@ public enum SoundId
     /// <summary>Coup encaissé par une de nos villes : monstre, civilisation ennemie ou éruption.</summary>
     AttackTaken,
 
-    /// <summary>Un bâtiment d'une de nos villes vient d'être détruit au combat.</summary>
-    BuildingDestroyed,
-
     /// <summary>Ville ou avant-poste fondé.</summary>
     CityFounded,
 
     /// <summary>
     /// Une de nos villes vient de tomber — prise par une civilisation ennemie ou rasée par un
     /// monstre. Le seul son du jeu qui annonce une perte définitive de territoire : il est plus
-    /// long et plus grave que <see cref="BuildingDestroyed"/>, qui ne coûte qu'un bâtiment.
+    /// long et plus grave que <see cref="AttackTaken"/>, qui ne marque qu'un coup encaissé.
     /// </summary>
     CityLost,
 }
